@@ -6,6 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .core import metrics
+from .rating import RatingEstimate, puzzle_elo
 from .tasks.puzzles import PuzzleResult
 
 
@@ -32,6 +33,7 @@ class PuzzleReport:
     failures_illegal: int
     failures_wrong: int
     curve: metrics.RatingCurve
+    elo: RatingEstimate           # MLE puzzle-Elo (performance rating)
     themes: list[ThemeStat] = field(default_factory=list)
 
     @property
@@ -60,6 +62,7 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     fail_illegal = sum(r.failure_reason == "illegal" for r in results)
     fail_wrong = sum(r.failure_reason == "wrong_move" for r in results)
     curve = metrics.bucketize([(r.rating, r.solved) for r in results])
+    elo = puzzle_elo([(float(r.rating), r.solved) for r in results])
 
     theme_map: dict[str, ThemeStat] = defaultdict(lambda: ThemeStat(""))
     for r in results:
@@ -73,8 +76,16 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     return PuzzleReport(
         agent=agent, condition=condition, n=n, solved=solved, mean_score=mean_score,
         first_move_legal=first_legal, total_illegal_attempts=illegal_attempts,
-        failures_illegal=fail_illegal, failures_wrong=fail_wrong, curve=curve, themes=themes,
+        failures_illegal=fail_illegal, failures_wrong=fail_wrong, curve=curve, elo=elo, themes=themes,
     )
+
+
+def _format_elo(est: RatingEstimate) -> str:
+    if not est.bounded:
+        direction = "≥" if est.rating >= 2000 else "≤"
+        return f"puzzleElo:  {direction}{est.rating:.0f} (railed: solved {'all' if est.rating >= 2000 else 'none'})"
+    lo, hi = est.ci95()
+    return f"puzzleElo:  {est.rating:.0f}  (95% CI {lo:.0f}-{hi:.0f})  [MLE performance rating]"
 
 
 def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
@@ -86,7 +97,8 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         f"puzzles:    {rep.n}",
         f"solved:     {rep.solved}/{rep.n} = {rep.solve_rate:.1%}  (95% CI {lo:.1%}-{hi:.1%})",
         f"meanScore:  {rep.mean_score:.1%} (partial credit for multi-move puzzles)",
-        f"impliedElo: {ir:.0f}" if ir is not None else "impliedElo: n/a (curve does not cross 50%)",
+        _format_elo(rep.elo),
+        f"impliedElo: {ir:.0f} (rating-bucket 50% crossing)" if ir is not None else "impliedElo: n/a",
         f"legalMove%: {rep.first_move_legal_rate:.1%} first-attempt legal  "
         f"({rep.total_illegal_attempts} illegal attempts total)",
         f"failures:   {rep.failures_wrong} wrong-move, {rep.failures_illegal} illegal",

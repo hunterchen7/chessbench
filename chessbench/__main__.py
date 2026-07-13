@@ -258,23 +258,40 @@ def cmd_suite_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def _elo_cell(est) -> str:
+    if est is None:
+        return "n/a"
+    if not est.bounded:
+        return f"{'≥' if est.rating >= 2000 else '≤'}{est.rating:.0f}"
+    lo, hi = est.ci95()
+    return f"{est.rating:.0f}±{(hi - lo) / 2:.0f}"
+
+
 def cmd_leaderboard(args: argparse.Namespace) -> int:
+    """Puzzle-Elo leaderboard on ONE frozen suite. With --legalities it becomes a
+    matrix of Elo per setting ("elo using the different settings")."""
     from .agents import LLMAgent, RandomAgent, StockfishAgent
     from .core.engine import EngineConfig, find_stockfish
     from .suite import load_suite
 
     suite = load_suite(args.suite)
     puzzles = suite.puzzles()
-    condition = Condition(
-        legality=Legality(args.legality), representation=Representation(args.representation),
-        notation=Notation(args.notation), prompt_style=PromptStyle(args.prompt_style),
-        retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, temperature=args.temperature,
-    )
-    print(f"leaderboard on suite '{suite.name}' {suite.content_hash} ({len(puzzles)} puzzles, identical for every model)")
-    print(f"condition: {condition.slug()}\n")
+    legalities = [s.strip() for s in (args.legalities or args.legality).split(",") if s.strip()]
+
+    def condition_for(legality: str) -> Condition:
+        return Condition(
+            legality=Legality(legality), representation=Representation(args.representation),
+            notation=Notation(args.notation), prompt_style=PromptStyle(args.prompt_style),
+            retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, temperature=args.temperature,
+        )
+
+    print(f"leaderboard on suite '{suite.name}' {suite.content_hash} "
+          f"({len(puzzles)} puzzles, identical for every model)")
+    print(f"settings: legality={legalities}, {args.representation}/{args.notation}/{args.prompt_style}\n")
 
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
-    rows: list[tuple[str, float, float, float, float | None]] = []
+    # rows[name] = {legality: RatingEstimate, "_solved": solve_rate under first legality}
+    rows: dict[str, dict[str, object]] = {}
     with ExitStack() as stack:
         agents: list[Agent] = []
         if args.include_baselines:
@@ -284,17 +301,54 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         agents.extend(LLMAgent(_build_model(args.provider, mid)) for mid in model_ids)
 
         for agent in agents:
-            print(f"  running {agent.name} ...")
-            report, _ = run_puzzles(agent, puzzles, condition)
-            rows.append((agent.name, report.solve_rate, report.mean_score,
-                         report.first_move_legal_rate, report.implied_rating))
+            rows[agent.name] = {}
+            for legality in legalities:
+                print(f"  running {agent.name} [{legality}] ...")
+                report, _ = run_puzzles(agent, puzzles, condition_for(legality))
+                rows[agent.name][legality] = report.elo
+                if legality == legalities[0]:
+                    rows[agent.name]["_solved"] = report.solve_rate
+                    rows[agent.name]["_legal"] = report.first_move_legal_rate
 
-    rows.sort(key=lambda r: r[1], reverse=True)
-    print(f"\n{'model':<40} {'solved':>7} {'score':>7} {'legal':>7} {'impElo':>7}")
-    print("-" * 72)
-    for name, solved, score, legal, elo in rows:
-        elo_s = f"{elo:.0f}" if elo is not None else "n/a"
-        print(f"{name:<40} {solved:>6.1%} {score:>6.1%} {legal:>6.1%} {elo_s:>7}")
+    order = sorted(rows, key=lambda name: getattr(rows[name][legalities[0]], "rating", 0.0), reverse=True)
+    header = f"{'model':<38} " + " ".join(f"{lg:>12}" for lg in legalities) + f" {'solved':>7} {'legal':>7}"
+    print("\n" + header)
+    print("-" * len(header))
+    for name in order:
+        cells = " ".join(f"{_elo_cell(rows[name][lg]):>12}" for lg in legalities)
+        solved = rows[name].get("_solved", 0.0)
+        legal = rows[name].get("_legal", 0.0)
+        print(f"{name:<38} {cells} {solved:>6.1%} {legal:>6.1%}")  # type: ignore[str-format]
+    print("\npuzzle-Elo = MLE performance rating (rating±half-95%-CI); ≥/≤ = solved all/none")
+    return 0
+
+
+def cmd_tournament(args: argparse.Namespace) -> int:
+    """Round-robin among LLMs (+ optional Stockfish anchor) -> game-Elo."""
+    from .agents import LLMAgent, RandomAgent, StockfishAgent
+    from .core.engine import Engine, EngineConfig, find_stockfish
+    from .tasks.games import GameConfig
+    from .tasks.tournament import TournamentEntry, format_tournament, round_robin
+
+    condition = _condition_from_args(args)
+    config = GameConfig(max_plies=args.max_plies)
+    model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
+    print(f"tournament: {len(model_ids)} models, {args.games} games/pair, condition {condition.game_slug()}\n")
+
+    with ExitStack() as stack:
+        entries = [TournamentEntry(mid, LLMAgent(_build_model(args.provider, mid), condition)) for mid in model_ids]
+        if args.include_random:
+            entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
+        if args.anchor_elo is not None and find_stockfish():
+            sf = stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)))
+            entries.append(TournamentEntry(f"stockfish(sk{args.sf_skill})", sf, fixed_rating=args.anchor_elo))
+        result = round_robin(entries, args.games, condition, config)
+
+    print(format_tournament(result))
+    if args.pgn_out:
+        with open(args.pgn_out, "w", encoding="utf-8") as f:
+            f.write(result.pgns())
+        print(f"\nwrote {len(result.games)} game PGNs -> {args.pgn_out}")
     return 0
 
 
@@ -367,15 +421,33 @@ def main(argv: list[str] | None = None) -> int:
     sb.add_argument("--out", required=True)
     sb.set_defaults(func=cmd_suite_build)
 
-    lb = sub.add_parser("leaderboard", help="run several models on the SAME suite and rank them")
+    lb = sub.add_parser("leaderboard", help="puzzle-Elo of several models on the SAME suite")
     lb.add_argument("--suite", required=True)
     lb.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
     lb.add_argument("--models", required=True, help="comma-separated model ids")
+    lb.add_argument("--legalities", default=None,
+                    help="comma-separated legality settings to sweep (Elo per setting); defaults to --legality")
     lb.add_argument("--include-baselines", dest="include_baselines", action="store_true",
                     help="also run random + stockfish for reference")
     lb.add_argument("--sf-nodes", type=int, default=200_000)
     _add_condition_args(lb)
     lb.set_defaults(func=cmd_leaderboard)
+
+    t = sub.add_parser("tournament", help="round-robin among LLMs -> game-Elo")
+    t.add_argument("--models", required=True, help="comma-separated model ids")
+    t.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
+    t.add_argument("--games", type=int, default=2, help="games per pair (colors alternate)")
+    t.add_argument("--max-plies", type=int, default=200)
+    t.add_argument("--seed", type=int, default=0)
+    t.add_argument("--include-random", dest="include_random", action="store_true", help="add a random baseline")
+    t.add_argument("--anchor-elo", dest="anchor_elo", type=float, default=None,
+                   help="pin a Stockfish player to this Elo to set an absolute scale")
+    t.add_argument("--sf-nodes", type=int, default=100_000)
+    t.add_argument("--sf-skill", type=int, default=3)
+    t.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
+    t.add_argument("--pgn-out", default=None)
+    _add_condition_args(t)
+    t.set_defaults(func=cmd_tournament)
 
     args = parser.parse_args(argv)
     return args.func(args)

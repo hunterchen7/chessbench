@@ -1,0 +1,134 @@
+"""Round-robin tournaments among LLMs (and optional engine anchors) -> game Elo.
+
+Every pair plays `games_per_pair` games with alternating colors; each game is one
+observation for the Bradley-Terry fit in `chessbench.rating.tournament_elo`. A
+fixed-rating engine anchor (e.g. Stockfish pinned to a known Elo) puts the whole
+table on an absolute scale; without one, ratings are centered on `anchor`.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from itertools import combinations
+
+from ..agents import Agent
+from ..conditions import Condition
+from ..core.engine import Engine
+from ..rating import RatingEstimate, tournament_elo
+from .games import GameConfig, GameRecord, play_game
+
+
+@dataclass
+class TournamentEntry:
+    label: str
+    agent: Agent
+    fixed_rating: float | None = None  # set for engine anchors
+
+
+@dataclass
+class Standing:
+    label: str
+    wins: int = 0
+    draws: int = 0
+    losses: int = 0
+    illegal_forfeits: int = 0
+    rating: RatingEstimate | None = None
+
+    @property
+    def games(self) -> int:
+        return self.wins + self.draws + self.losses
+
+    @property
+    def score(self) -> float:
+        return self.wins + 0.5 * self.draws
+
+
+@dataclass
+class TournamentResult:
+    standings: list[Standing]
+    games: list[GameRecord] = field(default_factory=list)
+    # (label_i, label_j) -> i's (wins, draws, losses) against j
+    crosstable: dict[tuple[str, str], tuple[int, int, int]] = field(default_factory=dict)
+
+    def pgns(self) -> str:
+        return "\n\n".join(g.pgn for g in self.games)
+
+
+def round_robin(
+    entries: list[TournamentEntry],
+    games_per_pair: int,
+    condition: Condition,
+    config: GameConfig | None = None,
+    *,
+    eval_engine: Engine | None = None,
+) -> TournamentResult:
+    if len({e.label for e in entries}) != len(entries):
+        raise ValueError("tournament entries must have distinct labels")
+    config = config or GameConfig()
+
+    standings = {e.label: Standing(label=e.label) for e in entries}
+    cross: dict[tuple[str, str], list[int]] = {}
+    results_for_elo: list[tuple[str, str, float]] = []
+    games: list[GameRecord] = []
+
+    def bump(a: str, b: str, wdl_index: int) -> None:
+        cross.setdefault((a, b), [0, 0, 0])[wdl_index] += 1
+
+    for a, b in combinations(entries, 2):
+        for g in range(games_per_pair):
+            white, black = (a, b) if g % 2 == 0 else (b, a)
+            record = play_game(white.agent, black.agent, condition, config, eval_engine=eval_engine)
+            games.append(record)
+            ws = record.white_score
+            results_for_elo.append((white.label, black.label, ws))
+
+            if record.termination == "illegal_forfeit":
+                loser = white.label if record.result == "0-1" else black.label
+                standings[loser].illegal_forfeits += 1
+
+            if ws == 1.0:
+                standings[white.label].wins += 1
+                standings[black.label].losses += 1
+                bump(white.label, black.label, 0)
+                bump(black.label, white.label, 2)
+            elif ws == 0.0:
+                standings[white.label].losses += 1
+                standings[black.label].wins += 1
+                bump(white.label, black.label, 2)
+                bump(black.label, white.label, 0)
+            else:
+                standings[white.label].draws += 1
+                standings[black.label].draws += 1
+                bump(white.label, black.label, 1)
+                bump(black.label, white.label, 1)
+
+    fixed = {e.label: e.fixed_rating for e in entries if e.fixed_rating is not None}
+    ratings = tournament_elo(results_for_elo, fixed=fixed) if results_for_elo else {}
+    for label, est in ratings.items():
+        standings[label].rating = est
+
+    ordered = sorted(
+        standings.values(),
+        key=lambda s: (s.rating.rating if s.rating else 0.0, s.score),
+        reverse=True,
+    )
+    crosstable = {k: (v[0], v[1], v[2]) for k, v in cross.items()}
+    return TournamentResult(standings=ordered, games=games, crosstable=crosstable)
+
+
+def format_tournament(result: TournamentResult) -> str:
+    lines = [f"{'#':>2} {'player':<38} {'Elo':>10} {'games':>6} {'W-D-L':>10} {'score':>6} {'illegal':>7}"]
+    lines.append("-" * 86)
+    for i, s in enumerate(result.standings, 1):
+        if s.rating is not None and s.rating.bounded:
+            lo, hi = s.rating.ci95()
+            elo = f"{s.rating.rating:.0f}±{(hi - lo) / 2:.0f}"
+        elif s.rating is not None:
+            elo = f"{s.rating.rating:.0f}*"  # anchored (fixed) or railed
+        else:
+            elo = "n/a"
+        wdl = f"{s.wins}-{s.draws}-{s.losses}"
+        pct = s.score / s.games if s.games else 0.0
+        lines.append(f"{i:>2} {s.label:<38} {elo:>10} {s.games:>6} {wdl:>10} {pct:>5.0%} {s.illegal_forfeits:>7}")
+    lines.append("\n(* = fixed anchor or unbounded; Elo shown as rating±half-CI otherwise)")
+    return "\n".join(lines)
