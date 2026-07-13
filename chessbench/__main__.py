@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 from .conditions import Condition, ContextMode, Legality, Notation, PromptStyle, Representation
 from .report import format_report
+from .store import RunRecord, SuiteRef, save_run
 from .tasks.puzzles import load_puzzles
 from .tasks.runner import run_puzzles
 
@@ -72,11 +73,13 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         otb_illegal_limit=args.otb_limit, explain=args.explain,
         temperature=args.temperature,
     )
+    suite_ref = None
     if args.suite:
         from .suite import load_suite
 
         suite = load_suite(args.suite)
         puzzles = suite.puzzles()
+        suite_ref = SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash)
         print(f"suite: {suite.name} v{suite.version} [{suite.visibility}] {suite.content_hash} ({len(puzzles)} puzzles)")
     else:
         puzzles = load_puzzles(args.data, limit=args.limit)
@@ -85,9 +88,19 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
 
     with ExitStack() as stack:
         agent = _build_agent(args, stack)
-        report, _ = run_puzzles(agent, puzzles, condition, log_path=args.log, progress_every=args.progress)
+        report, results = run_puzzles(agent, puzzles, condition, log_path=args.log, progress_every=args.progress)
 
     print(format_report(report))
+
+    if args.save_run:
+        model = getattr(agent, "_model", None)
+        cost = getattr(model, "total_cost", None)
+        record = RunRecord(
+            model=args.model or agent.name, provider=args.agent, condition=condition,
+            report=report, results=results, suite=suite_ref, cost_usd=cost,
+        )
+        save_run(record, args.save_run)
+        print(f"\nsaved run -> {args.save_run}")
     return 0
 
 
@@ -381,6 +394,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--nodes", type=int, default=200_000, help="Stockfish node limit")
     _add_condition_args(p)
     p.add_argument("--log", default=None, help="write per-puzzle results to this JSONL file")
+    p.add_argument("--save-run", dest="save_run", default=None,
+                   help="write a full run record JSON (for the web app) to this path")
     p.add_argument("--progress", type=int, default=0, help="print progress every N puzzles")
     p.set_defaults(func=cmd_puzzles)
 
