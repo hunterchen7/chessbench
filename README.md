@@ -260,6 +260,7 @@ upper bound.
 
 ```
 chessbench puzzles      --suite … --agent … [--mode 1|2|3] [--explain] [--save-run …]
+chessbench puzzles      --agent openrouter-vision --model google/gemma-4…  # read a board IMAGE
 chessbench composed     --solver … [--data …]           # esoteric track (7 genres)
 chessbench play         --white … --black … [--legality otb] [--context-mode …]
 chessbench tournament   --models a,b [--anchor-elo 1500] [--eval-moves] [--openings book] --save …
@@ -288,9 +289,10 @@ Calibrate generated puzzles to Lichess-comparable ratings:
 - [x] Engine-ladder calibration (Lichess-comparable ratings for generated/private puzzles)
 - [x] Persisted run/tournament store; per-category leaderboards; opening book; **SPRT** early-stopping
 - [x] Per-move accuracy% (Lichess win%-drop) in games; human-solve persistence + human on the leaderboard
-- [ ] Multimodal board-image track (vision models) — research track
-- [ ] Retrograde beyond proof games (last-move); shortest-proof-game *solving*
-- [ ] The full representation×legality×notation×context ablation study across many models
+- [x] Multimodal board-image (vision) track — `puzzles --agent openrouter-vision`
+- [ ] Retrograde beyond proof games (last-move); shortest-proof-game *solving* (search)
+- [ ] Photorealistic piece sprites for the vision track (v1 uses a letter diagram)
+- [ ] The full representation×legality×notation×context ablation study across many models (a *run*; the harness exists)
 
 ## References
 
