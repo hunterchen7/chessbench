@@ -18,10 +18,13 @@ from __future__ import annotations
 import argparse
 import sys
 from contextlib import ExitStack
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .conditions import Condition, ContextMode, Legality, Notation, PromptStyle, Representation
+from .conditions import (
+    Condition, ContextMode, Legality, Notation, PromptStyle, Representation, mode_condition,
+)
 from .report import format_report
 from .store import RunRecord, SuiteRef, save_run
 from .tasks.puzzles import load_puzzles
@@ -35,6 +38,28 @@ if TYPE_CHECKING:
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
 DEFAULT_COMPOSED = Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
+
+
+def _base_condition(args: argparse.Namespace) -> Condition:
+    """Build a Condition from --mode (preset) or the individual axis flags, then
+    layer the always-explicit axes (notation, context, explain, temperature, ...)."""
+    if getattr(args, "mode", None):
+        cond = mode_condition(int(args.mode))
+    else:
+        cond = Condition(
+            legality=Legality(args.legality),
+            representation=Representation(args.representation),
+            prompt_style=PromptStyle(args.prompt_style),
+        )
+    return replace(
+        cond,
+        notation=Notation(args.notation),
+        context_mode=ContextMode(getattr(args, "context_mode", "fresh")),
+        retry_attempts=args.retry_attempts,
+        otb_illegal_limit=args.otb_limit,
+        explain=args.explain,
+        temperature=args.temperature,
+    )
 
 
 def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
@@ -64,15 +89,7 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
 
 
 def cmd_puzzles(args: argparse.Namespace) -> int:
-    condition = Condition(
-        legality=Legality(args.legality),
-        representation=Representation(args.representation),
-        notation=Notation(args.notation),
-        prompt_style=PromptStyle(args.prompt_style),
-        retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit, explain=args.explain,
-        temperature=args.temperature,
-    )
+    condition = _base_condition(args)
     suite_ref = None
     if args.suite:
         from .suite import load_suite
@@ -133,16 +150,7 @@ def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, sta
 
 
 def _condition_from_args(args: argparse.Namespace) -> Condition:
-    return Condition(
-        legality=Legality(args.legality),
-        representation=Representation(args.representation),
-        notation=Notation(args.notation),
-        prompt_style=PromptStyle(args.prompt_style),
-        context_mode=ContextMode(args.context_mode),
-        retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit, explain=args.explain,
-        temperature=args.temperature,
-    )
+    return _base_condition(args)
 
 
 def cmd_play(args: argparse.Namespace) -> int:
@@ -189,15 +197,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
     from .solvers import grade_study
     from .tasks.composed import grade_composed, load_composed
 
-    condition = Condition(
-        legality=Legality(args.legality),
-        representation=Representation(args.representation),
-        notation=Notation(args.notation),
-        prompt_style=PromptStyle(args.prompt_style),
-        retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit, explain=args.explain,
-        temperature=args.temperature,
-    )
+    condition = _base_condition(args)
     problems = load_composed(args.data)
     solver = _build_composed_solver(args.solver, args.model, args.seed)
     print(f"solver: {solver.name} | condition: {condition.slug()}")
@@ -293,12 +293,7 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     legalities = [s.strip() for s in (args.legalities or args.legality).split(",") if s.strip()]
 
     def condition_for(legality: str) -> Condition:
-        return Condition(
-            legality=Legality(legality), representation=Representation(args.representation),
-            notation=Notation(args.notation), prompt_style=PromptStyle(args.prompt_style),
-            retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, explain=args.explain,
-            temperature=args.temperature,
-        )
+        return replace(_base_condition(args), legality=Legality(legality))
 
     print(f"leaderboard on suite '{suite.name}' {suite.content_hash} "
           f"({len(puzzles)} puzzles, identical for every model)")
@@ -382,8 +377,12 @@ def cmd_tournament(args: argparse.Namespace) -> int:
 
 
 def _add_condition_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--legality", default="free_form", choices=[e.value for e in Legality])
-    p.add_argument("--representation", default="fen_ascii", choices=[e.value for e in Representation])
+    # Mode presets (override the individual axes below). Default run = MODE 2.
+    p.add_argument("--mode", type=int, default=None, choices=[1, 2, 3],
+                   help="1=raw fen+pieces, 2=+legal moves (default), 3=+coaching tips")
+    # Individual axes default to MODE 2 (hand-holding: legal moves in SAN & UCI).
+    p.add_argument("--legality", default="legal_list", choices=[e.value for e in Legality])
+    p.add_argument("--representation", default="fen_pieces", choices=[e.value for e in Representation])
     p.add_argument("--notation", default="san", choices=[e.value for e in Notation])
     p.add_argument("--prompt-style", dest="prompt_style", default="minimal",
                    choices=[e.value for e in PromptStyle])

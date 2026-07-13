@@ -44,6 +44,7 @@ class Representation(str, Enum):
     FEN_ASCII = "fen_ascii"     # FEN + ASCII grid (hedge vs FEN tokenization)
     FEN_UNICODE = "fen_unicode"
     PIECE_LIST = "piece_list"   # explicit "White: Ke1, Qd1, ...; Black: ..." listing
+    FEN_PIECES = "fen_pieces"   # FEN + the piece list together (the modes' default)
     PGN = "pgn"                 # move history as PGN/SAN (for games w/ history)
 
 
@@ -89,20 +90,40 @@ class Condition:
         return self.slug() + "__" + self.context_mode.value
 
 
-# The default headline condition: the honest, unaided measurement.
+# The scientific baseline condition (free-form, unaided) -- kept for the honest measurement.
 HEADLINE = Condition()
+
+# --- Named "how much help" modes (presets over the axes) ---
+# 1: raw FEN + piece list; 2: + legal moves (SAN & UCI); 3: + coaching tips.
+# The DEFAULT for CLI runs is MODE 2 ("hand-holding": the legal moves are provided).
+MODES: dict[int, tuple[Legality, Representation, PromptStyle]] = {
+    1: (Legality.FREE_FORM, Representation.FEN_PIECES, PromptStyle.MINIMAL),
+    2: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.MINIMAL),
+    3: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED),
+}
+DEFAULT_MODE = 2
+MODE_LABELS = {1: "raw", 2: "assisted (legal moves)", 3: "coached (legal moves + tips)"}
+
+
+def mode_condition(mode: int) -> Condition:
+    """The preset Condition for a named mode (games add history via the game
+    prompt automatically). Use dataclasses.replace() to layer overrides."""
+    legality, representation, prompt_style = MODES[mode]
+    return Condition(legality=legality, representation=representation, prompt_style=prompt_style)
 
 
 def render_position(bd: chess.Board, cond: Condition, history_san: list[str] | None = None) -> str:
     parts: list[str] = []
     rep = cond.representation
-    if rep in (Representation.FEN, Representation.FEN_ASCII, Representation.FEN_UNICODE):
+    if rep in (Representation.FEN, Representation.FEN_ASCII, Representation.FEN_UNICODE, Representation.FEN_PIECES):
         parts.append(f"FEN: {bd.fen()}")
     if rep == Representation.FEN_ASCII:
         parts.append("Board (White is uppercase, `.` is empty):\n" + board_utils.render_ascii(bd))
     elif rep == Representation.FEN_UNICODE:
         parts.append("Board:\n" + board_utils.render_unicode(bd))
     elif rep == Representation.PIECE_LIST:
+        parts.append("Pieces:\n" + board_utils.render_piece_list(bd))
+    elif rep == Representation.FEN_PIECES:
         parts.append("Pieces:\n" + board_utils.render_piece_list(bd))
     if rep == Representation.PGN and history_san:
         moves = _san_history_to_pgn(history_san)
@@ -131,8 +152,9 @@ def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str 
         render_position(bd, cond),
     ]
     if cond.legality == Legality.LEGAL_LIST:
-        moves = board_utils.legal_moves_san(bd) if cond.notation == Notation.SAN else board_utils.legal_moves_uci(bd)
-        lines += ["", "Legal moves: " + ", ".join(sorted(moves))]
+        lines += ["", _legal_line(bd, cond)]
+    if cond.prompt_style == PromptStyle.COACHED:
+        lines += ["", COACH_ADVICE]
     lines += ["", f"Reply with your move in {notation_name}."]
     if cond.prompt_style == PromptStyle.COT:
         lines += ["Think step by step, then give your final move as `answer: <move>`."]
@@ -223,5 +245,6 @@ def build_game_turn(
 
 
 def _legal_line(bd: chess.Board, cond: Condition) -> str:
-    moves = board_utils.legal_moves_san(bd) if cond.notation == Notation.SAN else board_utils.legal_moves_uci(bd)
-    return "Legal moves: " + ", ".join(sorted(moves))
+    # Show every legal move in BOTH SAN and UCI, so the model can map notations.
+    pairs = sorted(f"{bd.san(m)} ({m.uci()})" for m in bd.legal_moves)
+    return "Legal moves [SAN (UCI)]: " + ", ".join(pairs)
