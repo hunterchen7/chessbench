@@ -97,6 +97,33 @@ python -m chessbench play --white openrouter --black openrouter \
 Full adjudication (checkmate / stalemate / insufficient / repetition / 50-move /
 ply-cap / illegal-forfeit), alternating-color matches, match Elo, PGN export.
 
+## Benchmark suites — same puzzles for every model
+
+A **suite** freezes an exact, content-hashed, rating-stratified set of items so
+every model is scored on **identical puzzles** (the basis for a fair leaderboard).
+
+```bash
+# Freeze a suite, then rank models on it (identical items, comparable numbers):
+python -m chessbench suite --source data/sample_puzzles.csv --name tactical-lichess-v1 \
+    --visibility public --per-bucket 20 --out suites/public/tactical-lichess-v1.json
+python -m chessbench leaderboard --suite suites/public/tactical-lichess-v1.json \
+    --provider openrouter --models "openai/gpt-4o-mini,meta-llama/llama-3.3-70b-instruct" --include-baselines
+python -m chessbench puzzles --suite suites/public/tactical-lichess-v1.json --agent openrouter --model ...
+```
+
+**Public vs private (the held-out split).**
+- **Public** suites (`suites/public/`, committed) are shareable and reproducible —
+  and are sourced from **Lichess, whose Glicko-2 ratings are calibrated from
+  millions of solves**, so difficulty is trustworthy. Risk: their positions can
+  leak into training data or be gamed, so treat public scores as an upper bound.
+- **Private** suites (`suites/private/`, **gitignored**) are the held-out,
+  contamination-free measurement, built from the Stockfish **generator** (fresh
+  positions that never appeared anywhere). Their ratings are heuristic today;
+  engine-ladder calibration to Lichess-comparable ratings is on the roadmap.
+
+Suites embed their items and a `content_hash`; loading verifies the hash so a run
+can't silently evaluate a tampered set.
+
 ## The ablation axes (`chessbench/conditions.py`)
 
 | Axis | Values | Note |
@@ -119,10 +146,11 @@ chessbench/
   models/             # Model protocol + ScriptedModel; OpenAI/OpenRouter (stdlib) + Anthropic
   conditions.py       # THE ABLATION AXES + prompt rendering
   agents.py           # position -> move: Random / FirstLegal / Stockfish / LLM(Game)Agent
-  solvers/            # stipulations (directmate/selfmate/reflexmate/helpmate), proofgame, studies
+  solvers/            # stipulations (directmate/selfmate/reflexmate/helpmate/series), proofgame, studies
   tasks/              # puzzles, generate, composed, games, runner
+  suite.py            # frozen, content-hashed benchmark suites (public/private)
   report.py           # aggregation -> leaderboard with error bars
-  __main__.py         # CLI (puzzles | play | composed)
+  __main__.py         # CLI (puzzles | play | composed | suite | leaderboard)
 ```
 
 Standalone Python (not a framework plugin) so the solver-in-the-loop and the
@@ -158,6 +186,8 @@ upper bound.
 - [x] Composed/esoteric track (directmate, selfmate, reflexmate, helpmate, series-movers, proof game, study)
 - [x] Game track (LLM-vs-LLM / vs-engine; fresh/growing/hybrid; OTB/online legality; match Elo)
 - [x] OpenRouter/OpenAI/Anthropic providers; typed, mypy-clean
+- [x] Frozen public/private suites + leaderboard (same items for every model)
+- [ ] Engine-ladder calibration to give private/generated puzzles Lichess-comparable ratings
 - [ ] Retrograde beyond proof games (last-move / shortest-proof-game solving)
 - [ ] Round-robin tournament + Bayeselo anchor; Stockfish Elo ladder (MLE) for a real rating
 - [ ] Per-move centipawn/accuracy reporting; the full representation×legality×notation×context ablation study
