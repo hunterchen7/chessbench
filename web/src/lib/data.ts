@@ -132,10 +132,29 @@ export interface TournamentIndexEntry {
   winner: string | null
 }
 
-async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(DATA + path)
-  if (!res.ok) throw new Error(`${path}: ${res.status}`)
+async function fetchJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`${url}: ${res.status}`)
   return res.json()
+}
+
+// The app prefers the Cloudflare backend API and falls back to the static JSON
+// bundled in public/data. VITE_API_BASE overrides the probe (e.g. a dev worker);
+// otherwise it probes the same-origin /api. Probed once and cached.
+let cachedBase: string | null | undefined
+export async function resolveApiBase(): Promise<string | null> {
+  if (cachedBase !== undefined) return cachedBase
+  const configured = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "")
+  const candidates = configured ? [configured] : ["/api"]
+  for (const base of candidates) {
+    try {
+      const res = await fetch(`${base}/health`)
+      if (res.ok) return (cachedBase = base)
+    } catch {
+      /* unreachable — fall through to static */
+    }
+  }
+  return (cachedBase = null)
 }
 
 // --- aggregated app state ---
@@ -155,14 +174,17 @@ export interface Dataset {
   runs: Run[]
   puzzleIndex: Map<string, PuzzleEntry>
   tournaments: TournamentIndexEntry[]
+  apiBase: string | null
 }
 
-export async function loadDataset(): Promise<Dataset> {
-  const index = await getJSON<{ runs: RunIndexEntry[] }>("index.json")
+async function loadFrom(base: string | null): Promise<Dataset> {
+  const indexUrl = base ? `${base}/index` : `${DATA}index.json`
+  const index = await fetchJSON<{ runs: RunIndexEntry[] }>(indexUrl)
   const runs: Run[] = []
   for (const meta of index.runs) {
+    const url = base ? `${base}/runs/${encodeURIComponent(meta.file)}` : `${DATA}runs/${meta.file}`
     try {
-      runs.push(await getJSON<Run>("runs/" + meta.file))
+      runs.push(await fetchJSON<Run>(url))
     } catch (e) {
       console.warn("failed to load run", meta.file, e)
     }
@@ -180,13 +202,31 @@ export async function loadDataset(): Promise<Dataset> {
   }
   let tournaments: TournamentIndexEntry[] = []
   try {
-    tournaments = (await getJSON<{ tournaments: TournamentIndexEntry[] }>("tournaments/index.json")).tournaments
+    const turl = base ? `${base}/tournaments` : `${DATA}tournaments/index.json`
+    tournaments = (await fetchJSON<{ tournaments: TournamentIndexEntry[] }>(turl)).tournaments
   } catch {
     tournaments = []
   }
-  return { runs, puzzleIndex, tournaments }
+  return { runs, puzzleIndex, tournaments, apiBase: base }
 }
 
-export function loadTournament(file: string): Promise<Tournament> {
-  return getJSON<Tournament>("tournaments/" + file)
+export async function loadDataset(): Promise<Dataset> {
+  const base = await resolveApiBase()
+  try {
+    return await loadFrom(base)
+  } catch (e) {
+    // Backend reachable at /health but its data failed (e.g. un-migrated D1): fall
+    // back to the bundled static JSON instead of bricking the whole app.
+    if (base) {
+      console.warn("API data load failed; falling back to static data", e)
+      cachedBase = null
+      return loadFrom(null)
+    }
+    throw e
+  }
+}
+
+export async function loadTournament(file: string): Promise<Tournament> {
+  const base = await resolveApiBase()
+  return fetchJSON<Tournament>(base ? `${base}/tournaments/${encodeURIComponent(file)}` : `${DATA}tournaments/${file}`)
 }

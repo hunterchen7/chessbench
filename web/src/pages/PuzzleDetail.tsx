@@ -5,6 +5,7 @@ import { ArrowLeft, Check, ChevronDown, Lightbulb, RotateCcw, X } from "lucide-r
 import { useData } from "@/lib/useData"
 import { pct } from "@/lib/format"
 import { humanRecord } from "@/lib/human"
+import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -39,8 +40,15 @@ function uciToSan(fen: string, uci: string | null): string | null {
 
 export function PuzzleDetail() {
   const { id = "" } = useParams()
-  const { puzzleIndex } = useData()
+  const { puzzleIndex, apiBase } = useData()
   const entry = puzzleIndex.get(id)
+
+  // Record a human outcome both locally (offline Elo) and on the backend (shared
+  // leaderboard). `move` is the player's first move; the server verifies it before crediting.
+  const recordSolve = (solved: boolean, move: string | null) => {
+    humanRecord(id, solved)
+    if (apiBase) void pushSolve(apiBase, id, solved, move)
+  }
 
   const startFen = entry?.position.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"
   const orientation: "white" | "black" = entry?.position.solver_is_white ? "white" : "black"
@@ -90,7 +98,7 @@ export function PuzzleDetail() {
     if (uci !== expected) {
       g.undo()
       setStatus("failed")
-      humanRecord(id, false)
+      recordSolve(false, uci)
       return false
     }
     let idx = ply + 1
@@ -108,13 +116,13 @@ export function PuzzleDetail() {
     setPly(idx)
     if (idx >= solution.length) {
       setStatus("solved")
-      humanRecord(id, true)
+      recordSolve(true, solution[0] ?? null)
     }
     return true
   }
 
   function giveUp() {
-    if (status !== "solved") humanRecord(id, false)
+    if (status !== "solved") recordSolve(false, null)
     setStatus("failed")
     setReveal(true)
   }

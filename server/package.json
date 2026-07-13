@@ -1,0 +1,19 @@
+{
+  "name": "chessbench-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build:web": "cd ../web && pnpm build",
+    "deploy": "pnpm build:web && wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply chessbench --local",
+    "migrate:remote": "wrangler d1 migrations apply chessbench --remote",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.0.0"
+  }
+}

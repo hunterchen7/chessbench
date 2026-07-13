@@ -1,0 +1,121 @@
+import type { Env } from "./types"
+import { error, json } from "./http"
+
+interface RatedOutcome {
+  rating: number
+  solved: number
+}
+
+/**
+ * Maximum-likelihood puzzle-Elo, identical to the model rating and the client
+ * fallback: the rating r where the logistic solve probability best matches the
+ * observed solves. Bisection on the score-equation gradient.
+ */
+function eloMLE(items: RatedOutcome[]): { rating: number; bounded: boolean } | null {
+  const rated = items.filter((x) => typeof x.rating === "number" && Number.isFinite(x.rating))
+  const n = rated.length
+  const wins = rated.filter((x) => x.solved).length
+  if (!n || !wins) return null
+  if (wins === n) return { rating: 4000, bounded: false }
+  const E = (t: number, r: number) => 1 / (1 + Math.pow(10, (r - t) / 400))
+  const grad = (t: number) => rated.reduce((s, x) => s + ((x.solved ? 1 : 0) - E(t, x.rating)), 0)
+  let a = 0
+  let b = 4000
+  for (let i = 0; i < 200 && b - a > 0.5; i++) {
+    const m = (a + b) / 2
+    if (grad(m) > 0) a = m
+    else b = m
+  }
+  return { rating: (a + b) / 2, bounded: true }
+}
+
+async function summaryFor(env: Env, uid: string) {
+  const { results } = await env.DB.prepare(
+    `SELECT h.solved AS solved, p.rating AS rating
+       FROM human_solves h JOIN puzzles p ON p.puzzle_id = h.puzzle_id
+      WHERE h.uid = ?`,
+  ).bind(uid).all<RatedOutcome>()
+  const items = results ?? []
+  const solved = items.filter((x) => x.solved).length
+  return { uid, n: items.length, solved, elo: eloMLE(items) }
+}
+
+/** POST /api/human/solve — record an anonymous solve; keeps the best outcome per puzzle.
+ * The puzzle must exist, and a solve is only credited when the submitted first move
+ * matches the stored solution — so the endpoint can't be used to fabricate solves for
+ * unknown puzzles or to inflate the leaderboard by blindly posting solved=true. */
+export async function postHumanSolve(env: Env, req: Request): Promise<Response> {
+  const body = (await req.json().catch(() => null)) as
+    | { uid?: unknown; puzzle_id?: unknown; solved?: unknown; move?: unknown; handle?: unknown }
+    | null
+  if (!body || typeof body.uid !== "string" || typeof body.puzzle_id !== "string") {
+    return error(400, "uid and puzzle_id (strings) are required")
+  }
+  const uid = body.uid.trim().slice(0, 64)
+  const pid = body.puzzle_id.trim().slice(0, 64)
+  if (!uid || !pid) return error(400, "invalid uid/puzzle_id")
+
+  // Reject unknown puzzles (bounds storage, prevents fabricated ids) and verify the move.
+  const puzzle = await env.DB.prepare(`SELECT solution_first FROM puzzles WHERE puzzle_id = ?`)
+    .bind(pid).first<{ solution_first: string | null }>()
+  if (!puzzle) return error(404, "unknown puzzle")
+  const move = typeof body.move === "string" ? body.move.trim().slice(0, 12) : null
+  const solved = body.solved && move && puzzle.solution_first && move === puzzle.solution_first ? 1 : 0
+  const now = new Date().toISOString()
+
+  await env.DB.prepare(
+    `INSERT INTO human_solves (uid, puzzle_id, solved, updated) VALUES (?, ?, ?, ?)
+     ON CONFLICT(uid, puzzle_id) DO UPDATE SET
+       solved = MAX(human_solves.solved, excluded.solved), updated = excluded.updated`,
+  ).bind(uid, pid, solved, now).run()
+
+  if (typeof body.handle === "string" && body.handle.trim()) {
+    const handle = body.handle.trim().slice(0, 32)
+    await env.DB.prepare(
+      `INSERT INTO human_profiles (uid, handle, updated) VALUES (?, ?, ?)
+       ON CONFLICT(uid) DO UPDATE SET handle = excluded.handle, updated = excluded.updated`,
+    ).bind(uid, handle, now).run()
+  }
+  return json(await summaryFor(env, uid))
+}
+
+/** GET /api/human/summary?uid= — one solver's count + Elo. */
+export async function getHumanSummary(env: Env, url: URL): Promise<Response> {
+  const uid = (url.searchParams.get("uid") ?? "").trim().slice(0, 64)
+  if (!uid) return error(400, "uid query param required")
+  return json(await summaryFor(env, uid))
+}
+
+/** GET /api/human/leaderboard[?uid=] — top solvers by Elo. Raw uids are never
+ * returned (they're the only handle to a solver's records); the caller's own uid,
+ * if passed, is marked with `me` so the client can highlight its row. */
+export async function getHumanLeaderboard(env: Env, url: URL): Promise<Response> {
+  const meUid = (url.searchParams.get("uid") ?? "").trim().slice(0, 64) || null
+  const { results } = await env.DB.prepare(
+    `SELECT h.uid AS uid, h.solved AS solved, p.rating AS rating
+       FROM human_solves h JOIN puzzles p ON p.puzzle_id = h.puzzle_id`,
+  ).all<{ uid: string; solved: number; rating: number }>()
+  const byUid = new Map<string, RatedOutcome[]>()
+  for (const r of results ?? []) {
+    const arr = byUid.get(r.uid) ?? []
+    arr.push({ rating: r.rating, solved: r.solved })
+    byUid.set(r.uid, arr)
+  }
+  const { results: profs } = await env.DB.prepare(`SELECT uid, handle FROM human_profiles`).all<{
+    uid: string; handle: string | null
+  }>()
+  const handles = new Map((profs ?? []).map((p) => [p.uid, p.handle]))
+
+  const leaderboard = Array.from(byUid.entries())
+    .map(([uid, items]) => ({
+      handle: handles.get(uid) ?? null,
+      me: meUid !== null && uid === meUid,
+      n: items.length,
+      solved: items.filter((x) => x.solved).length,
+      elo: eloMLE(items),
+    }))
+    .filter((r) => r.elo !== null)
+    .sort((a, b) => (b.elo!.rating - a.elo!.rating))
+    .slice(0, 100)
+  return json({ leaderboard })
+}

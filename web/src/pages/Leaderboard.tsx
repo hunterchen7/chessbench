@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Trophy, User } from "lucide-react"
+import { Trophy, User, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
 import type { Run } from "@/lib/data"
 import { eloText, modeLabel, pct } from "@/lib/format"
 import { humanSummary } from "@/lib/human"
+import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -24,8 +25,13 @@ function bestRun(runs: Run[]): Run {
 }
 
 export function Leaderboard() {
-  const { runs, puzzleIndex, tournaments } = useData()
+  const { runs, puzzleIndex, tournaments, apiBase } = useData()
   const [mode, setMode] = useState("best")
+  const [humans, setHumans] = useState<HumanRow[]>([])
+
+  useEffect(() => {
+    if (apiBase) fetchHumanLeaderboard(apiBase).then(setHumans)
+  }, [apiBase])
 
   const conditions = useMemo(
     () => Array.from(new Set(runs.map((r) => r.condition.slug))).sort(),
@@ -161,6 +167,46 @@ export function Leaderboard() {
             </Link>{" "}
             to place yourself on the board.
           </p>
+
+          {apiBase && humans.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="size-4 text-chart-2" /> Top human solvers
+                </CardTitle>
+                <CardDescription>Shared across everyone who solves in the browser.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead>Solver</TableHead>
+                      <TableHead className="text-right">Puzzle Elo</TableHead>
+                      <TableHead className="text-right">Solved</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {humans.map((h, i) => (
+                        <TableRow key={i} className={h.me ? "bg-secondary/40" : undefined}>
+                          <TableCell className="text-center font-mono text-muted-foreground">{i + 1}</TableCell>
+                          <TableCell className="font-medium">
+                            {h.handle || `anon #${i + 1}`}
+                            {h.me && <Badge variant="outline" className="ml-2 text-xs font-normal">you</Badge>}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold tabular-nums">
+                            {h.elo.bounded ? h.elo.rating.toFixed(0) : `≥${h.elo.rating.toFixed(0)}`}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            {h.solved}/{h.n}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="game" className="space-y-4">

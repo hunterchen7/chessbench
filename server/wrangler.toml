@@ -1,0 +1,21 @@
+name = "chessbench"
+main = "src/index.ts"
+compatibility_date = "2024-11-06"
+
+# Serve the built Vite SPA from the same origin as the API, so /api/* and the
+# site share a host (no CORS needed in production). Build the frontend first:
+#   (cd ../web && pnpm build)
+# Existing files are served directly; any path with no matching asset (i.e. /api/*)
+# falls through to the Worker. The SPA uses hash routing, so every page is "/".
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+
+# D1 (SQLite) database. database_id is filled in by `wrangler d1 create chessbench`.
+[[d1_databases]]
+binding = "DB"
+database_name = "chessbench"
+database_id = "a31c9a44-c705-4ec5-8c5f-b625125b40a8"
+
+[observability]
+enabled = true
