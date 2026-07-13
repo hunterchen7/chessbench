@@ -44,6 +44,19 @@ def test_helpmate_2_line_and_wrong_line():
     assert not stipulations.verify_helpmate_line(board, 2, bad)
 
 
+def test_series_directmate_and_helpmate():
+    from chessbench.solvers.series import verify_series_directmate, verify_series_helpmate
+
+    dm = chess.Board("7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1")
+    assert verify_series_directmate(dm, 2, [chess.Move.from_uci(u) for u in ["a1a7", "a7a8"]])
+    # a check on the first (non-final) series move is illegal
+    assert not verify_series_directmate(dm, 2, [chess.Move.from_uci(u) for u in ["a1a8", "a8a7"]])
+
+    hm = chess.Board("7k/p7/5KQ1/8/8/8/8/8 b - - 0 1")
+    assert verify_series_helpmate(hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "g6g7"]])
+    assert not verify_series_helpmate(hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "f6f7"]])
+
+
 def test_proofgame_target():
     line = ["e2e4", "e7e5", "g1f3"]
     board = chess.Board()

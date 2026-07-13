@@ -7,6 +7,7 @@ grading is transparent, typed, and unit-tested against independent brute force.
 from __future__ import annotations
 
 from .proofgame import verify_proofgame
+from .series import verify_series_directmate, verify_series_helpmate
 from .stipulations import (
     directmate_forced,
     directmate_keys,
@@ -31,6 +32,8 @@ __all__ = [
     "helpmate_solutions",
     "verify_helpmate_line",
     "verify_proofgame",
+    "verify_series_directmate",
+    "verify_series_helpmate",
     "grade_study",
     "StudyConfig",
     "StudyResult",

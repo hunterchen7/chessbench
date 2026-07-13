@@ -136,6 +136,12 @@ def extract_move_sequence(start_board: chess.Board, text: str) -> list[chess.Mov
     return out
 
 
+def move_tokens(text: str) -> list[str]:
+    """All move-like tokens (SAN/UCI/castling) in order. For callers that must do
+    their own replay (e.g. series-movers, where the opponent passes)."""
+    return [m.group(0) for m in _MOVE_TOKEN.finditer(text)]
+
+
 def legal_moves_san(board: chess.Board) -> list[str]:
     return [board.san(m) for m in board.legal_moves]
 

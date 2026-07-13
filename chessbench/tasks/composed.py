@@ -27,7 +27,7 @@ import chess
 from ..conditions import Condition, Notation, render_position
 from ..core import board as board_utils
 from ..models import Model
-from ..solvers import proofgame, stipulations
+from ..solvers import proofgame, series, stipulations
 from ..types import AnswerShape, StipulationKind, StudyGoal
 
 _ANSWER_SHAPE: dict[StipulationKind, AnswerShape] = {
@@ -213,13 +213,44 @@ def _grade_line(problem: ComposedProblem, board: chess.Board, raw: str) -> Compo
         detail = f"{len(moves)} plies {'reach' if ok else 'do not reach'} the target in {problem.n}"
         return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
 
+    if problem.kind in ("series_directmate", "series_helpmate"):
+        return _grade_series(problem, board, raw)
+
     line = board_utils.extract_move_sequence(board, raw)
     first_legal = bool(line)
     if problem.kind == "helpmate":
         ok = stipulations.verify_helpmate_line(board, problem.n, line)
-    else:  # pragma: no cover - series not yet graded
-        raise ValueError(f"line grading for {problem.kind} is not implemented yet")
+    else:  # pragma: no cover - guarded by answer_shape
+        raise ValueError(f"line grading for {problem.kind} is not implemented")
     detail = f"{len(line)}-ply line is {'a valid' if ok else 'not a'} {problem.label}"
+    return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
+
+
+def _grade_series(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
+    """Series-movers need a bespoke parse: the opponent passes, so all the series
+    moves are by the side to move (plus, for series-helpmate, one opponent mate)."""
+    side = board.turn
+    n = problem.n
+    total = n if problem.kind == "series_directmate" else n + 1
+    work = board.copy()
+    moves: list[chess.Move] = []
+    for token in board_utils.move_tokens(raw):
+        move = board_utils.parse_move(work, token)
+        if move is None:
+            continue
+        moves.append(move)
+        work.push(move)
+        if len(moves) >= total:
+            break
+        if len(moves) <= n - 1:  # still within the series: opponent passes
+            work.turn = side
+            work.ep_square = None
+    first_legal = bool(moves)
+    if problem.kind == "series_directmate":
+        ok = series.verify_series_directmate(board, n, moves)
+    else:
+        ok = series.verify_series_helpmate(board, n, moves)
+    detail = f"{len(moves)}-move series is {'a valid' if ok else 'not a'} {problem.label}"
     return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
 
 

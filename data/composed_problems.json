@@ -60,6 +60,39 @@
   "source": "discovered"
  },
  {
+  "id": "ser_dm2",
+  "fen": "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+  "kind": "series_directmate",
+  "n": 2,
+  "solution": [
+   "a1a7",
+   "a7a8"
+  ],
+  "goal": null,
+  "themes": [
+   "series",
+   "seriesmover"
+  ],
+  "source": "constructed"
+ },
+ {
+  "id": "ser_hm2",
+  "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+  "kind": "series_helpmate",
+  "n": 2,
+  "solution": [
+   "a7a6",
+   "a6a5",
+   "g6g7"
+  ],
+  "goal": null,
+  "themes": [
+   "series",
+   "seriesmover"
+  ],
+  "source": "constructed"
+ },
+ {
   "id": "pg3",
   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
   "kind": "proofgame",

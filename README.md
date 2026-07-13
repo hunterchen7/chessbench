@@ -75,14 +75,15 @@ python -m chessbench composed --solver openrouter --model openai/gpt-4o-mini
 | Selfmate | `s#n` | key move | forced-mate search |
 | Reflexmate | `r#n` | key move | forced-mate search (reflex move-gen) |
 | Helpmate | `h#n` | full 2n-ply line | replay + checkmate |
+| Series-directmate | `ser-#n` | move sequence | replay (opponent passes; no check until the mate) |
+| Series-helpmate | `ser-h#n` | move sequence | replay (n check-free moves, then opponent mates) |
 | Proof game | reach position in n plies | move sequence | replay from start |
 | Endgame study | win / draw | interactive play | vs engine defender (win must be *converted* to mate) |
 
 Solvers live in `chessbench/solvers/` and are **unit-tested against independent
 brute force** — the bundled `data/composed_problems.json` was built by
 `scripts/build_composed_fixtures.py`, which cross-validates every problem with
-the same solver that grades models. *(Series-movers `ser-#n` / `ser-h#n` are
-modeled in the type system and planned next.)*
+the same solver that grades models.
 
 ### 3. Games
 
@@ -154,10 +155,10 @@ upper bound.
 ## Roadmap
 
 - [x] Puzzle track (Lichess + generated + curation; partial credit; alternates)
-- [x] Composed/esoteric track (directmate, selfmate, reflexmate, helpmate, proof game, study)
+- [x] Composed/esoteric track (directmate, selfmate, reflexmate, helpmate, series-movers, proof game, study)
 - [x] Game track (LLM-vs-LLM / vs-engine; fresh/growing/hybrid; OTB/online legality; match Elo)
 - [x] OpenRouter/OpenAI/Anthropic providers; typed, mypy-clean
-- [ ] Series-movers (`ser-#n` / `ser-h#n`); retrograde beyond proof games
+- [ ] Retrograde beyond proof games (last-move / shortest-proof-game solving)
 - [ ] Round-robin tournament + Bayeselo anchor; Stockfish Elo ladder (MLE) for a real rating
 - [ ] Per-move centipawn/accuracy reporting; the full representation×legality×notation×context ablation study
 

@@ -20,7 +20,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 import chess  # noqa: E402
 
-from chessbench.solvers import proofgame, stipulations  # noqa: E402
+from chessbench.solvers import proofgame, series, stipulations  # noqa: E402
 from chessbench.tasks.composed import ComposedProblem, save_composed  # noqa: E402
 from chessbench.tasks.puzzles import load_puzzles  # noqa: E402
 
@@ -85,13 +85,32 @@ def study_kqk() -> ComposedProblem:
                            solution=[], themes=["study", "endgame"], source="constructed")
 
 
+def series_directmate_2() -> ComposedProblem:
+    fen = "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1"  # 1.Ra7 (quiet) 2.Ra8#
+    line = ["a1a7", "a7a8"]
+    moves = [chess.Move.from_uci(u) for u in line]
+    assert series.verify_series_directmate(chess.Board(fen), 2, moves), "ser-#2 unsound"
+    return ComposedProblem(id="ser_dm2", fen=fen, kind="series_directmate", n=2, solution=line,
+                           themes=["series", "seriesmover"], source="constructed")
+
+
+def series_helpmate_2() -> ComposedProblem:
+    fen = "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1"  # Black shuffles a-pawn twice, then Qg7#
+    line = ["a7a6", "a6a5", "g6g7"]
+    moves = [chess.Move.from_uci(u) for u in line]
+    assert series.verify_series_helpmate(chess.Board(fen), 2, moves), "ser-h#2 unsound"
+    return ComposedProblem(id="ser_hm2", fen=fen, kind="series_helpmate", n=2, solution=line,
+                           themes=["series", "seriesmover"], source="constructed")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/composed_problems.json")
     ap.add_argument("--sample", default=str(DEFAULT_SAMPLE))
     args = ap.parse_args()
 
-    problems = [directmate_1(), selfmate_1(), helpmate_2(), proof_game_3(), study_kqk()]
+    problems = [directmate_1(), selfmate_1(), helpmate_2(), series_directmate_2(),
+                series_helpmate_2(), proof_game_3(), study_kqk()]
     dm2 = directmate_2_from_lichess(pathlib.Path(args.sample))
     if dm2 is not None:
         problems.insert(1, dm2)
