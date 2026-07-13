@@ -78,7 +78,7 @@ class Condition:
     retry_attempts: int = 3      # only used when legality == RETRY
     otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
     explain: bool = False        # invite an optional natural-language explanation with the move
-    temperature: float = 0.0
+    temperature: float = 1.0     # models run at their native default temp; games self-diversify (no opening book needed)
     include_side_to_move: bool = True
 
     def slug(self) -> str:

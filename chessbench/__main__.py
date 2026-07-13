@@ -507,7 +507,8 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--otb-limit", dest="otb_limit", type=int, default=2,
                    help="Nth cumulative illegal move that forfeits under --legality otb")
     p.add_argument("--explain", action="store_true", help="invite an optional explanation with the move")
-    p.add_argument("--temperature", type=float, default=0.0)
+    p.add_argument("--temperature", type=float, default=1.0,
+                   help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -597,8 +598,9 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--save", default=None, help="save a tournament record JSON (for the web games viewer)")
     t.add_argument("--eval-moves", dest="eval_moves", action="store_true",
                    help="Stockfish-evaluate each move (per-move centipawns / accuracy)")
-    t.add_argument("--openings", default="book", choices=["book", "none"],
-                   help="diversify games from an opening book (default) vs the standard start")
+    t.add_argument("--openings", default="none", choices=["book", "none"],
+                   help="diversify games from an opening book vs the standard start (default). "
+                        "At temperature 1.0 games self-diversify, so the book is opt-in.")
     _add_condition_args(t)
     t.set_defaults(func=cmd_tournament)
 
@@ -618,7 +620,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--beta", type=float, default=0.05)
     sp.add_argument("--max-games", dest="max_games", type=int, default=200)
     sp.add_argument("--max-plies", dest="max_plies", type=int, default=200)
-    sp.add_argument("--openings", default="book", choices=["book", "none"])
+    sp.add_argument("--openings", default="none", choices=["book", "none"])
     sp.add_argument("--seed", type=int, default=0)
     sp.add_argument("--sf-nodes", type=int, default=100_000)
     sp.add_argument("--sf-skill", type=int, default=3)
