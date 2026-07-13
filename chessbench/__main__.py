@@ -380,6 +380,21 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_category_leaderboard(args: argparse.Namespace) -> int:
+    """Per-category rankings from saved run records (offline)."""
+    from .leaderboards import category_leaderboard, format_category_leaderboard, load_runs
+
+    runs = load_runs(args.runs_dir)
+    if not runs:
+        print(f"no run records in {args.runs_dir}")
+        return 0
+    board = category_leaderboard(runs, min_n=args.min_n, dim=args.dim)
+    print(f"per-category leaderboard from {len(runs)} run(s)"
+          + (f", dimension '{args.dim}'" if args.dim else "") + "  (* = unbounded Elo)")
+    print(format_category_leaderboard(board))
+    return 0
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     """Write data/index.json listing every run record (the web app's entry point)."""
     import json
@@ -531,6 +546,14 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
     e.add_argument("--out", default="webapp/data/index.json")
     e.set_defaults(func=cmd_export)
+
+    cl = sub.add_parser("category-leaderboard", help="per-category rankings from saved run records")
+    cl.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
+    cl.add_argument("--dim", default=None,
+                    choices=["tier", "phase", "motif", "mate_pattern", "goal", "length"],
+                    help="restrict to one category dimension")
+    cl.add_argument("--min-n", dest="min_n", type=int, default=3)
+    cl.set_defaults(func=cmd_category_leaderboard)
 
     m = sub.add_parser("models", help="model registry (list / add)")
     m.add_argument("models_action", nargs="?", default="list", choices=["list", "add"])
