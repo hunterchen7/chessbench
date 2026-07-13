@@ -28,6 +28,21 @@ table.lb th.r, table.lb td.r { text-align: right; }
 table.lb tbody tr:hover, tr.click:hover { background: var(--panel); }
 tr.click { cursor: pointer; }
 .ci { color: var(--muted); font-size: 12px; }
+table.lb tbody tr.grp td { border-top: 2px solid var(--line); }
+
+.filterbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.filterbar input[type="search"], .filterbar select {
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 13px; }
+.filterbar input[type="search"] { min-width: 200px; }
+.filterbar .seg { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 13px; cursor: pointer; }
+.pill { display: inline-block; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 20px; padding: 1px 9px; font-size: 12px; color: var(--muted); margin-left: 6px; }
+.legend { color: var(--muted); font-size: 12.5px; margin: 6px 0; }
+.legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  vertical-align: middle; margin: 0 4px 0 8px; }
+.legend .dot:first-child { margin-left: 0; }
+.legend .dot.ok { background: var(--ok); } .legend .dot.no { background: var(--bad); }
 
 .cards { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;

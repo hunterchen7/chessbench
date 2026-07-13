@@ -5,6 +5,25 @@ const app = () => document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (x) => (x * 100).toFixed(1) + "%";
 
+// Difficulty tiers, easiest → hardest.
+const TIER_ORDER = ["beginner", "novice", "intermediate", "advanced", "expert", "master"];
+const CONDITION_LABELS = { free_form: "Free-form", legal_list: "Legal list" };
+
+// Human-readable label for a run's condition (mode). Falls back to the slug.
+const condMode = (cond) => CONDITION_LABELS[cond?.legality] || cond?.slug || "—";
+
+// puzzle-Elo cell: shows ± only when we have a finite CI; "≥" when unbounded.
+function eloCell(s) {
+  const [lo, hi] = s.puzzle_elo_ci || [];
+  if (!s.puzzle_elo_bounded) return `≥${s.puzzle_elo.toFixed(0)}`;
+  const hasCI = typeof lo === "number" && typeof hi === "number";
+  return hasCI
+    ? `${s.puzzle_elo.toFixed(0)} <span class="ci">±${((hi - lo) / 2).toFixed(0)}</span>`
+    : `${s.puzzle_elo.toFixed(0)}`;
+}
+
+let lbView = "flat"; // leaderboard view: "flat" | "grouped"
+
 async function loadData() {
   const idx = await fetch("data/index.json").then((r) => r.json());
   state.runs = [];
@@ -43,28 +62,66 @@ function eloChart(items) {
 }
 
 // ---- views ----
-function renderLeaderboard() {
-  const rows = state.runs.map((r) => {
-    const s = r.summary, [lo, hi] = s.puzzle_elo_ci;
-    const elo = s.puzzle_elo_bounded ? `${s.puzzle_elo.toFixed(0)} <span class="ci">±${((hi - lo) / 2).toFixed(0)}</span>` : `≥${s.puzzle_elo.toFixed(0)}`;
-    return { r, s, elo };
-  }).sort((a, b) => b.s.puzzle_elo - a.s.puzzle_elo);
+function runCell(r) {
+  const s = r.summary;
+  return `<td class="r">${eloCell(s)}</td>
+    <td class="r">${pct(s.solve_rate)}</td>
+    <td class="r">${pct(s.first_move_legal_rate)}</td>
+    <td class="r">${s.n}</td>
+    <td class="r small">${s.cost_usd != null ? "$" + s.cost_usd.toFixed(4) : "—"}</td>`;
+}
+const lbHead = `<thead><tr><th>#</th><th>model</th><th>mode</th><th class="r">puzzle-Elo</th>
+  <th class="r">solved</th><th class="r">legal</th><th class="r">n</th><th class="r">cost</th></tr></thead>`;
 
-  app().innerHTML = `<h1>Puzzle leaderboard</h1>
-    <p class="muted">MLE puzzle-Elo on frozen suites. Every model solves the identical set.</p>
-    <table class="lb"><thead><tr><th>#</th><th>model</th><th>condition</th><th class="r">puzzle-Elo</th>
-      <th class="r">solved</th><th class="r">legal</th><th class="r">n</th><th class="r">cost</th></tr></thead><tbody>
-    ${rows.map(({ r, s, elo }, i) => `<tr>
+// Flat ranking: one row per run, sorted by Elo.
+function lbFlat(runs) {
+  const rows = runs.slice().sort((a, b) => b.summary.puzzle_elo - a.summary.puzzle_elo);
+  return `<table class="lb">${lbHead}<tbody>
+    ${rows.map((r, i) => `<tr>
       <td>${i + 1}</td>
       <td><a href="#/model/${encodeURIComponent(r.model + "@@" + r.condition.slug)}">${esc(r.model)}</a></td>
-      <td class="mono small">${esc(r.condition.slug)}</td>
-      <td class="r">${elo}</td>
-      <td class="r">${pct(s.solve_rate)}</td>
-      <td class="r">${pct(s.first_move_legal_rate)}</td>
-      <td class="r">${s.n}</td>
-      <td class="r small">${s.cost_usd != null ? "$" + s.cost_usd.toFixed(4) : "—"}</td>
-    </tr>`).join("")}</tbody></table>
+      <td class="small" title="${esc(r.condition.slug)}">${esc(condMode(r.condition))}</td>
+      ${runCell(r)}
+    </tr>`).join("")}</tbody></table>`;
+}
+
+// Grouped: rows grouped per model so you can compare its settings side by side.
+function lbGrouped(runs) {
+  const byModel = new Map();
+  for (const r of runs) {
+    if (!byModel.has(r.model)) byModel.set(r.model, []);
+    byModel.get(r.model).push(r);
+  }
+  const groups = [...byModel.entries()].map(([model, rs]) => {
+    rs.sort((a, b) => b.summary.puzzle_elo - a.summary.puzzle_elo);
+    return { model, rs, best: rs[0].summary.puzzle_elo };
+  }).sort((a, b) => b.best - a.best);
+
+  return `<table class="lb">${lbHead}<tbody>
+    ${groups.map(({ model, rs }, i) => rs.map((r, j) => `<tr class="${j === 0 ? "grp" : ""}">
+        ${j === 0 ? `<td rowspan="${rs.length}">${i + 1}</td>
+          <td rowspan="${rs.length}"><a href="#/model/${encodeURIComponent(r.model + "@@" + r.condition.slug)}">${esc(model)}</a></td>` : ""}
+        <td class="small"><a href="#/model/${encodeURIComponent(r.model + "@@" + r.condition.slug)}" title="${esc(r.condition.slug)}">${esc(condMode(r.condition))}</a></td>
+        ${runCell(r)}
+      </tr>`).join("")).join("")}</tbody></table>`;
+}
+
+function renderLeaderboard() {
+  const runs = state.runs;
+  app().innerHTML = `<h1>Puzzle leaderboard</h1>
+    <p class="muted">MLE puzzle-Elo on frozen suites. Every model solves the identical set.
+      <span class="pill">${runs.length} runs · ${state.puzzleIndex.size} puzzles</span></p>
+    <div class="filterbar">
+      <span class="muted small">View</span>
+      <label class="seg"><input type="radio" name="lbview" value="flat" ${lbView === "flat" ? "checked" : ""}> Ranking</label>
+      <label class="seg"><input type="radio" name="lbview" value="grouped" ${lbView === "grouped" ? "checked" : ""}> Compare settings</label>
+    </div>
+    ${lbView === "grouped" ? lbGrouped(runs) : lbFlat(runs)}
     <p><a href="#/puzzles">Browse puzzles &amp; solve them yourself →</a></p>`;
+
+  for (const el of document.querySelectorAll('input[name="lbview"]')) {
+    el.addEventListener("change", (e) => { lbView = e.target.value; renderLeaderboard(); });
+  }
 }
 
 function catRollup(items) {
@@ -81,6 +138,18 @@ function catRollup(items) {
   return Object.entries(acc).filter(([, x]) => x.n >= 2).sort((a, b) => b[1].n - a[1].n);
 }
 
+// Solve rate by difficulty tier, easiest → hardest.
+function tierRollup(items) {
+  const acc = {};
+  for (const it of items) {
+    const t = (it.categories?.tier || [])[0];
+    if (!t) continue;
+    acc[t] = acc[t] || { n: 0, solved: 0 };
+    acc[t].n++; acc[t].solved += it.solved ? 1 : 0;
+  }
+  return TIER_ORDER.filter((t) => acc[t]).map((t) => [t, acc[t]]);
+}
+
 function renderModel(key) {
   const [model, slug] = key.split("@@");
   const run = state.runs.find((r) => r.model === model && (!slug || r.condition.slug === slug))
@@ -88,35 +157,97 @@ function renderModel(key) {
   if (!run) return (app().innerHTML = `<p>Unknown model. <a href="#/">back</a></p>`);
   const s = run.summary;
   const cats = catRollup(run.items);
+  const tiers = tierRollup(run.items);
+  const dims = [...new Set(cats.map(([k]) => k.split(":")[0]))];
   app().innerHTML = `<p><a href="#/">← leaderboard</a></p>
     <h1>${esc(model)}</h1>
-    <p class="mono small">${esc(run.condition.slug)} · suite ${esc(run.suite?.name || "—")} · ${esc(run.created)}</p>
+    <p class="mono small">${esc(condMode(run.condition))} · ${esc(run.condition.slug)} · suite ${esc(run.suite?.name || "—")} · ${esc(run.created)}</p>
     <div class="cards">
       <div class="card"><div class="big">${s.puzzle_elo.toFixed(0)}</div><div>puzzle-Elo</div></div>
       <div class="card"><div class="big">${pct(s.solve_rate)}</div><div>solved (${s.solved}/${s.n})</div></div>
       <div class="card"><div class="big">${pct(s.first_move_legal_rate)}</div><div>first-move legal</div></div>
       <div class="card"><div class="big">${pct(s.mean_score)}</div><div>mean score</div></div>
     </div>
-    <h2>Elo after each puzzle</h2>${eloChart(run.items)}
+    <h2>Elo after each puzzle</h2>
+    <div class="legend"><span class="dot ok"></span> solved <span class="dot no"></span> failed · each dot is one puzzle, easy → hard</div>
+    ${eloChart(run.items)}
+    ${tiers.length ? `<h2>By difficulty tier</h2>
+    <table class="lb"><thead><tr><th>tier</th><th class="r">solved</th><th class="r">n</th></tr></thead><tbody>
+    ${tiers.map(([t, x]) => `<tr><td>${esc(t)}</td><td class="r">${pct(x.solved / x.n)}</td><td class="r">${x.n}</td></tr>`).join("")}
+    </tbody></table>` : ""}
     <h2>By category</h2>
-    <table class="lb"><thead><tr><th>category</th><th class="r">solved</th><th class="r">n</th></tr></thead><tbody>
-    ${cats.map(([k, x]) => `<tr><td>${esc(k)}</td><td class="r">${pct(x.solved / x.n)}</td><td class="r">${x.n}</td></tr>`).join("")}
-    </tbody></table>`;
+    <div class="filterbar">
+      <span class="muted small">Dimension</span>
+      <select id="mf-dim"><option value="">All</option>${dims.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("")}</select>
+    </div>
+    <table class="lb"><thead><tr><th>category</th><th class="r">solved</th><th class="r">n</th></tr></thead>
+    <tbody id="mf-body"></tbody></table>`;
+
+  const body = document.getElementById("mf-body");
+  const dimEl = document.getElementById("mf-dim");
+  const renderCats = () => {
+    const d = dimEl.value;
+    const rows = d ? cats.filter(([k]) => k.split(":")[0] === d) : cats;
+    body.innerHTML = rows.map(([k, x]) => `<tr><td>${esc(k)}</td><td class="r">${pct(x.solved / x.n)}</td><td class="r">${x.n}</td></tr>`).join("")
+      || `<tr><td colspan="3" class="muted">No categories.</td></tr>`;
+  };
+  dimEl.addEventListener("change", renderCats);
+  renderCats();
 }
 
 function renderPuzzles() {
   const rows = [...state.puzzleIndex.entries()].map(([id, e]) => {
     const solved = e.answers.filter((a) => a.item.solved).length;
-    return { id, e, solved, total: e.answers.length };
-  }).sort((a, b) => a.e.position.rating - b.e.position.rating);
+    return {
+      id, solved, total: e.answers.length,
+      rating: e.position.rating,
+      tier: (e.position.categories?.tier || [])[0] || "",
+      themes: e.position.themes || [],
+    };
+  }).sort((a, b) => a.rating - b.rating);
+
+  const tierSet = new Set(rows.map((r) => r.tier).filter(Boolean));
+  const tierOpts = TIER_ORDER.filter((t) => tierSet.has(t));
+  const themeUnion = [...new Set(rows.flatMap((r) => r.themes))].sort();
+
   app().innerHTML = `<p><a href="#/">← leaderboard</a></p><h1>Puzzles (${rows.length})</h1>
     <p class="muted">Ordered easy → hard. Click one to solve it and see how the models did.</p>
-    <table class="lb"><thead><tr><th>id</th><th class="r">rating</th><th>tier</th><th>themes</th><th class="r">models solved</th></tr></thead><tbody>
-    ${rows.map(({ id, e, solved, total }) => `<tr class="click" onclick="location.hash='#/puzzle/${encodeURIComponent(id)}'">
-      <td class="mono">${esc(id)}</td><td class="r">${e.position.rating}</td>
-      <td>${esc((e.position.categories?.tier || [])[0] || "")}</td>
-      <td class="small">${esc((e.position.themes || []).slice(0, 3).join(", "))}</td>
-      <td class="r">${solved}/${total}</td></tr>`).join("")}</tbody></table>`;
+    <div class="filterbar">
+      <input id="pf-search" type="search" placeholder="Search id or theme…" />
+      <select id="pf-tier"><option value="">All tiers</option>${tierOpts.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}</select>
+      <select id="pf-theme"><option value="">All themes</option>${themeUnion.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}</select>
+      <span id="pf-count" class="muted small"></span>
+    </div>
+    <table class="lb"><thead><tr><th>id</th><th class="r">rating</th><th>tier</th><th>themes</th><th class="r">models solved</th></tr></thead>
+    <tbody id="pf-body"></tbody></table>`;
+
+  const body = document.getElementById("pf-body");
+  const countEl = document.getElementById("pf-count");
+  const searchEl = document.getElementById("pf-search");
+  const tierEl = document.getElementById("pf-tier");
+  const themeEl = document.getElementById("pf-theme");
+
+  const apply = () => {
+    const q = searchEl.value.trim().toLowerCase();
+    const tier = tierEl.value, theme = themeEl.value;
+    const filtered = rows.filter((r) => {
+      if (tier && r.tier !== tier) return false;
+      if (theme && !r.themes.includes(theme)) return false;
+      if (q && !(r.id + " " + r.themes.join(" ")).toLowerCase().includes(q)) return false;
+      return true;
+    });
+    countEl.textContent = `${filtered.length} of ${rows.length}`;
+    body.innerHTML = filtered.map(({ id, rating, tier, themes, solved, total }) => `<tr class="click" onclick="location.hash='#/puzzle/${encodeURIComponent(id)}'">
+      <td class="mono">${esc(id)}</td><td class="r">${rating}</td>
+      <td>${esc(tier)}</td>
+      <td class="small">${esc(themes.slice(0, 3).join(", "))}</td>
+      <td class="r">${solved}/${total}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="muted">No puzzles match.</td></tr>`;
+  };
+  searchEl.addEventListener("input", apply);
+  tierEl.addEventListener("change", apply);
+  themeEl.addEventListener("change", apply);
+  apply();
 }
 
 function renderPuzzle(id) {
