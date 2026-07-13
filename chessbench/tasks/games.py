@@ -53,6 +53,7 @@ class GameRecord:
     moves_san: list[str] = field(default_factory=list)
     records: list[MoveRecord] = field(default_factory=list)
     pgn: str = ""
+    start_fen: str | None = None  # None = standard start; set for opening-book games
 
     @property
     def white_score(self) -> float:
@@ -169,6 +170,7 @@ def play_game(
         white=white_name, black=black_name, result=result, termination=term,
         plies=len(history_san), moves_san=history_san, records=records,
         pgn=_to_pgn(history_san, white_name, black_name, result, term, start_fen),
+        start_fen=start_fen,
     )
 
 

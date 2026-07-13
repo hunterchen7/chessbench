@@ -61,10 +61,12 @@ def round_robin(
     config: GameConfig | None = None,
     *,
     eval_engine: Engine | None = None,
+    openings: list[str] | None = None,
 ) -> TournamentResult:
     if len({e.label for e in entries}) != len(entries):
         raise ValueError("tournament entries must have distinct labels")
     config = config or GameConfig()
+    book: list[str | None] = list(openings) if openings else [None]  # None = standard start
 
     standings = {e.label: Standing(label=e.label) for e in entries}
     cross: dict[tuple[str, str], list[int]] = {}
@@ -77,7 +79,9 @@ def round_robin(
     for a, b in combinations(entries, 2):
         for g in range(games_per_pair):
             white, black = (a, b) if g % 2 == 0 else (b, a)
-            record = play_game(white.agent, black.agent, condition, config, eval_engine=eval_engine)
+            start_fen = book[(g // 2) % len(book)]  # each opening played from both colors
+            record = play_game(white.agent, black.agent, condition, config,
+                               eval_engine=eval_engine, start_fen=start_fen)
             record.white, record.black = white.label, black.label  # use entry labels, not agent.name
             games.append(record)
             ws = record.white_score

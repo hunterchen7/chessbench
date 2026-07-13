@@ -46,6 +46,19 @@ def test_tournament_record_export(tmp_path):
     assert len(idx) == 1 and idx[0]["n_games"] == 2
 
 
+def test_openings_diversify_start_positions():
+    from chessbench.conditions import HEADLINE
+    from chessbench.openings import opening_fens
+
+    ofens = opening_fens()
+    assert len(ofens) >= 5
+    entries = [TournamentEntry("a", RandomAgent(seed=0)), TournamentEntry("b", FirstLegalAgent())]
+    res = round_robin(entries, games_per_pair=4, condition=HEADLINE,
+                      config=GameConfig(max_plies=8), openings=ofens[:2])
+    starts = {g.start_fen for g in res.games}
+    assert len(starts) == 2  # each opening played from both colors
+
+
 def test_distinct_labels_required():
     with pytest.raises(ValueError, match="distinct labels"):
         round_robin(

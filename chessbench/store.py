@@ -175,6 +175,7 @@ class TournamentRecord:
             games.append({
                 "white": g.white, "black": g.black, "result": g.result,
                 "termination": g.termination, "plies": g.plies, "pgn": g.pgn,
+                "start_fen": g.start_fen,
                 "moves": [{
                     "ply": m.ply, "color": m.color, "san": m.san, "uci": m.uci,
                     "first_attempt_legal": m.first_attempt_legal, "illegal_attempts": m.illegal_attempts,

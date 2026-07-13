@@ -441,7 +441,12 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                 label = f"stockfish(sk{args.sf_skill})"
                 entries.append(TournamentEntry(label, sf, fixed_rating=args.anchor_elo))
                 anchor = {label: float(args.anchor_elo)}
-        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine)
+        openings = None
+        if args.openings == "book":
+            from .openings import opening_fens
+
+            openings = opening_fens()
+        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine, openings=openings)
 
     print(format_tournament(result))
     if args.pgn_out:
@@ -560,6 +565,8 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--save", default=None, help="save a tournament record JSON (for the web games viewer)")
     t.add_argument("--eval-moves", dest="eval_moves", action="store_true",
                    help="Stockfish-evaluate each move (per-move centipawns / accuracy)")
+    t.add_argument("--openings", default="book", choices=["book", "none"],
+                   help="diversify games from an opening book (default) vs the standard start")
     _add_condition_args(t)
     t.set_defaults(func=cmd_tournament)
 
