@@ -118,6 +118,24 @@ def extract_move(board: chess.Board, text: str) -> tuple[chess.Move | None, str 
     return None, None
 
 
+def extract_move_sequence(start_board: chess.Board, text: str) -> list[chess.Move]:
+    """Replay the longest legal prefix of move tokens found in `text`.
+
+    Used for composed problems whose answer is a whole line (helpmate, series,
+    proof game). Tolerates move numbers and SAN/UCI mixing; stops at the first
+    token that is not a legal continuation.
+    """
+    board = start_board.copy()
+    out: list[chess.Move] = []
+    for match in _MOVE_TOKEN.finditer(text):
+        move = parse_move(board, match.group(0))
+        if move is None:
+            continue
+        board.push(move)
+        out.append(move)
+    return out
+
+
 def legal_moves_san(board: chess.Board) -> list[str]:
     return [board.san(m) for m in board.legal_moves]
 

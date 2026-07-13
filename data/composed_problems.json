@@ -1,0 +1,91 @@
+[
+ {
+  "id": "dm1",
+  "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+  "kind": "directmate",
+  "n": 1,
+  "solution": [
+   "a1a8"
+  ],
+  "goal": null,
+  "themes": [
+   "directmate",
+   "backRankMate"
+  ],
+  "source": "constructed"
+ },
+ {
+  "id": "dm2_000Zo",
+  "fen": "4r3/1k6/pp3P2/1b5p/3R1p2/P1R2P2/1P4PP/6K1 b - - 0 35",
+  "kind": "directmate",
+  "n": 2,
+  "solution": [
+   "e8e1"
+  ],
+  "goal": null,
+  "themes": [
+   "directmate"
+  ],
+  "source": "lichess"
+ },
+ {
+  "id": "sm1",
+  "fen": "8/1Q6/8/4R3/3p4/8/1q6/5k1K w - - 0 1",
+  "kind": "selfmate",
+  "n": 1,
+  "solution": [
+   "b7g2"
+  ],
+  "goal": null,
+  "themes": [
+   "selfmate"
+  ],
+  "source": "discovered"
+ },
+ {
+  "id": "hm2",
+  "fen": "8/3K4/8/8/8/8/3k4/2Q4N b - - 0 1",
+  "kind": "helpmate",
+  "n": 2,
+  "solution": [
+   "d2e2",
+   "c1c5",
+   "e2f1",
+   "c5f2"
+  ],
+  "goal": null,
+  "themes": [
+   "helpmate"
+  ],
+  "source": "discovered"
+ },
+ {
+  "id": "pg3",
+  "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+  "kind": "proofgame",
+  "n": 3,
+  "solution": [
+   "e2e4",
+   "e7e5",
+   "g1f3"
+  ],
+  "goal": null,
+  "themes": [
+   "proofgame"
+  ],
+  "source": "constructed"
+ },
+ {
+  "id": "study_kqk",
+  "fen": "8/8/8/4k3/8/8/4K3/6Q1 w - - 0 1",
+  "kind": "study",
+  "n": 0,
+  "solution": [],
+  "goal": "win",
+  "themes": [
+   "study",
+   "endgame"
+  ],
+  "source": "constructed"
+ }
+]

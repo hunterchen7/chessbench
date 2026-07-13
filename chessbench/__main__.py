@@ -25,6 +25,7 @@ from .tasks.puzzles import load_puzzles
 from .tasks.runner import run_puzzles
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
+DEFAULT_COMPOSED = Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
 
 
 def _build_agent(args):
@@ -152,6 +153,97 @@ def cmd_play(args) -> int:
     return 0
 
 
+def _build_composed_solver(spec: str, model_id: str | None, seed: int):
+    from .tasks.composed import LLMComposedSolver, OracleComposedSolver, RandomComposedSolver
+
+    if spec == "oracle":
+        return OracleComposedSolver()
+    if spec == "random":
+        return RandomComposedSolver(seed=seed)
+    if spec in ("anthropic", "openai", "openrouter"):
+        from .models import AnthropicModel, OpenAIModel, OpenRouterModel
+
+        model = {
+            "anthropic": lambda: AnthropicModel(model_id or "claude-opus-4-8"),
+            "openai": lambda: OpenAIModel(model_id or "gpt-4.1"),
+            "openrouter": lambda: OpenRouterModel(model_id or "openai/gpt-4o-mini"),
+        }[spec]()
+        return LLMComposedSolver(model)
+    raise SystemExit(f"unknown solver: {spec}")
+
+
+def cmd_composed(args) -> int:
+    from .solvers import grade_study
+    from .tasks.composed import grade_composed, load_composed
+
+    condition = Condition(
+        legality=Legality(args.legality),
+        representation=Representation(args.representation),
+        notation=Notation(args.notation),
+        prompt_style=PromptStyle(args.prompt_style),
+        retry_attempts=args.retry_attempts,
+        temperature=args.temperature,
+    )
+    problems = load_composed(args.data)
+    solver = _build_composed_solver(args.solver, args.model, args.seed)
+    print(f"solver: {solver.name} | condition: {condition.slug()}")
+    print(f"problems: {len(problems)} from {args.data}\n")
+
+    by_kind: dict[str, list[bool]] = {}
+    study_problems = [p for p in problems if p.answer_shape == "play"]
+    closers: list = []
+    engine = None
+    if study_problems:
+        from .core.engine import Engine, EngineConfig
+
+        engine = Engine(EngineConfig(nodes=args.sf_nodes)).__enter__()
+        closers.append(engine)
+    study_agent = _build_study_agent(args, engine)
+
+    try:
+        for p in problems:
+            if p.answer_shape == "play":
+                assert engine is not None
+                res = grade_study(study_agent, p.fen, p.goal or "win", engine, condition)
+                solved, detail = res.solved, res.outcome
+            else:
+                r = grade_composed(solver, p, condition)
+                solved, detail = r.solved, r.detail
+            by_kind.setdefault(p.kind, []).append(solved)
+            print(f"  {p.id:<14} {p.label:<20} {'SOLVED' if solved else 'failed':<7} {detail}")
+    finally:
+        for c in closers:
+            c.__exit__(None, None, None)
+
+    print("\nby stipulation:")
+    total = solved_total = 0
+    for kind, outs in sorted(by_kind.items()):
+        s, n = sum(outs), len(outs)
+        total += n
+        solved_total += s
+        print(f"  {kind:<18} {s}/{n}")
+    print(f"  {'TOTAL':<18} {solved_total}/{total}")
+    return 0
+
+
+def _build_study_agent(args, engine):
+    from .agents import LLMGameAgent, RandomAgent, StockfishAgent
+
+    spec = args.solver
+    if spec == "random":
+        return RandomAgent(seed=args.seed)
+    if spec in ("oracle", "stockfish"):
+        return StockfishAgent(engine=engine)  # oracle stand-in for interactive studies
+    from .models import AnthropicModel, OpenAIModel, OpenRouterModel
+
+    model = {
+        "anthropic": lambda: AnthropicModel(args.model or "claude-opus-4-8"),
+        "openai": lambda: OpenAIModel(args.model or "gpt-4.1"),
+        "openrouter": lambda: OpenRouterModel(args.model or "openai/gpt-4o-mini"),
+    }[spec]()
+    return LLMGameAgent(model)
+
+
 def _add_condition_args(p) -> None:
     p.add_argument("--legality", default="free_form", choices=[e.value for e in Legality])
     p.add_argument("--representation", default="fen_ascii", choices=[e.value for e in Representation])
@@ -196,6 +288,16 @@ def main(argv: list[str] | None = None) -> int:
     _add_condition_args(g)
     g.add_argument("--pgn-out", default=None, help="write game PGNs to this file")
     g.set_defaults(func=cmd_play)
+
+    c = sub.add_parser("composed", help="run the composed/esoteric track")
+    c.add_argument("--solver", default="oracle",
+                   choices=["oracle", "random", "anthropic", "openai", "openrouter"])
+    c.add_argument("--model", default=None, help="model id for LLM solvers")
+    c.add_argument("--data", default=str(DEFAULT_COMPOSED))
+    c.add_argument("--seed", type=int, default=0)
+    c.add_argument("--sf-nodes", type=int, default=120_000, help="engine nodes for study adjudication")
+    _add_condition_args(c)
+    c.set_defaults(func=cmd_composed)
 
     args = parser.parse_args(argv)
     return args.func(args)
