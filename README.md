@@ -17,6 +17,28 @@ through OpenRouter/OpenAI/Anthropic):
 The design philosophy: every methodology choice the research found to be
 *contested* is a reported **ablation axis**, not a hard-coded default.
 
+## Web app
+
+A dependency-free static site (`webapp/`) turns run records into a browsable
+results site: a **leaderboard** (puzzle-Elo ± CI, solved/legal/cost per model &
+condition), a **model page** with the **Elo-after-each-puzzle** trajectory chart
+(easy → hard), and a **per-puzzle browser** where you render the board, **solve it
+yourself**, and see how every model did on that exact puzzle — their move,
+optional **explanation**, and a solved/partial/legal-wrong/illegal verdict.
+
+```bash
+python -m chessbench puzzles --suite suites/public/tactical-lichess-v1.json \
+    --agent openrouter --model openai/gpt-4o-mini --explain \
+    --save-run webapp/data/runs/gpt-4o-mini.json     # one run record per model
+python -m chessbench export                          # -> webapp/data/index.json
+python -m http.server --directory webapp 8787        # open http://localhost:8787
+```
+
+Run records (`store.py`) are self-contained JSON (manifest + summary + per-puzzle
+move/explanation/categories + sequential Elo). Data flows one way: run → JSON →
+static site. *(At scale the design recommends a SQLite spine + React/Vite; this
+ships a zero-ops v1 on the same JSON contract.)*
+
 ## Why (the gap)
 
 A [research sweep](#references) found frontier LLMs are far weaker at chess than
