@@ -20,7 +20,7 @@ import chess.pgn
 
 from ..agents import Agent, GameTurnContext
 from ..conditions import Condition, Legality
-from ..core import board as board_utils
+from ..core import board as board_utils, metrics
 from ..core.engine import Engine
 
 
@@ -62,6 +62,28 @@ class GameRecord:
     def illegal_rate(self) -> float:
         n = len(self.records)
         return sum(1 for r in self.records if not r.first_attempt_legal) / n if n else 0.0
+
+
+def accuracy_by_color(records: list[MoveRecord]) -> tuple[float | None, float | None]:
+    """Lichess-style Accuracy% (0-100) per side from the per-move eval sequence.
+
+    Uses the win%-drop model (no best-move eval needed): each move's accuracy is
+    move_accuracy(win_before, win_after) from the *mover's* POV. Requires
+    per-move eval_cp (from --eval-moves); returns (None, None) if unavailable.
+    """
+    if not records or any(r.eval_cp is None for r in records):
+        return (None, None)
+    white: list[float] = []
+    black: list[float] = []
+    prev_mover_eval = 0  # before ply 0, ~equal from White's (the mover's) POV
+    for r in records:
+        assert r.eval_cp is not None
+        win_before = metrics.win_percent(prev_mover_eval)          # mover POV, before the move
+        win_after = 100.0 - metrics.win_percent(r.eval_cp)         # mover POV, after (eval is opponent POV)
+        (white if r.color == "white" else black).append(metrics.move_accuracy(win_before, win_after))
+        prev_mover_eval = r.eval_cp  # after this ply the eval is the next mover's POV
+    return (sum(white) / len(white) if white else None,
+            sum(black) / len(black) if black else None)
 
 
 def _request_move(

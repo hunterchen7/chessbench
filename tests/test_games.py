@@ -100,6 +100,24 @@ def test_otb_prior_penalty_makes_next_illegal_fatal():
     assert move is None and illegal == 1  # already had 1 penalty -> next illegal loses
 
 
+def test_accuracy_by_color():
+    from chessbench.tasks.games import MoveRecord, accuracy_by_color
+
+    flat = [MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=10),
+            MoveRecord(2, "black", "a6", "a7a6", True, 0, eval_cp=-10),
+            MoveRecord(3, "white", "b3", "b2b3", True, 0, eval_cp=10)]
+    w, b = accuracy_by_color(flat)
+    assert w is not None and w > 80 and b is not None      # flat evals -> high accuracy
+
+    # eval_cp is the opponent's POV after the move; +600 means White handed Black a
+    # winning position -> a White blunder.
+    blunder = [MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=600)]
+    wb, _ = accuracy_by_color(blunder)
+    assert wb is not None and wb < w                        # a big drop scores much lower
+
+    assert accuracy_by_color([MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=None)]) == (None, None)
+
+
 def test_pgn_roundtrips():
     g = play_game(FixedGameAgent("f3", "g4"), FixedGameAgent("e5", "Qh4#"), Condition())
     assert '[Result "0-1"]' in g.pgn

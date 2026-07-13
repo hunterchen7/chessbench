@@ -484,15 +484,17 @@ async function renderTournament(file) {
   const ct = new Map();
   for (const c of t.crosstable || []) ct.set(c.a + "\u0000" + c.b, c);
 
+  const anyAcc = standings.some((s) => s.accuracy != null);
   const standingsTable = `<table class="lb"><thead><tr>
       <th>#</th><th>player</th><th class="r">game-Elo</th><th class="r">W-D-L</th>
-      <th class="r">score</th><th class="r">forfeits</th></tr></thead><tbody>
+      <th class="r">score</th>${anyAcc ? '<th class="r">accuracy</th>' : ""}<th class="r">forfeits</th></tr></thead><tbody>
     ${standings.map((s, i) => `<tr>
       <td>${i + 1}</td>
       <td>${esc(s.label)}${anchorLabels.has(s.label) ? ` <span class="pill">anchor</span>` : ""}</td>
       <td class="r">${ratingCell(s, anchorLabels)}</td>
       <td class="r">${s.wins}-${s.draws}-${s.losses}</td>
       <td class="r" title="${(+s.score || 0)} / ${s.games} points">${pct((s.score || 0) / Math.max(1, s.games))}</td>
+      ${anyAcc ? `<td class="r">${s.accuracy != null ? s.accuracy.toFixed(1) + "%" : "—"}</td>` : ""}
       <td class="r">${s.illegal_forfeits || 0}</td>
     </tr>`).join("")}</tbody></table>`;
 

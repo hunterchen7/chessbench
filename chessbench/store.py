@@ -156,6 +156,19 @@ class TournamentRecord:
     created: str = field(default_factory=_now)
 
     def to_dict(self) -> dict[str, object]:
+        from collections import defaultdict
+
+        from .tasks.games import accuracy_by_color
+
+        acc_sum: dict[str, float] = defaultdict(float)
+        acc_n: dict[str, int] = defaultdict(int)
+        for g in self.result.games:
+            wacc, bacc = accuracy_by_color(g.records)
+            if wacc is not None:
+                acc_sum[g.white] += wacc; acc_n[g.white] += 1
+            if bacc is not None:
+                acc_sum[g.black] += bacc; acc_n[g.black] += 1
+
         standings = []
         for s in self.result.standings:
             rt = s.rating
@@ -169,6 +182,7 @@ class TournamentRecord:
                     round(hi, 1) if hi is not None and math.isfinite(hi) else None,
                 ],
                 "bounded": rt.bounded if rt else False,
+                "accuracy": round(acc_sum[s.label] / acc_n[s.label], 1) if acc_n[s.label] else None,
             })
         games = []
         for g in self.result.games:
