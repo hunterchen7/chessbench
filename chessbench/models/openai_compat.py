@@ -9,13 +9,18 @@ harness can report and cap spend.
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 from typing import TypedDict, cast
 
 from ..types import Message
+
+# HTTP statuses worth retrying (rate limit + transient server errors).
+_RETRY_STATUS = {429, 500, 502, 503, 504}
 
 
 class ModelError(RuntimeError):
@@ -52,6 +57,7 @@ class _OpenAICompatModel:
         env_var: str,
         extra_headers: dict[str, str] | None = None,
         timeout: float = 120.0,
+        max_retries: int = 4,
     ) -> None:
         self.name = model
         self._model = model
@@ -60,9 +66,30 @@ class _OpenAICompatModel:
         self._env_var = env_var
         self._extra_headers = extra_headers or {}
         self._timeout = timeout
+        self._max_retries = max_retries
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
+
+    def _post(self, data: bytes, headers: dict[str, str]) -> str:
+        """POST with retry+backoff on transient failures (network resets,
+        timeouts, 429/5xx). Non-retryable HTTP errors raise immediately."""
+        req = urllib.request.Request(f"{self._base_url}/chat/completions", data=data, headers=headers)
+        last: Exception | None = None
+        for attempt in range(self._max_retries):
+            try:
+                with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+                    return resp.read().decode("utf-8")
+            except urllib.error.HTTPError as e:
+                if e.code not in _RETRY_STATUS:
+                    detail = e.read().decode("utf-8", "replace")
+                    raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
+                last = e
+            except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
+                last = e  # ConnectionResetError, timeouts, DNS, etc. are OSError/URLError
+            if attempt < self._max_retries - 1:
+                time.sleep(min(8.0, 0.7 * (2 ** attempt)))  # 0.7, 1.4, 2.8, ...
+        raise ModelError(f"{self._model}: transient request failure after {self._max_retries} tries: {last}")
 
     def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
         if not self._api_key:
@@ -79,16 +106,7 @@ class _OpenAICompatModel:
             "Content-Type": "application/json",
             **self._extra_headers,
         }
-        req = urllib.request.Request(f"{self._base_url}/chat/completions", data=data, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                body = resp.read().decode("utf-8")
-        except urllib.error.HTTPError as e:  # noqa: PERF203 - explicit error surfacing
-            detail = e.read().decode("utf-8", "replace")
-            raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
-        except urllib.error.URLError as e:
-            raise ModelError(f"{self._model}: connection error: {e.reason}") from e
-
+        body = self._post(data, headers)
         parsed = cast(_Response, json.loads(body))
         if "error" in parsed:
             raise ModelError(f"{self._model}: {parsed['error']}")
