@@ -333,6 +333,53 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_models(args: argparse.Namespace) -> int:
+    from .registry import ModelEntry, add_model, load_registry
+
+    if args.models_action == "add":
+        add_model(ModelEntry(label=args.label, provider=args.provider, model_id=args.model_id,
+                             family=args.family or "", notes=args.notes or ""))
+        print(f"registered {args.label} ({args.provider}:{args.model_id})")
+        return 0
+    for e in load_registry():
+        flag = "" if e.enabled else " (disabled)"
+        print(f"  {e.label:<22} {e.provider}:{e.model_id}{flag}")
+    return 0
+
+
+def cmd_run_model(args: argparse.Namespace) -> int:
+    """Enroll+run: build a registry model, run a suite, save a run record. Skips
+    the model×suite×condition cell if its run file already exists (incremental)."""
+    from .agents import LLMAgent
+    from .registry import get_model
+    from .suite import load_suite
+
+    entry = get_model(args.model)
+    suite = load_suite(args.suite)
+    condition = _base_condition(args)
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / f"{entry.label}__{condition.slug()}.json"
+    if out.exists() and not args.force:
+        print(f"skip (exists): {out}  — use --force to recompute")
+        return 0
+
+    print(f"running {entry.label} on suite {suite.name} [{condition.slug()}] ({len(suite.puzzles())} puzzles)...")
+    model = _build_model(entry.provider, entry.model_id)
+    agent = LLMAgent(model)
+    report, results = run_puzzles(agent, suite.puzzles(), condition, progress_every=args.progress)
+    print(format_report(report))
+    record = RunRecord(
+        model=entry.model_id, provider=entry.provider, condition=condition, report=report,
+        results=results, puzzles={p.id: p for p in suite.puzzles()},
+        suite=SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash),
+        cost_usd=getattr(model, "total_cost", None),
+    )
+    save_run(record, out)
+    print(f"\nsaved run -> {out}")
+    return 0
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     """Write data/index.json listing every run record (the web app's entry point)."""
     import json
@@ -484,6 +531,24 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
     e.add_argument("--out", default="webapp/data/index.json")
     e.set_defaults(func=cmd_export)
+
+    m = sub.add_parser("models", help="model registry (list / add)")
+    m.add_argument("models_action", nargs="?", default="list", choices=["list", "add"])
+    m.add_argument("--label")
+    m.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
+    m.add_argument("--model-id", dest="model_id")
+    m.add_argument("--family", default="")
+    m.add_argument("--notes", default="")
+    m.set_defaults(func=cmd_models)
+
+    rmp = sub.add_parser("run-model", help="run a registry model through a suite (incremental, saves a run record)")
+    rmp.add_argument("--model", required=True, help="registry label (see `chessbench models`)")
+    rmp.add_argument("--suite", required=True)
+    rmp.add_argument("--out-dir", dest="out_dir", default="webapp/data/runs")
+    rmp.add_argument("--force", action="store_true", help="recompute even if the run file exists")
+    rmp.add_argument("--progress", type=int, default=10)
+    _add_condition_args(rmp)
+    rmp.set_defaults(func=cmd_run_model)
 
     args = parser.parse_args(argv)
     return args.func(args)

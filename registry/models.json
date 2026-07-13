@@ -1,0 +1,20 @@
+{
+ "models": [
+  {
+   "label": "gpt-4o-mini",
+   "provider": "openrouter",
+   "model_id": "openai/gpt-4o-mini",
+   "family": "openai",
+   "notes": "cheap baseline; ~$0.00001/call",
+   "enabled": true
+  },
+  {
+   "label": "llama-3.3-70b",
+   "provider": "openrouter",
+   "model_id": "meta-llama/llama-3.3-70b-instruct",
+   "family": "meta",
+   "notes": "cheap open-weights",
+   "enabled": true
+  }
+ ]
+}
