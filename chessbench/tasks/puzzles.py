@@ -18,7 +18,8 @@ Grading supports what real puzzles need:
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass, field
+import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -84,7 +85,14 @@ class PuzzleResult:
 
 
 def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
-    """Load puzzles from a Lichess-format CSV (the sample fixture or a full dump)."""
+    """Load puzzles, dispatching on extension: ``.json`` (our generated format,
+    which can carry alternates) or Lichess-style ``.csv``."""
+    if str(path).endswith(".json"):
+        return load_puzzles_json(path, limit)
+    return _load_csv(path, limit)
+
+
+def _load_csv(path: str | Path, limit: int | None) -> list[Puzzle]:
     out: list[Puzzle] = []
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -107,6 +115,20 @@ def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
             if limit and len(out) >= limit:
                 break
     return out
+
+
+def load_puzzles_json(path: str | Path, limit: int | None = None) -> list[Puzzle]:
+    """Load puzzles from a JSON array of Puzzle dicts (our generated format)."""
+    with open(path, encoding="utf-8") as f:
+        rows = json.load(f)
+    puzzles = [Puzzle(**row) for row in rows]
+    return puzzles[:limit] if limit else puzzles
+
+
+def save_puzzles_json(puzzles: list[Puzzle], path: str | Path) -> None:
+    """Serialize puzzles (including alternates) to a JSON array."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([asdict(p) for p in puzzles], f, indent=1)
 
 
 def _is_mate_after(board: chess.Board, move: chess.Move) -> bool:

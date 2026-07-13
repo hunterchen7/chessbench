@@ -88,3 +88,19 @@ class Engine:
         info = self.engine.analyse(board, self.config.limit())
         score = info["score"].pov(board.turn)
         return score.score(mate_score=MATE_CP)
+
+    def top_moves(self, board: chess.Board, n: int = 2) -> list[tuple[chess.Move, int]]:
+        """Best `n` moves as (move, centipawns), side-to-move POV, best first.
+
+        Used by the puzzle generator to detect "only moves" (a large gap between
+        the best and second-best move) and by engine-equivalence grading.
+        """
+        infos = self.engine.analyse(board, self.config.limit(), multipv=n)
+        out: list[tuple[chess.Move, int]] = []
+        for info in infos:
+            pv = info.get("pv")
+            if not pv:
+                continue
+            score = info["score"].pov(board.turn).score(mate_score=MATE_CP)
+            out.append((pv[0], score))
+        return out
