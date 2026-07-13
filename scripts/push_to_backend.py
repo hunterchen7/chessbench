@@ -32,7 +32,12 @@ def _post(url: str, token: str, payload: dict) -> dict:
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url, data=body, method="POST",
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+            # Cloudflare's edge blocks the default Python-urllib UA (error 1010).
+            "User-Agent": "chessbench-push/1.0",
+        },
     )
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)
