@@ -22,3 +22,4 @@ suites/private/
 # webapp debug logs (keep run records + index)
 webapp/data/runs/*.log
 webapp/data/runs/.*
+webapp/data/_archive_temp0/
