@@ -80,6 +80,26 @@ def test_request_move_free_form_no_retry():
     assert move is None and illegal == 1
 
 
+def test_otb_first_illegal_is_recoverable():
+    # OTB: the 1st illegal is a penalty, not a loss -- retract and play a legal move.
+    cond = Condition(legality=Legality.OTB, otb_illegal_limit=2)
+    move, illegal, first_legal, _ = _request_move(FixedGameAgent("banana", "e4"), chess.Board(), cond, [], None)
+    assert move == chess.Move.from_uci("e2e4")
+    assert illegal == 1 and first_legal is False
+
+
+def test_otb_second_illegal_forfeits():
+    cond = Condition(legality=Legality.OTB, otb_illegal_limit=2)
+    move, illegal, *_ = _request_move(BadAgent(), chess.Board(), cond, [], None)
+    assert move is None and illegal == 2  # the 2nd cumulative illegal is fatal
+
+
+def test_otb_prior_penalty_makes_next_illegal_fatal():
+    cond = Condition(legality=Legality.OTB, otb_illegal_limit=2)
+    move, illegal, *_ = _request_move(BadAgent(), chess.Board(), cond, [], None, prior_illegal=1)
+    assert move is None and illegal == 1  # already had 1 penalty -> next illegal loses
+
+
 def test_pgn_roundtrips():
     g = play_game(FixedGameAgent("f3", "g4"), FixedGameAgent("e5", "Qh4#"), Condition())
     assert '[Result "0-1"]' in g.pgn

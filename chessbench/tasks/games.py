@@ -63,14 +63,24 @@ class GameRecord:
         return sum(1 for r in self.records if not r.first_attempt_legal) / n if n else 0.0
 
 
-def _request_move(agent, board: chess.Board, cond: Condition, history_san, last_opp_san):
-    """Return (move|None, illegal_attempts, first_attempt_legal, raw)."""
-    max_tries = cond.retry_attempts + 1 if cond.legality == Legality.RETRY else 1
+def _request_move(
+    agent: Agent, board: chess.Board, cond: Condition, history_san: list[str],
+    last_opp_san: str | None, prior_illegal: int = 0,
+) -> tuple[chess.Move | None, int, bool, str | None]:
+    """Solicit one legal move under the condition's legality regime.
+
+    Returns (move|None, illegal_attempts_this_turn, first_attempt_legal, raw).
+    A None move means the side forfeits (exhausted retries, or the fatal OTB
+    penalty). `prior_illegal` is this side's cumulative illegal count so far (OTB).
+    """
     illegal = 0
     first_legal: bool | None = None
     feedback: str | None = None
-    raw = None
-    for _ in range(max_tries):
+    raw: str | None = None
+    otb = cond.legality == Legality.OTB
+    max_tries = None if otb else (cond.retry_attempts + 1 if cond.legality == Legality.RETRY else 1)
+
+    while max_tries is None or illegal < max_tries:
         ctx = GameTurnContext(
             condition=cond, history_san=list(history_san),
             last_opponent_move_san=last_opp_san, illegal_feedback=feedback, ply=board.ply(),
@@ -82,7 +92,13 @@ def _request_move(agent, board: chess.Board, cond: Condition, history_san, last_
         if mv is not None:
             return mv, illegal, bool(first_legal), raw
         illegal += 1
-        feedback = f"'{raw}' is not a legal move"
+        if otb and prior_illegal + illegal >= cond.otb_illegal_limit:
+            return None, illegal, bool(first_legal), raw  # fatal OTB penalty
+        feedback = (
+            f"Illegal move '{raw}' (OTB penalty {prior_illegal + illegal}/{cond.otb_illegal_limit}); "
+            "retract and play a legal move."
+            if otb else f"'{raw}' is not a legal move"
+        )
     return None, illegal, bool(first_legal), raw
 
 
@@ -113,6 +129,7 @@ def play_game(
     history_san: list[str] = []
     records: list[MoveRecord] = []
     last_opp_san: str | None = None
+    cumulative_illegal: dict[bool, int] = {chess.WHITE: 0, chess.BLACK: 0}  # for OTB penalties
 
     while True:
         if board.is_game_over(claim_draw=True):
@@ -125,7 +142,11 @@ def play_game(
 
         mover = white if board.turn == chess.WHITE else black
         color_str = "white" if board.turn == chess.WHITE else "black"
-        move, illegal, first_legal, raw = _request_move(mover, board, condition, history_san, last_opp_san)
+        side = board.turn
+        move, illegal, first_legal, raw = _request_move(
+            mover, board, condition, history_san, last_opp_san, prior_illegal=cumulative_illegal[side]
+        )
+        cumulative_illegal[side] += illegal
 
         if move is None:  # forfeit by illegal move
             result = "0-1" if board.turn == chess.WHITE else "1-0"

@@ -62,6 +62,7 @@ def cmd_puzzles(args) -> int:
         notation=Notation(args.notation),
         prompt_style=PromptStyle(args.prompt_style),
         retry_attempts=args.retry_attempts,
+        otb_illegal_limit=args.otb_limit,
         temperature=args.temperature,
     )
     puzzles = load_puzzles(args.data, limit=args.limit)
@@ -118,6 +119,7 @@ def _condition_from_args(args) -> Condition:
         prompt_style=PromptStyle(args.prompt_style),
         context_mode=ContextMode(args.context_mode),
         retry_attempts=args.retry_attempts,
+        otb_illegal_limit=args.otb_limit,
         temperature=args.temperature,
     )
 
@@ -182,6 +184,7 @@ def cmd_composed(args) -> int:
         notation=Notation(args.notation),
         prompt_style=PromptStyle(args.prompt_style),
         retry_attempts=args.retry_attempts,
+        otb_illegal_limit=args.otb_limit,
         temperature=args.temperature,
     )
     problems = load_composed(args.data)
@@ -251,6 +254,8 @@ def _add_condition_args(p) -> None:
     p.add_argument("--prompt-style", dest="prompt_style", default="minimal",
                    choices=[e.value for e in PromptStyle])
     p.add_argument("--retry-attempts", type=int, default=3)
+    p.add_argument("--otb-limit", dest="otb_limit", type=int, default=2,
+                   help="Nth cumulative illegal move that forfeits under --legality otb")
     p.add_argument("--temperature", type=float, default=0.0)
 
 

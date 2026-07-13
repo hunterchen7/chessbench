@@ -19,9 +19,24 @@ from .core import board as board_utils
 
 
 class Legality(str, Enum):
-    FREE_FORM = "free_form"      # no legal-move list; illegal = fail. The headline.
-    RETRY = "retry"             # re-prompt with reason feedback, capped attempts.
-    LEGAL_LIST = "legal_list"   # legal moves handed to the model (skill upper bound).
+    """How illegal moves are handled -- an "OTB vs online" spectrum.
+
+    ONLINE end (you physically cannot submit an illegal move):
+      * LEGAL_LIST -- the legal moves are handed to the model; it can only pick one.
+      * RETRY      -- an illegal move is rejected with feedback and re-prompted,
+                      up to `retry_attempts` times (the board "won't let you").
+    OTB end (you can play an illegal move, with consequences):
+      * OTB        -- illegal moves are allowed but penalised; the Nth cumulative
+                      illegal move in a game (`otb_illegal_limit`, default 2, per
+                      FIDE rapid/blitz) forfeits.
+      * FREE_FORM  -- the strictest measurement: a single illegal move fails
+                      (puzzles) or forfeits (games). The headline benchmark condition.
+    """
+
+    FREE_FORM = "free_form"
+    RETRY = "retry"
+    LEGAL_LIST = "legal_list"
+    OTB = "otb"
 
 
 class Representation(str, Enum):
@@ -60,6 +75,7 @@ class Condition:
     prompt_style: PromptStyle = PromptStyle.MINIMAL
     context_mode: ContextMode = ContextMode.FRESH  # game-track axis
     retry_attempts: int = 3      # only used when legality == RETRY
+    otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
     temperature: float = 0.0
     include_side_to_move: bool = True
 
