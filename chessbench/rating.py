@@ -75,6 +75,25 @@ def puzzle_elo(items: list[tuple[float, bool]], *, lo: float = 0.0, hi: float = 
     return RatingEstimate(theta, stderr, n)
 
 
+def elo_trajectory(
+    items: list[tuple[float, bool]], *, start: float = 1500.0, k_start: float = 48.0,
+    k_min: float = 16.0, k_halflife: int = 40,
+) -> list[float]:
+    """Sequential rating after each puzzle -- the "Elo changes after each puzzle"
+    view for the web app. Each puzzle of rating R is a rated game; the rating
+    updates by K*(solved - expected). K decays from `k_start` toward `k_min` so
+    the trajectory settles. Present `items` in ascending difficulty for the
+    canonical easy->hard curve. Illustrative; the MLE `puzzle_elo` is the official
+    rating."""
+    rating = start
+    out: list[float] = []
+    for i, (puzzle_rating, solved) in enumerate(items):
+        k = max(k_min, k_start * k_halflife / (k_halflife + i))
+        rating += k * ((1.0 if solved else 0.0) - expected_score(rating, puzzle_rating))
+        out.append(rating)
+    return out
+
+
 def tournament_elo(
     results: list[tuple[str, str, float]],
     *,
