@@ -47,6 +47,10 @@ def _build_agent(args):
         from .models import OpenAIModel
 
         return LLMAgent(OpenAIModel(args.model or "gpt-4.1")), None
+    if args.agent == "openrouter":
+        from .models import OpenRouterModel
+
+        return LLMAgent(OpenRouterModel(args.model or "openai/gpt-4o-mini")), None
     raise SystemExit(f"unknown agent: {args.agent}")
 
 
@@ -98,6 +102,10 @@ def _build_player(spec: str, model_id: str | None, args, closers: list):
         from .models import OpenAIModel
 
         return LLMGameAgent(OpenAIModel(model_id or "gpt-4.1"), cond)
+    if spec == "openrouter":
+        from .models import OpenRouterModel
+
+        return LLMGameAgent(OpenRouterModel(model_id or "openai/gpt-4o-mini"), cond)
     raise SystemExit(f"unknown player: {spec}")
 
 
@@ -160,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("puzzles", help="run the puzzle track")
     p.add_argument("--agent", default="random",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai"])
+                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
     p.add_argument("--model", default=None, help="model id for LLM agents")
     p.add_argument("--data", default=str(DEFAULT_DATA))
     p.add_argument("--limit", type=int, default=None)
@@ -173,9 +181,9 @@ def main(argv: list[str] | None = None) -> int:
 
     g = sub.add_parser("play", help="run the game track (agent vs agent)")
     g.add_argument("--white", default="stockfish",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai"])
+                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
     g.add_argument("--black", default="random",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai"])
+                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
     g.add_argument("--white-model", default=None)
     g.add_argument("--black-model", default=None)
     g.add_argument("--games", type=int, default=1)
