@@ -1,6 +1,22 @@
 {
  "models": [
   {
+   "label": "command-r7b",
+   "provider": "openrouter",
+   "model_id": "cohere/command-r7b-12-2024",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "deepseek-v4-flash",
+   "provider": "openrouter",
+   "model_id": "deepseek/deepseek-v4-flash",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
    "label": "gpt-4o-mini",
    "provider": "openrouter",
    "model_id": "openai/gpt-4o-mini",
@@ -9,11 +25,91 @@
    "enabled": true
   },
   {
+   "label": "gpt-oss-20b",
+   "provider": "openrouter",
+   "model_id": "openai/gpt-oss-20b",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "granite-4-micro",
+   "provider": "openrouter",
+   "model_id": "ibm-granite/granite-4.0-h-micro",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "ling-2.6-flash",
+   "provider": "openrouter",
+   "model_id": "inclusionai/ling-2.6-flash",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "llama-3.1-8b",
+   "provider": "openrouter",
+   "model_id": "meta-llama/llama-3.1-8b-instruct",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
    "label": "llama-3.3-70b",
    "provider": "openrouter",
    "model_id": "meta-llama/llama-3.3-70b-instruct",
    "family": "meta",
    "notes": "cheap open-weights",
+   "enabled": true
+  },
+  {
+   "label": "mistral-nemo",
+   "provider": "openrouter",
+   "model_id": "mistralai/mistral-nemo",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "nemotron-3-nano",
+   "provider": "openrouter",
+   "model_id": "nvidia/nemotron-3-nano-30b-a3b",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "nova-micro",
+   "provider": "openrouter",
+   "model_id": "amazon/nova-micro-v1",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "phi-4",
+   "provider": "openrouter",
+   "model_id": "microsoft/phi-4",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "qwen2.5-7b",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen-2.5-7b-instruct",
+   "family": "",
+   "notes": "",
+   "enabled": true
+  },
+  {
+   "label": "seed-1.6-flash",
+   "provider": "openrouter",
+   "model_id": "bytedance-seed/seed-1.6-flash",
+   "family": "",
+   "notes": "",
    "enabled": true
   }
  ]
