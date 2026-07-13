@@ -21,7 +21,7 @@ from . import conditions
 from .conditions import Condition
 from .core import board as board_utils
 from .core.engine import Engine, EngineConfig
-from .models import Model
+from .models import Model, VisionModel
 from .types import Message
 
 
@@ -125,6 +125,39 @@ class LLMAgent:
         ctx.last_raw_response = raw
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
+        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        ctx.last_explanation = explanation
+        if move is not None:
+            return token or move.uci()
+        return raw.strip().split("\n")[0][:40]
+
+
+class VisionAgent:
+    """Multimodal puzzle agent: shows the model a BOARD IMAGE (not FEN/text) and
+    asks for the move. The board's position is conveyed only by the picture."""
+
+    def __init__(self, model: VisionModel, condition: Condition | None = None):
+        self._model = model
+        self._condition = condition or conditions.HEADLINE
+        self.name = f"{model.name}(vision)"
+
+    def choose(self, board: chess.Board, ctx: MoveContext) -> str:
+        from .imaging import render_board_png
+
+        cond = ctx.condition
+        side = "White" if board.turn == chess.WHITE else "Black"
+        lines = [f"This image shows a chess position. {side} is to move. Find the best move."]
+        if cond.legality == conditions.Legality.LEGAL_LIST:
+            lines.append(conditions._legal_line(board, cond))
+        if cond.explain:
+            lines.append("Reply with your move in SAN, then a brief `why:` explanation.")
+        else:
+            lines.append("Reply with ONLY the move in SAN (e.g. Nf3, exd5, O-O).")
+        if ctx.illegal_feedback:
+            lines.append(f"Your previous answer was illegal: {ctx.illegal_feedback}.")
+
+        raw = self._model.chat_image("\n".join(lines), render_board_png(board), temperature=cond.temperature)
+        ctx.last_raw_response = raw
         move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         if move is not None:

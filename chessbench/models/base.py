@@ -23,6 +23,15 @@ class Model(Protocol):
     def generate(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048) -> str: ...
 
 
+@runtime_checkable
+class VisionModel(Protocol):
+    """A multimodal model that accepts a text prompt + a board image (PNG)."""
+
+    name: str
+
+    def chat_image(self, text: str, png: bytes, *, temperature: float = 0.0, max_tokens: int = 2048) -> str: ...
+
+
 def split_system(messages: list[Message]) -> tuple[str | None, list[Message]]:
     """Separate a leading system message from the rest (for APIs like Anthropic
     that take the system prompt as a distinct parameter)."""

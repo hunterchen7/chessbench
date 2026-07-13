@@ -91,21 +91,14 @@ class _OpenAICompatModel:
                 time.sleep(min(8.0, 0.7 * (2 ** attempt)))  # 0.7, 1.4, 2.8, ...
         raise ModelError(f"{self._model}: transient request failure after {self._max_retries} tries: {last}")
 
-    def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+    def _complete(self, messages: list[object], temperature: float, max_tokens: int) -> str:
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
-        payload = {
-            "model": self._model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+        payload = {"model": self._model, "messages": messages,
+                   "temperature": temperature, "max_tokens": max_tokens}
         data = json.dumps(payload).encode("utf-8")
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-            **self._extra_headers,
-        }
+        headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json",
+                   **self._extra_headers}
         body = self._post(data, headers)
         parsed = cast(_Response, json.loads(body))
         if "error" in parsed:
@@ -113,13 +106,23 @@ class _OpenAICompatModel:
         choices = parsed.get("choices")
         if not choices:
             raise ModelError(f"{self._model}: no choices in response: {body[:200]}")
-
         usage = parsed.get("usage")
         if usage is not None:
             self.last_usage = usage
             self.last_cost = float(usage.get("cost", 0.0))
             self.total_cost += self.last_cost
         return choices[0]["message"]["content"] or ""
+
+    def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+        return self._complete(list(messages), temperature, max_tokens)
+
+    def chat_image(self, text: str, png: bytes, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+        """Vision call: a text prompt plus a board PNG (OpenAI image_url format)."""
+        import base64
+
+        data_uri = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+        content = [{"type": "text", "text": text}, {"type": "image_url", "image_url": {"url": data_uri}}]
+        return self._complete([{"role": "user", "content": content}], temperature, max_tokens)
 
     def generate(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
         msg: Message = {"role": "user", "content": prompt}

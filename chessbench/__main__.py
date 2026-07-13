@@ -85,6 +85,11 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
         from .models import OpenRouterModel
 
         return LLMAgent(OpenRouterModel(args.model or "openai/gpt-4o-mini"))
+    if args.agent == "openrouter-vision":
+        from .agents import VisionAgent
+        from .models import OpenRouterModel
+
+        return VisionAgent(OpenRouterModel(args.model or "google/gemma-4-26b-a4b-it:free"))
     raise SystemExit(f"unknown agent: {args.agent}")
 
 
@@ -511,7 +516,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("puzzles", help="run the puzzle track")
     p.add_argument("--agent", default="random",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
+                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter", "openrouter-vision"])
     p.add_argument("--model", default=None, help="model id for LLM agents")
     p.add_argument("--data", default=str(DEFAULT_DATA))
     p.add_argument("--suite", default=None, help="run a frozen suite (same items for every model) instead of --data")
