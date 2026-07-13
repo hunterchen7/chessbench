@@ -17,45 +17,52 @@ from __future__ import annotations
 
 import argparse
 import sys
+from contextlib import ExitStack
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .conditions import Condition, ContextMode, Legality, Notation, PromptStyle, Representation
 from .report import format_report
 from .tasks.puzzles import load_puzzles
 from .tasks.runner import run_puzzles
 
+if TYPE_CHECKING:
+    from .agents import Agent
+    from .core.engine import Engine
+    from .models import Model
+    from .tasks.composed import ComposedSolver
+
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
 DEFAULT_COMPOSED = Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
 
 
-def _build_agent(args):
+def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
     from .agents import FirstLegalAgent, LLMAgent, RandomAgent, StockfishAgent
 
     if args.agent == "random":
-        return RandomAgent(seed=args.seed), None
+        return RandomAgent(seed=args.seed)
     if args.agent == "first_legal":
-        return FirstLegalAgent(), None
+        return FirstLegalAgent()
     if args.agent == "stockfish":
         from .core.engine import EngineConfig
 
-        sf = StockfishAgent(config=EngineConfig(nodes=args.nodes)).__enter__()
-        return sf, sf  # second value is the closer
+        return stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.nodes)))
     if args.agent == "anthropic":
         from .models import AnthropicModel
 
-        return LLMAgent(AnthropicModel(args.model or "claude-opus-4-8")), None
+        return LLMAgent(AnthropicModel(args.model or "claude-opus-4-8"))
     if args.agent == "openai":
         from .models import OpenAIModel
 
-        return LLMAgent(OpenAIModel(args.model or "gpt-4.1")), None
+        return LLMAgent(OpenAIModel(args.model or "gpt-4.1"))
     if args.agent == "openrouter":
         from .models import OpenRouterModel
 
-        return LLMAgent(OpenRouterModel(args.model or "openai/gpt-4o-mini")), None
+        return LLMAgent(OpenRouterModel(args.model or "openai/gpt-4o-mini"))
     raise SystemExit(f"unknown agent: {args.agent}")
 
 
-def cmd_puzzles(args) -> int:
+def cmd_puzzles(args: argparse.Namespace) -> int:
     condition = Condition(
         legality=Legality(args.legality),
         representation=Representation(args.representation),
@@ -69,20 +76,15 @@ def cmd_puzzles(args) -> int:
     print(f"loaded {len(puzzles)} puzzles from {args.data}")
     print(f"condition: {condition.slug()} (temp={condition.temperature})\n")
 
-    agent, closer = _build_agent(args)
-    try:
-        report, _ = run_puzzles(
-            agent, puzzles, condition, log_path=args.log, progress_every=args.progress
-        )
-    finally:
-        if closer is not None:
-            closer.__exit__(None, None, None)
+    with ExitStack() as stack:
+        agent = _build_agent(args, stack)
+        report, _ = run_puzzles(agent, puzzles, condition, log_path=args.log, progress_every=args.progress)
 
     print(format_report(report))
     return 0
 
 
-def _build_player(spec: str, model_id: str | None, args, closers: list):
+def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, stack: ExitStack) -> Agent:
     from .agents import FirstLegalAgent, LLMGameAgent, RandomAgent, StockfishAgent
     from .core.engine import EngineConfig
 
@@ -92,9 +94,7 @@ def _build_player(spec: str, model_id: str | None, args, closers: list):
         return FirstLegalAgent()
     if spec == "stockfish":
         cfg = EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)
-        sf = StockfishAgent(config=cfg).__enter__()
-        closers.append(sf)
-        return sf
+        return stack.enter_context(StockfishAgent(config=cfg))
     cond = _condition_from_args(args)
     if spec == "anthropic":
         from .models import AnthropicModel
@@ -111,7 +111,7 @@ def _build_player(spec: str, model_id: str | None, args, closers: list):
     raise SystemExit(f"unknown player: {spec}")
 
 
-def _condition_from_args(args) -> Condition:
+def _condition_from_args(args: argparse.Namespace) -> Condition:
     return Condition(
         legality=Legality(args.legality),
         representation=Representation(args.representation),
@@ -124,7 +124,7 @@ def _condition_from_args(args) -> Condition:
     )
 
 
-def cmd_play(args) -> int:
+def cmd_play(args: argparse.Namespace) -> int:
     from .tasks.games import GameConfig, play_match
 
     condition = _condition_from_args(args)
@@ -132,14 +132,10 @@ def cmd_play(args) -> int:
     print(f"condition: {condition.game_slug()} (temp={condition.temperature})")
     print(f"{args.white} (White-start) vs {args.black}, {args.games} game(s), cap {args.max_plies} plies\n")
 
-    closers: list = []
-    try:
-        a = _build_player(args.white, args.white_model, args, closers)
-        b = _build_player(args.black, args.black_model, args, closers)
+    with ExitStack() as stack:
+        a = _build_player(args.white, args.white_model, args, stack)
+        b = _build_player(args.black, args.black_model, args, stack)
         res = play_match(a, b, args.games, condition, config)
-    finally:
-        for c in closers:
-            c.__exit__(None, None, None)
 
     print(f"score: {res.a} {res.a_wins}  /  draws {res.draws}  /  {res.b} {res.b_wins}")
     print(f"{res.a} score: {res.a_score:.1%}")
@@ -155,7 +151,7 @@ def cmd_play(args) -> int:
     return 0
 
 
-def _build_composed_solver(spec: str, model_id: str | None, seed: int):
+def _build_composed_solver(spec: str, model_id: str | None, seed: int) -> ComposedSolver:
     from .tasks.composed import LLMComposedSolver, OracleComposedSolver, RandomComposedSolver
 
     if spec == "oracle":
@@ -163,18 +159,12 @@ def _build_composed_solver(spec: str, model_id: str | None, seed: int):
     if spec == "random":
         return RandomComposedSolver(seed=seed)
     if spec in ("anthropic", "openai", "openrouter"):
-        from .models import AnthropicModel, OpenAIModel, OpenRouterModel
-
-        model = {
-            "anthropic": lambda: AnthropicModel(model_id or "claude-opus-4-8"),
-            "openai": lambda: OpenAIModel(model_id or "gpt-4.1"),
-            "openrouter": lambda: OpenRouterModel(model_id or "openai/gpt-4o-mini"),
-        }[spec]()
-        return LLMComposedSolver(model)
+        return LLMComposedSolver(_build_model(spec, model_id))
     raise SystemExit(f"unknown solver: {spec}")
 
 
-def cmd_composed(args) -> int:
+def cmd_composed(args: argparse.Namespace) -> int:
+    from .core.engine import Engine, EngineConfig
     from .solvers import grade_study
     from .tasks.composed import grade_composed, load_composed
 
@@ -193,17 +183,11 @@ def cmd_composed(args) -> int:
     print(f"problems: {len(problems)} from {args.data}\n")
 
     by_kind: dict[str, list[bool]] = {}
-    study_problems = [p for p in problems if p.answer_shape == "play"]
-    closers: list = []
-    engine = None
-    if study_problems:
-        from .core.engine import Engine, EngineConfig
+    needs_engine = any(p.answer_shape == "play" for p in problems)
 
-        engine = Engine(EngineConfig(nodes=args.sf_nodes)).__enter__()
-        closers.append(engine)
-    study_agent = _build_study_agent(args, engine)
-
-    try:
+    with ExitStack() as stack:
+        engine = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes))) if needs_engine else None
+        study_agent = _build_study_agent(args, engine, stack)
         for p in problems:
             if p.answer_shape == "play":
                 assert engine is not None
@@ -214,9 +198,6 @@ def cmd_composed(args) -> int:
                 solved, detail = r.solved, r.detail
             by_kind.setdefault(p.kind, []).append(solved)
             print(f"  {p.id:<14} {p.label:<20} {'SOLVED' if solved else 'failed':<7} {detail}")
-    finally:
-        for c in closers:
-            c.__exit__(None, None, None)
 
     print("\nby stipulation:")
     total = solved_total = 0
@@ -229,7 +210,7 @@ def cmd_composed(args) -> int:
     return 0
 
 
-def _build_study_agent(args, engine):
+def _build_study_agent(args: argparse.Namespace, engine: "Engine | None", stack: ExitStack) -> Agent:
     from .agents import LLMGameAgent, RandomAgent, StockfishAgent
 
     spec = args.solver
@@ -237,17 +218,22 @@ def _build_study_agent(args, engine):
         return RandomAgent(seed=args.seed)
     if spec in ("oracle", "stockfish"):
         return StockfishAgent(engine=engine)  # oracle stand-in for interactive studies
+    return LLMGameAgent(_build_model(spec, args.model))
+
+
+def _build_model(spec: str, model_id: str | None) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
 
-    model = {
-        "anthropic": lambda: AnthropicModel(args.model or "claude-opus-4-8"),
-        "openai": lambda: OpenAIModel(args.model or "gpt-4.1"),
-        "openrouter": lambda: OpenRouterModel(args.model or "openai/gpt-4o-mini"),
-    }[spec]()
-    return LLMGameAgent(model)
+    if spec == "anthropic":
+        return AnthropicModel(model_id or "claude-opus-4-8")
+    if spec == "openai":
+        return OpenAIModel(model_id or "gpt-4.1")
+    if spec == "openrouter":
+        return OpenRouterModel(model_id or "openai/gpt-4o-mini")
+    raise SystemExit(f"unknown model provider: {spec}")
 
 
-def _add_condition_args(p) -> None:
+def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--legality", default="free_form", choices=[e.value for e in Legality])
     p.add_argument("--representation", default="fen_ascii", choices=[e.value for e in Representation])
     p.add_argument("--notation", default="san", choices=[e.value for e in Notation])

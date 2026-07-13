@@ -26,6 +26,7 @@ import chess
 
 from ..conditions import Condition, Notation, render_position
 from ..core import board as board_utils
+from ..models import Model
 from ..solvers import proofgame, stipulations
 from ..types import AnswerShape, StipulationKind, StudyGoal
 
@@ -161,13 +162,13 @@ class RandomComposedSolver:
 class LLMComposedSolver:
     """Prompts a Model once and returns its raw answer text."""
 
-    def __init__(self, model: "object") -> None:
+    def __init__(self, model: Model) -> None:
         self._model = model
-        self.name = getattr(model, "name", "llm")
+        self.name = model.name
 
     def solve(self, problem: ComposedProblem, condition: Condition) -> str:
         prompt = build_composed_prompt(problem, condition)
-        return self._model.generate(prompt, temperature=condition.temperature)  # type: ignore[attr-defined]
+        return self._model.generate(prompt, temperature=condition.temperature)
 
 
 # --- Grading (key / line shapes) ---

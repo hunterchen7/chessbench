@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 import chess
 import chess.pgn
 
-from ..agents import GameTurnContext
+from ..agents import Agent, GameTurnContext
 from ..conditions import Condition, Legality
 from ..core import board as board_utils
 from ..core.engine import Engine
@@ -179,7 +179,7 @@ def _to_pgn(moves_san, white, black, result, termination, start_fen) -> str:
     if start_fen:
         game.headers["FEN"] = start_fen
         game.setup(board)
-    node = game
+    node: chess.pgn.GameNode = game
     for san in moves_san:
         move = board.parse_san(san)
         node = node.add_variation(move)

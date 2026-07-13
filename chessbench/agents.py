@@ -21,30 +21,36 @@ from .conditions import Condition
 from .core import board as board_utils
 from .core.engine import Engine, EngineConfig
 from .models import Model
+from .types import Message
 
 
 @dataclass
-class TurnContext:
+class MoveContext:
+    """Everything an agent might use to choose a move, across all tracks.
+
+    A single context type keeps the `Agent` protocol uniform (puzzles, games, and
+    studies all pass a `MoveContext`); track-specific fields simply default when
+    unused (e.g. puzzles never set `last_opponent_move_san`).
+    """
+
     condition: Condition
     history_san: list[str] = field(default_factory=list)
     illegal_feedback: str | None = None
+    last_opponent_move_san: str | None = None
+    ply: int = 0
     last_prompt: str | None = None
     last_raw_response: str | None = None
 
 
-@dataclass
-class GameTurnContext:
-    condition: Condition
-    history_san: list[str] = field(default_factory=list)
-    last_opponent_move_san: str | None = None
-    illegal_feedback: str | None = None
-    ply: int = 0
+# Backwards-compatible names for the two tracks (both are the unified context).
+TurnContext = MoveContext
+GameTurnContext = MoveContext
 
 
 class Agent(Protocol):
     name: str
 
-    def choose(self, board: chess.Board, ctx: TurnContext) -> str:
+    def choose(self, board: chess.Board, ctx: MoveContext) -> str:
         """Return a move string (SAN or UCI). May be illegal."""
         ...
 
@@ -127,8 +133,8 @@ class LLMGameAgent:
         self._model = model
         self._condition = condition or conditions.HEADLINE
         self.name = model.name
-        self._messages: list[dict] = []
-        self._system: str | None = None
+        self._messages: list[Message] = []
+        self._system: str = ""
         self._started = False
 
     def reset(self, color: bool) -> None:
@@ -136,7 +142,7 @@ class LLMGameAgent:
         self._system = conditions.game_system_prompt(self._condition, color)
         self._started = False
 
-    def choose(self, board: chess.Board, ctx: GameTurnContext) -> str:
+    def choose(self, board: chess.Board, ctx: MoveContext) -> str:
         cond = ctx.condition
         is_first = not self._started
         user = conditions.build_game_turn(
@@ -146,13 +152,14 @@ class LLMGameAgent:
             illegal_feedback=ctx.illegal_feedback,
             is_first=is_first,
         )
+        system_msg: Message = {"role": "system", "content": self._system}
+        user_msg: Message = {"role": "user", "content": user}
         if cond.context_mode == conditions.ContextMode.FRESH:
-            messages = [{"role": "system", "content": self._system}, {"role": "user", "content": user}]
-            raw = self._model.chat(messages, temperature=cond.temperature)
+            raw = self._model.chat([system_msg, user_msg], temperature=cond.temperature)
         else:  # GROWING / HYBRID: persist the conversation across turns
             if not self._messages:
-                self._messages.append({"role": "system", "content": self._system})
-            self._messages.append({"role": "user", "content": user})
+                self._messages.append(system_msg)
+            self._messages.append(user_msg)
             raw = self._model.chat(self._messages, temperature=cond.temperature)
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
