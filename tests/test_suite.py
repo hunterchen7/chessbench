@@ -1,0 +1,53 @@
+"""Frozen suites: deterministic sampling, content hashing, and tamper detection —
+so every model provably runs the identical item set."""
+
+import json
+import pathlib
+
+import pytest
+
+from chessbench.suite import build_puzzle_suite, load_suite, save_suite
+from chessbench.tasks.puzzles import load_puzzles
+
+SAMPLE = pathlib.Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
+
+
+def _source():
+    return load_puzzles(SAMPLE)
+
+
+def test_same_seed_is_reproducible():
+    a = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=0)
+    b = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=0)
+    assert a.content_hash == b.content_hash
+    assert [it["id"] for it in a.items] == [it["id"] for it in b.items]
+
+
+def test_different_seed_changes_selection():
+    a = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=0)
+    b = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=1)
+    assert a.content_hash != b.content_hash
+
+
+def test_roundtrip_and_tamper_guard(tmp_path):
+    suite = build_puzzle_suite(_source(), name="t", per_bucket=3, seed=0)
+    path = tmp_path / "suite.json"
+    save_suite(suite, path)
+
+    loaded = load_suite(path)
+    assert loaded.content_hash == suite.content_hash
+    assert len(loaded.puzzles()) == len(suite.items)
+
+    # editing items after freezing must be detected on load
+    data = json.loads(path.read_text())
+    data["items"][0]["rating"] = 99999
+    path.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="hash mismatch"):
+        load_suite(path)
+
+
+def test_items_are_rating_stratified():
+    suite = build_puzzle_suite(_source(), name="t", per_bucket=4, seed=0, lo=600, hi=2800, width=200)
+    ratings = [int(it["rating"]) for it in suite.items]
+    assert all(600 <= r < 2800 for r in ratings)
+    assert len(set(it["id"] for it in suite.items)) == len(suite.items)  # no duplicates

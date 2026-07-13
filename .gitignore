@@ -15,3 +15,6 @@ logs/
 # local API keys
 .env
 *.env
+
+# private (held-out) benchmark suites — never publish
+suites/private/

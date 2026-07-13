@@ -72,8 +72,15 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         otb_illegal_limit=args.otb_limit,
         temperature=args.temperature,
     )
-    puzzles = load_puzzles(args.data, limit=args.limit)
-    print(f"loaded {len(puzzles)} puzzles from {args.data}")
+    if args.suite:
+        from .suite import load_suite
+
+        suite = load_suite(args.suite)
+        puzzles = suite.puzzles()
+        print(f"suite: {suite.name} v{suite.version} [{suite.visibility}] {suite.content_hash} ({len(puzzles)} puzzles)")
+    else:
+        puzzles = load_puzzles(args.data, limit=args.limit)
+        print(f"loaded {len(puzzles)} puzzles from {args.data}")
     print(f"condition: {condition.slug()} (temp={condition.temperature})\n")
 
     with ExitStack() as stack:
@@ -233,6 +240,64 @@ def _build_model(spec: str, model_id: str | None) -> "Model":
     raise SystemExit(f"unknown model provider: {spec}")
 
 
+def cmd_suite_build(args: argparse.Namespace) -> int:
+    from .suite import build_puzzle_suite, save_suite
+    from .tasks.puzzles import load_puzzles
+
+    source = load_puzzles(args.source)
+    suite = build_puzzle_suite(
+        source, name=args.name, version=args.version, visibility=args.visibility,
+        source_label=args.source_label, per_bucket=args.per_bucket, seed=args.seed,
+    )
+    save_suite(suite, args.out)
+    ratings = sorted(int(it["rating"]) for it in suite.items)  # type: ignore[call-overload]
+    print(f"built suite '{suite.name}' v{suite.version} [{suite.visibility}] -> {args.out}")
+    print(f"  {len(suite.items)} puzzles, ratings {ratings[0]}-{ratings[-1]}, {suite.content_hash}")
+    if suite.visibility == "private":
+        print("  NOTE: private suite -- keep it out of the public repo (suites/private/ is gitignored).")
+    return 0
+
+
+def cmd_leaderboard(args: argparse.Namespace) -> int:
+    from .agents import LLMAgent, RandomAgent, StockfishAgent
+    from .core.engine import EngineConfig, find_stockfish
+    from .suite import load_suite
+
+    suite = load_suite(args.suite)
+    puzzles = suite.puzzles()
+    condition = Condition(
+        legality=Legality(args.legality), representation=Representation(args.representation),
+        notation=Notation(args.notation), prompt_style=PromptStyle(args.prompt_style),
+        retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, temperature=args.temperature,
+    )
+    print(f"leaderboard on suite '{suite.name}' {suite.content_hash} ({len(puzzles)} puzzles, identical for every model)")
+    print(f"condition: {condition.slug()}\n")
+
+    model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
+    rows: list[tuple[str, float, float, float, float | None]] = []
+    with ExitStack() as stack:
+        agents: list[Agent] = []
+        if args.include_baselines:
+            agents.append(RandomAgent())
+            if find_stockfish():
+                agents.append(stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.sf_nodes))))
+        agents.extend(LLMAgent(_build_model(args.provider, mid)) for mid in model_ids)
+
+        for agent in agents:
+            print(f"  running {agent.name} ...")
+            report, _ = run_puzzles(agent, puzzles, condition)
+            rows.append((agent.name, report.solve_rate, report.mean_score,
+                         report.first_move_legal_rate, report.implied_rating))
+
+    rows.sort(key=lambda r: r[1], reverse=True)
+    print(f"\n{'model':<40} {'solved':>7} {'score':>7} {'legal':>7} {'impElo':>7}")
+    print("-" * 72)
+    for name, solved, score, legal, elo in rows:
+        elo_s = f"{elo:.0f}" if elo is not None else "n/a"
+        print(f"{name:<40} {solved:>6.1%} {score:>6.1%} {legal:>6.1%} {elo_s:>7}")
+    return 0
+
+
 def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--legality", default="free_form", choices=[e.value for e in Legality])
     p.add_argument("--representation", default="fen_ascii", choices=[e.value for e in Representation])
@@ -254,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
                    choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
     p.add_argument("--model", default=None, help="model id for LLM agents")
     p.add_argument("--data", default=str(DEFAULT_DATA))
+    p.add_argument("--suite", default=None, help="run a frozen suite (same items for every model) instead of --data")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--nodes", type=int, default=200_000, help="Stockfish node limit")
@@ -289,6 +355,27 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--sf-nodes", type=int, default=120_000, help="engine nodes for study adjudication")
     _add_condition_args(c)
     c.set_defaults(func=cmd_composed)
+
+    sb = sub.add_parser("suite", help="build a frozen benchmark suite (identical items for every model)")
+    sb.add_argument("--source", required=True, help="puzzle source CSV/JSON to sample from")
+    sb.add_argument("--name", required=True)
+    sb.add_argument("--version", default="1")
+    sb.add_argument("--visibility", default="public", choices=["public", "private"])
+    sb.add_argument("--source-label", dest="source_label", default="lichess")
+    sb.add_argument("--per-bucket", dest="per_bucket", type=int, default=20)
+    sb.add_argument("--seed", type=int, default=0)
+    sb.add_argument("--out", required=True)
+    sb.set_defaults(func=cmd_suite_build)
+
+    lb = sub.add_parser("leaderboard", help="run several models on the SAME suite and rank them")
+    lb.add_argument("--suite", required=True)
+    lb.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
+    lb.add_argument("--models", required=True, help="comma-separated model ids")
+    lb.add_argument("--include-baselines", dest="include_baselines", action="store_true",
+                    help="also run random + stockfish for reference")
+    lb.add_argument("--sf-nodes", type=int, default=200_000)
+    _add_condition_args(lb)
+    lb.set_defaults(func=cmd_leaderboard)
 
     args = parser.parse_args(argv)
     return args.func(args)

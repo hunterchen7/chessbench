@@ -70,3 +70,10 @@ StudyGoal = Literal["win", "draw"]
 #   "line" -> a full move sequence (helpmate/series/proofgame)
 #   "play" -> interactive play vs a defender (study)
 AnswerShape = Literal["key", "line", "play"]
+
+# --- Benchmark suites (frozen, versioned item sets) ---
+
+# public  -> committed & shareable; reproducible but at contamination/gaming risk
+# private -> held out (gitignored); the trusted, contamination-free measurement
+Visibility = Literal["public", "private"]
+SuiteKind = Literal["puzzle", "composed"]
