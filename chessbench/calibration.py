@@ -9,6 +9,11 @@ solves are rated at the floor.
 
 Reuses one engine per rung across all puzzles (no per-puzzle engine startup), so
 calibrating a large set is a single sweep.
+
+Note: UCI_Elo-limited Stockfish is *stochastic* (the move randomization is how
+strength is limited), so a single-shot calibration is noisy at the per-puzzle
+level. It still turns a coarse uniform heuristic into a real difficulty spread;
+for tighter ratings, average several sweeps.
 """
 
 from __future__ import annotations
