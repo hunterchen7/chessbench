@@ -2,6 +2,28 @@
  "schema": "chessbench.index.v1",
  "runs": [
   {
+   "file": "gpt-4o-mini__free_form__fen_pieces__san__minimal.json",
+   "model": "openai/gpt-4o-mini",
+   "created": "2026-07-13T18:55:39+00:00",
+   "kind": "puzzle",
+   "condition": "free_form__fen_pieces__san__minimal",
+   "suite": "tactical-public-v1",
+   "summary": {
+    "n": 96,
+    "solved": 2,
+    "solve_rate": 0.020833333333333332,
+    "mean_score": 0.03298611111111111,
+    "first_move_legal_rate": 0.59375,
+    "puzzle_elo": 399.8,
+    "puzzle_elo_ci": [
+     142.7,
+     657.0
+    ],
+    "puzzle_elo_bounded": true,
+    "cost_usd": 0.005391738
+   }
+  },
+  {
    "file": "gpt-4o-mini__legal_list__fen_pieces__san__minimal.json",
    "model": "openai/gpt-4o-mini",
    "created": "2026-07-13T18:51:21+00:00",
@@ -21,6 +43,28 @@
     ],
     "puzzle_elo_bounded": true,
     "cost_usd": 0.011075130000000008
+   }
+  },
+  {
+   "file": "llama-3.3-70b__legal_list__fen_pieces__san__minimal.json",
+   "model": "meta-llama/llama-3.3-70b-instruct",
+   "created": "2026-07-13T18:58:23+00:00",
+   "kind": "puzzle",
+   "condition": "legal_list__fen_pieces__san__minimal",
+   "suite": "tactical-public-v1",
+   "summary": {
+    "n": 96,
+    "solved": 17,
+    "solve_rate": 0.17708333333333334,
+    "mean_score": 0.23819444444444446,
+    "first_move_legal_rate": 1.0,
+    "puzzle_elo": 976.4,
+    "puzzle_elo_ci": [
+     847.4,
+     1105.4
+    ],
+    "puzzle_elo_bounded": true,
+    "cost_usd": 0.01061895681
    }
   },
   {
