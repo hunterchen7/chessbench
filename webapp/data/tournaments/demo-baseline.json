@@ -1,0 +1,990 @@
+{
+ "schema": "chessbench.tournament.v1",
+ "created": "2026-07-13T19:57:04+00:00",
+ "condition": {
+  "legality": "legal_list",
+  "representation": "fen_pieces",
+  "notation": "san",
+  "prompt_style": "minimal",
+  "context_mode": "fresh",
+  "explain": false,
+  "retry_attempts": 3,
+  "otb_illegal_limit": 2,
+  "temperature": 0.0,
+  "slug": "legal_list__fen_pieces__san__minimal"
+ },
+ "max_plies": 50,
+ "anchor": {
+  "stockfish(sk1)": 1500.0
+ },
+ "standings": [
+  {
+   "label": "stockfish(sk1)",
+   "wins": 1,
+   "draws": 1,
+   "losses": 0,
+   "games": 2,
+   "score": 1.5,
+   "illegal_forfeits": 0,
+   "rating": 1500.0,
+   "rating_ci": [
+    1500.0,
+    1500.0
+   ],
+   "bounded": false
+  },
+  {
+   "label": "random",
+   "wins": 0,
+   "draws": 1,
+   "losses": 1,
+   "games": 2,
+   "score": 0.5,
+   "illegal_forfeits": 0,
+   "rating": 1323.1,
+   "rating_ci": [
+    797.8,
+    1848.4
+   ],
+   "bounded": true
+  }
+ ],
+ "games": [
+  {
+   "white": "random",
+   "black": "stockfish(sk1)",
+   "result": "0-1",
+   "termination": "checkmate",
+   "plies": 40,
+   "pgn": "[Event \"?\"]\n[Site \"?\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"random\"]\n[Black \"stockfish@200000n\"]\n[Result \"0-1\"]\n[Termination \"checkmate\"]\n\n1. h4 e5 2. a3 Nc6 3. Rh2 Be7 4. g3 d5 5. b3 Be6 6. e3 Nf6 7. a4 Ng4 8. Nc3 d4 9. a5 O-O 10. Qf3 Nb4 11. Ra4 Nxh2 12. Qe4 Nxf1 13. exd4 Qxd4 14. Qf4 Nh2 15. Nce2 Nxc2+ 16. Kd1 Qxf4 17. Rc4 Bxc4 18. gxf4 Bd3 19. a6 Ng4 20. b4 Nxf2# 0-1",
+   "moves": [
+    {
+     "ply": 1,
+     "color": "white",
+     "san": "h4",
+     "uci": "h2h4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 48,
+     "forfeited": false
+    },
+    {
+     "ply": 2,
+     "color": "black",
+     "san": "e5",
+     "uci": "e7e5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -41,
+     "forfeited": false
+    },
+    {
+     "ply": 3,
+     "color": "white",
+     "san": "a3",
+     "uci": "a2a3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 109,
+     "forfeited": false
+    },
+    {
+     "ply": 4,
+     "color": "black",
+     "san": "Nc6",
+     "uci": "b8c6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -36,
+     "forfeited": false
+    },
+    {
+     "ply": 5,
+     "color": "white",
+     "san": "Rh2",
+     "uci": "h1h2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 203,
+     "forfeited": false
+    },
+    {
+     "ply": 6,
+     "color": "black",
+     "san": "Be7",
+     "uci": "f8e7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -114,
+     "forfeited": false
+    },
+    {
+     "ply": 7,
+     "color": "white",
+     "san": "g3",
+     "uci": "g2g3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 187,
+     "forfeited": false
+    },
+    {
+     "ply": 8,
+     "color": "black",
+     "san": "d5",
+     "uci": "d7d5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -185,
+     "forfeited": false
+    },
+    {
+     "ply": 9,
+     "color": "white",
+     "san": "b3",
+     "uci": "b2b3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 208,
+     "forfeited": false
+    },
+    {
+     "ply": 10,
+     "color": "black",
+     "san": "Be6",
+     "uci": "c8e6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -194,
+     "forfeited": false
+    },
+    {
+     "ply": 11,
+     "color": "white",
+     "san": "e3",
+     "uci": "e2e3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 189,
+     "forfeited": false
+    },
+    {
+     "ply": 12,
+     "color": "black",
+     "san": "Nf6",
+     "uci": "g8f6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -192,
+     "forfeited": false
+    },
+    {
+     "ply": 13,
+     "color": "white",
+     "san": "a4",
+     "uci": "a3a4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 290,
+     "forfeited": false
+    },
+    {
+     "ply": 14,
+     "color": "black",
+     "san": "Ng4",
+     "uci": "f6g4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -247,
+     "forfeited": false
+    },
+    {
+     "ply": 15,
+     "color": "white",
+     "san": "Nc3",
+     "uci": "b1c3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 587,
+     "forfeited": false
+    },
+    {
+     "ply": 16,
+     "color": "black",
+     "san": "d4",
+     "uci": "d5d4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -557,
+     "forfeited": false
+    },
+    {
+     "ply": 17,
+     "color": "white",
+     "san": "a5",
+     "uci": "a4a5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 576,
+     "forfeited": false
+    },
+    {
+     "ply": 18,
+     "color": "black",
+     "san": "O-O",
+     "uci": "e8g8",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -513,
+     "forfeited": false
+    },
+    {
+     "ply": 19,
+     "color": "white",
+     "san": "Qf3",
+     "uci": "d1f3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 728,
+     "forfeited": false
+    },
+    {
+     "ply": 20,
+     "color": "black",
+     "san": "Nb4",
+     "uci": "c6b4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -690,
+     "forfeited": false
+    },
+    {
+     "ply": 21,
+     "color": "white",
+     "san": "Ra4",
+     "uci": "a1a4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 757,
+     "forfeited": false
+    },
+    {
+     "ply": 22,
+     "color": "black",
+     "san": "Nxh2",
+     "uci": "g4h2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -740,
+     "forfeited": false
+    },
+    {
+     "ply": 23,
+     "color": "white",
+     "san": "Qe4",
+     "uci": "f3e4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 733,
+     "forfeited": false
+    },
+    {
+     "ply": 24,
+     "color": "black",
+     "san": "Nxf1",
+     "uci": "h2f1",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -748,
+     "forfeited": false
+    },
+    {
+     "ply": 25,
+     "color": "white",
+     "san": "exd4",
+     "uci": "e3d4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 721,
+     "forfeited": false
+    },
+    {
+     "ply": 26,
+     "color": "black",
+     "san": "Qxd4",
+     "uci": "d8d4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -735,
+     "forfeited": false
+    },
+    {
+     "ply": 27,
+     "color": "white",
+     "san": "Qf4",
+     "uci": "e4f4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 938,
+     "forfeited": false
+    },
+    {
+     "ply": 28,
+     "color": "black",
+     "san": "Nh2",
+     "uci": "f1h2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -905,
+     "forfeited": false
+    },
+    {
+     "ply": 29,
+     "color": "white",
+     "san": "Nce2",
+     "uci": "c3e2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1025,
+     "forfeited": false
+    },
+    {
+     "ply": 30,
+     "color": "black",
+     "san": "Nxc2+",
+     "uci": "b4c2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1062,
+     "forfeited": false
+    },
+    {
+     "ply": 31,
+     "color": "white",
+     "san": "Kd1",
+     "uci": "e1d1",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1024,
+     "forfeited": false
+    },
+    {
+     "ply": 32,
+     "color": "black",
+     "san": "Qxf4",
+     "uci": "d4f4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -979,
+     "forfeited": false
+    },
+    {
+     "ply": 33,
+     "color": "white",
+     "san": "Rc4",
+     "uci": "a4c4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1104,
+     "forfeited": false
+    },
+    {
+     "ply": 34,
+     "color": "black",
+     "san": "Bxc4",
+     "uci": "e6c4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1078,
+     "forfeited": false
+    },
+    {
+     "ply": 35,
+     "color": "white",
+     "san": "gxf4",
+     "uci": "g3f4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1099,
+     "forfeited": false
+    },
+    {
+     "ply": 36,
+     "color": "black",
+     "san": "Bd3",
+     "uci": "c4d3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -986,
+     "forfeited": false
+    },
+    {
+     "ply": 37,
+     "color": "white",
+     "san": "a6",
+     "uci": "a5a6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1007,
+     "forfeited": false
+    },
+    {
+     "ply": 38,
+     "color": "black",
+     "san": "Ng4",
+     "uci": "h2g4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -994,
+     "forfeited": false
+    },
+    {
+     "ply": 39,
+     "color": "white",
+     "san": "b4",
+     "uci": "b3b4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 9999,
+     "forfeited": false
+    },
+    {
+     "ply": 40,
+     "color": "black",
+     "san": "Nxf2#",
+     "uci": "g4f2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -10000,
+     "forfeited": false
+    }
+   ]
+  },
+  {
+   "white": "stockfish(sk1)",
+   "black": "random",
+   "result": "1/2-1/2",
+   "termination": "move_cap",
+   "plies": 50,
+   "pgn": "[Event \"?\"]\n[Site \"?\"]\n[Date \"????.??.??\"]\n[Round \"?\"]\n[White \"stockfish@200000n\"]\n[Black \"random\"]\n[Result \"1/2-1/2\"]\n[Termination \"move_cap\"]\n\n1. c4 a5 2. e3 Ra7 3. e4 e6 4. Nf3 Be7 5. Nc3 h5 6. Qc2 Nh6 7. Be2 f6 8. h3 Nf7 9. a3 Ra6 10. O-O Nh6 11. d4 d6 12. d5 Nf5 13. dxe6 Bf8 14. exf5 h4 15. Nd5 c5 16. Re1 Qd7 17. exd7+ Nxd7 18. Bd2 b6 19. Bf4 a4 20. Bd3+ Be7 21. Rxe7+ Kf8 22. Ree1 g6 23. Qd2 Rg8 24. Bxd6+ Kg7 25. Re7+ Kf8 1/2-1/2",
+   "moves": [
+    {
+     "ply": 1,
+     "color": "white",
+     "san": "c4",
+     "uci": "c2c4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -12,
+     "forfeited": false
+    },
+    {
+     "ply": 2,
+     "color": "black",
+     "san": "a5",
+     "uci": "a7a5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 70,
+     "forfeited": false
+    },
+    {
+     "ply": 3,
+     "color": "white",
+     "san": "e3",
+     "uci": "e2e3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -37,
+     "forfeited": false
+    },
+    {
+     "ply": 4,
+     "color": "black",
+     "san": "Ra7",
+     "uci": "a8a7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 123,
+     "forfeited": false
+    },
+    {
+     "ply": 5,
+     "color": "white",
+     "san": "e4",
+     "uci": "e3e4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -91,
+     "forfeited": false
+    },
+    {
+     "ply": 6,
+     "color": "black",
+     "san": "e6",
+     "uci": "e7e6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 156,
+     "forfeited": false
+    },
+    {
+     "ply": 7,
+     "color": "white",
+     "san": "Nf3",
+     "uci": "g1f3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -110,
+     "forfeited": false
+    },
+    {
+     "ply": 8,
+     "color": "black",
+     "san": "Be7",
+     "uci": "f8e7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 159,
+     "forfeited": false
+    },
+    {
+     "ply": 9,
+     "color": "white",
+     "san": "Nc3",
+     "uci": "b1c3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -138,
+     "forfeited": false
+    },
+    {
+     "ply": 10,
+     "color": "black",
+     "san": "h5",
+     "uci": "h7h5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 219,
+     "forfeited": false
+    },
+    {
+     "ply": 11,
+     "color": "white",
+     "san": "Qc2",
+     "uci": "d1c2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -215,
+     "forfeited": false
+    },
+    {
+     "ply": 12,
+     "color": "black",
+     "san": "Nh6",
+     "uci": "g8h6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 249,
+     "forfeited": false
+    },
+    {
+     "ply": 13,
+     "color": "white",
+     "san": "Be2",
+     "uci": "f1e2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -230,
+     "forfeited": false
+    },
+    {
+     "ply": 14,
+     "color": "black",
+     "san": "f6",
+     "uci": "f7f6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 328,
+     "forfeited": false
+    },
+    {
+     "ply": 15,
+     "color": "white",
+     "san": "h3",
+     "uci": "h2h3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -275,
+     "forfeited": false
+    },
+    {
+     "ply": 16,
+     "color": "black",
+     "san": "Nf7",
+     "uci": "h6f7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 272,
+     "forfeited": false
+    },
+    {
+     "ply": 17,
+     "color": "white",
+     "san": "a3",
+     "uci": "a2a3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -258,
+     "forfeited": false
+    },
+    {
+     "ply": 18,
+     "color": "black",
+     "san": "Ra6",
+     "uci": "a7a6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 293,
+     "forfeited": false
+    },
+    {
+     "ply": 19,
+     "color": "white",
+     "san": "O-O",
+     "uci": "e1g1",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -206,
+     "forfeited": false
+    },
+    {
+     "ply": 20,
+     "color": "black",
+     "san": "Nh6",
+     "uci": "f7h6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 334,
+     "forfeited": false
+    },
+    {
+     "ply": 21,
+     "color": "white",
+     "san": "d4",
+     "uci": "d2d4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -330,
+     "forfeited": false
+    },
+    {
+     "ply": 22,
+     "color": "black",
+     "san": "d6",
+     "uci": "d7d6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 411,
+     "forfeited": false
+    },
+    {
+     "ply": 23,
+     "color": "white",
+     "san": "d5",
+     "uci": "d4d5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -340,
+     "forfeited": false
+    },
+    {
+     "ply": 24,
+     "color": "black",
+     "san": "Nf5",
+     "uci": "h6f5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 712,
+     "forfeited": false
+    },
+    {
+     "ply": 25,
+     "color": "white",
+     "san": "dxe6",
+     "uci": "d5e6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -479,
+     "forfeited": false
+    },
+    {
+     "ply": 26,
+     "color": "black",
+     "san": "Bf8",
+     "uci": "e7f8",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 755,
+     "forfeited": false
+    },
+    {
+     "ply": 27,
+     "color": "white",
+     "san": "exf5",
+     "uci": "e4f5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -735,
+     "forfeited": false
+    },
+    {
+     "ply": 28,
+     "color": "black",
+     "san": "h4",
+     "uci": "h5h4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 774,
+     "forfeited": false
+    },
+    {
+     "ply": 29,
+     "color": "white",
+     "san": "Nd5",
+     "uci": "c3d5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -738,
+     "forfeited": false
+    },
+    {
+     "ply": 30,
+     "color": "black",
+     "san": "c5",
+     "uci": "c7c5",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 778,
+     "forfeited": false
+    },
+    {
+     "ply": 31,
+     "color": "white",
+     "san": "Re1",
+     "uci": "f1e1",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -757,
+     "forfeited": false
+    },
+    {
+     "ply": 32,
+     "color": "black",
+     "san": "Qd7",
+     "uci": "d8d7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 982,
+     "forfeited": false
+    },
+    {
+     "ply": 33,
+     "color": "white",
+     "san": "exd7+",
+     "uci": "e6d7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -998,
+     "forfeited": false
+    },
+    {
+     "ply": 34,
+     "color": "black",
+     "san": "Nxd7",
+     "uci": "b8d7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1008,
+     "forfeited": false
+    },
+    {
+     "ply": 35,
+     "color": "white",
+     "san": "Bd2",
+     "uci": "c1d2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1005,
+     "forfeited": false
+    },
+    {
+     "ply": 36,
+     "color": "black",
+     "san": "b6",
+     "uci": "b7b6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1011,
+     "forfeited": false
+    },
+    {
+     "ply": 37,
+     "color": "white",
+     "san": "Bf4",
+     "uci": "d2f4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -953,
+     "forfeited": false
+    },
+    {
+     "ply": 38,
+     "color": "black",
+     "san": "a4",
+     "uci": "a5a4",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 996,
+     "forfeited": false
+    },
+    {
+     "ply": 39,
+     "color": "white",
+     "san": "Bd3+",
+     "uci": "e2d3",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1007,
+     "forfeited": false
+    },
+    {
+     "ply": 40,
+     "color": "black",
+     "san": "Be7",
+     "uci": "f8e7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1043,
+     "forfeited": false
+    },
+    {
+     "ply": 41,
+     "color": "white",
+     "san": "Rxe7+",
+     "uci": "e1e7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1074,
+     "forfeited": false
+    },
+    {
+     "ply": 42,
+     "color": "black",
+     "san": "Kf8",
+     "uci": "e8f8",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1141,
+     "forfeited": false
+    },
+    {
+     "ply": 43,
+     "color": "white",
+     "san": "Ree1",
+     "uci": "e7e1",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1060,
+     "forfeited": false
+    },
+    {
+     "ply": 44,
+     "color": "black",
+     "san": "g6",
+     "uci": "g7g6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 1225,
+     "forfeited": false
+    },
+    {
+     "ply": 45,
+     "color": "white",
+     "san": "Qd2",
+     "uci": "c2d2",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -1124,
+     "forfeited": false
+    },
+    {
+     "ply": 46,
+     "color": "black",
+     "san": "Rg8",
+     "uci": "h8g8",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 9996,
+     "forfeited": false
+    },
+    {
+     "ply": 47,
+     "color": "white",
+     "san": "Bxd6+",
+     "uci": "f4d6",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -9997,
+     "forfeited": false
+    },
+    {
+     "ply": 48,
+     "color": "black",
+     "san": "Kg7",
+     "uci": "f8g7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 9997,
+     "forfeited": false
+    },
+    {
+     "ply": 49,
+     "color": "white",
+     "san": "Re7+",
+     "uci": "e1e7",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": -9998,
+     "forfeited": false
+    },
+    {
+     "ply": 50,
+     "color": "black",
+     "san": "Kf8",
+     "uci": "g7f8",
+     "first_attempt_legal": true,
+     "illegal_attempts": 0,
+     "eval_cp": 9998,
+     "forfeited": false
+    }
+   ]
+  }
+ ],
+ "crosstable": [
+  {
+   "a": "random",
+   "b": "stockfish(sk1)",
+   "w": 0,
+   "d": 1,
+   "l": 1
+  },
+  {
+   "a": "stockfish(sk1)",
+   "b": "random",
+   "w": 1,
+   "d": 1,
+   "l": 0
+  }
+ ]
+}

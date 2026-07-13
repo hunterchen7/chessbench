@@ -1,0 +1,12 @@
+{
+ "schema": "chessbench.tournament_index.v1",
+ "tournaments": [
+  {
+   "file": "demo-baseline.json",
+   "created": "2026-07-13T19:54:52+00:00",
+   "n_players": 2,
+   "n_games": 2,
+   "winner": "stockfish(sk1)"
+  }
+ ]
+}

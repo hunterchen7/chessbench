@@ -396,16 +396,22 @@ def cmd_category_leaderboard(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    """Write data/index.json listing every run record (the web app's entry point)."""
+    """Write data/index.json (puzzle runs) and data/tournaments/index.json (games)."""
     import json
 
-    from .store import json_safe, list_runs
+    from .store import json_safe, list_runs, list_tournaments
 
     runs = list_runs(args.runs_dir)
-    index = {"schema": "chessbench.index.v1", "runs": runs}
     with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(json_safe(index), f, indent=1)
+        json.dump(json_safe({"schema": "chessbench.index.v1", "runs": runs}), f, indent=1)
     print(f"indexed {len(runs)} run(s) -> {args.out}")
+
+    tdir = Path(args.runs_dir).parent / "tournaments"
+    if tdir.is_dir():
+        tournaments = list_tournaments(tdir)
+        with open(tdir / "index.json", "w", encoding="utf-8") as f:
+            json.dump(json_safe({"schema": "chessbench.tournament_index.v1", "tournaments": tournaments}), f, indent=1)
+        print(f"indexed {len(tournaments)} tournament(s) -> {tdir / 'index.json'}")
     return 0
 
 
@@ -417,24 +423,36 @@ def cmd_tournament(args: argparse.Namespace) -> int:
     from .tasks.tournament import TournamentEntry, format_tournament, round_robin
 
     condition = _condition_from_args(args)
-    config = GameConfig(max_plies=args.max_plies)
+    config = GameConfig(max_plies=args.max_plies, eval_moves=args.eval_moves)
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
     print(f"tournament: {len(model_ids)} models, {args.games} games/pair, condition {condition.game_slug()}\n")
 
+    anchor: dict[str, float] | None = None
     with ExitStack() as stack:
         entries = [TournamentEntry(mid, LLMAgent(_build_model(args.provider, mid), condition)) for mid in model_ids]
         if args.include_random:
             entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
-        if args.anchor_elo is not None and find_stockfish():
-            sf = stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)))
-            entries.append(TournamentEntry(f"stockfish(sk{args.sf_skill})", sf, fixed_rating=args.anchor_elo))
-        result = round_robin(entries, args.games, condition, config)
+        eval_engine = None
+        if (args.anchor_elo is not None or args.eval_moves) and find_stockfish():
+            eng = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)))
+            eval_engine = eng if args.eval_moves else None
+            if args.anchor_elo is not None:
+                sf = stack.enter_context(StockfishAgent(engine=eng))
+                label = f"stockfish(sk{args.sf_skill})"
+                entries.append(TournamentEntry(label, sf, fixed_rating=args.anchor_elo))
+                anchor = {label: float(args.anchor_elo)}
+        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine)
 
     print(format_tournament(result))
     if args.pgn_out:
         with open(args.pgn_out, "w", encoding="utf-8") as f:
             f.write(result.pgns())
         print(f"\nwrote {len(result.games)} game PGNs -> {args.pgn_out}")
+    if args.save:
+        from .store import TournamentRecord, save_tournament
+
+        save_tournament(TournamentRecord(result, condition, args.max_plies, anchor=anchor), args.save)
+        print(f"saved tournament -> {args.save}")
     return 0
 
 
@@ -527,7 +545,7 @@ def main(argv: list[str] | None = None) -> int:
     lb.set_defaults(func=cmd_leaderboard)
 
     t = sub.add_parser("tournament", help="round-robin among LLMs -> game-Elo")
-    t.add_argument("--models", required=True, help="comma-separated model ids")
+    t.add_argument("--models", default="", help="comma-separated model ids (empty = baselines only)")
     t.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
     t.add_argument("--games", type=int, default=2, help="games per pair (colors alternate)")
     t.add_argument("--max-plies", type=int, default=200)
@@ -539,6 +557,9 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--sf-skill", type=int, default=3)
     t.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
     t.add_argument("--pgn-out", default=None)
+    t.add_argument("--save", default=None, help="save a tournament record JSON (for the web games viewer)")
+    t.add_argument("--eval-moves", dest="eval_moves", action="store_true",
+                   help="Stockfish-evaluate each move (per-move centipawns / accuracy)")
     _add_condition_args(t)
     t.set_defaults(func=cmd_tournament)
 

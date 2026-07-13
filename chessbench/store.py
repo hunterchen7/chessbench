@@ -15,6 +15,7 @@ import math
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import chess
 
@@ -24,7 +25,15 @@ from .rating import elo_trajectory
 from .report import PuzzleReport
 from .tasks.puzzles import Puzzle, PuzzleResult
 
+if TYPE_CHECKING:
+    from .tasks.tournament import TournamentResult
+
 SCHEMA = "chessbench.run.v1"
+TOURNAMENT_SCHEMA = "chessbench.tournament.v1"
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 @dataclass
@@ -133,6 +142,77 @@ def save_run(record: RunRecord, path: str | Path) -> None:
 def load_run(path: str | Path) -> dict[str, object]:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+@dataclass
+class TournamentRecord:
+    """A saved round-robin: standings (game-Elo + CI), every game (result + PGN +
+    per-move eval), and the crosstable -- the data contract for the web games viewer."""
+
+    result: TournamentResult
+    condition: Condition
+    max_plies: int
+    anchor: dict[str, float] | None = None
+    created: str = field(default_factory=_now)
+
+    def to_dict(self) -> dict[str, object]:
+        standings = []
+        for s in self.result.standings:
+            rt = s.rating
+            lo, hi = rt.ci95() if rt else (None, None)
+            standings.append({
+                "label": s.label, "wins": s.wins, "draws": s.draws, "losses": s.losses,
+                "games": s.games, "score": s.score, "illegal_forfeits": s.illegal_forfeits,
+                "rating": round(rt.rating, 1) if rt else None,
+                "rating_ci": [
+                    round(lo, 1) if lo is not None and math.isfinite(lo) else None,
+                    round(hi, 1) if hi is not None and math.isfinite(hi) else None,
+                ],
+                "bounded": rt.bounded if rt else False,
+            })
+        games = []
+        for g in self.result.games:
+            games.append({
+                "white": g.white, "black": g.black, "result": g.result,
+                "termination": g.termination, "plies": g.plies, "pgn": g.pgn,
+                "moves": [{
+                    "ply": m.ply, "color": m.color, "san": m.san, "uci": m.uci,
+                    "first_attempt_legal": m.first_attempt_legal, "illegal_attempts": m.illegal_attempts,
+                    "eval_cp": m.eval_cp, "forfeited": m.forfeited,
+                } for m in g.records],
+            })
+        crosstable = [{"a": a, "b": b, "w": w, "d": d, "l": ll}
+                      for (a, b), (w, d, ll) in self.result.crosstable.items()]
+        return {
+            "schema": TOURNAMENT_SCHEMA, "created": self.created,
+            "condition": _condition_dict(self.condition), "max_plies": self.max_plies,
+            "anchor": self.anchor, "standings": standings, "games": games, "crosstable": crosstable,
+        }
+
+
+def save_tournament(record: TournamentRecord, path: str | Path) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(json_safe(record.to_dict()), f, indent=1)
+
+
+def list_tournaments(directory: str | Path) -> list[dict[str, object]]:
+    out: list[dict[str, object]] = []
+    for p in sorted(Path(directory).glob("*.json")):
+        try:
+            t = load_run(p)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if t.get("schema") != TOURNAMENT_SCHEMA:
+            continue
+        standings = t.get("standings")
+        games = t.get("games")
+        top = standings[0]["label"] if isinstance(standings, list) and standings else None
+        out.append({"file": p.name, "created": t.get("created"),
+                    "n_players": len(standings) if isinstance(standings, list) else 0,
+                    "n_games": len(games) if isinstance(games, list) else 0,
+                    "winner": top})
+    return out
 
 
 def list_runs(directory: str | Path) -> list[dict[str, object]]:

@@ -78,6 +78,7 @@ def round_robin(
         for g in range(games_per_pair):
             white, black = (a, b) if g % 2 == 0 else (b, a)
             record = play_game(white.agent, black.agent, condition, config, eval_engine=eval_engine)
+            record.white, record.black = white.label, black.label  # use entry labels, not agent.name
             games.append(record)
             ws = record.white_score
             results_for_elo.append((white.label, black.label, ws))

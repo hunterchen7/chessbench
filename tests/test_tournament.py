@@ -28,6 +28,24 @@ def test_round_robin_structure():
         assert res.crosstable[(b, a)] == (ll, d, w)
 
 
+def test_tournament_record_export(tmp_path):
+    from chessbench.conditions import HEADLINE
+    from chessbench.store import TournamentRecord, list_tournaments, save_tournament
+
+    entries = [TournamentEntry("rand", RandomAgent(seed=0)), TournamentEntry("first", FirstLegalAgent())]
+    result = round_robin(entries, games_per_pair=2, condition=HEADLINE, config=GameConfig(max_plies=20))
+    rec = TournamentRecord(result, HEADLINE, 20)
+    d = rec.to_dict()
+    assert d["schema"] == "chessbench.tournament.v1"
+    assert {s["label"] for s in d["standings"]} == {"rand", "first"}
+    assert d["games"] and all(g["white"] in ("rand", "first") for g in d["games"])  # labels, not agent.name
+    path = tmp_path / "t.json"
+    save_tournament(rec, path)
+    assert "Infinity" not in path.read_text()
+    idx = list_tournaments(tmp_path)
+    assert len(idx) == 1 and idx[0]["n_games"] == 2
+
+
 def test_distinct_labels_required():
     with pytest.raises(ValueError, match="distinct labels"):
         round_robin(
