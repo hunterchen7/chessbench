@@ -11,3 +11,7 @@ data/puzzles_balanced.csv
 data/*.zst
 logs/
 *.jsonl
+
+# local API keys
+.env
+*.env

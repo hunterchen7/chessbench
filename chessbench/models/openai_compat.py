@@ -1,0 +1,135 @@
+"""OpenAI-compatible chat providers (OpenAI and OpenRouter).
+
+Implemented on the standard library (`urllib`) so the core has no third-party
+SDK dependency. Both services share the ``POST /chat/completions`` schema, so a
+single base class serves both; only the base URL, env var, and auth header
+differ. Per-call token usage and (for OpenRouter) cost are captured so the
+harness can report and cap spend.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import urllib.error
+import urllib.request
+from typing import TypedDict, cast
+
+from ..types import Message
+
+
+class ModelError(RuntimeError):
+    """Raised when a provider call fails (HTTP error, bad payload, empty reply)."""
+
+
+class Usage(TypedDict, total=False):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    cost: float  # OpenRouter includes USD cost; OpenAI does not
+
+
+class _Choice(TypedDict):
+    message: Message
+
+
+class _Response(TypedDict, total=False):
+    choices: list[_Choice]
+    usage: Usage
+    model: str
+    error: dict[str, str]
+
+
+class _OpenAICompatModel:
+    """Base for any service exposing OpenAI's /chat/completions endpoint."""
+
+    def __init__(
+        self,
+        model: str,
+        *,
+        base_url: str,
+        api_key: str | None,
+        env_var: str,
+        extra_headers: dict[str, str] | None = None,
+        timeout: float = 120.0,
+    ) -> None:
+        self.name = model
+        self._model = model
+        self._base_url = base_url.rstrip("/")
+        self._api_key = api_key or os.environ.get(env_var)
+        self._env_var = env_var
+        self._extra_headers = extra_headers or {}
+        self._timeout = timeout
+        self.last_usage: Usage | None = None
+        self.last_cost: float = 0.0
+        self.total_cost: float = 0.0
+
+    def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+        if not self._api_key:
+            raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
+        payload = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            **self._extra_headers,
+        }
+        req = urllib.request.Request(f"{self._base_url}/chat/completions", data=data, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+                body = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as e:  # noqa: PERF203 - explicit error surfacing
+            detail = e.read().decode("utf-8", "replace")
+            raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
+        except urllib.error.URLError as e:
+            raise ModelError(f"{self._model}: connection error: {e.reason}") from e
+
+        parsed = cast(_Response, json.loads(body))
+        if "error" in parsed:
+            raise ModelError(f"{self._model}: {parsed['error']}")
+        choices = parsed.get("choices")
+        if not choices:
+            raise ModelError(f"{self._model}: no choices in response: {body[:200]}")
+
+        usage = parsed.get("usage")
+        if usage is not None:
+            self.last_usage = usage
+            self.last_cost = float(usage.get("cost", 0.0))
+            self.total_cost += self.last_cost
+        return choices[0]["message"]["content"] or ""
+
+    def generate(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+        msg: Message = {"role": "user", "content": prompt}
+        return self.chat([msg], temperature=temperature, max_tokens=max_tokens)
+
+
+class OpenRouterModel(_OpenAICompatModel):
+    """Any model routed through https://openrouter.ai (e.g. ``openai/gpt-4o-mini``,
+    ``google/gemini-2.0-flash-001``). Reports USD cost per call."""
+
+    def __init__(self, model: str, *, api_key: str | None = None, timeout: float = 120.0) -> None:
+        super().__init__(
+            model,
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+            env_var="OPENROUTER_API_KEY",
+            extra_headers={
+                "HTTP-Referer": "https://github.com/chessbench",
+                "X-Title": "chessbench",
+            },
+            timeout=timeout,
+        )
+
+
+class OpenAIModel(_OpenAICompatModel):
+    """A model on OpenAI's own API (e.g. ``gpt-4.1``, ``gpt-4o-mini``)."""
+
+    def __init__(self, model: str = "gpt-4.1", *, api_key: str | None = None, timeout: float = 120.0) -> None:
+        super().__init__(
+            model, base_url="https://api.openai.com/v1", api_key=api_key, env_var="OPENAI_API_KEY", timeout=timeout
+        )

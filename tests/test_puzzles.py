@@ -8,7 +8,7 @@ import chess
 
 from chessbench.agents import TurnContext
 from chessbench.conditions import HEADLINE, Condition, Legality
-from chessbench.puzzles import Puzzle, grade_puzzle
+from chessbench.tasks.puzzles import Puzzle, grade_puzzle
 
 # FEN is BEFORE the opponent's setup move; moves[0] is that setup move.
 MATE_IN_1 = Puzzle(

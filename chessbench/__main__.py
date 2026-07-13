@@ -20,9 +20,9 @@ import sys
 from pathlib import Path
 
 from .conditions import Condition, ContextMode, Legality, Notation, PromptStyle, Representation
-from .puzzles import load_puzzles
 from .report import format_report
-from .runner import run_puzzles
+from .tasks.puzzles import load_puzzles
+from .tasks.runner import run_puzzles
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
 
@@ -35,7 +35,7 @@ def _build_agent(args):
     if args.agent == "first_legal":
         return FirstLegalAgent(), None
     if args.agent == "stockfish":
-        from .engine import EngineConfig
+        from .core.engine import EngineConfig
 
         sf = StockfishAgent(config=EngineConfig(nodes=args.nodes)).__enter__()
         return sf, sf  # second value is the closer
@@ -78,7 +78,7 @@ def cmd_puzzles(args) -> int:
 
 def _build_player(spec: str, model_id: str | None, args, closers: list):
     from .agents import FirstLegalAgent, LLMGameAgent, RandomAgent, StockfishAgent
-    from .engine import EngineConfig
+    from .core.engine import EngineConfig
 
     if spec == "random":
         return RandomAgent(seed=args.seed)
@@ -114,7 +114,7 @@ def _condition_from_args(args) -> Condition:
 
 
 def cmd_play(args) -> int:
-    from .games import GameConfig, play_match
+    from .tasks.games import GameConfig, play_match
 
     condition = _condition_from_args(args)
     config = GameConfig(max_plies=args.max_plies)

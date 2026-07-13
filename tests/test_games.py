@@ -14,7 +14,7 @@ from chessbench.conditions import (
     build_game_turn,
     game_system_prompt,
 )
-from chessbench.games import GameConfig, MatchResult, _request_move, play_game
+from chessbench.tasks.games import GameConfig, MatchResult, _request_move, play_game
 
 
 class FixedGameAgent:

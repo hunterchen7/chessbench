@@ -18,10 +18,10 @@ from dataclasses import dataclass, field
 import chess
 import chess.pgn
 
-from . import board as board_utils
-from .agents import GameTurnContext
-from .conditions import Condition, Legality
-from .engine import Engine
+from ..agents import GameTurnContext
+from ..conditions import Condition, Legality
+from ..core import board as board_utils
+from ..core.engine import Engine
 
 
 @dataclass

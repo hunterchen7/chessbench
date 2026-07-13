@@ -1,6 +1,6 @@
 import chess
 
-from chessbench.board import extract_move, parse_move
+from chessbench.core.board import extract_move, parse_move
 
 
 def test_parse_uci_and_san():

@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from . import metrics
-from .puzzles import PuzzleResult
+from .core import metrics
+from .tasks.puzzles import PuzzleResult
 
 
 @dataclass

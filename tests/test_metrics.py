@@ -1,6 +1,6 @@
 import math
 
-from chessbench import metrics
+from chessbench.core import metrics
 
 
 def test_win_percent_symmetry():

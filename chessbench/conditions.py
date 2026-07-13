@@ -15,7 +15,7 @@ from enum import Enum
 
 import chess
 
-from . import board as board_utils
+from .core import board as board_utils
 
 
 class Legality(str, Enum):

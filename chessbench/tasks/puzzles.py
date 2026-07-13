@@ -19,8 +19,8 @@ from typing import Iterator
 
 import chess
 
-from .agents import Agent, TurnContext
-from .conditions import Condition, Legality
+from ..agents import Agent, TurnContext
+from ..conditions import Condition, Legality
 
 
 @dataclass
@@ -109,7 +109,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
         for attempt in range(max_tries):
             ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
             raw = agent.choose(board, ctx)
-            from . import board as board_utils  # local import avoids cycle at module load
+            from ..core import board as board_utils  # local import avoids cycle at module load
 
             mv = board_utils.parse_move(board, raw)
             legal = mv is not None

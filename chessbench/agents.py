@@ -16,10 +16,10 @@ from typing import Protocol
 
 import chess
 
-from . import board as board_utils
 from . import conditions
 from .conditions import Condition
-from .engine import Engine, EngineConfig
+from .core import board as board_utils
+from .core.engine import Engine, EngineConfig
 from .models import Model
 
 

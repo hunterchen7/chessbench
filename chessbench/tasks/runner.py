@@ -9,10 +9,10 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from .agents import Agent
-from .conditions import Condition
+from ..agents import Agent
+from ..conditions import Condition
+from ..report import PuzzleReport, build_report
 from .puzzles import Puzzle, PuzzleResult, grade_puzzle
-from .report import PuzzleReport, build_report
 
 
 def run_puzzles(
