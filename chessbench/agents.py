@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 import chess
+import chess.engine
 
 from . import conditions
 from .conditions import Condition
@@ -100,7 +101,12 @@ class StockfishAgent:
 
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         assert self._engine is not None, "Use StockfishAgent as a context manager."
-        return self._engine.best_move(board).uci()
+        try:
+            return self._engine.best_move(board).uci()
+        except chess.engine.EngineError:
+            # Strength-limited Stockfish (UCI_Elo/Skill) can rarely emit an illegal
+            # move; fall back to a legal one rather than crashing the run.
+            return next(iter(board.legal_moves)).uci()
 
 
 class LLMAgent:
