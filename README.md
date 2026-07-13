@@ -97,17 +97,43 @@ python -m chessbench play --white openrouter --black openrouter \
 Full adjudication (checkmate / stalemate / insufficient / repetition / 50-move /
 ply-cap / illegal-forfeit), alternating-color matches, match Elo, PGN export.
 
+## Elo & leaderboards
+
+Two Elo estimators ([rating.py](chessbench/rating.py)), both maximum-likelihood on
+the logistic (Elo) model, both returning a 95% CI:
+
+- **Puzzle-Elo** — a performance rating from puzzle results: each puzzle rated R
+  is a game the model wins iff it solves it, `P(solve)=1/(1+10^((R-θ)/400))`
+  (the Lichess puzzle-rating model), solved by MLE. Every puzzle run reports it.
+- **Game-Elo** — from head-to-head games via MAP Bradley-Terry (draws = half, a
+  weak prior for identifiability, optional **fixed engine anchors** to set an
+  absolute scale).
+
+```bash
+# Puzzle-Elo leaderboard on ONE frozen suite (identical items = fair comparison),
+# swept across a setting -> Elo per setting:
+python -m chessbench leaderboard --suite suites/public/tactical-lichess-v1.json \
+    --provider openrouter --models "openai/gpt-4o-mini,meta-llama/llama-3.3-70b-instruct" \
+    --legalities "free_form,legal_list" --include-baselines
+
+# Game-Elo from an LLM-vs-LLM round-robin, anchored to a known Stockfish Elo:
+python -m chessbench tournament --provider openrouter \
+    --models "openai/gpt-4o-mini,meta-llama/llama-3.3-70b-instruct" \
+    --games 2 --legality otb --include-random --anchor-elo 1500 --sf-skill 1 --pgn-out t.pgn
+```
+
+Example game-Elo (anchored): `stockfish(sk1) 1500*` · `random 1389±426` ·
+`llama-3.3-70b 961±542` · `gpt-4o-mini 523±784 (0/6, all illegal-forfeits)` — the
+known result that a *legal* random mover beats weak LLMs falls straight out.
+
 ## Benchmark suites — same puzzles for every model
 
 A **suite** freezes an exact, content-hashed, rating-stratified set of items so
 every model is scored on **identical puzzles** (the basis for a fair leaderboard).
 
 ```bash
-# Freeze a suite, then rank models on it (identical items, comparable numbers):
 python -m chessbench suite --source data/sample_puzzles.csv --name tactical-lichess-v1 \
     --visibility public --per-bucket 20 --out suites/public/tactical-lichess-v1.json
-python -m chessbench leaderboard --suite suites/public/tactical-lichess-v1.json \
-    --provider openrouter --models "openai/gpt-4o-mini,meta-llama/llama-3.3-70b-instruct" --include-baselines
 python -m chessbench puzzles --suite suites/public/tactical-lichess-v1.json --agent openrouter --model ...
 ```
 
@@ -147,10 +173,11 @@ chessbench/
   conditions.py       # THE ABLATION AXES + prompt rendering
   agents.py           # position -> move: Random / FirstLegal / Stockfish / LLM(Game)Agent
   solvers/            # stipulations (directmate/selfmate/reflexmate/helpmate/series), proofgame, studies
-  tasks/              # puzzles, generate, composed, games, runner
+  tasks/              # puzzles, generate, composed, games, tournament, runner
+  rating.py           # MLE puzzle-Elo + Bradley-Terry game-Elo (with CIs)
   suite.py            # frozen, content-hashed benchmark suites (public/private)
   report.py           # aggregation -> leaderboard with error bars
-  __main__.py         # CLI (puzzles | play | composed | suite | leaderboard)
+  __main__.py         # CLI (puzzles | play | composed | suite | leaderboard | tournament)
 ```
 
 Standalone Python (not a framework plugin) so the solver-in-the-loop and the
@@ -187,9 +214,10 @@ upper bound.
 - [x] Game track (LLM-vs-LLM / vs-engine; fresh/growing/hybrid; OTB/online legality; match Elo)
 - [x] OpenRouter/OpenAI/Anthropic providers; typed, mypy-clean
 - [x] Frozen public/private suites + leaderboard (same items for every model)
+- [x] Puzzle-Elo (MLE) + game-Elo (round-robin, engine-anchored) with CIs; per-setting Elo
 - [ ] Engine-ladder calibration to give private/generated puzzles Lichess-comparable ratings
 - [ ] Retrograde beyond proof games (last-move / shortest-proof-game solving)
-- [ ] Round-robin tournament + Bayeselo anchor; Stockfish Elo ladder (MLE) for a real rating
+- [ ] Persisted/accumulating leaderboard store + web view; SPRT early-stopping in tournaments
 - [ ] Per-move centipawn/accuracy reporting; the full representation×legality×notation×context ablation study
 
 ## References
