@@ -395,6 +395,33 @@ def cmd_category_leaderboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sprt(args: argparse.Namespace) -> int:
+    """A-vs-B with sequential early stopping (SPRT)."""
+    from .sprt import sprt_match
+    from .tasks.games import GameConfig
+
+    condition = _condition_from_args(args)
+    config = GameConfig(max_plies=args.max_plies)
+    openings = None
+    if args.openings == "book":
+        from .openings import opening_fens
+
+        openings = opening_fens()
+    print(f"SPRT: {args.a} vs {args.b} | H0 elo<={args.elo0} vs H1 elo>={args.elo1} "
+          f"| alpha={args.alpha} beta={args.beta} | max {args.max_games} games\n")
+    with ExitStack() as stack:
+        a = _build_player(args.a, args.a_model, args, stack)
+        b = _build_player(args.b, args.b_model, args, stack)
+        status, games = sprt_match(a, b, condition, config, elo0=args.elo0, elo1=args.elo1,
+                                   alpha=args.alpha, beta=args.beta, max_games=args.max_games, openings=openings)
+    verdict = {"accept_h1": f"{args.a} is stronger (accept H1)",
+               "accept_h0": f"no evidence {args.a} is stronger (accept H0)",
+               "continue": "inconclusive at max games"}[status.decision]
+    print(f"result: {status.wins}-{status.draws}-{status.losses} ({status.score:.1%}) over {status.n} games")
+    print(f"LLR {status.llr:+.2f}  (bounds {status.lower:.2f} .. {status.upper:.2f})  ->  {verdict}")
+    return 0
+
+
 def cmd_export(args: argparse.Namespace) -> int:
     """Write data/index.json (puzzle runs) and data/tournaments/index.json (games)."""
     import json
@@ -574,6 +601,25 @@ def main(argv: list[str] | None = None) -> int:
     e.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
     e.add_argument("--out", default="webapp/data/index.json")
     e.set_defaults(func=cmd_export)
+
+    sp = sub.add_parser("sprt", help="A-vs-B with sequential early stopping (SPRT)")
+    sp.add_argument("--a", default="openrouter", choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
+    sp.add_argument("--b", default="random", choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
+    sp.add_argument("--a-model", dest="a_model", default=None)
+    sp.add_argument("--b-model", dest="b_model", default=None)
+    sp.add_argument("--elo0", type=float, default=0.0, help="H0: A's Elo edge <= this")
+    sp.add_argument("--elo1", type=float, default=20.0, help="H1: A's Elo edge >= this")
+    sp.add_argument("--alpha", type=float, default=0.05)
+    sp.add_argument("--beta", type=float, default=0.05)
+    sp.add_argument("--max-games", dest="max_games", type=int, default=200)
+    sp.add_argument("--max-plies", dest="max_plies", type=int, default=200)
+    sp.add_argument("--openings", default="book", choices=["book", "none"])
+    sp.add_argument("--seed", type=int, default=0)
+    sp.add_argument("--sf-nodes", type=int, default=100_000)
+    sp.add_argument("--sf-skill", type=int, default=3)
+    sp.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
+    _add_condition_args(sp)
+    sp.set_defaults(func=cmd_sprt)
 
     cl = sub.add_parser("category-leaderboard", help="per-category rankings from saved run records")
     cl.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
