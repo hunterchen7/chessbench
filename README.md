@@ -172,6 +172,33 @@ python -m chessbench puzzles --suite suites/public/tactical-lichess-v1.json --ag
 Suites embed their items and a `content_hash`; loading verifies the hash so a run
 can't silently evaluate a tampered set.
 
+## Help modes & adding models
+
+Runs default to **Mode 2 (hand-holding)** — the legal moves are provided. Three
+preset modes dial the help (`--mode {1,2,3}`); games use the same modes plus game
+history:
+
+| Mode | What the model gets |
+|---|---|
+| 1 (raw) | FEN + piece list |
+| **2 (default)** | + **legal moves in SAN and UCI** |
+| 3 (coached) | + tips (look for checks/captures/threats, calculate, check every piece) |
+
+Add a model once, then run it through suites incrementally:
+
+```bash
+python -m chessbench models add --label my-model --provider openrouter --model-id vendor/model
+python -m chessbench models                                  # list the registry
+python -m chessbench run-model --model my-model --suite suites/public/tactical-public-v1.json --explain
+# ^ builds the model, runs the suite under Mode 2, saves a run record; re-running
+#   skips the model×suite×condition cell if it already exists (incremental).
+python -m chessbench category-leaderboard --dim tier         # per-category rankings
+```
+
+Suites ship in two sizes: a **100-puzzle public** suite (Lichess, calibrated
+ratings) and a **1000-puzzle private** suite (generated, contamination-free,
+gitignored).
+
 ## The ablation axes (`chessbench/conditions.py`)
 
 | Axis | Values | Note |
