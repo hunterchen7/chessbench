@@ -5,6 +5,37 @@ const app = () => document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (x) => (x * 100).toFixed(1) + "%";
 
+// ---- human progress (localStorage): the human plays the same puzzles ----
+const HKEY = "chessbench.human.v1";
+function humanStore() { try { return JSON.parse(localStorage.getItem(HKEY)) || {}; } catch { return {}; } }
+function humanRecord(id, solved) {
+  const s = humanStore();
+  if (s[id] && s[id].solved) return;            // keep a solve; don't downgrade to a later give-up
+  s[id] = { solved: !!solved };
+  localStorage.setItem(HKEY, JSON.stringify(s));
+}
+// MLE performance rating (same logistic model as the Python puzzle_elo), in JS.
+function humanElo(items) {
+  const n = items.length, wins = items.filter((x) => x.solved).length;
+  if (!n || !wins) return null;
+  if (wins === n) return { rating: 4000, bounded: false };
+  const E = (t, r) => 1 / (1 + Math.pow(10, (r - t) / 400));
+  const grad = (t) => items.reduce((s, x) => s + ((x.solved ? 1 : 0) - E(t, x.rating)), 0);
+  let a = 0, b = 4000;
+  for (let i = 0; i < 200 && b - a > 0.5; i++) { const m = (a + b) / 2; if (grad(m) > 0) a = m; else b = m; }
+  return { rating: (a + b) / 2, bounded: true };
+}
+function humanSummary() {
+  const store = humanStore();
+  const items = [];
+  for (const [id, rec] of Object.entries(store)) {
+    const e = state.puzzleIndex.get(id);
+    if (e) items.push({ rating: e.position.rating, solved: rec.solved });
+  }
+  const solved = items.filter((x) => x.solved).length;
+  return { n: items.length, solved, elo: humanElo(items) };
+}
+
 // ---- lightweight FEN stepper for game replay ----
 // board.js has no move engine, so we reconstruct positions by applying UCI moves
 // to a {square: pieceChar} map (the same shape parseFen returns).
@@ -203,12 +234,21 @@ function renderLeaderboard() {
       <label class="seg"><input type="radio" name="lbview" value="flat" ${lbView === "flat" ? "checked" : ""}> Ranking</label>
       <label class="seg"><input type="radio" name="lbview" value="grouped" ${lbView === "grouped" ? "checked" : ""}> Compare settings</label>
     </div>
+    ${humanBanner()}
     ${lbView === "grouped" ? lbGrouped(runs) : lbFlat(runs)}
     <p><a href="#/puzzles">Browse puzzles &amp; solve them yourself →</a></p>`;
 
   for (const el of document.querySelectorAll('input[name="lbview"]')) {
     el.addEventListener("change", (e) => { lbView = e.target.value; renderLeaderboard(); });
   }
+}
+
+function humanBanner() {
+  const h = humanSummary();
+  if (!h.n) return "";
+  const elo = h.elo ? (h.elo.bounded ? h.elo.rating.toFixed(0) : `≥${h.elo.rating.toFixed(0)}`) : "—";
+  return `<div class="card" style="margin:12px 0"><div class="big">You (human): ${elo}</div>
+    <div>puzzle-Elo · solved ${h.solved}/${h.n} attempted · <a href="#/puzzles">solve more →</a></div></div>`;
 }
 
 function catRollup(items) {
@@ -305,7 +345,7 @@ function renderPuzzles() {
       <select id="pf-theme"><option value="">All themes</option>${themeUnion.map((t) => `<option value="${esc(t)}">${esc(t)}</option>`).join("")}</select>
       <span id="pf-count" class="muted small"></span>
     </div>
-    <table class="lb"><thead><tr><th>id</th><th class="r">rating</th><th>tier</th><th>themes</th><th class="r">models solved</th></tr></thead>
+    <table class="lb"><thead><tr><th>id</th><th class="r">rating</th><th>tier</th><th>themes</th><th class="r">models solved</th><th class="r">you</th></tr></thead>
     <tbody id="pf-body"></tbody></table>`;
 
   const body = document.getElementById("pf-body");
@@ -324,12 +364,16 @@ function renderPuzzles() {
       return true;
     });
     countEl.textContent = `${filtered.length} of ${rows.length}`;
-    body.innerHTML = filtered.map(({ id, rating, tier, themes, solved, total }) => `<tr class="click" onclick="location.hash='#/puzzle/${encodeURIComponent(id)}'">
+    const store = humanStore();
+    body.innerHTML = filtered.map(({ id, rating, tier, themes, solved, total }) => {
+      const you = store[id];
+      const youCell = you ? (you.solved ? '<span class="tag ok">✓</span>' : '<span class="tag warn">✗</span>') : "";
+      return `<tr class="click" onclick="location.hash='#/puzzle/${encodeURIComponent(id)}'">
       <td class="mono">${esc(id)}</td><td class="r">${rating}</td>
       <td>${esc(tier)}</td>
       <td class="small">${esc(themes.slice(0, 3).join(", "))}</td>
-      <td class="r">${solved}/${total}</td></tr>`).join("")
-      || `<tr><td colspan="5" class="muted">No puzzles match.</td></tr>`;
+      <td class="r">${solved}/${total}</td><td class="r">${youCell}</td></tr>`;
+    }).join("") || `<tr><td colspan="6" class="muted">No puzzles match.</td></tr>`;
   };
   searchEl.addEventListener("input", apply);
   tierEl.addEventListener("change", apply);
@@ -342,7 +386,7 @@ function renderPuzzle(id) {
   if (!e) return (app().innerHTML = `<p>Unknown puzzle. <a href="#/puzzles">back</a></p>`);
   const p = e.position;
   app().innerHTML = `<p><a href="#/puzzles">← puzzles</a></p>
-    <h1>Puzzle ${esc(id)} <span class="muted">· ${p.rating} · ${esc((p.categories?.tier || [])[0] || "")}</span></h1>
+    <h1>Puzzle ${esc(id)} <span class="muted">· ${p.rating} · ${esc((p.categories?.tier || [])[0] || "")}</span> <span id="youstatus"></span></h1>
     <div class="puzzlewrap">
       <div><div id="board"></div>
         <p class="muted small">${p.solver_is_white ? "White" : "Black"} to move${p.setup_san ? ` (after ${esc(p.setup_san)})` : ""}.
@@ -363,13 +407,19 @@ function renderPuzzle(id) {
       const ok = first && (uci === first || first.startsWith(uci));
       verdict.className = "verdict " + (ok ? "good" : "bad");
       verdict.textContent = ok ? `✓ Correct — ${uci} is the move.` : `✗ ${uci} is not the solution. Try again.`;
-      if (ok) renderBoard(boardEl, p.fen, { flip: !p.solver_is_white, size: 380, lastMove: first });
+      if (ok) { humanRecord(id, true); renderBoard(boardEl, p.fen, { flip: !p.solver_is_white, size: 380, lastMove: first }); }
     },
   });
   document.getElementById("reveal").onclick = () => {
+    humanRecord(id, false);   // revealing counts as a give-up (unless already solved)
     verdict.className = "verdict"; verdict.textContent = `Solution: ${(p.solution || []).join(" ")}`;
     if (first) renderBoard(boardEl, p.fen, { flip: !p.solver_is_white, size: 380, lastMove: first });
   };
+  const you = humanStore()[id];
+  if (you) {
+    const el = document.getElementById("youstatus");
+    if (el) el.innerHTML = you.solved ? `<span class="tag ok">you solved this</span>` : `<span class="tag warn">you gave up</span>`;
+  }
 }
 
 function modelRail(e) {
