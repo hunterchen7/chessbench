@@ -125,11 +125,14 @@ def build_composed_prompt(problem: ComposedProblem, condition: Condition) -> str
 
     shape = problem.answer_shape
     if shape == "key":
-        lines.append(f"Reply with ONLY the key (first) move in {notation}.")
+        only = "" if condition.explain else "ONLY "
+        lines.append(f"Reply with {only}the key (first) move in {notation}.")
     elif shape == "line":
         lines.append(f"Reply with the full solution as a sequence of moves in {notation}, in order.")
     else:  # play
         lines.append(f"Reply with your move in {notation}.")
+    if condition.explain and shape != "play":
+        lines.append("Then, on a new line starting `why:`, briefly explain the idea.")
     return "\n".join(lines)
 
 

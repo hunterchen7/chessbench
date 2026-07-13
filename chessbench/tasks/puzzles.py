@@ -82,6 +82,10 @@ class PuzzleResult:
     solver_plies: int
     plies_correct: int
     moves_played: list[str] = field(default_factory=list)
+    # first solver ply's answer (for the web browser / auditing)
+    answer_move: str | None = None
+    answer_explanation: str | None = None
+    answer_raw: str | None = None
 
 
 def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
@@ -160,6 +164,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
     illegal_attempts = 0
     first_move_legal: bool | None = None
     all_moves_legal = True
+    answer: dict[str, str | None] = {"move": None, "explanation": None, "raw": None}
 
     def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
         return PuzzleResult(
@@ -168,6 +173,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
             illegal_attempts=illegal_attempts, failure_reason=reason,
             solver_plies=n_solver, plies_correct=plies_correct, moves_played=moves_played,
+            answer_move=answer["move"], answer_explanation=answer["explanation"], answer_raw=answer["raw"],
         )
 
     k = 0  # solver-ply index (0-based)
@@ -183,6 +189,10 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
             raw = agent.choose(board, ctx)
             move = board_utils.parse_move(board, raw)
+            if k == 0 and answer["raw"] is None:  # capture the model's first answer for auditing/UI
+                answer["move"] = move.uci() if move else raw[:40]
+                answer["explanation"] = ctx.last_explanation
+                answer["raw"] = (ctx.last_raw_response or raw)[:2000]
             if first_move_legal is None:
                 first_move_legal = move is not None
             if move is not None:

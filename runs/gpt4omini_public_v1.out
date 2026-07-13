@@ -1,0 +1,41 @@
+suite: tactical-lichess-v1 v1 [public] sha256:14f9991dc0aecab2 (66 puzzles)
+condition: free_form__fen_ascii__san__minimal (temp=0.0)
+
+  [15/66] solve-rate 0.0% (13.6s)
+  [30/66] solve-rate 0.0% (25.7s)
+  [45/66] solve-rate 2.2% (37.5s)
+  [60/66] solve-rate 1.7% (52.9s)
+agent:      openai/gpt-4o-mini
+condition:  free_form__fen_ascii__san__minimal
+puzzles:    66
+solved:     1/66 = 1.5%  (95% CI 0.3%-8.1%)
+meanScore:  2.0% (partial credit for multi-move puzzles)
+puzzleElo:  332  (95% CI -24-689)  [MLE performance rating]
+impliedElo: 700 (rating-bucket 50% crossing)
+legalMove%: 37.9% first-attempt legal  (42 illegal attempts total)
+failures:   23 wrong-move, 42 illegal
+
+rating-bucketed accuracy:
+  bucket        n    solved   acc     95% CI
+   600-800      6       1   16.7%   [3%-56%]
+   800-1000     6       0    0.0%   [0%-39%]
+  1000-1200     6       0    0.0%   [0%-39%]
+  1200-1400     6       0    0.0%   [0%-39%]
+  1400-1600     6       0    0.0%   [0%-39%]
+  1600-1800     6       0    0.0%   [0%-39%]
+  1800-2000     6       0    0.0%   [0%-39%]
+  2000-2200     6       0    0.0%   [0%-39%]
+  2200-2400     6       0    0.0%   [0%-39%]
+  2400-2600     6       0    0.0%   [0%-39%]
+  2600-2800     6       0    0.0%   [0%-39%]
+
+top themes (by count, first 8):
+  theme                 n    acc
+  crushing               36    0.0%
+  endgame                34    2.9%
+  middlegame             29    0.0%
+  short                  28    3.6%
+  long                   22    0.0%
+  advantage              18    0.0%
+  mate                   12    8.3%
+  master                 11    0.0%

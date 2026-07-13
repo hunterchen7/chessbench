@@ -87,6 +87,29 @@ def parse_move(board: chess.Board, text: str) -> chess.Move | None:
     return None
 
 
+_WHY = re.compile(
+    r"(?:why|because|reason(?:ing)?|explanation|idea|plan|threat)\s*[:\-]?\s*(.+)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def extract_move_and_explanation(
+    board: chess.Board, text: str
+) -> tuple[chess.Move | None, str | None, str | None]:
+    """Like `extract_move`, but also pull out an optional natural-language
+    explanation (text after a why/because/reasoning marker, else the leftover
+    prose once the move token is removed). Returns (move, token, explanation)."""
+    move, token = extract_move(board, text)
+    explanation: str | None = None
+    m = _WHY.search(text)
+    if m:
+        explanation = " ".join(m.group(1).split())[:600] or None
+    elif move is not None and token:
+        rest = " ".join(text.replace(token, " ", 1).split())
+        explanation = rest[:600] if len(rest) >= 8 else None
+    return move, token, explanation
+
+
 def extract_move(board: chess.Board, text: str) -> tuple[chess.Move | None, str | None]:
     """Pull the model's intended move out of a free-form response.
 

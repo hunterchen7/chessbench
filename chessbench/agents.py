@@ -40,6 +40,7 @@ class MoveContext:
     ply: int = 0
     last_prompt: str | None = None
     last_raw_response: str | None = None
+    last_explanation: str | None = None
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -118,7 +119,8 @@ class LLMAgent:
         ctx.last_raw_response = raw
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
-        move, token = board_utils.extract_move(board, raw)
+        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        ctx.last_explanation = explanation
         if move is not None:
             return token or move.uci()
         return raw.strip().split("\n")[0][:40]
@@ -164,7 +166,9 @@ class LLMGameAgent:
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
 
-        move, token = board_utils.extract_move(board, raw)
+        ctx.last_raw_response = raw
+        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        ctx.last_explanation = explanation
         if move is not None:
             return token or move.uci()
         return raw.strip().split("\n")[0][:40]

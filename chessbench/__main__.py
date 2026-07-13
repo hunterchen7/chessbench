@@ -69,7 +69,7 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         notation=Notation(args.notation),
         prompt_style=PromptStyle(args.prompt_style),
         retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit,
+        otb_illegal_limit=args.otb_limit, explain=args.explain,
         temperature=args.temperature,
     )
     if args.suite:
@@ -126,7 +126,7 @@ def _condition_from_args(args: argparse.Namespace) -> Condition:
         prompt_style=PromptStyle(args.prompt_style),
         context_mode=ContextMode(args.context_mode),
         retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit,
+        otb_illegal_limit=args.otb_limit, explain=args.explain,
         temperature=args.temperature,
     )
 
@@ -181,7 +181,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
         notation=Notation(args.notation),
         prompt_style=PromptStyle(args.prompt_style),
         retry_attempts=args.retry_attempts,
-        otb_illegal_limit=args.otb_limit,
+        otb_illegal_limit=args.otb_limit, explain=args.explain,
         temperature=args.temperature,
     )
     problems = load_composed(args.data)
@@ -282,7 +282,8 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         return Condition(
             legality=Legality(legality), representation=Representation(args.representation),
             notation=Notation(args.notation), prompt_style=PromptStyle(args.prompt_style),
-            retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, temperature=args.temperature,
+            retry_attempts=args.retry_attempts, otb_illegal_limit=args.otb_limit, explain=args.explain,
+            temperature=args.temperature,
         )
 
     print(f"leaderboard on suite '{suite.name}' {suite.content_hash} "
@@ -361,6 +362,7 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--retry-attempts", type=int, default=3)
     p.add_argument("--otb-limit", dest="otb_limit", type=int, default=2,
                    help="Nth cumulative illegal move that forfeits under --legality otb")
+    p.add_argument("--explain", action="store_true", help="invite an optional explanation with the move")
     p.add_argument("--temperature", type=float, default=0.0)
 
 

@@ -1,6 +1,6 @@
 import chess
 
-from chessbench.core.board import extract_move, parse_move
+from chessbench.core.board import extract_move, extract_move_and_explanation, parse_move
 
 
 def test_parse_uci_and_san():
@@ -46,3 +46,23 @@ def test_extract_returns_none_when_no_legal_move():
     b = chess.Board()
     mv, tok = extract_move(b, "I resign, this is hopeless.")
     assert mv is None
+
+
+def test_extract_move_and_explanation_tagged():
+    b = chess.Board()
+    mv, tok, why = extract_move_and_explanation(b, "e4\nwhy: grabs the center and opens lines")
+    assert mv == chess.Move.from_uci("e2e4")
+    assert why is not None and "center" in why
+
+
+def test_extract_move_and_explanation_no_why_marker():
+    b = chess.Board()
+    mv, tok, why = extract_move_and_explanation(b, "Nf3 develops the knight and eyes e5")
+    assert mv == chess.Move.from_uci("g1f3")
+    assert why is not None and "develops" in why
+
+
+def test_extract_move_and_explanation_bare_move_has_no_explanation():
+    b = chess.Board()
+    mv, tok, why = extract_move_and_explanation(b, "e4")
+    assert mv == chess.Move.from_uci("e2e4") and why is None

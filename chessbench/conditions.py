@@ -76,6 +76,7 @@ class Condition:
     context_mode: ContextMode = ContextMode.FRESH  # game-track axis
     retry_attempts: int = 3      # only used when legality == RETRY
     otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
+    explain: bool = False        # invite an optional natural-language explanation with the move
     temperature: float = 0.0
     include_side_to_move: bool = True
 
@@ -135,6 +136,8 @@ def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str 
     lines += ["", f"Reply with your move in {notation_name}."]
     if cond.prompt_style == PromptStyle.COT:
         lines += ["Think step by step, then give your final move as `answer: <move>`."]
+    elif cond.explain:
+        lines += ["Then, on a new line starting `why:`, add a brief explanation of your move."]
     elif cond.prompt_style == PromptStyle.MINIMAL:
         lines += ["Reply with ONLY the move, no explanation."]
     if illegal_feedback:
@@ -169,6 +172,8 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
         lines += ["", COACH_ADVICE]
     if cond.prompt_style == PromptStyle.COT:
         lines += ["Think briefly, then end your reply with `answer: <move>`."]
+    elif cond.explain:
+        lines += ["Give your move, then a brief explanation on a new line starting `why:`."]
     elif cond.prompt_style in (PromptStyle.MINIMAL, PromptStyle.FEW_SHOT):
         lines += ["Reply with ONLY your move, no commentary."]
     return "\n".join(lines)
