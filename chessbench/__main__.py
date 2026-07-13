@@ -97,7 +97,8 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         cost = getattr(model, "total_cost", None)
         record = RunRecord(
             model=args.model or agent.name, provider=args.agent, condition=condition,
-            report=report, results=results, suite=suite_ref, cost_usd=cost,
+            report=report, results=results, puzzles={p.id: p for p in puzzles},
+            suite=suite_ref, cost_usd=cost,
         )
         save_run(record, args.save_run)
         print(f"\nsaved run -> {args.save_run}")
@@ -337,6 +338,20 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_export(args: argparse.Namespace) -> int:
+    """Write data/index.json listing every run record (the web app's entry point)."""
+    import json
+
+    from .store import json_safe, list_runs
+
+    runs = list_runs(args.runs_dir)
+    index = {"schema": "chessbench.index.v1", "runs": runs}
+    with open(args.out, "w", encoding="utf-8") as f:
+        json.dump(json_safe(index), f, indent=1)
+    print(f"indexed {len(runs)} run(s) -> {args.out}")
+    return 0
+
+
 def cmd_tournament(args: argparse.Namespace) -> int:
     """Round-robin among LLMs (+ optional Stockfish anchor) -> game-Elo."""
     from .agents import LLMAgent, RandomAgent, StockfishAgent
@@ -465,6 +480,11 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--pgn-out", default=None)
     _add_condition_args(t)
     t.set_defaults(func=cmd_tournament)
+
+    e = sub.add_parser("export", help="write data/index.json listing run records for the web app")
+    e.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
+    e.add_argument("--out", default="webapp/data/index.json")
+    e.set_defaults(func=cmd_export)
 
     args = parser.parse_args(argv)
     return args.func(args)

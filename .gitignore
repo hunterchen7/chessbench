@@ -18,3 +18,7 @@ logs/
 
 # private (held-out) benchmark suites — never publish
 suites/private/
+
+# webapp debug logs (keep run records + index)
+webapp/data/runs/*.log
+webapp/data/runs/.*

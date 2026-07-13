@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>chessbench</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <a href="#/" class="brand">♞ chessbench</a>
+    <nav><a href="#/">Leaderboard</a><a href="#/puzzles">Puzzles</a></nav>
+  </header>
+  <main id="app"><p class="muted">Loading…</p></main>
+  <footer class="muted small">
+    Static viewer of chessbench run records · puzzle-Elo &amp; per-puzzle model answers.
+    Regenerate: <code>python -m chessbench puzzles --suite … --save-run webapp/data/runs/&lt;m&gt;.json &amp;&amp; python -m chessbench export</code>
+  </footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

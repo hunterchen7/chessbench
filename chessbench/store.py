@@ -11,15 +11,18 @@ of these directly; a database-backed backend can ingest the same shape.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+
+import chess
 
 from .categories import categorize_puzzle
 from .conditions import Condition
 from .rating import elo_trajectory
 from .report import PuzzleReport
-from .tasks.puzzles import PuzzleResult
+from .tasks.puzzles import Puzzle, PuzzleResult
 
 SCHEMA = "chessbench.run.v1"
 
@@ -49,6 +52,7 @@ class RunRecord:
     condition: Condition
     report: PuzzleReport
     results: list[PuzzleResult]
+    puzzles: dict[str, Puzzle] = field(default_factory=dict)  # id -> Puzzle, to embed board+solution
     suite: SuiteRef | None = None
     cost_usd: float | None = None
     created: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
@@ -59,16 +63,20 @@ class RunRecord:
         traj = elo_trajectory([(float(r.rating), r.solved) for r in ordered])
         items = []
         for r, seq in zip(ordered, traj):
-            items.append({
+            item: dict[str, object] = {
                 "puzzle_id": r.puzzle_id, "rating": r.rating, "themes": r.themes,
                 "categories": categorize_puzzle(r.themes, r.rating),
                 "solved": r.solved, "score": r.score, "first_move_legal": r.first_move_legal,
                 "failure_reason": r.failure_reason,
                 "answer_move": r.answer_move, "answer_explanation": r.answer_explanation,
                 "answer_raw": r.answer_raw, "seq_elo": round(seq, 1),
-            })
+            }
+            item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
+            items.append(item)
         rep = self.report
         lo, hi = rep.elo.ci95()
+        # JSON has no Infinity: emit null for the CI of a railed (unbounded) estimate.
+        ci = [round(lo, 1) if math.isfinite(lo) else None, round(hi, 1) if math.isfinite(hi) else None]
         return {
             "schema": SCHEMA, "kind": "puzzle", "created": self.created,
             "model": self.model, "provider": self.provider,
@@ -77,7 +85,7 @@ class RunRecord:
             "summary": {
                 "n": rep.n, "solved": rep.solved, "solve_rate": rep.solve_rate,
                 "mean_score": rep.mean_score, "first_move_legal_rate": rep.first_move_legal_rate,
-                "puzzle_elo": round(rep.elo.rating, 1), "puzzle_elo_ci": [round(lo, 1), round(hi, 1)],
+                "puzzle_elo": round(rep.elo.rating, 1), "puzzle_elo_ci": ci,
                 "puzzle_elo_bounded": rep.elo.bounded, "cost_usd": self.cost_usd,
             },
             "themes": [{"theme": t.theme, "n": t.total, "accuracy": t.accuracy} for t in rep.themes],
@@ -85,10 +93,41 @@ class RunRecord:
         }
 
 
+def _position_fields(puzzle: Puzzle | None) -> dict[str, object]:
+    """The solver-facing board (after the setup move) + solution, so the web app
+    can render and grade without re-deriving anything."""
+    if puzzle is None:
+        return {}
+    board = chess.Board(puzzle.fen)
+    setup = chess.Move.from_uci(puzzle.moves[0])
+    setup_san = board.san(setup)
+    board.push(setup)
+    return {
+        "fen": board.fen(),                       # position the solver faces
+        "setup_san": setup_san,
+        "solver_is_white": board.turn == chess.WHITE,
+        "solution": puzzle.moves[1:],             # solver + forced replies (UCI)
+        "solution_first": puzzle.moves[1] if len(puzzle.moves) > 1 else None,
+        "game_url": puzzle.game_url,
+    }
+
+
+def json_safe(obj: object) -> object:
+    """Recursively replace non-finite floats (inf/nan) with None -- JSON has no
+    Infinity, so this guarantees a valid, browser-parseable document."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [json_safe(v) for v in obj]
+    return obj
+
+
 def save_run(record: RunRecord, path: str | Path) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(record.to_dict(), f, indent=1)
+        json.dump(json_safe(record.to_dict()), f, indent=1)
 
 
 def load_run(path: str | Path) -> dict[str, object]:

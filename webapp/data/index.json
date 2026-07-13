@@ -1,0 +1,115 @@
+{
+ "schema": "chessbench.index.v1",
+ "runs": [
+  {
+   "file": "gpt-4o-mini-legal-list.json",
+   "model": "openai/gpt-4o-mini",
+   "created": "2026-07-13T18:20:59+00:00",
+   "kind": "puzzle",
+   "condition": "legal_list__fen_ascii__san__minimal",
+   "suite": "tactical-lichess-v1",
+   "summary": {
+    "n": 66,
+    "solved": 8,
+    "solve_rate": 0.12121212121212122,
+    "mean_score": 0.13510101010101008,
+    "first_move_legal_rate": 0.9848484848484849,
+    "puzzle_elo": 820.8,
+    "puzzle_elo_ci": [
+     654.9,
+     986.7
+    ],
+    "puzzle_elo_bounded": true,
+    "cost_usd": 0.005535189000000001
+   }
+  },
+  {
+   "file": "gpt-4o-mini.json",
+   "model": "openai/gpt-4o-mini",
+   "created": "2026-07-13T18:17:26+00:00",
+   "kind": "puzzle",
+   "condition": "free_form__fen_ascii__san__minimal",
+   "suite": "tactical-lichess-v1",
+   "summary": {
+    "n": 66,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.012626262626262624,
+    "first_move_legal_rate": 0.3787878787878788,
+    "puzzle_elo": 0.0,
+    "puzzle_elo_ci": [
+     null,
+     null
+    ],
+    "puzzle_elo_bounded": false,
+    "cost_usd": 0.004074097500000001
+   }
+  },
+  {
+   "file": "llama-3.3-70b.json",
+   "model": "meta-llama/llama-3.3-70b-instruct",
+   "created": "2026-07-13T18:20:50+00:00",
+   "kind": "puzzle",
+   "condition": "free_form__fen_ascii__san__minimal",
+   "suite": "tactical-lichess-v1",
+   "summary": {
+    "n": 66,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.00505050505050505,
+    "first_move_legal_rate": 0.42424242424242425,
+    "puzzle_elo": 0.0,
+    "puzzle_elo_ci": [
+     null,
+     null
+    ],
+    "puzzle_elo_bounded": false,
+    "cost_usd": 0.0034462889999999986
+   }
+  },
+  {
+   "file": "random.json",
+   "model": "random",
+   "created": "2026-07-13T18:15:18+00:00",
+   "kind": "puzzle",
+   "condition": "free_form__fen_ascii__san__minimal",
+   "suite": "tactical-lichess-v1",
+   "summary": {
+    "n": 66,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.015151515151515152,
+    "first_move_legal_rate": 1.0,
+    "puzzle_elo": 0.0,
+    "puzzle_elo_ci": [
+     null,
+     null
+    ],
+    "puzzle_elo_bounded": false,
+    "cost_usd": null
+   }
+  },
+  {
+   "file": "stockfish.json",
+   "model": "stockfish@150000n",
+   "created": "2026-07-13T18:15:18+00:00",
+   "kind": "puzzle",
+   "condition": "free_form__fen_ascii__san__minimal",
+   "suite": "tactical-lichess-v1",
+   "summary": {
+    "n": 66,
+    "solved": 66,
+    "solve_rate": 1.0,
+    "mean_score": 1.0,
+    "first_move_legal_rate": 1.0,
+    "puzzle_elo": 4000.0,
+    "puzzle_elo_ci": [
+     null,
+     null
+    ],
+    "puzzle_elo_bounded": false,
+    "cost_usd": null
+   }
+  }
+ ]
+}
