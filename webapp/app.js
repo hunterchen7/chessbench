@@ -1,9 +1,96 @@
-import { renderBoard } from "./board.js";
+import { renderBoard, parseFen } from "./board.js";
 
-const state = { runs: [], puzzleIndex: new Map() };
+const state = { runs: [], puzzleIndex: new Map(), tIndex: undefined, tCache: new Map() };
 const app = () => document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (x) => (x * 100).toFixed(1) + "%";
+
+// ---- lightweight FEN stepper for game replay ----
+// board.js has no move engine, so we reconstruct positions by applying UCI moves
+// to a {square: pieceChar} map (the same shape parseFen returns).
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+// Apply one UCI move to `map` in place. Handles normal moves, captures,
+// promotions, en passant, and castling. Degrades gracefully (never throws) on
+// malformed input — worst case it leaves the position unchanged.
+function applyUci(map, uci) {
+  if (!uci || typeof uci !== "string" || uci.length < 4) return map;
+  const from = uci.slice(0, 2), to = uci.slice(2, 4), promo = uci[4];
+  const piece = map[from];
+  if (!piece) return map; // nothing to move — bail without throwing
+  const white = piece === piece.toUpperCase();
+  const kind = piece.toLowerCase();
+  const fromFile = from.charCodeAt(0), toFile = to.charCodeAt(0);
+  const rank = from[1];
+
+  // En passant: a pawn moving diagonally onto an empty square captures the
+  // pawn that sits on the destination file at the origin's rank.
+  if (kind === "p" && fromFile !== toFile && !map[to]) {
+    delete map[to[0] + rank];
+  }
+  // Castling: the king moves two files; move the matching rook too.
+  if (kind === "k" && Math.abs(toFile - fromFile) === 2) {
+    if (toFile > fromFile) { // king-side
+      const rk = "h" + rank, rd = "f" + rank;
+      if (map[rk]) { map[rd] = map[rk]; delete map[rk]; }
+    } else { // queen-side
+      const rk = "a" + rank, rd = "d" + rank;
+      if (map[rk]) { map[rd] = map[rk]; delete map[rk]; }
+    }
+  }
+  delete map[from];
+  map[to] = (promo && kind === "p") ? (white ? promo.toUpperCase() : promo.toLowerCase()) : piece;
+  return map;
+}
+
+// Build a FEN piece-placement string from a {square: pieceChar} map.
+function fenFromMap(map) {
+  const files = "abcdefgh";
+  const rows = [];
+  for (let r = 8; r >= 1; r--) {
+    let row = "", empty = 0;
+    for (let f = 0; f < 8; f++) {
+      const p = map[files[f] + r];
+      if (p) { if (empty) { row += empty; empty = 0; } row += p; }
+      else empty++;
+    }
+    if (empty) row += empty;
+    rows.push(row);
+  }
+  return rows.join("/");
+}
+
+// Precompute placement FENs: fens[0] = start, fens[k] = after k plies.
+function buildFens(moves, startFen) {
+  const start = startFen || START_FEN;   // opening-book games carry a custom start
+  const fens = [fenFromMap(parseFen(start).grid)];
+  const map = parseFen(start).grid;
+  for (const m of moves || []) {
+    applyUci(map, m && m.uci);
+    fens.push(fenFromMap(map));
+  }
+  return fens;
+}
+
+// ---- tournament data loaders (lazy; missing data must not crash the app) ----
+async function fetchTournamentIndex() {
+  if (state.tIndex !== undefined) return state.tIndex;
+  try {
+    state.tIndex = await fetch("data/tournaments/index.json")
+      .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  } catch (e) { state.tIndex = null; }
+  return state.tIndex;
+}
+async function fetchTournament(file) {
+  if (state.tCache.has(file)) return state.tCache.get(file);
+  const data = await fetch("data/tournaments/" + file)
+    .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+  state.tCache.set(file, data);
+  return data;
+}
+
+// Compact "2026-07-13 19:54" from an ISO timestamp.
+const fmtWhen = (s) => (s ? String(s).slice(0, 16).replace("T", " ") : "—");
 
 // Difficulty tiers, easiest → hardest.
 const TIER_ORDER = ["beginner", "novice", "intermediate", "advanced", "expert", "master"];
@@ -300,12 +387,213 @@ function modelRail(e) {
   }).join("");
 }
 
+// ---- tournament views ----
+
+// game-Elo cell: rating with ±half-CI when bounded, "*" for the anchor, else "n/a".
+function ratingCell(s, anchorLabels) {
+  const r = typeof s.rating === "number" ? s.rating.toFixed(0) : "—";
+  const [lo, hi] = s.rating_ci || [];
+  if (s.bounded && typeof lo === "number" && typeof hi === "number") {
+    return `${r} <span class="ci">±${((hi - lo) / 2).toFixed(0)}</span>`;
+  }
+  if (anchorLabels.has(s.label)) return `${r}<span class="ci" title="fixed anchor rating">*</span>`;
+  return `${r} <span class="ci">n/a</span>`;
+}
+
+async function renderGames() {
+  app().innerHTML = `<h1>Tournaments</h1><p class="muted">Loading…</p>`;
+  const idx = await fetchTournamentIndex();
+  if (!idx || !Array.isArray(idx.tournaments) || idx.tournaments.length === 0) {
+    app().innerHTML = `<h1>Tournaments</h1>
+      <p class="muted">No tournaments yet. Run a round-robin and export to see games here.</p>`;
+    return;
+  }
+  const rows = idx.tournaments.slice().sort((a, b) => String(b.created).localeCompare(String(a.created)));
+  app().innerHTML = `<h1>Tournaments</h1>
+    <p class="muted">Round-robin play between engines/models. Open one for standings, crosstable, and replayable games.</p>
+    <table class="lb"><thead><tr><th>created</th><th class="r">players</th><th class="r">games</th><th>winner</th></tr></thead>
+    <tbody>${rows.map((t) => `<tr class="click" onclick="location.hash='#/tournament/${encodeURIComponent(t.file)}'">
+      <td class="mono small">${esc(fmtWhen(t.created))}</td>
+      <td class="r">${esc(t.n_players)}</td>
+      <td class="r">${esc(t.n_games)}</td>
+      <td>${esc(t.winner || "—")}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+async function renderTournament(file) {
+  const back = `<p><a href="#/games">← tournaments</a></p>`;
+  app().innerHTML = `${back}<h1>Tournament</h1><p class="muted">Loading…</p>`;
+  let t;
+  try { t = await fetchTournament(file); }
+  catch (e) { app().innerHTML = `${back}<p class="bad">Could not load tournament <code>${esc(file)}</code>.<br>${esc(e)}</p>`; return; }
+
+  const anchorLabels = new Set(Object.keys(t.anchor || {}));
+  const standings = (t.standings || []).slice()
+    .sort((a, b) => (b.score || 0) - (a.score || 0) || (b.rating || 0) - (a.rating || 0));
+  const players = standings.map((s) => s.label);
+  const ct = new Map();
+  for (const c of t.crosstable || []) ct.set(c.a + "\u0000" + c.b, c);
+
+  const standingsTable = `<table class="lb"><thead><tr>
+      <th>#</th><th>player</th><th class="r">game-Elo</th><th class="r">W-D-L</th>
+      <th class="r">score</th><th class="r">forfeits</th></tr></thead><tbody>
+    ${standings.map((s, i) => `<tr>
+      <td>${i + 1}</td>
+      <td>${esc(s.label)}${anchorLabels.has(s.label) ? ` <span class="pill">anchor</span>` : ""}</td>
+      <td class="r">${ratingCell(s, anchorLabels)}</td>
+      <td class="r">${s.wins}-${s.draws}-${s.losses}</td>
+      <td class="r" title="${(+s.score || 0)} / ${s.games} points">${pct((s.score || 0) / Math.max(1, s.games))}</td>
+      <td class="r">${s.illegal_forfeits || 0}</td>
+    </tr>`).join("")}</tbody></table>`;
+
+  const crosstable = players.length ? `<div class="tablescroll"><table class="lb crosstable"><thead><tr><th></th>
+      ${players.map((p) => `<th title="${esc(p)}">${esc(p)}</th>`).join("")}</tr></thead><tbody>
+    ${players.map((rp) => `<tr><td class="rowhead">${esc(rp)}</td>
+      ${players.map((cp) => {
+        if (rp === cp) return `<td class="diag">·</td>`;
+        const c = ct.get(rp + "\u0000" + cp);
+        if (!c) return `<td class="muted">·</td>`;
+        return `<td title="${esc(rp)} vs ${esc(cp)}">${c.w}-${c.d}-${c.l}</td>`;
+      }).join("")}</tr>`).join("")}</tbody></table></div>
+    <p class="muted small">Cells read as row-player results vs column-player: wins-draws-losses.</p>` : "";
+
+  const gamesTable = `<table class="lb"><thead><tr>
+      <th class="r">#</th><th>white</th><th>black</th><th>result</th><th>termination</th><th class="r">plies</th></tr></thead><tbody>
+    ${(t.games || []).map((g, i) => `<tr class="click" onclick="location.hash='#/game/${encodeURIComponent(file)}/${i}'">
+      <td class="r">${i + 1}</td>
+      <td>${esc(g.white)}</td>
+      <td>${esc(g.black)}</td>
+      <td class="mono">${esc(g.result)}</td>
+      <td class="small">${esc(g.termination || "—")}</td>
+      <td class="r">${esc(g.plies)}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="muted">No games.</td></tr>`}</tbody></table>`;
+
+  app().innerHTML = `${back}
+    <h1>Tournament <span class="muted">· ${players.length} players</span></h1>
+    <p class="mono small">${esc(condMode(t.condition))} · ${esc(t.condition?.slug || "—")} · max ${esc(t.max_plies)} plies · ${esc(fmtWhen(t.created))}</p>
+    <h2>Standings</h2>${standingsTable}
+    ${crosstable ? `<h2>Crosstable</h2>${crosstable}` : ""}
+    <h2>Games</h2>${gamesTable}`;
+}
+
+// eval bar (white's perspective centipawns; ±≥9000 treated as mate).
+function evalBar(cp) {
+  if (cp == null) return `<div class="small muted">no eval</div>`;
+  const mate = Math.abs(cp) >= 9000;
+  const frac = 0.5 + Math.max(-1, Math.min(1, cp / 1000)) / 2; // white's share, 0..1
+  const txt = mate ? (cp > 0 ? "#" : "-#") : (cp >= 0 ? "+" : "") + (cp / 100).toFixed(2);
+  return `<div class="evalrow">
+    <div class="evalbar" title="advantage (white share)"><div class="evalfill" style="width:${(frac * 100).toFixed(1)}%"></div></div>
+    <span class="mono small">${esc(txt)}</span> <span class="muted small">eval (white)</span></div>`;
+}
+
+async function renderGame(file, idxStr) {
+  const back = `<p><a href="#/tournament/${encodeURIComponent(file)}">← tournament</a></p>`;
+  const idx = parseInt(idxStr, 10);
+  app().innerHTML = `${back}<h1>Game</h1><p class="muted">Loading…</p>`;
+  let t;
+  try { t = await fetchTournament(file); }
+  catch (e) { app().innerHTML = `${back}<p class="bad">Could not load game.<br>${esc(e)}</p>`; return; }
+  const g = (t.games || [])[idx];
+  if (!g) { app().innerHTML = `${back}<p class="bad">No such game.</p>`; return; }
+
+  const moves = g.moves || [];
+  const fens = buildFens(moves, g.start_fen);
+  let cur = 0;
+
+  app().innerHTML = `${back}
+    <h1>${esc(g.white)} <span class="muted">vs</span> ${esc(g.black)} <span class="muted">· ${esc(g.result)}</span></h1>
+    <p class="mono small">${esc(g.termination || "")} · ${esc(g.plies)} plies</p>
+    <div class="replaywrap">
+      <div>
+        <div id="gboard"></div>
+        <div class="replay-controls">
+          <button id="rc-first">« First</button>
+          <button id="rc-prev">‹ Prev</button>
+          <button id="rc-next">Next ›</button>
+          <button id="rc-last">Last »</button>
+        </div>
+        <div id="moveinfo" class="moveinfo"></div>
+        <a class="small" id="pgndl" download="${esc(String(file).replace(/\.json$/, ""))}-game${idx + 1}.pgn">download PGN ↓</a>
+      </div>
+      <div class="replay-side">
+        <h2>Moves</h2>
+        <div id="movelist" class="movelist"></div>
+      </div>
+    </div>`;
+
+  const boardEl = document.getElementById("gboard");
+  const infoEl = document.getElementById("moveinfo");
+  const listEl = document.getElementById("movelist");
+  const dl = document.getElementById("pgndl");
+  if (g.pgn) dl.href = "data:application/x-chess-pgn;charset=utf-8," + encodeURIComponent(g.pgn);
+  else dl.style.display = "none";
+
+  listEl.innerHTML = moves.map((m, i) => {
+    const num = m.color === "white" ? `<span class="mvnum">${Math.ceil(m.ply / 2)}.</span>` : "";
+    return `${num}<span class="mv${m.forfeited ? " forf" : ""}" data-cur="${i + 1}">${esc(m.san || "?")}</span>`;
+  }).join(" ") || `<span class="muted">No moves.</span>`;
+  for (const el of listEl.querySelectorAll(".mv")) {
+    el.addEventListener("click", () => { cur = +el.dataset.cur; update(); });
+  }
+
+  const btn = (id) => document.getElementById(id);
+  function update() {
+    cur = Math.max(0, Math.min(moves.length, cur));
+    const last = cur > 0 ? (moves[cur - 1].uci || "").slice(0, 4) : null;
+    renderBoard(boardEl, fens[cur], { size: 380, lastMove: last && last.length === 4 ? last : undefined });
+
+    if (cur === 0) {
+      infoEl.innerHTML = `<span class="muted">Start position. Step through with the controls (or ← → keys).</span>`;
+    } else {
+      const m = moves[cur - 1];
+      const no = Math.ceil(m.ply / 2);
+      const flags = [];
+      if (m.forfeited) flags.push(`<span class="tag bad">forfeited</span>`);
+      const bad = m.illegal_attempts || 0;
+      if (m.first_attempt_legal === false || bad > 0) {
+        flags.push(`<span class="tag warn">${bad} illegal ${bad === 1 ? "attempt" : "attempts"}</span>`);
+      } else if (!m.forfeited) {
+        flags.push(`<span class="tag ok">legal first try</span>`);
+      }
+      infoEl.innerHTML = `<div class="mvhdr"><b>${no}${m.color === "white" ? "." : "…"} ${esc(m.san || "?")}</b>
+        <span class="mono small muted">${esc(m.uci || "")}</span> ${flags.join(" ")}</div>
+        ${evalBar(m.eval_cp)}`;
+    }
+    for (const el of listEl.querySelectorAll(".mv")) el.classList.toggle("cur", +el.dataset.cur === cur);
+    const curEl = listEl.querySelector(".mv.cur");
+    if (curEl) curEl.scrollIntoView({ block: "nearest" });
+    btn("rc-first").disabled = btn("rc-prev").disabled = cur === 0;
+    btn("rc-next").disabled = btn("rc-last").disabled = cur === moves.length;
+  }
+  btn("rc-first").onclick = () => { cur = 0; update(); };
+  btn("rc-prev").onclick = () => { cur -= 1; update(); };
+  btn("rc-next").onclick = () => { cur += 1; update(); };
+  btn("rc-last").onclick = () => { cur = moves.length; update(); };
+  gameNav = { first: btn("rc-first").onclick, prev: btn("rc-prev").onclick, next: btn("rc-next").onclick, last: btn("rc-last").onclick };
+  update();
+}
+
+// keyboard stepping, active only while a game replay is mounted
+let gameNav = null;
+window.addEventListener("keydown", (e) => {
+  if (!gameNav) return;
+  if (e.key === "ArrowRight") { gameNav.next(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { gameNav.prev(); e.preventDefault(); }
+  else if (e.key === "Home") { gameNav.first(); e.preventDefault(); }
+  else if (e.key === "End") { gameNav.last(); e.preventDefault(); }
+});
+
 function router() {
   const parts = (location.hash.slice(1) || "/").split("/");
   const route = parts[1] || "";
+  gameNav = null; // leaving any game view disables keyboard stepping
   if (route === "model") return renderModel(decodeURIComponent(parts[2] || ""));
   if (route === "puzzles") return renderPuzzles();
   if (route === "puzzle") return renderPuzzle(decodeURIComponent(parts[2] || ""));
+  if (route === "games") return renderGames();
+  if (route === "tournament") return renderTournament(decodeURIComponent(parts[2] || ""));
+  if (route === "game") return renderGame(decodeURIComponent(parts[2] || ""), parts[3] || "0");
   return renderLeaderboard();
 }
 

@@ -77,3 +77,31 @@ button { background: var(--accent); color: #08131f; border: 0; padding: 7px 12px
 .tag.warn { background: rgba(210,153,34,.18); color: var(--warn); }
 .tag.bad { background: rgba(248,81,73,.18); color: var(--bad); }
 .bad { color: var(--bad); }
+
+/* ---- tournament crosstable ---- */
+.tablescroll { overflow-x: auto; }
+table.crosstable th, table.crosstable td { text-align: center; white-space: nowrap; }
+table.crosstable th.rowhead, table.crosstable td.rowhead { text-align: left; font-weight: 600; }
+table.crosstable td.diag { color: var(--muted); background: var(--panel); }
+
+/* ---- game replay ---- */
+.replaywrap { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+.replay-side { flex: 1; min-width: 260px; }
+.replay-controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.replay-controls button { background: var(--panel); color: var(--fg); border: 1px solid var(--line); margin-right: 0; }
+.replay-controls button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.replay-controls button:disabled { opacity: .4; cursor: default; }
+.moveinfo { margin: 10px 0; min-height: 44px; }
+.moveinfo .mvhdr { margin-bottom: 6px; }
+.evalrow { display: flex; align-items: center; gap: 8px; }
+.evalbar { width: 130px; height: 8px; background: var(--dark); border: 1px solid var(--line);
+  border-radius: 5px; overflow: hidden; }
+.evalfill { height: 100%; background: var(--light); }
+.movelist { line-height: 2; max-height: 340px; overflow: auto; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--panel); }
+.movelist .mvnum { color: var(--muted); margin-left: 8px; margin-right: 1px; }
+.movelist .mvnum:first-child { margin-left: 0; }
+.movelist .mv { cursor: pointer; padding: 1px 4px; border-radius: 4px; }
+.movelist .mv:hover { background: var(--bg); }
+.movelist .mv.cur { background: var(--accent); color: #08131f; }
+.movelist .mv.forf { color: var(--bad); text-decoration: line-through; }
