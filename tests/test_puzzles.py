@@ -102,3 +102,37 @@ def _is_mate(board: chess.Board, move: chess.Move) -> bool:
         return board.is_checkmate()
     finally:
         board.pop()
+
+
+# A 2-solver-move puzzle (setup = e4; solver plays as Black): e5 ... Nc6.
+TWO_MOVE = Puzzle(id="two", fen=chess.STARTING_FEN, moves=["e2e4", "e7e5", "g1f3", "b8c6"], rating=1500)
+
+
+def test_full_credit_multi_move():
+    res = grade_puzzle(FixedAgent("e7e5", "b8c6"), TWO_MOVE, HEADLINE)
+    assert res.solved and res.score == 1.0
+    assert res.plies_correct == 2 and res.solver_plies == 2
+
+
+def test_partial_credit_multi_move():
+    # first solver move right, second wrong -> half credit, not solved
+    res = grade_puzzle(FixedAgent("e7e5", "a7a6"), TWO_MOVE, HEADLINE)
+    assert not res.solved
+    assert res.score == 0.5
+    assert res.plies_correct == 1
+    assert res.failure_reason == "wrong_move"
+
+
+def test_zero_credit_first_move_wrong():
+    res = grade_puzzle(FixedAgent("d7d5"), TWO_MOVE, HEADLINE)
+    assert not res.solved and res.score == 0.0 and res.plies_correct == 0
+
+
+def test_alternate_solution_accepted():
+    # same opening but the 2nd solver move Nf6 is an accepted alternate line
+    puzzle = Puzzle(
+        id="alt2", fen=chess.STARTING_FEN, moves=["e2e4", "e7e5", "g1f3", "b8c6"], rating=1500,
+        alternates=[["e7e5", "g1f3", "g8f6"]],
+    )
+    res = grade_puzzle(FixedAgent("e7e5", "g8f6"), puzzle, HEADLINE)
+    assert res.solved and res.score == 1.0

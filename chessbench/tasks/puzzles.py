@@ -1,13 +1,18 @@
-"""Lichess puzzle track: load, grade, and record per-puzzle results.
+"""Puzzle track: load, grade, and record per-puzzle results.
 
-Lichess convention (critical, and the usual source of bugs):
+Puzzle convention (Lichess-style, and the usual source of bugs):
   * FEN is the position BEFORE the opponent's setup move.
-  * Moves[0] is that opponent move -- you play it automatically to reach the
-    puzzle position.
-  * The SOLVER then plays Moves[1], Moves[3], ... (odd indices). Between them,
-    the opponent's forced replies Moves[2], Moves[4], ... are played for you.
-  * All solver moves are "only moves" EXCEPT that any move delivering checkmate
-    is accepted on the mating ply (there can be several mates).
+  * moves[0] is that setup move -- we play it automatically to reach the puzzle.
+  * The SOLVER then plays moves[1], moves[3], ... (odd indices); the opponent's
+    forced replies moves[2], moves[4], ... are played automatically.
+
+Grading supports what real puzzles need:
+  * MULTIPLE / ALTERNATE solutions -- `Puzzle.alternates` holds extra full
+    post-setup lines; a move is correct if it matches ANY still-viable line.
+  * MATE ACCEPTANCE -- any move that delivers checkmate is accepted on a line's
+    final ply (a puzzle can have several mating moves).
+  * PARTIAL CREDIT -- multi-move puzzles score `plies_correct / solver_plies`
+    in [0, 1], so following half a combination beats blundering immediately.
 """
 
 from __future__ import annotations
@@ -21,13 +26,22 @@ import chess
 
 from ..agents import Agent, TurnContext
 from ..conditions import Condition, Legality
+from ..core import board as board_utils
+from ..types import PuzzleFailure
 
 
 @dataclass
 class Puzzle:
+    """A single position with one or more acceptable solution lines.
+
+    `moves` is the primary line in UCI, with moves[0] the opponent's setup move.
+    `alternates` are additional acceptable POST-setup lines (each alternating
+    solver/opponent, i.e. aligned with moves[1:]).
+    """
+
     id: str
     fen: str
-    moves: list[str]          # UCI; moves[0] is the opponent's setup move
+    moves: list[str]
     rating: int
     rating_deviation: int = 0
     popularity: int = 0
@@ -35,13 +49,22 @@ class Puzzle:
     themes: list[str] = field(default_factory=list)
     game_url: str = ""
     opening_tags: str = ""
+    source: str = "lichess"
+    alternates: list[list[str]] = field(default_factory=list)
 
     @property
     def solver_is_white(self) -> bool:
-        # Side to move AFTER the setup move is the solver.
-        bd = chess.Board(self.fen)
-        bd.push(chess.Move.from_uci(self.moves[0]))
-        return bd.turn == chess.WHITE
+        board = chess.Board(self.fen)
+        board.push(chess.Move.from_uci(self.moves[0]))
+        return board.turn == chess.WHITE
+
+    def solution_lines(self) -> list[list[str]]:
+        """All acceptable post-setup lines (primary first, then alternates)."""
+        return [self.moves[1:], *self.alternates]
+
+    def num_solver_plies(self) -> int:
+        """Number of moves the solver must make in the primary line."""
+        return len(range(1, len(self.moves), 2))
 
 
 @dataclass
@@ -49,11 +72,12 @@ class PuzzleResult:
     puzzle_id: str
     rating: int
     themes: list[str]
-    solved: bool
-    first_move_legal: bool         # was the agent's FIRST attempt a legal move?
+    solved: bool                   # completed a full acceptable line
+    score: float                   # partial credit in [0, 1]
+    first_move_legal: bool
     all_moves_legal: bool
     illegal_attempts: int
-    failure_reason: str | None     # 'illegal' | 'wrong_move' | None
+    failure_reason: PuzzleFailure | None
     solver_plies: int
     plies_correct: int
     moves_played: list[str] = field(default_factory=list)
@@ -77,90 +101,12 @@ def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
                     themes=(row.get("Themes") or "").split(),
                     game_url=row.get("GameUrl", ""),
                     opening_tags=row.get("OpeningTags", ""),
+                    source=row.get("Source", "lichess"),
                 )
             )
             if limit and len(out) >= limit:
                 break
     return out
-
-
-def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleResult:
-    """Play the puzzle out, ply by ply, validating every move with python-chess."""
-    board = chess.Board(puzzle.fen)
-    board.push(chess.Move.from_uci(puzzle.moves[0]))  # opponent's setup move
-
-    solver_indices = list(range(1, len(puzzle.moves), 2))
-    n_plies = len(solver_indices)
-    history_san: list[str] = []
-    moves_played: list[str] = []
-
-    plies_correct = 0
-    illegal_attempts = 0
-    first_move_legal: bool | None = None
-    all_moves_legal = True
-
-    for ply_no, idx in enumerate(solver_indices):
-        expected = puzzle.moves[idx]
-        is_last = idx == solver_indices[-1]
-        max_tries = condition.retry_attempts + 1 if condition.legality == Legality.RETRY else 1
-
-        chosen: chess.Move | None = None
-        feedback: str | None = None
-        for attempt in range(max_tries):
-            ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
-            raw = agent.choose(board, ctx)
-            from ..core import board as board_utils  # local import avoids cycle at module load
-
-            mv = board_utils.parse_move(board, raw)
-            legal = mv is not None
-            if first_move_legal is None:
-                first_move_legal = legal
-            if legal:
-                chosen = mv
-                break
-            illegal_attempts += 1
-            all_moves_legal = False
-            feedback = f"'{raw}' is not a legal move"
-
-        if chosen is None:
-            return PuzzleResult(
-                puzzle.id, puzzle.rating, puzzle.themes, solved=False,
-                first_move_legal=bool(first_move_legal), all_moves_legal=False,
-                illegal_attempts=illegal_attempts, failure_reason="illegal",
-                solver_plies=n_plies, plies_correct=plies_correct, moves_played=moves_played,
-            )
-
-        # A move that delivers checkmate is accepted on the mating ply.
-        gives_mate = board.gives_check(chosen) and _is_mate_after(board, chosen)
-        correct = chosen.uci() == expected or (is_last and gives_mate)
-
-        moves_played.append(chosen.uci())
-        history_san.append(board.san(chosen))
-
-        if not correct:
-            return PuzzleResult(
-                puzzle.id, puzzle.rating, puzzle.themes, solved=False,
-                first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
-                illegal_attempts=illegal_attempts, failure_reason="wrong_move",
-                solver_plies=n_plies, plies_correct=plies_correct, moves_played=moves_played,
-            )
-
-        plies_correct += 1
-        board.push(chosen)
-
-        # Play the opponent's forced reply, if any remain.
-        reply_idx = idx + 1
-        if reply_idx < len(puzzle.moves):
-            reply = chess.Move.from_uci(puzzle.moves[reply_idx])
-            history_san.append(board.san(reply))
-            board.push(reply)
-
-    return PuzzleResult(
-        puzzle.id, puzzle.rating, puzzle.themes, solved=True,
-        first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
-        illegal_attempts=illegal_attempts, failure_reason=None,
-        solver_plies=n_plies, plies_correct=plies_correct, moves_played=moves_played,
-    )
 
 
 def _is_mate_after(board: chess.Board, move: chess.Move) -> bool:
@@ -169,6 +115,88 @@ def _is_mate_after(board: chess.Board, move: chess.Move) -> bool:
         return board.is_checkmate()
     finally:
         board.pop()
+
+
+def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleResult:
+    """Play the puzzle out ply by ply against the set of acceptable lines.
+
+    At each solver ply we track which lines remain consistent with the moves so
+    far; a move is correct if it matches any still-viable line (or mates on that
+    line's final ply). Every move is validated with python-chess -- legality is
+    never decided by a lenient string match.
+    """
+    board = chess.Board(puzzle.fen)
+    board.push(chess.Move.from_uci(puzzle.moves[0]))
+
+    lines = puzzle.solution_lines()
+    n_solver = puzzle.num_solver_plies() or 1
+    active: list[int] = list(range(len(lines)))
+
+    history_san: list[str] = []
+    moves_played: list[str] = []
+    plies_correct = 0
+    illegal_attempts = 0
+    first_move_legal: bool | None = None
+    all_moves_legal = True
+
+    def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
+        return PuzzleResult(
+            puzzle_id=puzzle.id, rating=puzzle.rating, themes=puzzle.themes,
+            solved=solved, score=1.0 if solved else plies_correct / n_solver,
+            first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
+            illegal_attempts=illegal_attempts, failure_reason=reason,
+            solver_plies=n_solver, plies_correct=plies_correct, moves_played=moves_played,
+        )
+
+    k = 0  # solver-ply index (0-based)
+    while True:
+        pos = 2 * k
+        if not any(len(lines[i]) > pos for i in active):
+            return result(True, None)  # every viable line is complete
+
+        max_tries = condition.retry_attempts + 1 if condition.legality == Legality.RETRY else 1
+        chosen: chess.Move | None = None
+        feedback: str | None = None
+        for _ in range(max_tries):
+            ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
+            raw = agent.choose(board, ctx)
+            move = board_utils.parse_move(board, raw)
+            if first_move_legal is None:
+                first_move_legal = move is not None
+            if move is not None:
+                chosen = move
+                break
+            illegal_attempts += 1
+            all_moves_legal = False
+            feedback = f"'{raw}' is not a legal move"
+
+        if chosen is None:
+            return result(False, "illegal")
+
+        uci = chosen.uci()
+        viable = [i for i in active if len(lines[i]) > pos and lines[i][pos] == uci]
+        final_ply_lines = [i for i in active if len(lines[i]) == pos + 1]
+        if not viable and final_ply_lines and _is_mate_after(board, chosen):
+            viable = final_ply_lines  # accept an alternate mating move
+
+        moves_played.append(uci)
+        history_san.append(board.san(chosen))
+        if not viable:
+            return result(False, "wrong_move")
+
+        plies_correct += 1
+        active = viable
+        board.push(chosen)
+
+        # Play the opponent's forced reply (unique in a sound puzzle) and prune.
+        replies = [lines[i][pos + 1] for i in active if len(lines[i]) > pos + 1]
+        if replies:
+            reply_uci = replies[0]
+            reply = chess.Move.from_uci(reply_uci)
+            history_san.append(board.san(reply))
+            board.push(reply)
+            active = [i for i in active if len(lines[i]) > pos + 1 and lines[i][pos + 1] == reply_uci]
+        k += 1
 
 
 def iter_grades(agent: Agent, puzzles: list[Puzzle], condition: Condition) -> Iterator[PuzzleResult]:

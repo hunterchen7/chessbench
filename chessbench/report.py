@@ -26,6 +26,7 @@ class PuzzleReport:
     condition: str
     n: int
     solved: int
+    mean_score: float             # average partial credit in [0, 1]
     first_move_legal: int
     total_illegal_attempts: int
     failures_illegal: int
@@ -53,6 +54,7 @@ class PuzzleReport:
 def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> PuzzleReport:
     n = len(results)
     solved = sum(r.solved for r in results)
+    mean_score = sum(r.score for r in results) / n if n else 0.0
     first_legal = sum(r.first_move_legal for r in results)
     illegal_attempts = sum(r.illegal_attempts for r in results)
     fail_illegal = sum(r.failure_reason == "illegal" for r in results)
@@ -69,7 +71,7 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     themes = sorted(theme_map.values(), key=lambda s: (-s.total, s.theme))
 
     return PuzzleReport(
-        agent=agent, condition=condition, n=n, solved=solved,
+        agent=agent, condition=condition, n=n, solved=solved, mean_score=mean_score,
         first_move_legal=first_legal, total_illegal_attempts=illegal_attempts,
         failures_illegal=fail_illegal, failures_wrong=fail_wrong, curve=curve, themes=themes,
     )
@@ -83,6 +85,7 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         f"condition:  {rep.condition}",
         f"puzzles:    {rep.n}",
         f"solved:     {rep.solved}/{rep.n} = {rep.solve_rate:.1%}  (95% CI {lo:.1%}-{hi:.1%})",
+        f"meanScore:  {rep.mean_score:.1%} (partial credit for multi-move puzzles)",
         f"impliedElo: {ir:.0f}" if ir is not None else "impliedElo: n/a (curve does not cross 50%)",
         f"legalMove%: {rep.first_move_legal_rate:.1%} first-attempt legal  "
         f"({rep.total_illegal_attempts} illegal attempts total)",
