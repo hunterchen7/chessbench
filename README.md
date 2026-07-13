@@ -256,6 +256,25 @@ a model may *recall* rather than *compute*. Prefer the **generated** puzzles
 (fresh random positions) for clean measurement; treat public-puzzle numbers as an
 upper bound.
 
+## Command reference
+
+```
+chessbench puzzles      --suite … --agent … [--mode 1|2|3] [--explain] [--save-run …]
+chessbench composed     --solver … [--data …]           # esoteric track (7 genres)
+chessbench play         --white … --black … [--legality otb] [--context-mode …]
+chessbench tournament   --models a,b [--anchor-elo 1500] [--eval-moves] [--openings book] --save …
+chessbench sprt         --a X --b Y --elo0 0 --elo1 20  # A/B with early stopping
+chessbench suite        --source … --name … --visibility public|private
+chessbench leaderboard  --suite … --models a,b [--legalities free_form,legal_list]
+chessbench category-leaderboard [--dim tier]            # per-category rankings
+chessbench models       [list|add …]                    # model registry
+chessbench run-model    --model <label> --suite …       # incremental enroll
+chessbench export                                        # write web-app data indexes
+```
+
+Calibrate generated puzzles to Lichess-comparable ratings:
+`python scripts/calibrate_suite.py --suite suites/private/… --name … --out …`
+
 ## Roadmap
 
 - [x] Puzzle track (Lichess + generated + curation; partial credit; alternates)
@@ -264,10 +283,14 @@ upper bound.
 - [x] OpenRouter/OpenAI/Anthropic providers; typed, mypy-clean
 - [x] Frozen public/private suites + leaderboard (same items for every model)
 - [x] Puzzle-Elo (MLE) + game-Elo (round-robin, engine-anchored) with CIs; per-setting Elo
-- [ ] Engine-ladder calibration to give private/generated puzzles Lichess-comparable ratings
-- [ ] Retrograde beyond proof games (last-move / shortest-proof-game solving)
-- [ ] Persisted/accumulating leaderboard store + web view; SPRT early-stopping in tournaments
-- [ ] Per-move centipawn/accuracy reporting; the full representation×legality×notation×context ablation study
+- [x] Web app: leaderboard, model Elo-trajectory, per-puzzle human-solve browser, games/tournament viewer with replay
+- [x] Model registry + incremental `run-model`; 3 help modes (default hand-holding)
+- [x] Engine-ladder calibration (Lichess-comparable ratings for generated/private puzzles)
+- [x] Persisted run/tournament store; per-category leaderboards; opening book; **SPRT** early-stopping
+- [x] Per-move accuracy% (Lichess win%-drop) in games; human-solve persistence + human on the leaderboard
+- [ ] Multimodal board-image track (vision models) — research track
+- [ ] Retrograde beyond proof games (last-move); shortest-proof-game *solving*
+- [ ] The full representation×legality×notation×context ablation study across many models
 
 ## References
 
