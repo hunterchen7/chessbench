@@ -43,6 +43,8 @@ class MoveContext:
     last_prompt: str | None = None
     last_raw_response: str | None = None
     last_explanation: str | None = None
+    last_response_format_valid: bool | None = None
+    last_response_format_error: str | None = None
     last_usage: dict[str, object] | None = None
     last_cost: float = 0.0
 
@@ -153,10 +155,13 @@ class LLMAgent:
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
-        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
-        ctx.last_explanation = explanation
-        if move is not None:
-            return move.uci()  # commit to the extracted move as canonical UCI
+        parsed = board_utils.parse_model_move_response(board, raw)
+        ctx.last_explanation = parsed.rationale
+        if cond.explain:
+            ctx.last_response_format_valid = parsed.format_valid
+            ctx.last_response_format_error = parsed.format_error
+        if parsed.move is not None:
+            return parsed.move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
 
     def solve_line(self, board: chess.Board, ctx: TurnContext) -> str:
@@ -172,8 +177,11 @@ class LLMAgent:
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
-        _move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
-        ctx.last_explanation = explanation
+        parsed = board_utils.parse_model_line_response(board, raw)
+        ctx.last_explanation = parsed.rationale
+        if cond.explain:
+            ctx.last_response_format_valid = parsed.format_valid
+            ctx.last_response_format_error = parsed.format_error
         return raw
 
 
@@ -195,18 +203,21 @@ class VisionAgent:
         if cond.legality == conditions.Legality.LEGAL_LIST:
             lines.append(conditions._legal_line(board, cond))
         if cond.explain:
-            lines.append("Reply with your move in SAN, then a brief `why:` explanation.")
+            lines.append(conditions._json_move_instruction())
         else:
-            lines.append("Reply with ONLY the move in SAN (e.g. Nf3, exd5, O-O).")
+            lines.append(f"Reply with ONLY the move in {conditions._notation_name(cond)}.")
         if ctx.illegal_feedback:
             lines.append(f"Your previous answer was illegal: {ctx.illegal_feedback}.")
 
         raw = self._model.chat_image("\n".join(lines), render_board_png(board), temperature=cond.temperature)
         ctx.last_raw_response = raw
-        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
-        ctx.last_explanation = explanation
-        if move is not None:
-            return move.uci()  # commit to the extracted move as canonical UCI
+        parsed = board_utils.parse_model_move_response(board, raw)
+        ctx.last_explanation = parsed.rationale
+        if cond.explain:
+            ctx.last_response_format_valid = parsed.format_valid
+            ctx.last_response_format_error = parsed.format_error
+        if parsed.move is not None:
+            return parsed.move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
 
 
@@ -261,8 +272,11 @@ class LLMGameAgent:
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
-        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
-        ctx.last_explanation = explanation
-        if move is not None:
-            return move.uci()  # commit to the extracted move as canonical UCI
+        parsed = board_utils.parse_model_move_response(board, raw)
+        ctx.last_explanation = parsed.rationale
+        if cond.explain:
+            ctx.last_response_format_valid = parsed.format_valid
+            ctx.last_response_format_error = parsed.format_error
+        if parsed.move is not None:
+            return parsed.move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]

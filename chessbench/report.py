@@ -32,6 +32,8 @@ class PuzzleReport:
     total_illegal_attempts: int
     failures_illegal: int
     failures_wrong: int
+    response_format_expected: int
+    response_format_valid: int
     curve: metrics.RatingCurve
     elo: RatingEstimate           # MLE puzzle-Elo (performance rating)
     themes: list[ThemeStat] = field(default_factory=list)
@@ -58,6 +60,12 @@ class PuzzleReport:
         return self.first_move_legal / self.n if self.n else 0.0
 
     @property
+    def response_format_valid_rate(self) -> float | None:
+        if not self.response_format_expected:
+            return None
+        return self.response_format_valid / self.response_format_expected
+
+    @property
     def implied_rating(self) -> float | None:
         return self.curve.implied_rating()
 
@@ -70,6 +78,8 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     illegal_attempts = sum(r.illegal_attempts for r in results)
     fail_illegal = sum(r.failure_reason == "illegal" for r in results)
     fail_wrong = sum(r.failure_reason == "wrong_move" for r in results)
+    format_expected = sum(r.answer_response_format_valid is not None for r in results)
+    format_valid = sum(r.answer_response_format_valid is True for r in results)
     curve = metrics.bucketize([(r.rating, r.solved) for r in results])
     elo = puzzle_elo([(float(r.rating), r.solved) for r in results])
 
@@ -85,7 +95,9 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     return PuzzleReport(
         agent=agent, condition=condition, n=n, solved=solved, mean_score=mean_score,
         first_move_legal=first_legal, total_illegal_attempts=illegal_attempts,
-        failures_illegal=fail_illegal, failures_wrong=fail_wrong, curve=curve, elo=elo, themes=themes,
+        failures_illegal=fail_illegal, failures_wrong=fail_wrong,
+        response_format_expected=format_expected, response_format_valid=format_valid,
+        curve=curve, elo=elo, themes=themes,
     )
 
 
@@ -104,6 +116,8 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         "difficulty-bucketed accuracy:",
         "  bucket        n    solved   acc     95% CI",
     ]
+    if rep.response_format_valid_rate is not None:
+        lines.insert(7, f"validJSON%: {rep.response_format_valid_rate:.1%} ({rep.response_format_valid}/{rep.response_format_expected})")
     for b in rep.curve.buckets:
         clo, chi = b.ci
         lines.append(

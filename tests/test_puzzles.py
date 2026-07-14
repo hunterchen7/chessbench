@@ -6,8 +6,9 @@ Puzzle: Black (setup) shuffles a distant queen, then White has Ra8#.
 
 import chess
 
-from chessbench.agents import TurnContext
+from chessbench.agents import LLMAgent, TurnContext
 from chessbench.conditions import HEADLINE, Condition, Legality, mode_condition
+from chessbench.models.base import ScriptedModel
 from chessbench.tasks.puzzles import Puzzle, grade_puzzle
 
 # FEN is BEFORE the opponent's setup move; moves[0] is that setup move.
@@ -53,6 +54,16 @@ def test_correct_move_uci_solves():
 def test_correct_move_san_solves():
     res = grade_puzzle(FixedAgent("Ra8#"), MATE_IN_1, HEADLINE)
     assert res.solved
+
+
+def test_llm_json_rationale_and_format_status_are_recorded():
+    raw = '{"move":"a1a8","rationale":"The rook gives an unavoidable back-rank mate."}'
+    agent = LLMAgent(ScriptedModel(lambda _messages: raw))
+    res = grade_puzzle(agent, MATE_IN_1, HEADLINE)
+    assert res.solved
+    assert res.answer_explanation and "back-rank" in res.answer_explanation
+    assert res.answer_response_format_valid is True
+    assert res.turns[0]["response_format_valid"] is True
 
 
 def test_illegal_move_recorded_as_illegal():

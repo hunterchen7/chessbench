@@ -124,15 +124,24 @@ def build_composed_prompt(problem: ComposedProblem, condition: Condition) -> str
     lines.append("")
 
     shape = problem.answer_shape
-    if shape == "key":
-        only = "" if condition.explain else "ONLY "
-        lines.append(f"Reply with {only}the key (first) move in {notation}.")
+    if condition.explain and shape in ("key", "play"):
+        lines.append(
+            "Return exactly one JSON object with no Markdown or additional text: "
+            '{"move":"e2e4","rationale":"A concise explanation of the idea."} '
+            "The move must be legal UCI, and the rationale should preferably stay under 150 words."
+        )
+    elif condition.explain and shape == "line":
+        lines.append(
+            "Return exactly one JSON object with no Markdown or additional text: "
+            '{"moves":["e2e4","e7e5"],"rationale":"A concise explanation of the sequence."} '
+            "Give the complete line in legal UCI order; the rationale should preferably stay under 150 words."
+        )
+    elif shape == "key":
+        lines.append(f"Reply with ONLY the key (first) move in {notation}.")
     elif shape == "line":
         lines.append(f"Reply with the full solution as a sequence of moves in {notation}, in order.")
     else:  # play
         lines.append(f"Reply with your move in {notation}.")
-    if condition.explain and shape != "play":
-        lines.append("Then, on a new line starting `why:`, briefly explain the idea.")
     return "\n".join(lines)
 
 
@@ -190,7 +199,7 @@ def grade_composed(solver: ComposedSolver, problem: ComposedProblem, condition: 
 
 
 def _grade_key(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
-    move, _tok = board_utils.extract_move(board, raw)
+    move = board_utils.parse_model_move_response(board, raw).move
     first_legal = move is not None
     if move is None:
         return ComposedResult(problem.id, problem.kind, False, 0.0, False, "no legal move parsed", raw)
@@ -210,7 +219,7 @@ def _grade_key(problem: ComposedProblem, board: chess.Board, raw: str) -> Compos
 
 def _grade_line(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
     if problem.kind == "proofgame":
-        moves = [m.uci() for m in board_utils.extract_move_sequence(chess.Board(), raw)]
+        moves = [m.uci() for m in board_utils.parse_model_line_response(chess.Board(), raw).moves]
         ok = proofgame.verify_proofgame(problem.fen, moves, n_plies=problem.n)
         first_legal = bool(moves)
         detail = f"{len(moves)} plies {'reach' if ok else 'do not reach'} the target in {problem.n}"
@@ -219,7 +228,7 @@ def _grade_line(problem: ComposedProblem, board: chess.Board, raw: str) -> Compo
     if problem.kind in ("series_directmate", "series_helpmate"):
         return _grade_series(problem, board, raw)
 
-    line = board_utils.extract_move_sequence(board, raw)
+    line = board_utils.parse_model_line_response(board, raw).moves
     first_legal = bool(line)
     if problem.kind == "helpmate":
         ok = stipulations.verify_helpmate_line(board, problem.n, line)

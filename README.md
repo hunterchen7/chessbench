@@ -17,7 +17,17 @@ The three standard information prompts are:
 
 1. **Raw** — FEN and piece locations.
 2. **Assisted** — Raw plus every legal move in SAN and UCI.
-3. **Coached** — Assisted plus a fixed chess calculation checklist.
+3. **Coached** — Assisted plus fixed, non-prescriptive chess calculation considerations.
+
+All three modes use the same response contract, so the only experimental change is the information supplied:
+
+```json
+{"move":"e2e4","rationale":"A concise explanation of why the move is best."}
+```
+
+Woodpecker uses the corresponding `{"moves":[...],"rationale":"..."}` shape. Moves are scored independently
+from the rationale. A recoverable move in malformed JSON still receives its chess score while the response is
+recorded as a format failure.
 
 Information and conversation state are independent axes. No state ever crosses puzzle boundaries. Multi-move standard puzzles default to one stateful chat inside a puzzle, with the authoritative current position and played line re-sent on each move. `fresh` context reconstructs every turn in a new request as an ablation. Woodpecker is always a single request.
 
@@ -54,10 +64,11 @@ Each model request records:
 
 - system prompt when first introduced;
 - exact user prompt and visible provider response;
-- parsed move, legality, retry attempt, and visible explanation;
+- parsed move, legality, retry attempt, visible rationale, and JSON-format validity;
 - prompt, completion, and reasoning-token counts;
 - provider-reported cost.
 
+The model-authored rationale is displayed as an explanation, not represented as faithful hidden chain of thought.
 Provider-hidden chain of thought is not requested for publication, summarized, or reconstructed.
 
 ## Local setup

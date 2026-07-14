@@ -1,6 +1,12 @@
 import chess
 
-from chessbench.core.board import extract_move, extract_move_and_explanation, parse_move
+from chessbench.core.board import (
+    extract_move,
+    extract_move_and_explanation,
+    parse_model_line_response,
+    parse_model_move_response,
+    parse_move,
+)
 
 
 def test_parse_uci_and_san():
@@ -66,6 +72,44 @@ def test_extract_move_and_explanation_bare_move_has_no_explanation():
     b = chess.Board()
     mv, tok, why = extract_move_and_explanation(b, "e4")
     assert mv == chess.Move.from_uci("e2e4") and why is None
+
+
+def test_structured_move_response_extracts_move_and_rationale():
+    b = chess.Board()
+    parsed = parse_model_move_response(
+        b,
+        '{"move":"e2e4","rationale":"Claims the center and opens both diagonals."}',
+    )
+    assert parsed.move == chess.Move.from_uci("e2e4")
+    assert parsed.rationale and "center" in parsed.rationale
+    assert parsed.format_valid and parsed.format_error is None
+
+
+def test_structured_move_field_is_authoritative_even_if_illegal():
+    b = chess.Board()
+    parsed = parse_model_move_response(
+        b,
+        '{"move":"e2e5","rationale":"I also considered the legal move e2e4."}',
+    )
+    assert parsed.move is None
+    assert parsed.format_valid  # valid schema/notation is independent from chess legality
+
+
+def test_malformed_json_recovers_move_but_records_format_failure():
+    b = chess.Board()
+    parsed = parse_model_move_response(b, "move: e2e4 because it claims the center")
+    assert parsed.move == chess.Move.from_uci("e2e4")
+    assert not parsed.format_valid and parsed.format_error
+
+
+def test_structured_full_line_does_not_parse_moves_from_rationale():
+    b = chess.Board()
+    parsed = parse_model_line_response(
+        b,
+        '{"moves":["e2e4","e7e5","g1f3"],"rationale":"A line such as d2d4 is less forcing."}',
+    )
+    assert [move.uci() for move in parsed.moves] == ["e2e4", "e7e5", "g1f3"]
+    assert parsed.format_valid
 
 
 def test_parse_move_is_generous():

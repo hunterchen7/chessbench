@@ -86,13 +86,15 @@ class PuzzleProtocol(str, Enum):
 class Condition:
     legality: Legality = Legality.FREE_FORM
     representation: Representation = Representation.FEN_ASCII
-    notation: Notation = Notation.SAN
+    notation: Notation = Notation.UCI
     prompt_style: PromptStyle = PromptStyle.MINIMAL
     context_mode: ContextMode = ContextMode.HYBRID  # stateful chat + authoritative board each turn
     puzzle_protocol: PuzzleProtocol = PuzzleProtocol.MOVE_BY_MOVE
     retry_attempts: int = 3      # only used when legality == RETRY
     otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
-    explain: bool = False        # invite an optional natural-language explanation with the move
+    # The canonical benchmark response is structured JSON with a visible rationale.
+    # ``False`` remains available as a legacy/output-protocol ablation.
+    explain: bool = True
     temperature: float = 1.0     # models run at their native default temp; games self-diversify (no opening book needed)
     include_side_to_move: bool = True
     reasoning_effort: str | None = None  # OpenRouter normalized effort, including minimal/max/xhigh/none
@@ -116,9 +118,10 @@ class Condition:
         return self._reasoning_slug(base)
 
     def _base_slug(self) -> str:
-        return "__".join(
-            [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
-        )
+        parts = [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
+        if self.explain:
+            parts.append("json-rationale")
+        return "__".join(parts)
 
     def _reasoning_slug(self, base: str) -> str:
         if self.reasoning_effort is not None:
@@ -222,7 +225,6 @@ def build_puzzle_prompt(
     history_san: list[str] | None = None,
 ) -> str:
     """Assemble the full user prompt for a single-position puzzle move."""
-    notation_name = "SAN (e.g. Nf3, exd5, O-O)" if cond.notation == Notation.SAN else "UCI (e.g. g1f3, e5d6)"
     lines = [
         "You are a chess engine. Find the single best move for the side to move.",
         "",
@@ -238,15 +240,16 @@ def build_puzzle_prompt(
         lines += [
             "",
             "Calculate the complete solution now, including the opponent's forced replies.",
-            f"Reply with every move in order in {notation_name}, starting with `line:`.",
         ]
+        if cond.explain:
+            lines += ["", _json_line_instruction()]
+        else:
+            lines += [f"Reply with every move in order in {_notation_name(cond)}, starting with `line:`."]
     else:
-        lines += ["", f"Reply with your move in {notation_name}."]
+        lines += ["", _json_move_instruction() if cond.explain else f"Reply with your move in {_notation_name(cond)}."]
     if cond.prompt_style == PromptStyle.COT:
-        lines += ["Think step by step, then give your final move as `answer: <move>`."]
-    elif cond.explain:
-        lines += ["Then, on a new line starting `why:`, add a brief explanation of your move."]
-    elif cond.prompt_style == PromptStyle.MINIMAL and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE:
+        lines += ["Think through the position carefully before producing the requested JSON."]
+    elif not cond.explain and cond.prompt_style == PromptStyle.MINIMAL and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE:
         lines += ["Reply with ONLY the move, no explanation."]
     if illegal_feedback:
         lines += ["", f"Your previous answer was illegal: {illegal_feedback}. Choose a legal move."]
@@ -256,12 +259,26 @@ def build_puzzle_prompt(
 # --- Game track prompting ---
 
 _DEFAULT_COACH = (
-    "Before choosing, work through this checklist:\n"
-    "1. Note where both sides' pieces are and which of yours are undefended.\n"
-    "2. Look at every check, capture, and threat available to you AND your opponent.\n"
-    "3. Verify your intended move is legal and does not hang a piece for free.\n"
-    "4. Anticipate the opponent's best reply before committing.\n"
-    "5. Favor king safety, piece activity, and material."
+    "As you analyze the position, consider the following. These are useful considerations, "
+    "not a mandatory sequence or an exhaustive checklist:\n"
+    "- The side to move, checks, material balance, king safety, immediate threats, and loose or "
+    "inadequately defended pieces.\n"
+    "- Checks, captures, promotions, and direct threats. These are often useful to examine early, "
+    "but a forcing move is not necessarily best.\n"
+    "- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, "
+    "prophylaxis, waiting moves, and possible zugzwang.\n"
+    "- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n"
+    "- The opponent's strongest defense, including counterchecks, intermediate moves, tactical "
+    "refutations, move-order changes, and unexpected defensive resources.\n"
+    "- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating "
+    "nets, perpetual checks, stalemate, and promotion.\n"
+    "- Whether each important line has been followed far enough for its consequences to become clear. "
+    "Winning material may not end the calculation.\n"
+    "- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, "
+    "passed pawns, space, and long-term threats.\n"
+    "- In a puzzle, whether the move begins a forced solution against every defense rather than being "
+    "merely advantageous.\n"
+    "- A final legality and blunder check from the opponent's perspective."
 )
 # The coaching block can be overridden per-process (e.g. for prompt A/B experiments)
 # via the CHESSBENCH_COACH env var, without touching the code.
@@ -272,19 +289,40 @@ def _notation_name(cond: Condition) -> str:
     return "SAN (e.g. Nf3, exd5, O-O)" if cond.notation == Notation.SAN else "UCI (e.g. g1f3, e5d6)"
 
 
+def _json_move_instruction() -> str:
+    return (
+        "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
+        '{"move":"e2e4","rationale":"A concise explanation of why the move is best."}\n'
+        "`move` must be one legal move in UCI notation. `rationale` should briefly identify the important "
+        "features of the position, why the move works against the opponent's strongest response, and any "
+        "important tactical or strategic idea. Mention alternatives only when relevant; preferably stay "
+        "under 150 words."
+    )
+
+
+def _json_line_instruction() -> str:
+    return (
+        "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
+        '{"moves":["e2e4","e7e5","g1f3"],"rationale":"A concise explanation of the forced sequence."}\n'
+        "`moves` must contain the complete variation in legal UCI notation, including the opponent's replies. "
+        "`rationale` should briefly explain why the sequence is forced against the strongest defense; "
+        "preferably stay under 150 words."
+    )
+
+
 def game_system_prompt(cond: Condition, color: bool) -> str:
     """Constant per-game instructions (the system message)."""
     side = "White" if color == chess.WHITE else "Black"
     lines = [
         f"You are a strong chess player playing a full game as {side}.",
-        f"On each of your turns, output a single legal move in {_notation_name(cond)}.",
+        "On each of your turns, choose a single legal move.",
     ]
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
     if cond.prompt_style == PromptStyle.COT:
-        lines += ["Think briefly, then end your reply with `answer: <move>`."]
-    elif cond.explain:
-        lines += ["Give your move, then a brief explanation on a new line starting `why:`."]
+        lines += ["Think through the position carefully before producing the requested response."]
+    if cond.explain:
+        lines += ["", _json_move_instruction()]
     elif cond.prompt_style in (PromptStyle.MINIMAL, PromptStyle.FEW_SHOT):
         lines += ["Reply with ONLY your move, no commentary."]
     return "\n".join(lines)

@@ -87,6 +87,8 @@ class PuzzleResult:
     answer_explanation: str | None = None
     answer_raw: str | None = None
     turns: list[dict[str, object]] = field(default_factory=list)
+    answer_response_format_valid: bool | None = None
+    answer_response_format_error: str | None = None
 
 
 def _turn_record(k: int, ctx: TurnContext, parsed_move: chess.Move | None) -> dict[str, object]:
@@ -102,7 +104,10 @@ def _turn_record(k: int, ctx: TurnContext, parsed_move: chess.Move | None) -> di
         "prompt": ctx.last_prompt,
         "raw_response": ctx.last_raw_response,
         "parsed_move": parsed_move.uci() if parsed_move else None,
+        "rationale": ctx.last_explanation,
         "explanation": ctx.last_explanation,
+        "response_format_valid": ctx.last_response_format_valid,
+        "response_format_error": ctx.last_response_format_error,
         "prompt_tokens": int(prompt_value) if isinstance(prompt_value, (int, float, str)) else 0,
         "completion_tokens": int(completion_value) if isinstance(completion_value, (int, float, str)) else 0,
         "reasoning_tokens": reasoning_tokens,
@@ -192,7 +197,13 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
     illegal_attempts = 0
     first_move_legal: bool | None = None
     all_moves_legal = True
-    answer: dict[str, str | None] = {"move": None, "explanation": None, "raw": None}
+    answer: dict[str, object | None] = {
+        "move": None,
+        "explanation": None,
+        "raw": None,
+        "response_format_valid": None,
+        "response_format_error": None,
+    }
     turns: list[dict[str, object]] = []
 
     def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
@@ -202,8 +213,16 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
             illegal_attempts=illegal_attempts, failure_reason=reason,
             solver_plies=n_solver, plies_correct=plies_correct, moves_played=moves_played,
-            answer_move=answer["move"], answer_explanation=answer["explanation"], answer_raw=answer["raw"],
+            answer_move=answer["move"] if isinstance(answer["move"], str) else None,
+            answer_explanation=answer["explanation"] if isinstance(answer["explanation"], str) else None,
+            answer_raw=answer["raw"] if isinstance(answer["raw"], str) else None,
             turns=turns,
+            answer_response_format_valid=(
+                answer["response_format_valid"] if isinstance(answer["response_format_valid"], bool) else None
+            ),
+            answer_response_format_error=(
+                answer["response_format_error"] if isinstance(answer["response_format_error"], str) else None
+            ),
         )
 
     k = 0  # solver-ply index (0-based)
@@ -224,6 +243,8 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
                 answer["move"] = move.uci() if move else raw[:40]
                 answer["explanation"] = ctx.last_explanation
                 answer["raw"] = (ctx.last_raw_response or raw)[:2000]
+                answer["response_format_valid"] = ctx.last_response_format_valid
+                answer["response_format_error"] = ctx.last_response_format_error
             if first_move_legal is None:
                 first_move_legal = move is not None
             if move is not None:
@@ -277,7 +298,8 @@ def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> Puzz
     board.push(chess.Move.from_uci(puzzle.moves[0]))
     ctx = TurnContext(condition=condition)
     raw = str(solve_line(board.copy(), ctx))
-    moves = board_utils.extract_move_sequence(board, raw)
+    parsed = board_utils.parse_model_line_response(board, raw)
+    moves = parsed.moves
     played = [m.uci() for m in moves]
     lines = puzzle.solution_lines()
     n_solver = puzzle.num_solver_plies() or 1
@@ -315,6 +337,8 @@ def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> Puzz
         answer_explanation=ctx.last_explanation,
         answer_raw=(ctx.last_raw_response or raw)[:2000],
         turns=[_turn_record(0, ctx, moves[0] if moves else None)],
+        answer_response_format_valid=ctx.last_response_format_valid,
+        answer_response_format_error=ctx.last_response_format_error,
     )
 
 

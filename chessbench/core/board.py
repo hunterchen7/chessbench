@@ -7,7 +7,9 @@ that strictness is the whole point of measuring an LLM's illegal-move rate.
 
 from __future__ import annotations
 
+import json
 import re
+from dataclasses import dataclass
 
 import chess
 
@@ -22,6 +24,28 @@ _MOVE_TOKEN = re.compile(
     """,
     re.VERBOSE,
 )
+_UCI_TOKEN = re.compile(r"^[a-h][1-8][a-h][1-8][qrbn]?$")
+
+
+@dataclass(frozen=True)
+class ParsedMoveResponse:
+    """A recoverable move plus telemetry for the requested JSON contract."""
+
+    move: chess.Move | None
+    token: str | None
+    rationale: str | None
+    format_valid: bool
+    format_error: str | None
+
+
+@dataclass(frozen=True)
+class ParsedLineResponse:
+    """A recoverable variation plus telemetry for the requested JSON contract."""
+
+    moves: list[chess.Move]
+    rationale: str | None
+    format_valid: bool
+    format_error: str | None
 
 
 def render_ascii(board: chess.Board) -> str:
@@ -97,21 +121,112 @@ _WHY = re.compile(
 )
 
 
+def _json_object(text: str) -> tuple[dict[str, object] | None, str | None]:
+    """Decode one exact JSON object.
+
+    Fenced JSON is decoded for move recovery but remains a format failure because
+    the benchmark explicitly requests no Markdown or surrounding prose.
+    """
+    stripped = text.strip()
+    candidate = stripped
+    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", stripped, re.IGNORECASE | re.DOTALL)
+    wrapped = fenced is not None
+    if fenced:
+        candidate = fenced.group(1).strip()
+    try:
+        value = json.loads(candidate)
+    except (json.JSONDecodeError, TypeError):
+        return None, "response is not a JSON object"
+    if not isinstance(value, dict):
+        return None, "JSON response is not an object"
+    return value, "response contains a Markdown fence" if wrapped else None
+
+
+def parse_model_move_response(board: chess.Board, text: str) -> ParsedMoveResponse:
+    """Parse the canonical ``{move, rationale}`` response without repairing it.
+
+    A valid move is still recovered from malformed/legacy text so chess scoring
+    stays independent from instruction-following. If a JSON object contains a
+    ``move`` field, that field is authoritative: another move mentioned in the
+    rationale can never replace an illegal selected move.
+    """
+    obj, wrapper_error = _json_object(text)
+    if obj is not None:
+        move_value = obj.get("move")
+        rationale_value = obj.get("rationale")
+        token = move_value.strip() if isinstance(move_value, str) else None
+        move = parse_move(board, token) if token else None
+        errors: list[str] = []
+        if wrapper_error:
+            errors.append(wrapper_error)
+        if set(obj) != {"move", "rationale"}:
+            errors.append("JSON object must contain exactly move and rationale")
+        if not token or not _UCI_TOKEN.fullmatch(token.lower()):
+            errors.append("move must be a UCI string")
+        if not isinstance(rationale_value, str) or not rationale_value.strip():
+            errors.append("rationale must be a non-empty string")
+        rationale = rationale_value.strip() if isinstance(rationale_value, str) and rationale_value.strip() else None
+        return ParsedMoveResponse(move, token, rationale, not errors, "; ".join(errors) or None)
+
+    move, token = extract_move(board, text)
+    rationale = None
+    why = _WHY.search(text)
+    if why:
+        rationale = " ".join(why.group(1).split())[:2000] or None
+    elif move is not None and token:
+        rest = " ".join(text.replace(token, " ", 1).split())
+        rationale = rest[:2000] if len(rest) >= 8 else None
+    return ParsedMoveResponse(move, token, rationale, False, wrapper_error or "response is not valid JSON")
+
+
+def parse_model_line_response(start_board: chess.Board, text: str) -> ParsedLineResponse:
+    """Parse the canonical ``{moves, rationale}`` full-line response."""
+    obj, wrapper_error = _json_object(text)
+    if obj is not None:
+        move_values = obj.get("moves")
+        rationale_value = obj.get("rationale")
+        errors: list[str] = []
+        if wrapper_error:
+            errors.append(wrapper_error)
+        if set(obj) != {"moves", "rationale"}:
+            errors.append("JSON object must contain exactly moves and rationale")
+        if not isinstance(move_values, list) or not move_values or not all(isinstance(v, str) for v in move_values):
+            errors.append("moves must be a non-empty array of UCI strings")
+            tokens: list[str] = []
+        else:
+            tokens = [v.strip() for v in move_values]
+            if not all(_UCI_TOKEN.fullmatch(v.lower()) for v in tokens):
+                errors.append("moves must contain only UCI strings")
+        if not isinstance(rationale_value, str) or not rationale_value.strip():
+            errors.append("rationale must be a non-empty string")
+
+        board = start_board.copy()
+        moves: list[chess.Move] = []
+        for token in tokens:
+            move = parse_move(board, token)
+            if move is None:
+                break
+            moves.append(move)
+            board.push(move)
+        rationale = rationale_value.strip() if isinstance(rationale_value, str) and rationale_value.strip() else None
+        return ParsedLineResponse(moves, rationale, not errors, "; ".join(errors) or None)
+
+    return ParsedLineResponse(
+        extract_move_sequence(start_board, text),
+        None,
+        False,
+        wrapper_error or "response is not valid JSON",
+    )
+
+
 def extract_move_and_explanation(
     board: chess.Board, text: str
 ) -> tuple[chess.Move | None, str | None, str | None]:
     """Like `extract_move`, but also pull out an optional natural-language
     explanation (text after a why/because/reasoning marker, else the leftover
     prose once the move token is removed). Returns (move, token, explanation)."""
-    move, token = extract_move(board, text)
-    explanation: str | None = None
-    m = _WHY.search(text)
-    if m:
-        explanation = " ".join(m.group(1).split())[:600] or None
-    elif move is not None and token:
-        rest = " ".join(text.replace(token, " ", 1).split())
-        explanation = rest[:600] if len(rest) >= 8 else None
-    return move, token, explanation
+    parsed = parse_model_move_response(board, text)
+    return parsed.move, parsed.token, parsed.rationale
 
 
 def extract_move(board: chess.Board, text: str) -> tuple[chess.Move | None, str | None]:

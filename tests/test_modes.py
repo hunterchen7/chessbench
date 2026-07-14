@@ -13,6 +13,7 @@ def test_mode1_is_raw_fen_and_pieces_no_legal_moves():
     p = build_puzzle_prompt(B, mode_condition(1))
     assert "FEN:" in p and "Pieces:" in p
     assert "Legal moves" not in p
+    assert '{"move":"e2e4","rationale":' in p
 
 
 def test_mode2_lists_legal_moves_in_both_san_and_uci():
@@ -25,14 +26,15 @@ def test_mode2_lists_legal_moves_in_both_san_and_uci():
 def test_mode3_adds_coaching_tips():
     p = build_puzzle_prompt(B, mode_condition(3))
     assert "Legal moves" in p
-    assert "checklist" in p.lower() and "check" in p.lower()
+    assert "not a mandatory sequence" in p.lower()
+    assert "zugzwang" in p.lower() and "strongest defense" in p.lower()
 
 
 def test_mode4_requests_the_complete_woodpecker_line():
     p = build_puzzle_prompt(B, mode_condition(4))
     assert "complete solution" in p.lower()
     assert "forced replies" in p.lower()
-    assert "line:" in p
+    assert '"moves"' in p and '"rationale"' in p
     assert mode_condition(4).puzzle_protocol == PuzzleProtocol.FULL_LINE
 
 

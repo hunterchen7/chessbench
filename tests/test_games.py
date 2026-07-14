@@ -155,7 +155,8 @@ def test_context_modes_differ():
 
 def test_coached_and_piece_list_render():
     sys = game_system_prompt(Condition(prompt_style=PromptStyle.COACHED), chess.WHITE)
-    assert "checklist" in sys.lower()
+    assert "not a mandatory sequence" in sys.lower()
+    assert '"move":"e2e4"' in sys and '"rationale"' in sys
     turn = build_game_turn(
         chess.Board(), Condition(representation=Representation.PIECE_LIST),
         history_san=[], last_opponent_move_san=None, illegal_feedback=None, is_first=True,

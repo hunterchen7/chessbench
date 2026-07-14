@@ -103,6 +103,8 @@ const refreshAggregate = (env: Env, runId: string, stamp: string) =>
        completed_items=(SELECT COUNT(*) FROM benchmark_items_v2 WHERE run_id=?),
        solved_items=COALESCE((SELECT SUM(solved) FROM benchmark_items_v2 WHERE run_id=?), 0),
        legal_items=COALESCE((SELECT SUM(COALESCE(first_move_legal, 0)) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       response_format_items=COALESCE((SELECT COUNT(response_format_valid) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       response_format_valid_items=COALESCE((SELECT SUM(COALESCE(response_format_valid, 0)) FROM benchmark_items_v2 WHERE run_id=?), 0),
        points=COALESCE((SELECT SUM(points) FROM benchmark_items_v2 WHERE run_id=?), 0),
        max_points=COALESCE((SELECT SUM(max_points) FROM benchmark_items_v2 WHERE run_id=?), 0),
        cost_usd=COALESCE((SELECT SUM(cost_usd) FROM benchmark_items_v2 WHERE run_id=?), 0),
@@ -110,7 +112,7 @@ const refreshAggregate = (env: Env, runId: string, stamp: string) =>
        completion_tokens=COALESCE((SELECT SUM(completion_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
        reasoning_tokens=COALESCE((SELECT SUM(reasoning_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
        updated_at=? WHERE run_id=?`,
-  ).bind(runId, runId, runId, runId, runId, runId, runId, runId, runId, stamp, runId)
+  ).bind(runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, stamp, runId)
 
 export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_id: string; item_id: string }> {
   const stamp = now()
@@ -120,13 +122,14 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO benchmark_items_v2
-       (run_id, item_id, sequence, points, max_points, solved, first_move_legal,
+       (run_id, item_id, sequence, points, max_points, solved, first_move_legal, response_format_valid,
         failure_reason, latency_ms, cost_usd, prompt_tokens, completion_tokens,
         reasoning_tokens, payload_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(run_id, item_id) DO UPDATE SET
          sequence=excluded.sequence, points=excluded.points, max_points=excluded.max_points,
          solved=excluded.solved, first_move_legal=excluded.first_move_legal,
+         response_format_valid=excluded.response_format_valid,
          failure_reason=excluded.failure_reason, latency_ms=excluded.latency_ms,
          cost_usd=excluded.cost_usd, prompt_tokens=excluded.prompt_tokens,
          completion_tokens=excluded.completion_tokens, reasoning_tokens=excluded.reasoning_tokens,
@@ -139,6 +142,7 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.max_points ?? 1,
       item.solved ? 1 : 0,
       item.first_move_legal == null ? null : item.first_move_legal ? 1 : 0,
+      item.response_format_valid == null ? null : item.response_format_valid ? 1 : 0,
       item.failure_reason ?? null,
       item.latency_ms ?? null,
       item.cost_usd ?? 0,
@@ -216,6 +220,7 @@ export async function ingestRun(env: Env, doc: RunDoc): Promise<{ run_id: string
       max_points: 1,
       solved: it.solved,
       first_move_legal: it.first_move_legal,
+      response_format_valid: it.answer_response_format_valid,
       failure_reason: it.failure_reason,
       payload: it as unknown as Record<string, unknown>,
     })

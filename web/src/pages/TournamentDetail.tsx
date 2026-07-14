@@ -194,10 +194,13 @@ export function TournamentDetail() {
                     <div className="space-y-3 border-t p-3 text-xs">
                       {attempt.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-3">{attempt.system_prompt}</pre></div>}
                       <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Turn prompt</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.prompt ?? "—"}</pre></div>
+                      {attempt.explanation && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-background p-3 leading-relaxed">{attempt.explanation}</p></div>}
                       <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.raw_response}</pre></div>
-                      <div className="flex flex-wrap gap-3 font-mono text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
+                        {attempt.response_format_valid != null && <Badge variant={attempt.response_format_valid ? "secondary" : "destructive"}>{attempt.response_format_valid ? "valid JSON" : "format recovered"}</Badge>}
                         <span>{attempt.prompt_tokens} prompt</span><span>{attempt.completion_tokens} completion</span><span>{attempt.reasoning_tokens} reasoning tokens</span><span>${attempt.cost_usd.toFixed(5)}</span>
                       </div>
+                      {attempt.response_format_error && <p className="text-[11px] text-destructive">{attempt.response_format_error}</p>}
                     </div>
                   </details>
                 )))}

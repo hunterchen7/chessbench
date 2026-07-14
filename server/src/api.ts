@@ -23,6 +23,8 @@ interface RunRow {
   completed_items: number
   solved_items: number
   legal_items: number
+  response_format_items: number
+  response_format_valid_items: number
   points: number
   max_points: number
   cost_usd: number
@@ -73,6 +75,9 @@ function publicRun(row: RunRow) {
       solved: row.solved_items,
       solve_rate: row.completed_items ? row.solved_items / row.completed_items : 0,
       first_move_legal_rate: row.completed_items ? row.legal_items / row.completed_items : 0,
+      response_format_valid_rate: row.response_format_items
+        ? row.response_format_valid_items / row.response_format_items
+        : null,
       mean_score: row.completed_items ? row.points / row.completed_items : 0,
       points: row.points,
       max_points: row.max_points,

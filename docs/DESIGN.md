@@ -16,7 +16,7 @@
 
 - `raw`: FEN plus a piece inventory.
 - `assisted`: raw plus SAN/UCI legal moves.
-- `coached`: assisted plus fixed calculation advice.
+- `coached`: assisted plus fixed, non-prescriptive calculation considerations.
 
 ### Puzzle response protocol
 
@@ -29,6 +29,14 @@
 - `fresh` (ablation): start a new request for every solver move and reconstruct all required state in that prompt.
 
 The agent is reset before every puzzle. Full-line requests have no between-move context.
+
+### Response contract
+
+Raw, assisted, and coached runs all request the same strict JSON object with a UCI `move` and a concise
+model-authored `rationale`. Woodpecker and other full-line tasks use a UCI `moves` array plus `rationale`.
+The raw provider response is always retained. The parser treats the declared move field as authoritative,
+scores a recoverable move even when the surrounding JSON is malformed, and records format validity separately.
+Rationales are visible explanations and are not assumed to be faithful transcripts of hidden reasoning.
 
 ### Games
 
@@ -109,5 +117,6 @@ The global and track-level export controls download complete, versioned JSON. La
 
 - Secrets live in ignored `.env`/`.dev.vars` files or Cloudflare secrets.
 - Provider tool calls are disabled and returned tool calls are rejected.
-- The UI labels visible output as such and does not present it as hidden reasoning.
+- The UI labels the parsed text as a model rationale and the complete payload as visible output; neither is
+  presented as hidden reasoning.
 - Public exports contain benchmark data and provider usage, never API credentials or ingestion tokens.

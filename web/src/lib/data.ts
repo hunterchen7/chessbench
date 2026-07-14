@@ -44,8 +44,11 @@ export interface PuzzleItem {
   first_move_legal: boolean
   failure_reason: string | null
   answer_move: string | null
+  answer_rationale?: string | null
   answer_explanation: string | null
   answer_raw: string | null
+  answer_response_format_valid?: boolean | null
+  answer_response_format_error?: string | null
   fen: string
   setup_san?: string
   solver_is_white: boolean
@@ -61,7 +64,10 @@ export interface PuzzleItem {
     prompt?: string | null
     raw_response?: string | null
     parsed_move?: string | null
+    rationale?: string | null
     explanation?: string | null
+    response_format_valid?: boolean | null
+    response_format_error?: string | null
     prompt_tokens: number
     completion_tokens: number
     reasoning_tokens: number
@@ -75,6 +81,7 @@ export interface RunSummary {
   solve_rate: number
   mean_score: number
   first_move_legal_rate: number
+  response_format_valid_rate?: number | null
   points: number
   max_points: number
   cost_usd: number | null
@@ -159,6 +166,8 @@ export interface GameMove {
     parsed_move: string | null
     legal: boolean
     explanation?: string | null
+    response_format_valid?: boolean | null
+    response_format_error?: string | null
     prompt_tokens: number
     completion_tokens: number
     reasoning_tokens: number
@@ -249,8 +258,9 @@ function conditionFromSlug(slug: string): Condition {
   return {
     legality: parts[0] ?? "free_form",
     representation: parts[1] ?? "fen_pieces",
-    notation: parts[2] ?? "san",
+    notation: parts[2] ?? "uci",
     prompt_style: parts[3] ?? "minimal",
+    explain: parts.includes("json-rationale"),
     puzzle_protocol: parts.includes("full-line") ? "full_line" : "move_by_move",
     context_mode: puzzleContext ?? gameContext,
     reasoning_effort: effort?.endsWith("t") ? null : effort,
@@ -282,6 +292,7 @@ function normalizeSummary(value: Partial<RunSummary> & Record<string, unknown>):
     solve_rate: Number(value.solve_rate ?? 0),
     mean_score: mean,
     first_move_legal_rate: Number(value.first_move_legal_rate ?? 0),
+    response_format_valid_rate: value.response_format_valid_rate == null ? null : Number(value.response_format_valid_rate),
     points: Number(value.points ?? mean * n),
     max_points: Number(value.max_points ?? n),
     cost_usd: value.cost_usd == null ? null : Number(value.cost_usd),

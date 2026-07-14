@@ -8,7 +8,7 @@ function Prose({ children }: { children: React.ReactNode }) {
 const HELP = [
   ["1", "Raw", "FEN + piece locations", "The model receives the position and must generate a legal move without a candidate list."],
   ["2", "Assisted", "Raw + SAN/UCI legal moves", "The same task with every legal move supplied, isolating move choice from board-legality tracking."],
-  ["3", "Coached", "Assisted + chess advice", "Adds a fixed forcing-move and blunder-check checklist. It is a prompt ablation, not assumed to be stronger."],
+  ["3", "Coached", "Assisted + chess guidance", "Adds fixed, non-prescriptive calculation considerations covering forcing and quiet play. It is a prompt ablation, not assumed to be stronger."],
 ] as const
 
 export function Methodology() {
@@ -78,7 +78,8 @@ export function Methodology() {
         <Card>
           <CardHeader><CardTitle className="text-base">Audit logs and durable progress</CardTitle></CardHeader>
           <CardContent><Prose>
-            <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, legality, provider token counts, reasoning-token count, and cost. Provider-hidden chain of thought is neither requested for publication nor reconstructed.</p>
+            <p>Every information mode requests the same JSON response: a UCI move plus a concise model rationale. Woodpecker requests a UCI move array plus rationale. Move scoring is independent from format compliance, so a recoverable move can score even when the JSON is malformed.</p>
+            <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, model rationale, JSON-format validity, legality, provider token counts, reasoning-token count, and cost. The rationale is not presented as faithful hidden chain of thought; provider-hidden reasoning is neither requested for publication nor reconstructed.</p>
             <p>Each completed item is committed locally to SQLite and queued for idempotent Cloudflare D1 ingestion. A run can resume after interruption or exhausted credits without replaying completed items. Filtered data can be exported as JSON from the dashboard.</p>
           </Prose></CardContent>
         </Card>

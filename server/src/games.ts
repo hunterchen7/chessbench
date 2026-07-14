@@ -25,6 +25,8 @@ interface GamePayload {
       parsed_move?: string | null
       legal?: boolean
       explanation?: string | null
+      response_format_valid?: boolean | null
+      response_format_error?: string | null
       prompt_tokens?: number
       completion_tokens?: number
       reasoning_tokens?: number
@@ -84,12 +86,16 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
       logStatements.push(env.DB.prepare(
         `INSERT INTO game_turn_logs_v2
          (game_id, ply, attempt, color, system_prompt, prompt, raw_response, parsed_move, legal, explanation,
-          prompt_tokens, completion_tokens, reasoning_tokens, cost_usd, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          response_format_valid, response_format_error, prompt_tokens, completion_tokens, reasoning_tokens,
+          cost_usd, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         gameId, move.ply ?? 0, attemptIndex, move.color ?? "unknown", attempt.system_prompt ?? null, attempt.prompt ?? null,
         attempt.raw_response ?? "", attempt.parsed_move ?? null, attempt.legal ? 1 : 0,
-        attempt.explanation ?? null, attempt.prompt_tokens ?? 0, attempt.completion_tokens ?? 0,
+        attempt.explanation ?? null,
+        attempt.response_format_valid == null ? null : attempt.response_format_valid ? 1 : 0,
+        attempt.response_format_error ?? null,
+        attempt.prompt_tokens ?? 0, attempt.completion_tokens ?? 0,
         attempt.reasoning_tokens ?? 0, attempt.cost_usd ?? 0, now(),
       ))
     }

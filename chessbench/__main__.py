@@ -652,13 +652,21 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     # Individual axes default to MODE 2 (hand-holding: legal moves in SAN & UCI).
     p.add_argument("--legality", default="legal_list", choices=[e.value for e in Legality])
     p.add_argument("--representation", default="fen_pieces", choices=[e.value for e in Representation])
-    p.add_argument("--notation", default="san", choices=[e.value for e in Notation])
+    p.add_argument("--notation", default="uci", choices=[e.value for e in Notation])
     p.add_argument("--prompt-style", dest="prompt_style", default="minimal",
                    choices=[e.value for e in PromptStyle])
     p.add_argument("--retry-attempts", type=int, default=3)
     p.add_argument("--otb-limit", dest="otb_limit", type=int, default=2,
                    help="Nth cumulative illegal move that forfeits under --legality otb")
-    p.add_argument("--explain", action="store_true", help="invite an optional explanation with the move")
+    response = p.add_mutually_exclusive_group()
+    response.add_argument(
+        "--rationale", "--explain", dest="explain", action="store_true", default=True,
+        help="request the canonical JSON move + rationale response (default)",
+    )
+    response.add_argument(
+        "--move-only", dest="explain", action="store_false",
+        help="legacy output ablation: request only a move, without JSON or rationale",
+    )
     p.add_argument("--temperature", type=float, default=1.0,
                    help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.")
     p.add_argument("--reasoning", default=None,

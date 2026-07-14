@@ -347,6 +347,7 @@ class BenchmarkStore:
             "solve_rate": report.solve_rate,
             "mean_score": report.mean_score,
             "first_move_legal_rate": report.first_move_legal_rate,
+            "response_format_valid_rate": report.response_format_valid_rate,
             "points": report.points,
             "max_points": report.max_points,
         }
@@ -450,6 +451,7 @@ class BenchmarkStore:
                 "max_points": 1,
                 "solved": result["solved"],
                 "first_move_legal": result["first_move_legal"],
+                "response_format_valid": result.get("answer_response_format_valid"),
                 "failure_reason": result["failure_reason"],
                 "latency_ms": row["latency_ms"],
                 "cost_usd": row["cost_usd"],

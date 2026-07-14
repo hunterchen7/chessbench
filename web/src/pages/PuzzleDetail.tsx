@@ -196,7 +196,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                 .map((a, i) => {
                   const san = uciToSan(startFen, a.item.answer_move)
                   const open = expanded === i
-                  const hasAudit = Boolean(a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
+                  const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
                   return (
                     <div key={i} className="rounded-md border">
@@ -232,11 +232,19 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                           <div className="space-y-2 border-t p-2 text-xs">
                             {turn.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-2">{turn.system_prompt}</pre></div>}
                             {turn.prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Prompt</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.prompt}</pre></div>}
+                            {(turn.rationale || turn.explanation) && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-background p-2 leading-relaxed">{turn.rationale ?? turn.explanation}</p></div>}
                             <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.raw_response ?? "—"}</pre></div>
-                            <div className="flex flex-wrap gap-3 font-mono text-muted-foreground"><span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span><span>${turn.cost_usd.toFixed(5)}</span></div>
+                            <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
+                              {turn.response_format_valid != null && <Badge variant={turn.response_format_valid ? "secondary" : "destructive"}>{turn.response_format_valid ? "valid JSON" : "format recovered"}</Badge>}
+                              <span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span><span>${turn.cost_usd.toFixed(5)}</span>
+                            </div>
+                            {turn.response_format_error && <p className="text-[11px] text-destructive">{turn.response_format_error}</p>}
                           </div>
                         </details>)}
-                        {!a.item.turns?.length && <><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="whitespace-pre-wrap rounded bg-muted/30 p-3 text-xs">{a.item.answer_raw ?? a.item.answer_explanation ?? "—"}</pre></>}
+                        {!a.item.turns?.length && <>
+                          {(a.item.answer_rationale || a.item.answer_explanation) && <><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-muted/30 p-3 text-xs leading-relaxed">{a.item.answer_rationale ?? a.item.answer_explanation}</p></>}
+                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="whitespace-pre-wrap rounded bg-muted/30 p-3 text-xs">{a.item.answer_raw ?? "—"}</pre>
+                        </>}
                       </div>}
                     </div>
                   )

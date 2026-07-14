@@ -41,6 +41,7 @@ export interface RunItemDoc {
   max_points?: number
   solved: boolean
   first_move_legal?: boolean | null
+  response_format_valid?: boolean | null
   failure_reason?: string | null
   latency_ms?: number | null
   cost_usd?: number
@@ -67,8 +68,11 @@ export interface RunItem {
   first_move_legal: boolean
   failure_reason: string | null
   answer_move: string | null
+  answer_rationale?: string | null
   answer_explanation: string | null
   answer_raw: string | null
+  answer_response_format_valid?: boolean | null
+  answer_response_format_error?: string | null
   seq_elo?: number
   fen?: string
   setup_san?: string

@@ -40,6 +40,8 @@ class MoveAttempt:
     parsed_move: str | None
     legal: bool
     explanation: str | None = None
+    response_format_valid: bool | None = None
+    response_format_error: str | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     reasoning_tokens: int = 0
@@ -143,6 +145,8 @@ def _request_move(
             parsed_move=mv.uci() if mv is not None else None,
             legal=mv is not None,
             explanation=ctx.last_explanation,
+            response_format_valid=ctx.last_response_format_valid,
+            response_format_error=ctx.last_response_format_error,
             prompt_tokens=int(prompt_value) if isinstance(prompt_value, (int, float, str)) else 0,
             completion_tokens=int(completion_value) if isinstance(completion_value, (int, float, str)) else 0,
             reasoning_tokens=reasoning_tokens,

@@ -67,7 +67,11 @@ class RunRecord:
                 "categories": categorize_puzzle(r.themes, r.rating),
                 "solved": r.solved, "score": r.score, "first_move_legal": r.first_move_legal,
                 "failure_reason": r.failure_reason,
-                "answer_move": r.answer_move, "answer_explanation": r.answer_explanation,
+                "answer_move": r.answer_move,
+                "answer_rationale": r.answer_explanation,
+                "answer_explanation": r.answer_explanation,  # compatibility with v1 dashboard fixtures
+                "answer_response_format_valid": r.answer_response_format_valid,
+                "answer_response_format_error": r.answer_response_format_error,
                 "answer_raw": r.answer_raw,
                 "moves_played": r.moves_played, "solver_plies": r.solver_plies,
                 "plies_correct": r.plies_correct, "turns": r.turns,
@@ -85,6 +89,7 @@ class RunRecord:
             "summary": {
                 "n": rep.n, "solved": rep.solved, "solve_rate": rep.solve_rate,
                 "mean_score": rep.mean_score, "first_move_legal_rate": rep.first_move_legal_rate,
+                "response_format_valid_rate": rep.response_format_valid_rate,
                 "points": round(rep.points, 4), "max_points": rep.max_points,
                 "cost_usd": self.cost_usd,
             },
