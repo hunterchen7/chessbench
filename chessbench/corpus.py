@@ -260,6 +260,13 @@ def finalize_corpus(corpus: Corpus) -> Corpus:
 def save_corpus(corpus: Corpus, path: str | Path) -> None:
     finalize_corpus(corpus)
     target = Path(path)
+    lowered = {part.lower() for part in target.parts}
+    if corpus.visibility == "private" and (
+        "public" in lowered or target.parent.name.lower() != "private"
+    ):
+        raise ValueError(
+            "private corpus contents must be written beneath a directory named 'private'"
+        )
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(asdict(corpus), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 

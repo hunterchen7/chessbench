@@ -11,6 +11,14 @@ data/puzzles_balanced.csv
 data/lichess_pool*.csv
 data/lichess_pool*.csv.meta.json
 data/*.zst
+data/private/
+data/arthurit/
+data/*.cbh
+data/*.cbg
+data/*.cba
+data/*.cbp
+data/*.cbt
+data/*.cbs
 logs/
 *.jsonl
 runs/*.db
@@ -24,6 +32,7 @@ runs/*.db-wal
 # private (held-out) benchmark suites — never publish
 suites/private/
 corpora/private/
+private/
 
 # webapp debug logs (keep run records + index)
 webapp/data/runs/*.log

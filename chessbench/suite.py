@@ -58,6 +58,19 @@ class Suite:
         blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
+    def manifest(self) -> dict[str, object]:
+        """Return a discovery record without held-out membership or seeds."""
+        return {
+            "schema": "chessbench.suite_manifest.v1",
+            "name": self.name,
+            "version": self.version,
+            "visibility": self.visibility,
+            "kind": self.kind,
+            "source": self.source,
+            "items": len(self.items),
+            "content_hash": self.content_hash or self.compute_hash(),
+        }
+
 
 def build_puzzle_suite(
     source: list[Puzzle],
@@ -141,9 +154,28 @@ def freeze_composed_suite(
 
 
 def save_suite(suite: Suite, path: str | Path) -> None:
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    target = Path(path)
+    _guard_private_path(suite.visibility, target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as f:
         json.dump(asdict(suite), f, indent=1)
+
+
+def save_suite_manifest(suite: Suite, path: str | Path) -> None:
+    """Write a membership-free manifest suitable for a public dashboard."""
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(suite.manifest(), indent=1) + "\n", encoding="utf-8")
+
+
+def _guard_private_path(visibility: Visibility, path: Path) -> None:
+    if visibility != "private":
+        return
+    lowered = {part.lower() for part in path.parts}
+    if "public" in lowered or path.parent.name.lower() != "private":
+        raise ValueError(
+            "private suite contents must be written beneath a directory named 'private'"
+        )
 
 
 def load_suite(path: str | Path) -> Suite:

@@ -63,6 +63,8 @@ class ComposedProblem:
     goal: StudyGoal | None = None       # study only
     themes: list[str] = field(default_factory=list)
     source: str = "chessbench"
+    provenance: dict[str, object] = field(default_factory=dict)
+    certification: dict[str, object] = field(default_factory=dict)
 
     @property
     def answer_shape(self) -> AnswerShape:

@@ -6,7 +6,7 @@ import pathlib
 
 import pytest
 
-from chessbench.suite import build_puzzle_suite, load_suite, save_suite
+from chessbench.suite import build_puzzle_suite, load_suite, save_suite, save_suite_manifest
 from chessbench.tasks.puzzles import load_puzzles
 
 SAMPLE = pathlib.Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
@@ -63,3 +63,24 @@ def test_checked_in_composed_suite_loads_as_composed_problems():
     assert any(problem.kind == "selfmate" for problem in problems)
     with pytest.raises(ValueError, match="not puzzle"):
         suite.puzzles()
+
+
+def test_private_suite_requires_private_directory_and_manifest_redacts(tmp_path):
+    suite = build_puzzle_suite(
+        _source(), name="held-out", per_bucket=2, seed=991, visibility="private"
+    )
+    with pytest.raises(ValueError, match="directory named 'private'"):
+        save_suite(suite, tmp_path / "leaked.json")
+    with pytest.raises(ValueError, match="directory named 'private'"):
+        save_suite(suite, tmp_path / "public" / "leaked.json")
+
+    private_path = tmp_path / "private" / "suite.json"
+    save_suite(suite, private_path)
+    assert load_suite(private_path).content_hash == suite.content_hash
+
+    manifest_path = tmp_path / "dashboard" / "manifest.json"
+    save_suite_manifest(suite, manifest_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["items"] == len(suite.items)
+    assert "seed" not in manifest
+    assert "items" in manifest and not isinstance(manifest["items"], list)
