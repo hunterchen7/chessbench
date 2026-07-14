@@ -9,6 +9,7 @@ const NAV = [
   { to: "/", label: "Leaderboard", end: true },
   { to: "/puzzles", label: "Puzzles" },
   { to: "/games", label: "Games" },
+  { to: "/methodology", label: "Methodology" },
 ]
 
 export function Layout() {

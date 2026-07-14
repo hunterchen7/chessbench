@@ -10,6 +10,7 @@ condition and nothing else.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from enum import Enum
 
@@ -169,7 +170,7 @@ def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str 
 
 # --- Game track prompting ---
 
-COACH_ADVICE = (
+_DEFAULT_COACH = (
     "Before choosing, work through this checklist:\n"
     "1. Note where both sides' pieces are and which of yours are undefended.\n"
     "2. Look at every check, capture, and threat available to you AND your opponent.\n"
@@ -177,6 +178,9 @@ COACH_ADVICE = (
     "4. Anticipate the opponent's best reply before committing.\n"
     "5. Favor king safety, piece activity, and material."
 )
+# The coaching block can be overridden per-process (e.g. for prompt A/B experiments)
+# via the CHESSBENCH_COACH env var, without touching the code.
+COACH_ADVICE = os.environ.get("CHESSBENCH_COACH", _DEFAULT_COACH)
 
 
 def _notation_name(cond: Condition) -> str:

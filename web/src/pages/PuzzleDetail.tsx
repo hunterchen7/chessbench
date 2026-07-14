@@ -4,6 +4,7 @@ import { Chess } from "chess.js"
 import { ArrowLeft, Check, ChevronDown, Lightbulb, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { pct } from "@/lib/format"
+import { uciLineToSan, uciToSan } from "@/lib/chess"
 import { humanRecord } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
@@ -12,31 +13,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 type Status = "playing" | "solved" | "failed"
-
-/** Convert a UCI move list to SAN starting from a FEN (best-effort). */
-function uciLineToSan(fen: string, line: string[]): string[] {
-  const g = new Chess(fen)
-  const out: string[] = []
-  for (const uci of line) {
-    try {
-      const m = g.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined })
-      out.push(m.san)
-    } catch {
-      break
-    }
-  }
-  return out
-}
-
-function uciToSan(fen: string, uci: string | null): string | null {
-  if (!uci) return null
-  try {
-    const g = new Chess(fen)
-    return g.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined }).san
-  } catch {
-    return null
-  }
-}
 
 export function PuzzleDetail() {
   const { id = "" } = useParams()

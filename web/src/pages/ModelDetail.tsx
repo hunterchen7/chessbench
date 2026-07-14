@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react"
+import { Fragment, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { eloText, pct, TIER_ORDER } from "@/lib/format"
+import { uciToSan } from "@/lib/chess"
 import { EloChart, type EloPoint } from "@/components/EloChart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +37,8 @@ export function ModelDetail() {
     [runs, decoded],
   )
   const [slug, setSlug] = useState(mine[0]?.condition.slug ?? "")
+  const [filter, setFilter] = useState<"all" | "solved" | "failed">("all")
+  const [openPuzzle, setOpenPuzzle] = useState<string | null>(null)
   const run = mine.find((r) => r.condition.slug === slug) ?? mine[0]
 
   if (!run)
@@ -167,6 +170,108 @@ export function ModelDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Per-puzzle answer sheet: exactly what the model played on each puzzle. */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
+          <CardTitle className="text-base">
+            Answer sheet
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              what {decoded.includes("/") ? decoded.split("/")[1] : decoded} played, puzzle by puzzle
+            </span>
+          </CardTitle>
+          <div className="flex gap-1">
+            {(["all", "solved", "failed"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-md px-2.5 py-1 text-xs capitalize transition-colors ${
+                  filter === f ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10" />
+                <TableHead>Puzzle</TableHead>
+                <TableHead className="text-right">Rating</TableHead>
+                <TableHead>Played</TableHead>
+                <TableHead>Best</TableHead>
+                <TableHead>Note</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {run.items
+                .slice()
+                .sort((a, b) => a.rating - b.rating)
+                .filter((it) => (filter === "all" ? true : filter === "solved" ? it.solved : !it.solved))
+                .map((it) => {
+                  const played = uciToSan(it.fen, it.answer_move) ?? it.answer_move ?? "—"
+                  const best = uciToSan(it.fen, it.solution_first) ?? it.solution_first ?? "—"
+                  const open = openPuzzle === it.puzzle_id
+                  const canOpen = !!it.answer_explanation
+                  return (
+                    <Fragment key={it.puzzle_id}>
+                      <TableRow
+                        className={canOpen ? "cursor-pointer" : undefined}
+                        onClick={canOpen ? () => setOpenPuzzle(open ? null : it.puzzle_id) : undefined}
+                      >
+                        <TableCell className="text-center">
+                          {it.solved ? (
+                            <Check className="mx-auto size-4 text-chart-2" />
+                          ) : (
+                            <X className="mx-auto size-4 text-destructive/70" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            to={`/puzzles/${it.puzzle_id}`}
+                            className="font-mono text-sm hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {it.puzzle_id}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{it.rating}</TableCell>
+                        <TableCell className={`font-mono ${it.solved ? "text-chart-2" : ""}`}>
+                          {played}
+                          {canOpen && (
+                            <ChevronDown
+                              className={`ml-1 inline size-3 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-muted-foreground">{best}</TableCell>
+                        <TableCell>
+                          {!it.solved && it.failure_reason && (
+                            <Badge variant="secondary" className="text-xs font-normal">
+                              {it.failure_reason}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {open && it.answer_explanation && (
+                        <TableRow>
+                          <TableCell />
+                          <TableCell colSpan={5} className="text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">Its reasoning: </span>
+                            {it.answer_explanation}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  )
+                })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

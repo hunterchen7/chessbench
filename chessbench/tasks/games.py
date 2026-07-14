@@ -26,8 +26,9 @@ from ..core.engine import Engine
 
 @dataclass
 class GameConfig:
-    max_plies: int = 200          # draw at the cap (à la LLM Chess)
+    max_plies: int = 200          # cap the game length (à la LLM Chess)
     eval_moves: bool = False      # score each move's centipawn loss (needs eval_engine)
+    adjudicate_cp: int = 200      # at the cap, award the win if |eval| >= this (needs eval_engine); 0 disables
 
 
 @dataclass
@@ -160,7 +161,16 @@ def play_game(
             result = board.result(claim_draw=True)
             break
         if board.ply() >= config.max_plies:
+            # At the cap, adjudicate by engine eval if available: a clearly winning
+            # side (>= adjudicate_cp, from side-to-move POV) takes the point instead
+            # of a meaningless move-cap draw.
             term, result = "move_cap", "1/2-1/2"
+            if config.eval_moves and eval_engine is not None and config.adjudicate_cp > 0:
+                cp = eval_engine.evaluate(board)  # centipawns from side-to-move POV
+                if cp >= config.adjudicate_cp:
+                    term, result = "adjudication", ("1-0" if board.turn == chess.WHITE else "0-1")
+                elif cp <= -config.adjudicate_cp:
+                    term, result = "adjudication", ("0-1" if board.turn == chess.WHITE else "1-0")
             break
 
         mover = white if board.turn == chess.WHITE else black
