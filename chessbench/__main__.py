@@ -666,6 +666,9 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from .env import load_local_env
+
+    load_local_env()
     parser = argparse.ArgumentParser(prog="chessbench")
     sub = parser.add_subparsers(dest="command", required=True)
 

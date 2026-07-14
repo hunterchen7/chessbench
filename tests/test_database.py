@@ -70,3 +70,16 @@ def test_run_only_completes_after_all_items_are_persisted(tmp_path):
 
         existing = store.start_run(_spec())
         assert existing.status == "completed" and not existing.resumed
+
+
+def test_cloudflare_outbox_only_marks_explicit_deliveries(tmp_path):
+    p1 = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
+    with BenchmarkStore(tmp_path / "bench.db") as store:
+        spec = _spec()
+        run = store.start_run(spec)
+        store.save_puzzle_result(run.run_id, 0, p1, _result("p1"))
+        start = store.run_start_document(run.run_id)
+        assert start["model_variant"]["reasoning"]["max_tokens"] == 512
+        assert len(store.unsynced_item_documents(run.run_id)) == 1
+        store.mark_item_synced(run.run_id, "p1")
+        assert store.unsynced_item_documents(run.run_id) == []

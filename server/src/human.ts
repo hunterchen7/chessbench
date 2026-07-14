@@ -1,43 +1,20 @@
 import type { Env } from "./types"
 import { error, json } from "./http"
 
-interface RatedOutcome {
-  rating: number
-  solved: number
-}
-
-/**
- * Maximum-likelihood puzzle-Elo, identical to the model rating and the client
- * fallback: the rating r where the logistic solve probability best matches the
- * observed solves. Bisection on the score-equation gradient.
- */
-function eloMLE(items: RatedOutcome[]): { rating: number; bounded: boolean } | null {
-  const rated = items.filter((x) => typeof x.rating === "number" && Number.isFinite(x.rating))
-  const n = rated.length
-  const wins = rated.filter((x) => x.solved).length
-  if (!n || !wins) return null
-  if (wins === n) return { rating: 4000, bounded: false }
-  const E = (t: number, r: number) => 1 / (1 + Math.pow(10, (r - t) / 400))
-  const grad = (t: number) => rated.reduce((s, x) => s + ((x.solved ? 1 : 0) - E(t, x.rating)), 0)
-  let a = 0
-  let b = 4000
-  for (let i = 0; i < 200 && b - a > 0.5; i++) {
-    const m = (a + b) / 2
-    if (grad(m) > 0) a = m
-    else b = m
-  }
-  return { rating: (a + b) / 2, bounded: true }
-}
-
 async function summaryFor(env: Env, uid: string) {
   const { results } = await env.DB.prepare(
-    `SELECT h.solved AS solved, p.rating AS rating
-       FROM human_solves h JOIN puzzles p ON p.puzzle_id = h.puzzle_id
-      WHERE h.uid = ?`,
-  ).bind(uid).all<RatedOutcome>()
+    `SELECT solved FROM human_solves WHERE uid = ?`,
+  ).bind(uid).all<{ solved: number }>()
   const items = results ?? []
   const solved = items.filter((x) => x.solved).length
-  return { uid, n: items.length, solved, elo: eloMLE(items) }
+  return {
+    uid,
+    n: items.length,
+    solved,
+    points: solved,
+    max_points: items.length,
+    accuracy: items.length ? solved / items.length : 0,
+  }
 }
 
 /** POST /api/human/solve — record an anonymous solve; keeps the best outcome per puzzle.
@@ -79,26 +56,25 @@ export async function postHumanSolve(env: Env, req: Request): Promise<Response> 
   return json(await summaryFor(env, uid))
 }
 
-/** GET /api/human/summary?uid= — one solver's count + Elo. */
+/** GET /api/human/summary?uid= — one solver's points. */
 export async function getHumanSummary(env: Env, url: URL): Promise<Response> {
   const uid = (url.searchParams.get("uid") ?? "").trim().slice(0, 64)
   if (!uid) return error(400, "uid query param required")
   return json(await summaryFor(env, uid))
 }
 
-/** GET /api/human/leaderboard[?uid=] — top solvers by Elo. Raw uids are never
+/** GET /api/human/leaderboard[?uid=] — top solvers by points. Raw uids are never
  * returned (they're the only handle to a solver's records); the caller's own uid,
  * if passed, is marked with `me` so the client can highlight its row. */
 export async function getHumanLeaderboard(env: Env, url: URL): Promise<Response> {
   const meUid = (url.searchParams.get("uid") ?? "").trim().slice(0, 64) || null
   const { results } = await env.DB.prepare(
-    `SELECT h.uid AS uid, h.solved AS solved, p.rating AS rating
-       FROM human_solves h JOIN puzzles p ON p.puzzle_id = h.puzzle_id`,
-  ).all<{ uid: string; solved: number; rating: number }>()
-  const byUid = new Map<string, RatedOutcome[]>()
+    `SELECT uid, solved FROM human_solves`,
+  ).all<{ uid: string; solved: number }>()
+  const byUid = new Map<string, number[]>()
   for (const r of results ?? []) {
     const arr = byUid.get(r.uid) ?? []
-    arr.push({ rating: r.rating, solved: r.solved })
+    arr.push(r.solved)
     byUid.set(r.uid, arr)
   }
   const { results: profs } = await env.DB.prepare(`SELECT uid, handle FROM human_profiles`).all<{
@@ -111,11 +87,12 @@ export async function getHumanLeaderboard(env: Env, url: URL): Promise<Response>
       handle: handles.get(uid) ?? null,
       me: meUid !== null && uid === meUid,
       n: items.length,
-      solved: items.filter((x) => x.solved).length,
-      elo: eloMLE(items),
+      solved: items.filter(Boolean).length,
+      points: items.filter(Boolean).length,
+      max_points: items.length,
+      accuracy: items.length ? items.filter(Boolean).length / items.length : 0,
     }))
-    .filter((r) => r.elo !== null)
-    .sort((a, b) => (b.elo!.rating - a.elo!.rating))
+    .sort((a, b) => b.points - a.points || b.accuracy - a.accuracy)
     .slice(0, 100)
   return json({ leaderboard })
 }

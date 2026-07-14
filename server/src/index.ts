@@ -1,8 +1,8 @@
 import type { Env } from "./types"
 import { error, json, preflight } from "./http"
-import { getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
+import { getExport, getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
-import { postIngestRun, postIngestTournament } from "./ingest"
+import { postFinishRun, postIngestRun, postIngestTournament, postRunItem, postStartRun } from "./ingest"
 import { postIngestGame, postLiveBoard } from "./games"
 
 // chessbench backend: a JSON API under /api/* over Cloudflare D1, with the built
@@ -26,6 +26,7 @@ export default {
       if (req.method === "GET") {
         if (seg === "health") return json({ ok: true, service: "chessbench", time: new Date().toISOString() })
         if (seg === "index" || seg === "runs") return await getIndex(env)
+        if (seg === "export") return await getExport(env, url)
         if (seg === "puzzles") return await getPuzzles(env)
         if (seg.startsWith("puzzles/")) return await getPuzzle(env, rest(seg, "puzzles/"))
         if (seg.startsWith("runs/")) return await getRun(env, rest(seg, "runs/"))
@@ -36,6 +37,9 @@ export default {
       } else if (req.method === "POST") {
         if (seg === "human/solve") return await postHumanSolve(env, req)
         if (seg === "ingest/run") return await postIngestRun(env, req)
+        if (seg === "ingest/run/start") return await postStartRun(env, req)
+        if (seg === "ingest/run/item") return await postRunItem(env, req)
+        if (seg === "ingest/run/finish") return await postFinishRun(env, req)
         if (seg === "ingest/tournament") return await postIngestTournament(env, req, url)
         if (seg === "ingest/game") return await postIngestGame(env, req, url)
         if (seg === "live/board") return await postLiveBoard(env, req, url)

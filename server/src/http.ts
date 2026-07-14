@@ -20,6 +20,17 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
   })
 }
 
+export function downloadJson(data: unknown, filename: string): Response {
+  return new Response(JSON.stringify(data, null, 2), {
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename.replace(/[^a-z0-9_.-]/gi, "-")}"`,
+      "Cache-Control": "no-store",
+      ...CORS,
+    },
+  })
+}
+
 export function error(status: number, message: string): Response {
   return json({ error: message }, { status })
 }

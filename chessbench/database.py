@@ -24,7 +24,7 @@ from .tasks.puzzles import Puzzle, PuzzleResult
 from .variants import ModelVariant
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_DB = Path("runs/chessbench.db")
 
 
@@ -155,6 +155,22 @@ CREATE TABLE IF NOT EXISTS run_event (
   detail TEXT,
   created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS sync_delivery (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  PRIMARY KEY(run_id, item_id)
+);
+"""
+
+_SYNC_SCHEMA = """
+CREATE TABLE IF NOT EXISTS sync_delivery (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  item_id TEXT NOT NULL,
+  synced_at TEXT NOT NULL,
+  PRIMARY KEY(run_id, item_id)
+);
 """
 
 
@@ -184,6 +200,9 @@ class BenchmarkStore:
             raise RuntimeError(f"database schema {version} is newer than supported {SCHEMA_VERSION}")
         if version == 0:
             self._db.executescript(_SCHEMA)
+            self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        elif version == 1:
+            self._db.executescript(_SYNC_SCHEMA)
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @contextmanager
@@ -378,3 +397,80 @@ class BenchmarkStore:
                ORDER BY r.created_at DESC"""
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def run_start_document(self, run_id: str) -> dict[str, object]:
+        row = self._db.execute(
+            """SELECT r.*, v.config_json AS variant_json
+               FROM benchmark_run r JOIN model_variant v USING(variant_key)
+               WHERE run_id=?""",
+            (run_id,),
+        ).fetchone()
+        if row is None:
+            raise KeyError(run_id)
+        return {
+            "run_id": row["run_id"],
+            "track": row["track"],
+            "model_variant": json.loads(row["variant_json"]),
+            "condition": json.loads(row["condition_json"]),
+            "suite": {
+                "name": row["suite_name"],
+                "version": row["suite_version"],
+                "content_hash": row["suite_hash"],
+                "visibility": row["suite_visibility"],
+            } if row["suite_name"] else None,
+            "total_items": row["total_items"],
+            "created_at": row["created_at"],
+        }
+
+    def unsynced_item_documents(self, run_id: str) -> list[dict[str, object]]:
+        from .store import _position_fields
+
+        rows = self._db.execute(
+            """SELECT a.* FROM puzzle_attempt a
+               LEFT JOIN sync_delivery d ON d.run_id=a.run_id AND d.item_id=a.puzzle_id
+               WHERE a.run_id=? AND d.item_id IS NULL ORDER BY a.sequence""",
+            (run_id,),
+        ).fetchall()
+        docs: list[dict[str, object]] = []
+        for row in rows:
+            result = json.loads(row["result_json"])
+            puzzle_data = json.loads(row["puzzle_json"])
+            puzzle = Puzzle(**puzzle_data)
+            payload = {
+                **result,
+                **_position_fields(puzzle),
+                "categories": {},
+            }
+            docs.append({
+                "run_id": run_id,
+                "item_id": row["puzzle_id"],
+                "sequence": row["sequence"],
+                "points": result["score"],
+                "max_points": 1,
+                "solved": result["solved"],
+                "first_move_legal": result["first_move_legal"],
+                "failure_reason": result["failure_reason"],
+                "latency_ms": row["latency_ms"],
+                "cost_usd": row["cost_usd"],
+                "prompt_tokens": row["prompt_tokens"],
+                "completion_tokens": row["completion_tokens"],
+                "reasoning_tokens": row["reasoning_tokens"],
+                "payload": payload,
+            })
+        return docs
+
+    def mark_item_synced(self, run_id: str, item_id: str) -> None:
+        self._db.execute(
+            "INSERT OR REPLACE INTO sync_delivery(run_id, item_id, synced_at) VALUES (?, ?, ?)",
+            (run_id, item_id, _now()),
+        )
+
+    def run_finish_document(self, run_id: str) -> dict[str, object]:
+        row = self._db.execute(
+            "SELECT status, error FROM benchmark_run WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(run_id)
+        status = row["status"]
+        remote_status = "completed" if status == "completed" else "failed" if status == "failed" else "partial"
+        return {"run_id": run_id, "status": remote_status, "error": row["error"]}
