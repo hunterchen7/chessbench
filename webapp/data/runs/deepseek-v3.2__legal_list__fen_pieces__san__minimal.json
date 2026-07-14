@@ -1,0 +1,4726 @@
+{
+ "schema": "chessbench.run.v1",
+ "kind": "puzzle",
+ "created": "2026-07-14T09:11:52+00:00",
+ "model": "deepseek/deepseek-v3.2",
+ "provider": "openrouter",
+ "suite": {
+  "name": "tactical-public-v1",
+  "version": "1",
+  "visibility": "public",
+  "content_hash": "sha256:dbc5236e81094e35"
+ },
+ "condition": {
+  "legality": "legal_list",
+  "representation": "fen_pieces",
+  "notation": "san",
+  "prompt_style": "minimal",
+  "context_mode": "fresh",
+  "explain": true,
+  "retry_attempts": 3,
+  "otb_illegal_limit": 2,
+  "temperature": 1.0,
+  "slug": "legal_list__fen_pieces__san__minimal"
+ },
+ "summary": {
+  "n": 96,
+  "solved": 16,
+  "solve_rate": 0.16666666666666666,
+  "mean_score": 0.23611111111111113,
+  "first_move_legal_rate": 0.9895833333333334,
+  "puzzle_elo": 951.2,
+  "puzzle_elo_ci": [
+   820.9,
+   1081.5
+  ],
+  "puzzle_elo_bounded": true,
+  "cost_usd": 0.01815216084
+ },
+ "themes": [
+  {
+   "theme": "middlegame",
+   "n": 52,
+   "accuracy": 0.21153846153846154
+  },
+  {
+   "theme": "crushing",
+   "n": 48,
+   "accuracy": 0.020833333333333332
+  },
+  {
+   "theme": "short",
+   "n": 43,
+   "accuracy": 0.06976744186046512
+  },
+  {
+   "theme": "endgame",
+   "n": 41,
+   "accuracy": 0.12195121951219512
+  },
+  {
+   "theme": "long",
+   "n": 25,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mate",
+   "n": 25,
+   "accuracy": 0.6
+  },
+  {
+   "theme": "advantage",
+   "n": 23,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mateIn1",
+   "n": 15,
+   "accuracy": 0.8666666666666667
+  },
+  {
+   "theme": "oneMove",
+   "n": 15,
+   "accuracy": 0.8666666666666667
+  },
+  {
+   "theme": "master",
+   "n": 13,
+   "accuracy": 0.3076923076923077
+  },
+  {
+   "theme": "veryLong",
+   "n": 13,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "kingsideAttack",
+   "n": 10,
+   "accuracy": 0.4
+  },
+  {
+   "theme": "pin",
+   "n": 10,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mateIn2",
+   "n": 9,
+   "accuracy": 0.2222222222222222
+  },
+  {
+   "theme": "fork",
+   "n": 8,
+   "accuracy": 0.25
+  },
+  {
+   "theme": "sacrifice",
+   "n": 8,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "rookEndgame",
+   "n": 7,
+   "accuracy": 0.14285714285714285
+  },
+  {
+   "theme": "defensiveMove",
+   "n": 6,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "deflection",
+   "n": 6,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "exposedKing",
+   "n": 5,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "quietMove",
+   "n": 5,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "advancedPawn",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "attraction",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "discoveredAttack",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "hangingPiece",
+   "n": 4,
+   "accuracy": 0.25
+  },
+  {
+   "theme": "skewer",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "backRankMate",
+   "n": 3,
+   "accuracy": 0.6666666666666666
+  },
+  {
+   "theme": "bishopEndgame",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "opening",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "clearance",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "intermezzo",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "promotion",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "swallowstailMate",
+   "n": 2,
+   "accuracy": 0.5
+  },
+  {
+   "theme": "trappedPiece",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "enPassant",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "hookMate",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "knightEndgame",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "masterVsMaster",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mateIn3",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "operaMate",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "pawnEndgame",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "queenEndgame",
+   "n": 1,
+   "accuracy": 0.0
+  }
+ ],
+ "items": [
+  {
+   "puzzle_id": "00CpR",
+   "rating": 632,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b3d5",
+   "answer_explanation": "This move captures the knight on d5 and delivers a check. The queen cannot be taken because it is protected by the bishop on a7, and the knight was a key defender. After the king moves, white can follow up with further threats, including utilizing the advanced pawns and coordinating the queen and bishop to create a mating net or win more material. Other moves like f4 or Qa3 allow Black counterplay (e.g., Re3).",
+   "answer_raw": "Qxd5+ (b3d5)\nwhy: This move captures the knight on d5 and delivers a check. The queen cannot be taken because it is protected by the bishop on a7, and the knight was a key defender. After the king moves, white can follow up with further threats, including utilizing the advanced pawns and coordinating the queen and bishop to create a mating net or win more material. Other moves like f4 or Qa3 allow Black counterplay (e.g., Re3).",
+   "seq_elo": 1452.3,
+   "fen": "6k1/B7/2p2pK1/3nr2p/8/1Q3PP1/P6r/8 w - - 1 32",
+   "setup_san": "Re5",
+   "solver_is_white": true,
+   "solution": [
+    "b3b8",
+    "e5e8",
+    "b8e8"
+   ],
+   "solution_first": "b3b8",
+   "game_url": "https://lichess.org/tX2xyrPX/black#62"
+  },
+  {
+   "puzzle_id": "009tE",
+   "rating": 644,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "c6e7",
+   "answer_explanation": "This move forks the black king and bishop, forcing the king to move and winning the bishop on f5. After Ke7, the knight captures the bishop with a check, picking up a decisive material advantage.",
+   "answer_raw": "Ne7+\n\nwhy: This move forks the black king and bishop, forcing the king to move and winning the bishop on f5. After Ke7, the knight captures the bishop with a check, picking up a decisive material advantage.",
+   "seq_elo": 1452.8,
+   "fen": "6k1/6pp/p1N5/1pP2bp1/5P2/8/PPP5/3K4 w - - 0 29",
+   "setup_san": "fxg5",
+   "solver_is_white": true,
+   "solution": [
+    "c6e7",
+    "g8f7",
+    "e7f5"
+   ],
+   "solution_first": "c6e7",
+   "game_url": "https://lichess.org/fUV1iXBx/black#56"
+  },
+  {
+   "puzzle_id": "008aL",
+   "rating": 654,
+   "themes": [
+    "backRankMate",
+    "endgame",
+    "mate",
+    "mateIn2",
+    "rookEndgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "backRankMate",
+     "mateIn2"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "b6b1",
+   "answer_explanation": "The rook check forces the white king to move, after which ...Ra1 skewers the white rook on d4, winning material.",
+   "answer_raw": "Rb1+\n\nwhy: The rook check forces the white king to move, after which ...Ra1 skewers the white rook on d4, winning material.",
+   "seq_elo": 1453.2,
+   "fen": "7k/6p1/1r5p/P4p2/3Rp3/4P3/5PPP/6K1 b - - 0 39",
+   "setup_san": "a5",
+   "solver_is_white": false,
+   "solution": [
+    "b6b1",
+    "d4d1",
+    "b1d1"
+   ],
+   "solution_first": "b6b1",
+   "game_url": "https://lichess.org/j2ECU5ud#77"
+  },
+  {
+   "puzzle_id": "00Flp",
+   "rating": 667,
+   "themes": [
+    "kingsideAttack",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "c2h7",
+   "answer_explanation": "This move delivers checkmate by attacking the black king on h7 with the queen, protected by the knight on g5. Black has no way to capture or block the queen, and the king has no escape squares.",
+   "answer_raw": "Qxh7#\nwhy: This move delivers checkmate by attacking the black king on h7 with the queen, protected by the knight on g5. Black has no way to capture or block the queen, and the king has no escape squares.",
+   "seq_elo": 1453.7,
+   "fen": "r2q1rk1/ppp2ppp/2n5/3p2N1/3P4/1B5P/P1Q2PP1/R1B2bK1 w - - 0 17",
+   "setup_san": "Bxf1",
+   "solver_is_white": true,
+   "solution": [
+    "c2h7"
+   ],
+   "solution_first": "c2h7",
+   "game_url": "https://lichess.org/SXoBpAj9/black#32"
+  },
+  {
+   "puzzle_id": "00DAs",
+   "rating": 683,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "d2e4",
+   "answer_explanation": "The knight delivers checkmate by moving to e4, attacking the black king on f6 and giving check. The king has no legal moves, as all adjacent squares are attacked by white pieces (the rook on h1 covers f1, the bishop on e6 covers f7 and g8, and the pawn on f5 covers g6) and the knight cannot be captured because it is protected by the pawn on f5.",
+   "answer_raw": "Ne4# why: The knight delivers checkmate by moving to e4, attacking the black king on f6 and giving check. The king has no legal moves, as all adjacent squares are attacked by white pieces (the rook on h1 covers f1, the bishop on e6 covers f7 and g8, and the pawn on f5 covers g6) and the knight cannot be captured because it is protected by the pawn on f5.",
+   "seq_elo": 1454.2,
+   "fen": "r6r/ppp1n1p1/3bBk1p/4nP2/3p4/8/PPPN1P1P/R1B1K2R w KQ - 2 16",
+   "setup_san": "Ne7",
+   "solver_is_white": true,
+   "solution": [
+    "d2e4"
+   ],
+   "solution_first": "d2e4",
+   "game_url": "https://lichess.org/FKD6drCM/black#30"
+  },
+  {
+   "puzzle_id": "004yJ",
+   "rating": 737,
+   "themes": [
+    "kingsideAttack",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "c6g2",
+   "answer_explanation": "This is a forced checkmate. The black queen captures on g2, delivering check from the bishop on b7. The white king has no escape squares, and the pawn on g2 is pinned by the rook on f8, so it cannot recapture.",
+   "answer_raw": "Qxg2#\n\nwhy: This is a forced checkmate. The black queen captures on g2, delivering check from the bishop on b7. The white king has no escape squares, and the pawn on g2 is pinned by the rook on f8, so it cannot recapture.",
+   "seq_elo": 1454.9,
+   "fen": "r4rk1/1bp2ppp/p1q1pn2/2P1N3/8/3B4/P1P1QPPP/R4RK1 b - - 1 16",
+   "setup_san": "Ne5",
+   "solver_is_white": false,
+   "solution": [
+    "c6g2"
+   ],
+   "solution_first": "c6g2",
+   "game_url": "https://lichess.org/8N3Hfj05#31"
+  },
+  {
+   "puzzle_id": "00DPQ",
+   "rating": 765,
+   "themes": [
+    "kingsideAttack",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "g3h2",
+   "answer_explanation": "The queen captures on h2 delivering checkmate. The white king has no escape squares, and the queen is protected by the black knight on f6, preventing any capture by the white rook. This ends the game immediately.",
+   "answer_raw": "Qxh2#\n\nwhy: The queen captures on h2 delivering checkmate. The white king has no escape squares, and the queen is protected by the black knight on f6, preventing any capture by the white rook. This ends the game immediately.",
+   "seq_elo": 1455.7,
+   "fen": "2k4r/pp3pp1/4pn2/2np2p1/8/1B1P1Pq1/PPPN3R/R2Q3K b - - 7 20",
+   "setup_san": "Rh2",
+   "solver_is_white": false,
+   "solution": [
+    "g3h2"
+   ],
+   "solution_first": "g3h2",
+   "game_url": "https://lichess.org/AKiNfVd0#39"
+  },
+  {
+   "puzzle_id": "00HLP",
+   "rating": 786,
+   "themes": [
+    "crushing",
+    "fork",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.5,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d4e2",
+   "answer_explanation": "Knight check forces the king to move, disrupting white's coordination and potentially exposing the white queen to discovery after the king moves.",
+   "answer_raw": "Ne2+\n\nwhy: Knight check forces the king to move, disrupting white's coordination and potentially exposing the white queen to discovery after the king moves.",
+   "seq_elo": 1415.7,
+   "fen": "r4rk1/3nqpp1/4p2p/1p2P3/2pn1Q2/P6N/1P3PPP/1B1R1RK1 b - - 1 24",
+   "setup_san": "Bb1",
+   "solver_is_white": false,
+   "solution": [
+    "d4e2",
+    "g1h1",
+    "e2f4"
+   ],
+   "solution_first": "d4e2",
+   "game_url": "https://lichess.org/KFAwEaua#47"
+  },
+  {
+   "puzzle_id": "00Elq",
+   "rating": 791,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "g5g6",
+   "answer_explanation": "This is a forced checkmate. The queen captures the pawn on g6 with check, and the black king has no escape squares (f8 is guarded by the white queen, f7 by the black pawn on e7, and h7 by the white pawn on g4 and rook on h1).",
+   "answer_raw": "Qg6#\n\nwhy: This is a forced checkmate. The queen captures the pawn on g6 with check, and the black king has no escape squares (f8 is guarded by the white queen, f7 by the black pawn on e7, and h7 by the white pawn on g4 and rook on h1).",
+   "seq_elo": 1416.7,
+   "fen": "rn3q1r/4pk2/2pp1npp/p5Q1/1p1PPNP1/5P2/PPP5/R4KNR w - - 0 18",
+   "setup_san": "h6",
+   "solver_is_white": true,
+   "solution": [
+    "g5g6"
+   ],
+   "solution_first": "g5g6",
+   "game_url": "https://lichess.org/uNIyIYur/black#34"
+  },
+  {
+   "puzzle_id": "00HnR",
+   "rating": 816,
+   "themes": [
+    "master",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "a8g2",
+   "answer_explanation": "The black queen captures on g2, delivering checkmate as it is protected by the knight on f4. This ends the game immediately and is the winning move.",
+   "answer_raw": "Qxg2#\n\nwhy: The black queen captures on g2, delivering checkmate as it is protected by the knight on f4. This ends the game immediately and is the winning move.",
+   "seq_elo": 1417.9,
+   "fen": "q5kr/p4p2/4b1p1/4B2p/5n2/2P5/P1Q2PPP/3R1RK1 b - - 0 21",
+   "setup_san": "Bxe5",
+   "solver_is_white": false,
+   "solution": [
+    "a8g2"
+   ],
+   "solution_first": "a8g2",
+   "game_url": "https://lichess.org/Iva57KFW#41"
+  },
+  {
+   "puzzle_id": "004nd",
+   "rating": 898,
+   "themes": [
+    "crushing",
+    "fork",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6h7",
+   "answer_explanation": "Qh7+ forces the black king to move, likely to f8, after which White can play Qxf6 attacking the rook on d7 and gaining a decisive material advantage. The immediate Nxf6+ also looks promising but gives Black counterplay with Qxf6; the queen check first avoids this and nets a pawn while keeping the initiative.",
+   "answer_raw": "Qh7+ (h6h7)\n\nwhy: Qh7+ forces the black king to move, likely to f8, after which White can play Qxf6 attacking the rook on d7 and gaining a decisive material advantage. The immediate Nxf6+ also looks promising but gives Black counterplay with Qxf6; the queen check first avoids this and nets a pawn while keeping the initiative.",
+   "seq_elo": 1381.4,
+   "fen": "3q2k1/3r4/pp3p1Q/2b1n3/P3N3/2P5/1P4PP/R6K w - - 1 25",
+   "setup_san": "Rd7",
+   "solver_is_white": true,
+   "solution": [
+    "e4f6",
+    "d8f6",
+    "h6f6"
+   ],
+   "solution_first": "e4f6",
+   "game_url": "https://lichess.org/IajkZZBp/black#48"
+  },
+  {
+   "puzzle_id": "00AGs",
+   "rating": 898,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "h8d8",
+   "answer_explanation": "This is a forced checkmate. The white queen delivers checkmate on d8, and there is no legal move for black's king to escape since e8 is covered by the white queen and e7 is occupied by black's own king, while d7 is guarded by the white rook on d1. All other squares around the black king are either off the board or blocked by black's own pieces.",
+   "answer_raw": "Qd8#\n\nwhy: This is a forced checkmate. The white queen delivers checkmate on d8, and there is no legal move for black's king to escape since e8 is covered by the white queen and e7 is occupied by black's own king, while d7 is guarded by the white rook on d1. All other squares around the black king are either off the board or blocked by black's own pieces.",
+   "seq_elo": 1383.5,
+   "fen": "rn5Q/4kp2/2p1p1r1/1q4p1/8/8/4NPPP/3R1K1R w - - 6 24",
+   "setup_san": "Ke7",
+   "solver_is_white": true,
+   "solution": [
+    "h8d8"
+   ],
+   "solution_first": "h8d8",
+   "game_url": "https://lichess.org/gBoWCcF2/black#46"
+  },
+  {
+   "puzzle_id": "00ITc",
+   "rating": 921,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d4d8",
+   "answer_explanation": "This move captures the rook on d8 with check, forcing the black king to move and winning material. It also neutralizes Black's immediate threats, as the queen cannot recapture due to being pinned by White's bishop on b2. White emerges with a decisive material advantage.",
+   "answer_raw": "Qxd8+ why: This move captures the rook on d8 with check, forcing the black king to move and winning material. It also neutralizes Black's immediate threats, as the queen cannot recapture due to being pinned by White's bishop on b2. White emerges with a decisive material advantage.",
+   "seq_elo": 1349.0,
+   "fen": "3r1rk1/5pp1/7p/8/b2Qp1n1/1P6/PB1q1PP1/R5K1 w - - 0 26",
+   "setup_san": "Bxa4",
+   "solver_is_white": true,
+   "solution": [
+    "d4g7"
+   ],
+   "solution_first": "d4g7",
+   "game_url": "https://lichess.org/tGroDLV4/black#50"
+  },
+  {
+   "puzzle_id": "00HZa",
+   "rating": 937,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "long",
+    "master"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f3d4",
+   "answer_explanation": "Nd4 attacks the black queen on e4 while also hitting the knight on c5, forcing the queen to move or be captured. It develops the knight to a more active square and gains tempo, without allowing any immediate counterplay from Black. Additionally, it covers the e2-square, preventing a future Qe2+ after a potential capture on f3.",
+   "answer_raw": "Nd4\n\nwhy: Nd4 attacks the black queen on e4 while also hitting the knight on c5, forcing the queen to move or be captured. It develops the knight to a more active square and gains tempo, without allowing any immediate counterplay from Black. Additionally, it covers the e2-square, preventing a future Qe2+ after a potential capture on f3.",
+   "seq_elo": 1315.9,
+   "fen": "6k1/6pp/1p6/p1n5/4q3/1P2pN2/P4PPP/3Q2K1 w - - 0 29",
+   "setup_san": "fxe3",
+   "solver_is_white": true,
+   "solution": [
+    "d1d8",
+    "g8f7",
+    "f3g5",
+    "f7g6",
+    "g5e4"
+   ],
+   "solution_first": "d1d8",
+   "game_url": "https://lichess.org/WRMbDs53/black#56"
+  },
+  {
+   "puzzle_id": "00E29",
+   "rating": 953,
+   "themes": [
+    "crushing",
+    "discoveredAttack",
+    "kingsideAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "discoveredAttack",
+     "kingsideAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.5,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d3h7",
+   "answer_explanation": "This move sacrifices the bishop to expose the black king and break open the pawn shield. After Kxh7, Ng5+ forces the king to h8 (Kg6 runs into Qd3+ winning quickly), and then Qd3+ with threats of Qh7# and Qf5+ will lead to a decisive attack or material gain. It exploits the weak dark squares around the black king and the overloaded queen defending d6 and the kingside.",
+   "answer_raw": "Bxh7+\n\nwhy: This move sacrifices the bishop to expose the black king and break open the pawn shield. After Kxh7, Ng5+ forces the king to h8 (Kg6 runs into Qd3+ winning quickly), and then Qd3+ with threats of Qh7# and Qf5+ will lead to a decisive attack or material gain. It exploits the weak dark squares around the black king and the overloaded queen defending d6 and the kingside.",
+   "seq_elo": 1284.3,
+   "fen": "r1b2rk1/4bppp/p1n5/3q4/Pp6/3B1N2/1B3PPP/R2Q1RK1 w - - 0 18",
+   "setup_san": "Qxd5",
+   "solver_is_white": true,
+   "solution": [
+    "d3h7",
+    "g8h7",
+    "d1d5"
+   ],
+   "solution_first": "d3h7",
+   "game_url": "https://lichess.org/tWRCApub/black#34"
+  },
+  {
+   "puzzle_id": "00CtS",
+   "rating": 970,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short",
+    "swallowstailMate"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2",
+     "swallowstailMate"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a8c6",
+   "answer_explanation": "This move attacks the pinned rook on f5 indirectly and threatens Qxf5+. If Black moves the rook, White can play Qxa6 winning a pawn, while if Black plays something like Qg6, then Qxf5 forces a queen exchange leaving White up material with a strong passed pawn on a4.",
+   "answer_raw": "Qc6 why: This move attacks the pinned rook on f5 indirectly and threatens Qxf5+. If Black moves the rook, White can play Qxa6 winning a pawn, while if Black plays something like Qg6, then Qxf5 forces a queen exchange leaving White up material with a strong passed pawn on a4.",
+   "seq_elo": 1254.3,
+   "fen": "Q7/5qk1/p2p4/b1p1pr2/P7/6P1/4KP1R/8 w - - 4 39",
+   "setup_san": "Kg7",
+   "solver_is_white": true,
+   "solution": [
+    "a8h8",
+    "g7g6",
+    "h8h6"
+   ],
+   "solution_first": "a8h8",
+   "game_url": "https://lichess.org/yKolw9vl/black#76"
+  },
+  {
+   "puzzle_id": "00EoE",
+   "rating": 974,
+   "themes": [
+    "crushing",
+    "endgame",
+    "short",
+    "skewer"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "skewer"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e1e6",
+   "answer_explanation": "Re6 threatens Re7+ forcing the black king to move, either to g8 or f8. After the king moves, White can follow up with Rxc7 capturing the rook. This wins material and leads to a decisive advantage as the rook on c7 is pinned and cannot be defended effectively.",
+   "answer_raw": "Re6\n\nwhy: Re6 threatens Re7+ forcing the black king to move, either to g8 or f8. After the king moves, White can follow up with Rxc7 capturing the rook. This wins material and leads to a decisive advantage as the rook on c7 is pinned and cannot be defended effectively.",
+   "seq_elo": 1225.7,
+   "fen": "r1b5/ppr2k1p/5p2/5p2/8/2P3P1/P4PP1/4RK1R w - - 2 24",
+   "setup_san": "Kf7",
+   "solver_is_white": true,
+   "solution": [
+    "h1h7",
+    "f7g6",
+    "h7c7"
+   ],
+   "solution_first": "h1h7",
+   "game_url": "https://lichess.org/25vOJGCF/black#46"
+  },
+  {
+   "puzzle_id": "007Rn",
+   "rating": 990,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4e3",
+   "answer_explanation": "The knight attacks the white queen and also threatens the fork Nf2+ next move, which would force the king to move and then allow the rook to capture the queen. White has no safe square for the queen that keeps the fork defended, so Black wins material.",
+   "answer_raw": "Ne3  \nwhy: The knight attacks the white queen and also threatens the fork Nf2+ next move, which would force the king to move and then allow the rook to capture the queen. White has no safe square for the queen that keeps the fork defended, so Black wins material.",
+   "seq_elo": 1198.9,
+   "fen": "4r1k1/p4p1p/1p6/6B1/3P2n1/P4Q2/1P4P1/7K b - - 0 34",
+   "setup_san": "Bxg5",
+   "solver_is_white": false,
+   "solution": [
+    "e8e1",
+    "f3f1",
+    "e1f1"
+   ],
+   "solution_first": "e8e1",
+   "game_url": "https://lichess.org/L9kH7FqT#67"
+  },
+  {
+   "puzzle_id": "00DWo",
+   "rating": 1060,
+   "themes": [
+    "kingsideAttack",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "e4g2",
+   "answer_explanation": "This move is checkmate\u2014the queen delivers check to the white king, which has no legal moves (blocked by own pawns and attacked by the black queen, with no escape squares or pieces able to capture or block).",
+   "answer_raw": "Qg2#  \nwhy: This move is checkmate\u2014the queen delivers check to the white king, which has no legal moves (blocked by own pawns and attacked by the black queen, with no escape squares or pieces able to capture or block).",
+   "seq_elo": 1209.2,
+   "fen": "b4b1r/3k1ppp/p2p4/1p2p3/3Pq3/N3B3/PP3PPP/R2Q1RK1 b - - 0 16",
+   "setup_san": "cxd4",
+   "solver_is_white": false,
+   "solution": [
+    "e4g2"
+   ],
+   "solution_first": "e4g2",
+   "game_url": "https://lichess.org/bSwKB2bL#31"
+  },
+  {
+   "puzzle_id": "009uB",
+   "rating": 1089,
+   "themes": [
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6f8",
+   "answer_explanation": "The queen check forces a decisive trade. Black must capture with the rook (Rxf8), after which Bxh7+ wins the black queen, leaving White up material with a winning position.",
+   "answer_raw": "Qf8+ why: The queen check forces a decisive trade. Black must capture with the rook (Rxf8), after which Bxh7+ wins the black queen, leaving White up material with a winning position.",
+   "seq_elo": 1187.5,
+   "fen": "3br1kr/7p/4p1pQ/P5P1/1B5P/P6q/5R2/6K1 w - - 2 36",
+   "setup_san": "Kg8",
+   "solver_is_white": true,
+   "solution": [
+    "f2f8",
+    "e8f8",
+    "h6f8"
+   ],
+   "solution_first": "f2f8",
+   "game_url": "https://lichess.org/1llcQdqK/black#70"
+  },
+  {
+   "puzzle_id": "00AoZ",
+   "rating": 1090,
+   "themes": [
+    "advantage",
+    "deflection",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b4c5",
+   "answer_explanation": "This move forces the black queen to recapture, removing the immediate threat to the white queen and clearing the way for a discovered check with the rook. After 45...Kxc5, white has 46. Rb6! forking the king and bishop, winning the bishop with a strong advantage.",
+   "answer_raw": "Qxc5+\n\nwhy: This move forces the black queen to recapture, removing the immediate threat to the white queen and clearing the way for a discovered check with the rook. After 45...Kxc5, white has 46. Rb6! forking the king and bishop, winning the bishop with a strong advantage.",
+   "seq_elo": 1167.1,
+   "fen": "8/1R6/p1pk4/2q3bp/1QP5/P7/KP6/3r4 w - - 3 45",
+   "setup_san": "Qc5",
+   "solver_is_white": true,
+   "solution": [
+    "b7d7",
+    "d6d7",
+    "b4c5"
+   ],
+   "solution_first": "b7d7",
+   "game_url": "https://lichess.org/356BAYqk/black#88"
+  },
+  {
+   "puzzle_id": "002HE",
+   "rating": 1116,
+   "themes": [
+    "master",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "b8g3",
+   "answer_explanation": "Delivers checkmate by attacking the white king on f2 with support from the bishop on h2. The king has no escape squares, and the pawn on h3 blocks f2 from white\u2019s queen defense.",
+   "answer_raw": "Qg3#  \nwhy: Delivers checkmate by attacking the white king on f2 with support from the bishop on h2. The king has no escape squares, and the pawn on h3 blocks f2 from white\u2019s queen defense.",
+   "seq_elo": 1180.5,
+   "fen": "1qr2rk1/1p1p1ppp/pB2p1n1/7n/2P1P3/1Q2NP1P/PP2BKPb/3R1R2 b - - 2 20",
+   "setup_san": "Kf2",
+   "solver_is_white": false,
+   "solution": [
+    "b8g3"
+   ],
+   "solution_first": "b8g3",
+   "game_url": "https://lichess.org/U21EXYdv#39"
+  },
+  {
+   "puzzle_id": "00Hxb",
+   "rating": 1125,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn1",
+    "oneMove",
+    "operaMate"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f5g7",
+   "answer_explanation": "This move forks the black king and rook, forcing Kxg7 which loses the rook on d5 to Bxd5 with a decisive material advantage.",
+   "answer_raw": "Nxg7\n\nwhy: This move forks the black king and rook, forcing Kxg7 which loses the rook on d5 to Bxd5 with a decisive material advantage.",
+   "seq_elo": 1162.6,
+   "fen": "1rb2k2/p4ppp/2B5/2pr1NP1/2P5/P7/7P/4R1K1 w - - 0 28",
+   "setup_san": "Rxd5",
+   "solver_is_white": true,
+   "solution": [
+    "e1e8"
+   ],
+   "solution_first": "e1e8",
+   "game_url": "https://lichess.org/FW9LwaHK/black#54"
+  },
+  {
+   "puzzle_id": "009oc",
+   "rating": 1144,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f8f6",
+   "answer_explanation": "This forces the black king to move to h5, after which Qxg7 forks king and queen, winning the queen and leaving white with a decisive material advantage.",
+   "answer_raw": "Qf6+ (f8f6)  \nwhy: This forces the black king to move to h5, after which Qxg7 forks king and queen, winning the queen and leaving white with a decisive material advantage.",
+   "seq_elo": 1146.5,
+   "fen": "5Q2/pbp3np/1p1pq1pk/1P6/P6P/6K1/8/8 w - - 0 33",
+   "setup_san": "Qxe6",
+   "solver_is_white": true,
+   "solution": [
+    "f8f4",
+    "g6g5",
+    "f4g5"
+   ],
+   "solution_first": "f8f4",
+   "game_url": "https://lichess.org/426eHXom/black#64"
+  },
+  {
+   "puzzle_id": "003eP",
+   "rating": 1156,
+   "themes": [
+    "crushing",
+    "exposedKing",
+    "long",
+    "middlegame",
+    "skewer"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "exposedKing",
+     "skewer"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b2d2",
+   "answer_explanation": "This move attacks the black queen, forcing it to move and disrupting Black's coordination. It also clears the b2 square to unpin the white knight on a2 (which is pinned by the black rook), threatening to capture the powerful black knight on g4 next. This creates immediate tactical threats while improving White's piece activity.",
+   "answer_raw": "Qd2 (b2d2)\n\nwhy: This move attacks the black queen, forcing it to move and disrupting Black's coordination. It also clears the b2 square to unpin the white knight on a2 (which is pinned by the black rook), threatening to capture the powerful black knight on g4 next. This creates immediate tactical threats while improving White's piece activity.",
+   "seq_elo": 1132.0,
+   "fen": "6k1/r1b1q3/2p3p1/2Pp4/1P2p1n1/2B1P3/NQ6/2K4R w - - 2 37",
+   "setup_san": "Kg8",
+   "solver_is_white": true,
+   "solution": [
+    "h1h8",
+    "g8f7",
+    "h8h7",
+    "f7e8",
+    "h7e7"
+   ],
+   "solution_first": "h1h8",
+   "game_url": "https://lichess.org/n9vCFmKh/black#72"
+  },
+  {
+   "puzzle_id": "009IO",
+   "rating": 1162,
+   "themes": [
+    "hookMate",
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "hookMate",
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d6c8",
+   "answer_explanation": "The discovered check with Nc8+ forces the black king to move, disrupting coordination and likely winning the rook on d8, as Black must abandon it to deal with the check.",
+   "answer_raw": "Nc8+\n\nwhy: The discovered check with Nc8+ forces the black king to move, disrupting coordination and likely winning the rook on d8, as Black must abandon it to deal with the check.",
+   "seq_elo": 1118.5,
+   "fen": "3r4/4kp1r/p2Np1p1/3bP3/P2n4/8/1P3RPP/5RK1 w - - 5 26",
+   "setup_san": "Ke7",
+   "solver_is_white": true,
+   "solution": [
+    "f2f7",
+    "h7f7",
+    "f1f7"
+   ],
+   "solution_first": "f2f7",
+   "game_url": "https://lichess.org/LJBrm9Or/black#50"
+  },
+  {
+   "puzzle_id": "00JAo",
+   "rating": 1167,
+   "themes": [
+    "crushing",
+    "deflection",
+    "endgame",
+    "master",
+    "rookEndgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h4g5",
+   "answer_explanation": "This pawn exchange trades a vulnerable pawn while opening the h-file, exposing Black's king and creating potential for a decisive check with Ra6+ followed by Rh6#. The immediate check Ra6+ without the exchange is less effective due to the pawn on g5 blocking the rook's path to h6.",
+   "answer_raw": "hxg5+\n\nwhy: This pawn exchange trades a vulnerable pawn while opening the h-file, exposing Black's king and creating potential for a decisive check with Ra6+ followed by Rh6#. The immediate check Ra6+ without the exchange is less effective due to the pawn on g5 blocking the rook's path to h6.",
+   "seq_elo": 1105.9,
+   "fen": "8/5r2/7k/6pp/7P/5PK1/R7/8 w - - 0 59",
+   "setup_san": "g5",
+   "solver_is_white": true,
+   "solution": [
+    "a2a6",
+    "h6g7",
+    "h4g5"
+   ],
+   "solution_first": "a2a6",
+   "game_url": "https://lichess.org/mIuVoEMA/black#116"
+  },
+  {
+   "puzzle_id": "002Z9",
+   "rating": 1231,
+   "themes": [
+    "endgame",
+    "hangingPiece",
+    "master",
+    "mate",
+    "mateIn1",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "hangingPiece"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "e7e8",
+   "answer_explanation": "The rook sacrifice leads to checkmate as the black king has no escape squares and cannot recapture due to being in check from the rook on e7.",
+   "answer_raw": "Rxe8#\n\nwhy: The rook sacrifice leads to checkmate as the black king has no escape squares and cannot recapture due to being in check from the rook on e7.",
+   "seq_elo": 1125.2,
+   "fen": "4r1k1/1p2R1p1/p2p2Pp/P1pP4/8/1R3p2/1P1q3P/5B1K w - - 0 35",
+   "setup_san": "Qxd2",
+   "solver_is_white": true,
+   "solution": [
+    "e7e8"
+   ],
+   "solution_first": "e7e8",
+   "game_url": "https://lichess.org/Ek4aENjD/black#68"
+  },
+  {
+   "puzzle_id": "00BSo",
+   "rating": 1266,
+   "themes": [
+    "advantage",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c8e8",
+   "answer_explanation": "This move attacks the undefended white rook on e7. If the rook moves away, Black can capture the knight on c5 with check (Rxc5+), winning a piece. White has no good way to defend both the rook and knight simultaneously.",
+   "answer_raw": "Re8\n\nwhy: This move attacks the undefended white rook on e7. If the rook moves away, Black can capture the knight on c5 with check (Rxc5+), winning a piece. White has no good way to defend both the rook and knight simultaneously.",
+   "seq_elo": 1116.5,
+   "fen": "2r3k1/4R1pp/p1p2p2/2N5/2P5/1Pb4P/P4PP1/6K1 b - - 0 25",
+   "setup_san": "Nxc5",
+   "solver_is_white": false,
+   "solution": [
+    "c3b4",
+    "e7a7",
+    "b4c5"
+   ],
+   "solution_first": "c3b4",
+   "game_url": "https://lichess.org/SjQSgSG9#49"
+  },
+  {
+   "puzzle_id": "007hv",
+   "rating": 1275,
+   "themes": [
+    "endgame",
+    "master",
+    "mate",
+    "mateIn1",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "d4g1",
+   "answer_explanation": "Checkmate is forced. The queen moves to g1 with support from the bishop on c5, delivering checkmate as the white king has no squares to escape and the queen is protected.",
+   "answer_raw": "Qg1#\n\nwhy: Checkmate is forced. The queen moves to g1 with support from the bishop on c5, delivering checkmate as the white king has no squares to escape and the queen is protected.",
+   "seq_elo": 1136.4,
+   "fen": "6k1/5p1p/1p4p1/p1bN1p2/2Pq1P2/1PQ4P/1P4P1/7K b - - 2 32",
+   "setup_san": "Qc3",
+   "solver_is_white": false,
+   "solution": [
+    "d4g1"
+   ],
+   "solution_first": "d4g1",
+   "game_url": "https://lichess.org/i64FoDh8#63"
+  },
+  {
+   "puzzle_id": "00H1C",
+   "rating": 1287,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove",
+    "swallowstailMate"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1",
+     "swallowstailMate"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "a5c7",
+   "answer_explanation": "This is a forced checkmate. The queen captures the pawn on c7, delivering check, and the black king has no legal moves to escape or block.",
+   "answer_raw": "Qxc7#\n\nwhy: This is a forced checkmate. The queen captures the pawn on c7, delivering check, and the black king has no legal moves to escape or block.",
+   "seq_elo": 1155.7,
+   "fen": "r3r3/1kpR1qpp/p1n2p2/Qp2P2P/1N6/4Pb2/PPP3P1/2K2R2 w - - 1 23",
+   "setup_san": "Nc6",
+   "solver_is_white": true,
+   "solution": [
+    "a5c7"
+   ],
+   "solution_first": "a5c7",
+   "game_url": "https://lichess.org/GzcjOw0p/black#44"
+  },
+  {
+   "puzzle_id": "003mh",
+   "rating": 1328,
+   "themes": [
+    "advantage",
+    "attraction",
+    "fork",
+    "long",
+    "middlegame",
+    "sacrifice"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "attraction",
+     "fork",
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d5c7",
+   "answer_explanation": "This move wins the pawn on c7 with check, attacking the black rook on e8 and forcing the black king to move, which disrupts black's coordination and gives white a material advantage.",
+   "answer_raw": "Nxc7+\n\nwhy: This move wins the pawn on c7 with check, attacking the black rook on e8 and forcing the black king to move, which disrupts black's coordination and gives white a material advantage.",
+   "seq_elo": 1148.4,
+   "fen": "4rk1r/1pp2p2/p2p3p/3N4/3P2q1/8/PPP5/1K2Q1NR w - - 2 24",
+   "setup_san": "Re8",
+   "solver_is_white": true,
+   "solution": [
+    "e1e8",
+    "f8e8",
+    "d5f6",
+    "e8e7",
+    "f6g4"
+   ],
+   "solution_first": "e1e8",
+   "game_url": "https://lichess.org/HSa4keKZ/black#46"
+  },
+  {
+   "puzzle_id": "00G0z",
+   "rating": 1337,
+   "themes": [
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "f4h2",
+   "answer_explanation": "Mate in one by delivering checkmate directly. The queen moves to h2, attacking the white king on g1. The king has no squares to escape, and the h2 square is not defended by any white piece.",
+   "answer_raw": "Qh2#\n\nwhy: Mate in one by delivering checkmate directly. The queen moves to h2, attacking the white king on g1. The king has no squares to escape, and the h2 square is not defended by any white piece.",
+   "seq_elo": 1168.3,
+   "fen": "Q4n1k/p2b2pp/3b4/2p5/4Nq2/2Pn3P/PP2BPP1/R1B2RK1 b - - 0 23",
+   "setup_san": "Nxe4",
+   "solver_is_white": false,
+   "solution": [
+    "f4h2"
+   ],
+   "solution_first": "f4h2",
+   "game_url": "https://lichess.org/5yn9tO6O#45"
+  },
+  {
+   "puzzle_id": "00K8j",
+   "rating": 1346,
+   "themes": [
+    "advantage",
+    "opening",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "opening"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d5c7",
+   "answer_explanation": "Capturing the bishop on c7 eliminates White's strong attacking piece and also captures a bishop with a knight, gaining material. This move also relieves pressure on Black's position and breaks the coordination of White's pieces.",
+   "answer_raw": "Nxc7  \nwhy: Capturing the bishop on c7 eliminates White's strong attacking piece and also captures a bishop with a knight, gaining material. This move also relieves pressure on Black's position and breaks the coordination of White's pieces.",
+   "seq_elo": 1161.3,
+   "fen": "r2q2kr/p1B2pp1/4b2p/n1Qn4/8/4P3/PP3PPP/2KR1BNR b - - 2 14",
+   "setup_san": "Bc7",
+   "solver_is_white": false,
+   "solution": [
+    "d8c7",
+    "c5c7",
+    "d5c7"
+   ],
+   "solution_first": "d8c7",
+   "game_url": "https://lichess.org/AiNXhpcc#27"
+  },
+  {
+   "puzzle_id": "00CiZ",
+   "rating": 1360,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d5f3",
+   "answer_explanation": "Black sacrifices the queen to eliminate the knight, which is a key defender of White's king. After White recaptures with the rook, Black can play Rf4, threatening mate on h4 and winning White's queen (as Rf4 pins the queen to the king). This tactical sequence nets Black a decisive material advantage and a winning position.",
+   "answer_raw": "Qxf3+  \nwhy: Black sacrifices the queen to eliminate the knight, which is a key defender of White's king. After White recaptures with the rook, Black can play Rf4, threatening mate on h4 and winning White's queen (as Rf4 pins the queen to the king). This tactical sequence nets Black a decisive material advantage and a winning position.",
+   "seq_elo": 1155.1,
+   "fen": "5r1k/6b1/3p3p/1P1q2pQ/r5P1/3p1N1P/3R2P1/3R3K b - - 3 34",
+   "setup_san": "Red1",
+   "solver_is_white": false,
+   "solution": [
+    "f8f3",
+    "g2f3",
+    "d5f3"
+   ],
+   "solution_first": "f8f3",
+   "game_url": "https://lichess.org/PJQUqCX1#67"
+  },
+  {
+   "puzzle_id": "009FP",
+   "rating": 1368,
+   "themes": [
+    "advantage",
+    "opening",
+    "short",
+    "trappedPiece"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "opening"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "trappedPiece"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c4f7",
+   "answer_explanation": "This move immediately wins material by exploiting the pinned f7 pawn (pinned by the queen on g3 to the king on e8). After Bxf7+ Kxf7 (forced), Qxg6+ regains the bishop and leaves White up a pawn with a safer king and active pieces.",
+   "answer_raw": "Bxf7+  \nwhy: This move immediately wins material by exploiting the pinned f7 pawn (pinned by the queen on g3 to the king on e8). After Bxf7+ Kxf7 (forced), Qxg6+ regains the bishop and leaves White up a pawn with a safer king and active pieces.",
+   "seq_elo": 1149.3,
+   "fen": "r1b1k1nr/ppp2pbp/3p1qp1/4p3/2BnP3/N2P2QP/PPP2PP1/R1B1K2R w KQkq - 0 10",
+   "setup_san": "e5",
+   "solver_is_white": true,
+   "solution": [
+    "c1g5",
+    "f6g5",
+    "g3g5"
+   ],
+   "solution_first": "c1g5",
+   "game_url": "https://lichess.org/2ndCtdd9/black#18"
+  },
+  {
+   "puzzle_id": "00Erm",
+   "rating": 1402,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e1e4",
+   "answer_explanation": "This move captures the advanced black pawn on e4, removing a key central pawn and opening lines for both white rooks and the bishop. It also eliminates Black's strong pawn outpost and reduces pressure on White's position, while maintaining a solid material balance.",
+   "answer_raw": "Rxe4  \nwhy: This move captures the advanced black pawn on e4, removing a key central pawn and opening lines for both white rooks and the bishop. It also eliminates Black's strong pawn outpost and reduces pressure on White's position, while maintaining a solid material balance.",
+   "seq_elo": 1144.5,
+   "fen": "3r4/6k1/1p1pr1p1/p1p2p2/P1P1p1P1/1P1n4/3R1PBP/4R1K1 w - - 1 30",
+   "setup_san": "Nd3",
+   "solver_is_white": true,
+   "solution": [
+    "d2d3",
+    "e4d3",
+    "e1e6",
+    "d3d2",
+    "g2f3"
+   ],
+   "solution_first": "d2d3",
+   "game_url": "https://lichess.org/kE9mu3xO/black#58"
+  },
+  {
+   "puzzle_id": "006RM",
+   "rating": 1445,
+   "themes": [
+    "crushing",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b4c5",
+   "answer_explanation": "This move wins a queen for free because if Black recaptures with the pawn b6xc5, White can simply recapture with Rd3xc5, leaving White up material with no immediate compensation. If Black does not recapture, White remains a queen ahead. Other moves do not yield such a direct and decisive material gain.",
+   "answer_raw": "Qxc5\n\nwhy: This move wins a queen for free because if Black recaptures with the pawn b6xc5, White can simply recapture with Rd3xc5, leaving White up material with no immediate compensation. If Black does not recapture, White remains a queen ahead. Other moves do not yield such a direct and decisive material gain.",
+   "seq_elo": 1140.7,
+   "fen": "1k1r3r/8/pp1n2p1/2q5/1Q6/3R2P1/PPP2P1P/3R2K1 w - - 5 30",
+   "setup_san": "Qc5",
+   "solver_is_white": true,
+   "solution": [
+    "b4c5",
+    "b6c5",
+    "d3d6",
+    "d8d6",
+    "d1d6"
+   ],
+   "solution_first": "b4c5",
+   "game_url": "https://lichess.org/ceS0QvtT/black#58"
+  },
+  {
+   "puzzle_id": "00761",
+   "rating": 1474,
+   "themes": [
+    "attraction",
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "fork",
+    "long",
+    "sacrifice"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "attraction",
+     "exposedKing",
+     "fork",
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h7g7",
+   "answer_explanation": "Wins a bishop and forces the black king into a discovered check position, breaking the defense around the black king and leaving white with a significant material and positional advantage.",
+   "answer_raw": "Rxg7+\n\nwhy: Wins a bishop and forces the black king into a discovered check position, breaking the defense around the black king and leaving white with a significant material and positional advantage.",
+   "seq_elo": 1137.6,
+   "fen": "3r2k1/1b4bR/p2P2p1/3p2N1/2p5/2P2N2/PP6/2K5 w - - 0 29",
+   "setup_san": "fxg6",
+   "solver_is_white": true,
+   "solution": [
+    "h7g7",
+    "g8g7",
+    "g5e6",
+    "g7g8",
+    "e6d8"
+   ],
+   "solution_first": "h7g7",
+   "game_url": "https://lichess.org/vu70Maig/black#56"
+  },
+  {
+   "puzzle_id": "00Cwz",
+   "rating": 1492,
+   "themes": [
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "sacrifice",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ],
+    "motif": [
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "Rc2+",
+   "answer_explanation": "The knight check deflects the white rook from defending the back rank, leading to forced mate or decisive material gain.",
+   "answer_raw": "Rc2+\n\nwhy: The knight check deflects the white rook from defending the back rank, leading to forced mate or decisive material gain.",
+   "seq_elo": 1134.8,
+   "fen": "1r5r/5pk1/4p3/3p2PP/N1nP4/n1P5/P3B3/K1R4R b - - 0 34",
+   "setup_san": "Nxa4",
+   "solver_is_white": false,
+   "solution": [
+    "b8b1",
+    "c1b1",
+    "a3c2"
+   ],
+   "solution_first": "b8b1",
+   "game_url": "https://lichess.org/o6LOeNAf#67"
+  },
+  {
+   "puzzle_id": "00Aq4",
+   "rating": 1511,
+   "themes": [
+    "backRankMate",
+    "deflection",
+    "long",
+    "mate",
+    "mateIn3",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "long"
+    ],
+    "mate_pattern": [
+     "backRankMate",
+     "mateIn3"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d7b6",
+   "answer_explanation": "The move Nb6 attacks the unprotected white bishop on d5 and challenges the strong central piece. Since the white bishop is only defended by the king and rook, capturing on d5 with either the knight or later the bishop will win material. Also, Nb6 develops the knight to a more active square and prepares potential forks or further pressure on white's position.",
+   "answer_raw": "Nb6\n\nwhy: The move Nb6 attacks the unprotected white bishop on d5 and challenges the strong central piece. Since the white bishop is only defended by the king and rook, capturing on d5 with either the knight or later the bishop will win material. Also, Nb6 develops the knight to a more active square and prepares potential forks or further pressure on white's position.",
+   "seq_elo": 1132.3,
+   "fen": "2k1r3/pppn1pp1/3b2b1/3B2Pp/5P2/3P3P/PPPR4/2K3NR b - - 0 18",
+   "setup_san": "Bxd5",
+   "solver_is_white": false,
+   "solution": [
+    "e8e1",
+    "d2d1",
+    "d6f4",
+    "c1b1",
+    "e1d1"
+   ],
+   "solution_first": "e8e1",
+   "game_url": "https://lichess.org/VIBqOZyc#35"
+  },
+  {
+   "puzzle_id": "003Tx",
+   "rating": 1512,
+   "themes": [
+    "backRankMate",
+    "endgame",
+    "fork",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "backRankMate",
+     "mateIn2"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": true,
+   "score": 1.0,
+   "first_move_legal": true,
+   "failure_reason": null,
+   "answer_move": "f3d2",
+   "answer_explanation": "This move forces the white king to move, disrupting its position and gaining a tempo. It also opens up possibilities for further threats, like capturing the rook on b7 with the knight or supporting a rook invasion on c1, putting immediate pressure on white's vulnerable king.",
+   "answer_raw": "Nd2+\n\nwhy: This move forces the white king to move, disrupting its position and gaining a tempo. It also opens up possibilities for further threats, like capturing the rook on b7 with the knight or supporting a rook invasion on c1, putting immediate pressure on white's vulnerable king.",
+   "seq_elo": 1153.6,
+   "fen": "2r5/pR5p/5p1k/4p3/4R3/B4nPP/PP3P2/1K6 b - - 0 27",
+   "setup_san": "Rxe4",
+   "solver_is_white": false,
+   "solution": [
+    "f3d2",
+    "b1a1",
+    "c8c1"
+   ],
+   "solution_first": "f3d2",
+   "game_url": "https://lichess.org/A7j9VEC0#53"
+  },
+  {
+   "puzzle_id": "00EXS",
+   "rating": 1548,
+   "themes": [
+    "advantage",
+    "discoveredAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "discoveredAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e8c8",
+   "answer_explanation": "This discovered check forces the white king to move, winning the white queen on d7 after the rook captures it on the next move.",
+   "answer_raw": "Rec8+\n\nwhy: This discovered check forces the white king to move, winning the white queen on d7 after the rook captures it on the next move.",
+   "seq_elo": 1151.4,
+   "fen": "r3r1k1/p2Q1p1p/1p2p1p1/8/1P1P4/P3P3/1B2Nb1q/2KR3R b - - 1 19",
+   "setup_san": "Rh1",
+   "solver_is_white": false,
+   "solution": [
+    "f2e3",
+    "c1b1",
+    "h2e2"
+   ],
+   "solution_first": "f2e3",
+   "game_url": "https://lichess.org/CeNY4SjC#37"
+  },
+  {
+   "puzzle_id": "00AFG",
+   "rating": 1581,
+   "themes": [
+    "advantage",
+    "discoveredAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "discoveredAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f5e7",
+   "answer_explanation": "This discovered check attacks the black queen on c5 with the knight while simultaneously putting the black king in check. After the king moves (likely Kf8 or Kh8), White can capture the queen on the next move, winning material.",
+   "answer_raw": "Ne7+\n\nwhy: This discovered check attacks the black queen on c5 with the knight while simultaneously putting the black king in check. After the king moves (likely Kf8 or Kh8), White can capture the queen on the next move, winning material.",
+   "seq_elo": 1149.6,
+   "fen": "r4rk1/5ppp/p3bp2/2q2N1Q/Ppp5/8/1PP2PPP/R2R2K1 w - - 0 22",
+   "setup_san": "Qxc5",
+   "solver_is_white": true,
+   "solution": [
+    "f5h6",
+    "g7h6",
+    "h5c5"
+   ],
+   "solution_first": "f5h6",
+   "game_url": "https://lichess.org/xpx24bwV/black#42"
+  },
+  {
+   "puzzle_id": "00BM8",
+   "rating": 1583,
+   "themes": [
+    "advantage",
+    "master",
+    "middlegame",
+    "short",
+    "trappedPiece"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "trappedPiece"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a4b6",
+   "answer_explanation": "This move attacks the queen on a3 while also threatening to fork the rook and bishop on d8 and e7 if the queen moves. It forces the queen to move or be captured, and if the queen moves, Nb6 leaves white with an active knight threatening a key diagonal and potential discovered attacks.",
+   "answer_raw": "Nb6\nwhy: This move attacks the queen on a3 while also threatening to fork the rook and bishop on d8 and e7 if the queen moves. It forces the queen to move or be captured, and if the queen moves, Nb6 leaves white with an active knight threatening a key diagonal and potential discovered attacks.",
+   "seq_elo": 1147.9,
+   "fen": "3r1rk1/pp2bppp/2ppnn2/8/N1P1P3/q1P4P/P2N2PB/R2Q1R1K w - - 1 17",
+   "setup_san": "Rad8",
+   "solver_is_white": true,
+   "solution": [
+    "d2b1",
+    "a3a4",
+    "d1a4"
+   ],
+   "solution_first": "d2b1",
+   "game_url": "https://lichess.org/IBbaWSo7/black#32"
+  },
+  {
+   "puzzle_id": "002KJ",
+   "rating": 1615,
+   "themes": [
+    "crushing",
+    "discoveredAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "discoveredAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.5,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f3e5",
+   "answer_explanation": "This move captures a central black knight and opens up the position, taking advantage of White's more active development. The black pawn on d5 is then pinned to the queen, and the recapture ...dxe5 would drop the pawn on d5 to Qxd5, as it's undefended. This nets a pawn and disrupts Black's central structure.",
+   "answer_raw": "Nxe5\n\nwhy: This move captures a central black knight and opens up the position, taking advantage of White's more active development. The black pawn on d5 is then pinned to the queen, and the recapture ...dxe5 would drop the pawn on d5 to Qxd5, as it's undefended. This nets a pawn and disrupts Black's central structure.",
+   "seq_elo": 1146.5,
+   "fen": "r3k2r/ppq1bppp/4pn2/2Ppn3/1P4bP/2P2N2/P3BPP1/RNBQ1RK1 w kq - 3 11",
+   "setup_san": "Be7",
+   "solver_is_white": true,
+   "solution": [
+    "f3e5",
+    "c7e5",
+    "e2g4"
+   ],
+   "solution_first": "f3e5",
+   "game_url": "https://lichess.org/2NpTzh7O/black#20"
+  },
+  {
+   "puzzle_id": "00Bg0",
+   "rating": 1642,
+   "themes": [
+    "advancedPawn",
+    "crushing",
+    "endgame",
+    "quietMove",
+    "rookEndgame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "advancedPawn",
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d7d6",
+   "answer_explanation": "Capturing the pawn removes White's main advanced passer and immediately trades down to a drawn king and pawn vs. king endgame, while avoiding any checks or counterplay.",
+   "answer_raw": "Kxd6\n\nwhy: Capturing the pawn removes White's main advanced passer and immediately trades down to a drawn king and pawn vs. king endgame, while avoiding any checks or counterplay.",
+   "seq_elo": 1145.2,
+   "fen": "8/3k4/3P1K2/p4R2/5r2/5P2/8/8 b - - 2 57",
+   "setup_san": "Rf5",
+   "solver_is_white": false,
+   "solution": [
+    "f4f5",
+    "f6f5",
+    "a5a4",
+    "f5e4",
+    "a4a3",
+    "e4d3",
+    "a3a2"
+   ],
+   "solution_first": "f4f5",
+   "game_url": "https://lichess.org/Kh8jUvEa#113"
+  },
+  {
+   "puzzle_id": "00B7G",
+   "rating": 1643,
+   "themes": [
+    "crushing",
+    "master",
+    "masterVsMaster",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d4e3",
+   "answer_explanation": "Capturing the knight with the bishop removes a key defender, opens up the black queen's lines toward the white king, and creates immediate threats on the weakened light squares around the white king. The white queen is overloaded defending both the knight and the kingside, making this a forcing move that wins material and seizes the initiative.",
+   "answer_raw": "Bxe3\n\nwhy: Capturing the knight with the bishop removes a key defender, opens up the black queen's lines toward the white king, and creates immediate threats on the weakened light squares around the white king. The white queen is overloaded defending both the knight and the kingside, making this a forcing move that wins material and seizes the initiative.",
+   "seq_elo": 1144.0,
+   "fen": "1rb2r1k/4q2p/p2p4/3B1p2/1pPb4/1P2NQ2/P5PP/2R2R1K b - - 2 24",
+   "setup_san": "Kh1",
+   "solver_is_white": false,
+   "solution": [
+    "e7e3",
+    "f3e3",
+    "d4e3"
+   ],
+   "solution_first": "e7e3",
+   "game_url": "https://lichess.org/jBgjHSYd#47"
+  },
+  {
+   "puzzle_id": "00GYk",
+   "rating": 1647,
+   "themes": [
+    "crushing",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d1d8",
+   "answer_explanation": "The rook check forces the black king to either Kf7 or Kh8. If Kf7, Qd7+ wins the black queen due to the discovered check threat. If Kh8, white can play Qxg3, removing the dangerous pawn and creating threats against the black king while keeping material advantage.",
+   "answer_raw": "Rd8+  \nwhy: The rook check forces the black king to either Kf7 or Kh8. If Kf7, Qd7+ wins the black queen due to the discovered check threat. If Kh8, white can play Qxg3, removing the dangerous pawn and creating threats against the black king while keeping material advantage.",
+   "seq_elo": 1142.9,
+   "fen": "1r4k1/p3p1bp/1n4p1/4q1B1/6Q1/1P4pP/P5B1/3R3K w - - 1 30",
+   "setup_san": "Qe5",
+   "solver_is_white": true,
+   "solution": [
+    "g5f4",
+    "e5f4",
+    "g4f4"
+   ],
+   "solution_first": "g5f4",
+   "game_url": "https://lichess.org/YCWBuQpY/black#58"
+  },
+  {
+   "puzzle_id": "005gP",
+   "rating": 1701,
+   "themes": [
+    "crushing",
+    "enPassant",
+    "endgame",
+    "pawnEndgame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame",
+     "pawnEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "enPassant"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c5b5",
+   "answer_explanation": "This move prepares to advance the b-pawn to b3, which would force White to move their king, allowing Black to promote the c-pawn with check. Kb5 also keeps the king active and avoids any risk associated with capturing on d5, which would activate White's passed pawn.",
+   "answer_raw": "Kb5\n\nwhy: This move prepares to advance the b-pawn to b3, which would force White to move their king, allowing Black to promote the c-pawn with check. Kb5 also keeps the king active and avoids any risk associated with capturing on d5, which would activate White's passed pawn.",
+   "seq_elo": 1142.1,
+   "fen": "8/8/3p4/2kP2P1/1p6/2pK4/P7/8 b - - 0 42",
+   "setup_san": "g5",
+   "solver_is_white": false,
+   "solution": [
+    "c5d5",
+    "g5g6",
+    "d5e6",
+    "g6g7",
+    "e6f7",
+    "a2a4",
+    "b4a3",
+    "g7g8r",
+    "f7g8"
+   ],
+   "solution_first": "c5d5",
+   "game_url": "https://lichess.org/I76OvKQT#83"
+  },
+  {
+   "puzzle_id": "00IMS",
+   "rating": 1706,
+   "themes": [
+    "clearance",
+    "crushing",
+    "kingsideAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "clearance",
+     "kingsideAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.5,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e4f5",
+   "answer_explanation": "Capturing the knight removes Black's strong outpost on f5, clears the e4 pawn's path, and opens the e-file for potential rook activity. It also avoids leaving the knight to potentially support a ...Nh4+ fork and eliminates a key defender of Black\u2019s kingside.",
+   "answer_raw": "exf5\n\nwhy: Capturing the knight removes Black's strong outpost on f5, clears the e4 pawn's path, and opens the e-file for potential rook activity. It also avoids leaving the knight to potentially support a ...Nh4+ fork and eliminates a key defender of Black\u2019s kingside.",
+   "seq_elo": 1141.3,
+   "fen": "1r4k1/r5q1/p2p1pP1/4pn2/2p1P2Q/2Pb1BK1/P6R/2R5 w - - 0 36",
+   "setup_san": "Nxf5+",
+   "solver_is_white": true,
+   "solution": [
+    "e4f5",
+    "d3f5",
+    "f3d5"
+   ],
+   "solution_first": "e4f5",
+   "game_url": "https://lichess.org/4sOYAEfF/black#70"
+  },
+  {
+   "puzzle_id": "00Huv",
+   "rating": 1763,
+   "themes": [
+    "clearance",
+    "crushing",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "clearance"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6g6",
+   "answer_explanation": "This forces the black king to capture, removing the defensive g6 pawn and leaving black's king exposed, after which white's rook can deliver check on h6 with a discovered attack on the queen by the bishop, winning material decisively.",
+   "answer_raw": "Qg6+  \nwhy: This forces the black king to capture, removing the defensive g6 pawn and leaving black's king exposed, after which white's rook can deliver check on h6 with a discovered attack on the queen by the bishop, winning material decisively.",
+   "seq_elo": 1140.7,
+   "fen": "3r1q2/5prk/p3pQpp/1p2P3/2p4R/2P2P1P/PPB2P2/6K1 w - - 3 30",
+   "setup_san": "Qf8",
+   "solver_is_white": true,
+   "solution": [
+    "h4h6",
+    "h7g8",
+    "f6h4"
+   ],
+   "solution_first": "h4h6",
+   "game_url": "https://lichess.org/KGI2jWmb/black#58"
+  },
+  {
+   "puzzle_id": "001h8",
+   "rating": 1780,
+   "themes": [
+    "crushing",
+    "deflection",
+    "kingsideAttack",
+    "long",
+    "middlegame",
+    "sacrifice"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "deflection",
+     "kingsideAttack",
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.6666666666666666,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h4h7",
+   "answer_explanation": "This checkmate threat forces the king to move into a corner, after which White can deliver mate with the queen supported by the rook on h3.",
+   "answer_raw": "Qxh7+  \nwhy: This checkmate threat forces the king to move into a corner, after which White can deliver mate with the queen supported by the rook on h3.",
+   "seq_elo": 1140.2,
+   "fen": "2r3k1/2r4p/4p1p1/1p1q1pP1/p2P1P1Q/P6R/4bB2/2R3K1 w - - 6 35",
+   "setup_san": "Be2",
+   "solver_is_white": true,
+   "solution": [
+    "h4h7",
+    "c7h7",
+    "c1c8",
+    "g8g7",
+    "c8c7"
+   ],
+   "solution_first": "h4h7",
+   "game_url": "https://lichess.org/IxCahP6X/black#68"
+  },
+  {
+   "puzzle_id": "00008",
+   "rating": 1784,
+   "themes": [
+    "crushing",
+    "hangingPiece",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "hangingPiece"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6h7",
+   "answer_explanation": "This forces the black king to capture, removing the defender of the black rook on e7. After Kxh7, white plays Rxe7 with a winning material advantage and attack.",
+   "answer_raw": "Qxh7+  \nwhy: This forces the black king to capture, removing the defender of the black rook on e7. After Kxh7, white plays Rxe7 with a winning material advantage and attack.",
+   "seq_elo": 1139.7,
+   "fen": "r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25",
+   "setup_san": "Bxg3",
+   "solver_is_white": true,
+   "solution": [
+    "e6e7",
+    "b2b1",
+    "b3c1",
+    "b1c1",
+    "h6c1"
+   ],
+   "solution_first": "e6e7",
+   "game_url": "https://lichess.org/787zsVup/black#48"
+  },
+  {
+   "puzzle_id": "00G1l",
+   "rating": 1815,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "master",
+    "rookEndgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e4e5",
+   "answer_explanation": "This move creates a decisive passed pawn on e6 after exd6, while simultaneously blocking the black rook's access to key squares and threatening to promote. It forces Black into a defensive position where White can then activate the king or rook with tempo, leading to a winning endgame.",
+   "answer_raw": "e5 (e4e5)\n\nwhy: This move creates a decisive passed pawn on e6 after exd6, while simultaneously blocking the black rook's access to key squares and threatening to promote. It forces Black into a defensive position where White can then activate the king or rook with tempo, leading to a winning endgame.",
+   "seq_elo": 1139.3,
+   "fen": "5k2/1R6/3pp1P1/2p5/1p2PK2/5P2/8/2r5 w - - 1 61",
+   "setup_san": "Rc1",
+   "solver_is_white": true,
+   "solution": [
+    "f4g5",
+    "c1g1",
+    "g5f6"
+   ],
+   "solution_first": "f4g5",
+   "game_url": "https://lichess.org/IWYBiMcT/black#120"
+  },
+  {
+   "puzzle_id": "00H87",
+   "rating": 1912,
+   "themes": [
+    "attraction",
+    "crushing",
+    "deflection",
+    "endgame",
+    "sacrifice",
+    "skewer",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "attraction",
+     "deflection",
+     "sacrifice",
+     "skewer"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4g3",
+   "answer_explanation": "Taking the black queen with Qxg3 eliminates Black's most dangerous attacking piece, which is threatening mate or severe material gain. After the exchange, Black's remaining pieces (Rb2, Nh5) are not coordinated for an immediate attack, and White's king is safe. Meanwhile, White's bishop on h6 remains strong, and the position becomes materially advantageous for White with a queen vs. rook and knight.",
+   "answer_raw": "Qxg3\n\nwhy: Taking the black queen with Qxg3 eliminates Black's most dangerous attacking piece, which is threatening mate or severe material gain. After the exchange, Black's remaining pieces (Rb2, Nh5) are not coordinated for an immediate attack, and White's king is safe. Meanwhile, White's bishop on h6 remains strong, and the position becomes materially advantageous for White with a queen vs. rook and knight.",
+   "seq_elo": 1139.0,
+   "fen": "6k1/4pp2/p5pB/2p4n/3pP1Q1/P2P2qP/1r4P1/5RK1 w - - 2 31",
+   "setup_san": "Qg3",
+   "solver_is_white": true,
+   "solution": [
+    "g4c8",
+    "g8h7",
+    "f1f7",
+    "h5g7",
+    "f7g7",
+    "h7h6",
+    "c8h8",
+    "h6g5",
+    "g7g6",
+    "g5g6",
+    "h8g8",
+    "g6f6",
+    "g8g3"
+   ],
+   "solution_first": "g4c8",
+   "game_url": "https://lichess.org/hQEAqclb/black#60"
+  },
+  {
+   "puzzle_id": "001uD",
+   "rating": 1916,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f3d2",
+   "answer_explanation": "This move eliminates the dangerous knight on d2, which was threatening to fork white's rooks on c1 and c2. It also simplifies the position favorably for White, reducing black's attacking potential and securing White's king safety. After capturing, White can continue to consolidate and target black's weaknesses.",
+   "answer_raw": "Nxd2  \nwhy: This move eliminates the dangerous knight on d2, which was threatening to fork white's rooks on c1 and c2. It also simplifies the position favorably for White, reducing black's attacking potential and securing White's king safety. After capturing, White can continue to consolidate and target black's weaknesses.",
+   "seq_elo": 1138.8,
+   "fen": "6k1/1p4p1/1p3p1p/2r1p3/2n5/r3PN2/2RnNPPP/2R3K1 w - - 0 33",
+   "setup_san": "f6",
+   "solver_is_white": true,
+   "solution": [
+    "f3d2",
+    "c4d2",
+    "c2d2",
+    "c5c1",
+    "e2c1"
+   ],
+   "solution_first": "f3d2",
+   "game_url": "https://lichess.org/2qkVLUl6/black#64"
+  },
+  {
+   "puzzle_id": "00BPh",
+   "rating": 1938,
+   "themes": [
+    "advantage",
+    "kingsideAttack",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6g6",
+   "answer_explanation": "This move wins the queen as Black cannot recapture without losing their own queen due to the pin along the h-file. After 1... Qxg6 2. Nf5, Black's queen is attacked and cannot escape because 2... Qg5 is met by 3. h4, winning it. If Black instead plays 1... fxg6, then 2. Nf5 again attacks the black queen with a devastating fork on g7.",
+   "answer_raw": "Qxg6+\n\nwhy: This move wins the queen as Black cannot recapture without losing their own queen due to the pin along the h-file. After 1... Qxg6 2. Nf5, Black's queen is attacked and cannot escape because 2... Qg5 is met by 3. h4, winning it. If Black instead plays 1... fxg6, then 2. Nf5 again attacks the black queen with a devastating fork on g7.",
+   "seq_elo": 1138.6,
+   "fen": "r4rk1/3p1p1p/p2NpQpq/1p1b4/3R4/P7/1P3PPP/3R2K1 w - - 10 24",
+   "setup_san": "Bd5",
+   "solver_is_white": true,
+   "solution": [
+    "d4d5",
+    "h6g7",
+    "f6g7"
+   ],
+   "solution_first": "d4d5",
+   "game_url": "https://lichess.org/XrC5P8iP/black#46"
+  },
+  {
+   "puzzle_id": "000mr",
+   "rating": 1957,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4f3",
+   "answer_explanation": "Pins the white queen to the king, winning material immediately. After Qxg3, Black captures the queen with check, and after any queen move, Black can simply capture on c3 removing a defender. This forces decisive material gain or checkmate.",
+   "answer_raw": "Qf3\n\nwhy: Pins the white queen to the king, winning material immediately. After Qxg3, Black captures the queen with check, and after any queen move, Black can simply capture on c3 removing a defender. This forces decisive material gain or checkmate.",
+   "seq_elo": 1138.4,
+   "fen": "5r1k/5rp1/p7/1b2B2p/1P1P1Pq1/2R3Q1/P3p1P1/2R3K1 b - - 1 41",
+   "setup_san": "Qg3",
+   "solver_is_white": false,
+   "solution": [
+    "f7f4",
+    "e5f4",
+    "f8f4"
+   ],
+   "solution_first": "f7f4",
+   "game_url": "https://lichess.org/8sVpuwso#81"
+  },
+  {
+   "puzzle_id": "008Sk",
+   "rating": 1958,
+   "themes": [
+    "crushing",
+    "endgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f1f2",
+   "answer_explanation": "White is up a bishop for a pawn, but the black bishop is currently skewering the white king and rook. Capturing with Rxf2 removes the threat, eliminates the dangerous bishop, and leaves white with a decisive material advantage and an easily winning endgame.",
+   "answer_raw": "Rxf2\n\nwhy: White is up a bishop for a pawn, but the black bishop is currently skewering the white king and rook. Capturing with Rxf2 removes the threat, eliminates the dangerous bishop, and leaves white with a decisive material advantage and an easily winning endgame.",
+   "seq_elo": 1138.3,
+   "fen": "8/6pp/3Bp2k/p2pP2P/P3p1PK/8/r4b2/5R2 w - - 3 38",
+   "setup_san": "Bf2+",
+   "solver_is_white": true,
+   "solution": [
+    "f1f2",
+    "g7g5",
+    "h4g3",
+    "a2f2",
+    "g3f2"
+   ],
+   "solution_first": "f1f2",
+   "game_url": "https://lichess.org/rah6MiKa/black#74"
+  },
+  {
+   "puzzle_id": "00A5m",
+   "rating": 1965,
+   "themes": [
+    "bishopEndgame",
+    "crushing",
+    "endgame",
+    "quietMove",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "bishopEndgame",
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c4c5",
+   "answer_explanation": "Moving the king centralizes it and attacks the black bishop on e5, forcing it to move or be captured. This also clears c4 for the pawn advance b5, which would threaten to open lines and create a passed pawn. Other moves like b5 immediately are less forcing and allow Black's king to become more active.",
+   "answer_raw": "Kc5\n\nwhy: Moving the king centralizes it and attacks the black bishop on e5, forcing it to move or be captured. This also clears c4 for the pawn advance b5, which would threaten to open lines and create a passed pawn. Other moves like b5 immediately are less forcing and allow Black's king to become more active.",
+   "seq_elo": 1138.1,
+   "fen": "8/1p6/p1p2p2/P3b3/1PK3P1/2PB4/3k4/8 w - - 4 61",
+   "setup_san": "Kd2",
+   "solver_is_white": true,
+   "solution": [
+    "d3f5",
+    "e5c7",
+    "f5c8",
+    "b7b6",
+    "a5b6",
+    "c7b6",
+    "c8a6"
+   ],
+   "solution_first": "d3f5",
+   "game_url": "https://lichess.org/Y4Ftfosz/black#120"
+  },
+  {
+   "puzzle_id": "00Ezc",
+   "rating": 1982,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e1e4",
+   "answer_explanation": "This move wins a pawn by capturing on e4 with check, forcing the black king to move and disrupting Black's coordination. It also opens the e-file for the rook, increasing pressure against Black's underdeveloped position and exposed king.",
+   "answer_raw": "Rxe4+  \n\nwhy: This move wins a pawn by capturing on e4 with check, forcing the black king to move and disrupting Black's coordination. It also opens the e-file for the rook, increasing pressure against Black's underdeveloped position and exposed king.",
+   "seq_elo": 1138.0,
+   "fen": "rnb1k2r/ppp2q1p/3b2p1/3P1pBQ/4p2N/2N5/PPP2PPP/R3R1K1 w kq - 2 14",
+   "setup_san": "Qf7",
+   "solver_is_white": true,
+   "solution": [
+    "c3e4",
+    "f5e4",
+    "e1e4"
+   ],
+   "solution_first": "c3e4",
+   "game_url": "https://lichess.org/DlEjvVuJ/black#26"
+  },
+  {
+   "puzzle_id": "002Ds",
+   "rating": 1992,
+   "themes": [
+    "crushing",
+    "endgame",
+    "knightEndgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame",
+     "knightEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.6666666666666666,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b4b5",
+   "answer_explanation": "Pushes the pawn to create a queenside majority and restrict Black's knight on c3. It also fixes the black pawn on b6 as a target and prevents any counterplay with ...c5 from Black. White's king is safe and the central structure is stable, so activating the queenside pawns is the clearest plan.",
+   "answer_raw": "b5  \nwhy: Pushes the pawn to create a queenside majority and restrict Black's knight on c3. It also fixes the black pawn on b6 as a target and prevents any counterplay with ...c5 from Black. White's king is safe and the central structure is stable, so activating the queenside pawns is the clearest plan.",
+   "seq_elo": 1137.8,
+   "fen": "8/2p5/pp1p4/P2Pk2p/1PP1p2P/2n1K2P/3N4/8 w - - 0 46",
+   "setup_san": "b6",
+   "solver_is_white": true,
+   "solution": [
+    "b4b5",
+    "c3d1",
+    "e3e2",
+    "a6b5",
+    "a5a6"
+   ],
+   "solution_first": "b4b5",
+   "game_url": "https://lichess.org/2SrvOtZN/black#90"
+  },
+  {
+   "puzzle_id": "004Ax",
+   "rating": 2064,
+   "themes": [
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "long",
+    "rookEndgame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "exposedKing"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e6f6",
+   "answer_explanation": "This move forks the black king and rook, forcing a trade of rooks and simplifying into a winning pawn endgame for white.",
+   "answer_raw": "Rf6+\n\nwhy: This move forks the black king and rook, forcing a trade of rooks and simplifying into a winning pawn endgame for white.",
+   "seq_elo": 1137.7,
+   "fen": "8/5k2/4R2p/p7/5rPK/8/7P/8 w - - 3 43",
+   "setup_san": "Kf7",
+   "solver_is_white": true,
+   "solution": [
+    "e6h6",
+    "f4f6",
+    "h6h7",
+    "f7g6",
+    "h7a7"
+   ],
+   "solution_first": "e6h6",
+   "game_url": "https://lichess.org/x2mMwVJD/black#84"
+  },
+  {
+   "puzzle_id": "006ia",
+   "rating": 2073,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6g4",
+   "answer_explanation": "Ng4 attacks the pinned bishop on h6, which cannot be defended by white's rook on e1 (due to the pin by the black queen on b2). If the bishop moves or is captured, white loses material or gets checkmated (e.g., Qxh6 followed by Qxg2#).",
+   "answer_raw": "Ng4\nwhy: Ng4 attacks the pinned bishop on h6, which cannot be defended by white's rook on e1 (due to the pin by the black queen on b2). If the bishop moves or is captured, white loses material or gets checkmated (e.g., Qxh6 followed by Qxg2#).",
+   "seq_elo": 1137.7,
+   "fen": "1r4k1/4bpp1/1rp2n1B/3p4/3P4/2N3P1/Pq2QPKP/2R1R3 b - - 0 24",
+   "setup_san": "Bxh6",
+   "solver_is_white": false,
+   "solution": [
+    "b2e2",
+    "e1e2",
+    "e7a3",
+    "h6e3",
+    "a3c1"
+   ],
+   "solution_first": "b2e2",
+   "game_url": "https://lichess.org/fcKXrUhC#47"
+  },
+  {
+   "puzzle_id": "00JH5",
+   "rating": 2082,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "queenEndgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame",
+     "queenEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.5,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c7c4",
+   "answer_explanation": "This move captures Black's queen, exchanging the only major pieces on the board. It eliminates Black's primary source of counterplay and attack. The resulting pawn endgame is winning for White due to White's outside passed h-pawn and superior king position after the exchange, while the immediate threats are nullified. The alternative king moves all allow ...Qe2+ with a strong initiative for Black.",
+   "answer_raw": "Qxc4\n\nwhy: This move captures Black's queen, exchanging the only major pieces on the board. It eliminates Black's primary source of counterplay and attack. The resulting pawn endgame is winning for White due to White's outside passed h-pawn and superior king position after the exchange, while the immediate threats are nullified. The alternative king moves all allow ...Qe2+ with a strong initiative for Black.",
+   "seq_elo": 1137.6,
+   "fen": "8/2Q2pk1/8/3pp2P/2q5/2P5/KP6/8 w - - 2 37",
+   "setup_san": "Qc4+",
+   "solver_is_white": true,
+   "solution": [
+    "c7c4",
+    "d5c4",
+    "b2b4"
+   ],
+   "solution_first": "c7c4",
+   "game_url": "https://lichess.org/1co2FGQN/black#72"
+  },
+  {
+   "puzzle_id": "00IpT",
+   "rating": 2130,
+   "themes": [
+    "crushing",
+    "hangingPiece",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "hangingPiece"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6e7",
+   "answer_explanation": "Qxe7+ forces the black king to capture, removing a defender and opening up a potential discovered check with Nd8+. The queen exchange also eliminates Black's powerful queen on d2, which is threatening mate, and simplifies to a winning endgame with a large material advantage.",
+   "answer_raw": "Qxe7+ (f6e7)\n\nwhy: Qxe7+ forces the black king to capture, removing a defender and opening up a potential discovered check with Nd8+. The queen exchange also eliminates Black's powerful queen on d2, which is threatening mate, and simplifies to a winning endgame with a large material advantage.",
+   "seq_elo": 1137.5,
+   "fen": "r1b4r/pppkn2p/3pNQ2/8/2BpP2p/8/PPPq2PP/R5K1 w - - 3 22",
+   "setup_san": "Kd7",
+   "solver_is_white": true,
+   "solution": [
+    "f6h8",
+    "d7c6",
+    "h8e8"
+   ],
+   "solution_first": "f6h8",
+   "game_url": "https://lichess.org/pxYUaQJx/black#42"
+  },
+  {
+   "puzzle_id": "000qP",
+   "rating": 2164,
+   "themes": [
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "long",
+    "skewer"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "exposedKing",
+     "skewer"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e4d3",
+   "answer_explanation": "This check forces the white king to move, disrupting the coordination between the white rooks and king. After Kf1 (or Ke1), Black can play Rf2+ further harassing the white king and increasing pressure, while the bishop on d3 also eyes the pawn on h7.",
+   "answer_raw": "Bd3+\n\nwhy: This check forces the white king to move, disrupting the coordination between the white rooks and king. After Kf1 (or Ke1), Black can play Rf2+ further harassing the white king and increasing pressure, while the bishop on d3 also eyes the pawn on h7.",
+   "seq_elo": 1137.5,
+   "fen": "8/7R/8/5p2/4bk1P/8/2r5/5KR1 b - - 8 51",
+   "setup_san": "Kf1",
+   "solver_is_white": false,
+   "solution": [
+    "f4f3",
+    "f1e1",
+    "c2c1",
+    "e1d2",
+    "c1g1"
+   ],
+   "solution_first": "f4f3",
+   "game_url": "https://lichess.org/r4xUR6fC#101"
+  },
+  {
+   "puzzle_id": "003md",
+   "rating": 2171,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "middlegame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g3e2",
+   "answer_explanation": "This check attacks the white king and knight on g1, forcing the king to move to h1 (the only legal move). After Kh1, Black can follow up with Qh1# as the white queen on d1 is blocking the king's escape, delivering checkmate.",
+   "answer_raw": "Ne2+\n\nwhy: This check attacks the white king and knight on g1, forcing the king to move to h1 (the only legal move). After Kh1, Black can follow up with Qh1# as the white queen on d1 is blocking the king's escape, delivering checkmate.",
+   "seq_elo": 1137.4,
+   "fen": "r1b1k2N/ppp3pp/2n5/2bp4/7q/1B4n1/PPPP1P1P/RNBQR1K1 b q - 1 10",
+   "setup_san": "Re1+",
+   "solver_is_white": false,
+   "solution": [
+    "g3e4",
+    "e1e4",
+    "d5e4",
+    "d1h5",
+    "h4h5",
+    "b3f7",
+    "h5f7"
+   ],
+   "solution_first": "g3e4",
+   "game_url": "https://lichess.org/ALtR2fxT#19"
+  },
+  {
+   "puzzle_id": "008LT",
+   "rating": 2188,
+   "themes": [
+    "crushing",
+    "kingsideAttack",
+    "middlegame",
+    "pin",
+    "sacrifice",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "kingsideAttack",
+     "pin",
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6g4",
+   "answer_explanation": "Ng4 attacks the queen on h4, forcing it to move or be captured. This relieves the pressure on White's position and allows the knight to reposition more actively. Additionally, it prevents Qg3+ by Black, which would be a dangerous check.",
+   "answer_raw": "Ng4\n\nwhy: Ng4 attacks the queen on h4, forcing it to move or be captured. This relieves the pressure on White's position and allows the knight to reposition more actively. Additionally, it prevents Qg3+ by Black, which would be a dangerous check.",
+   "seq_elo": 1137.4,
+   "fen": "r4r1k/6p1/b3p1nN/p1pp4/1p3P1q/3P1Q1B/PPP2PK1/R6R w - - 1 27",
+   "setup_san": "Kh8",
+   "solver_is_white": true,
+   "solution": [
+    "h6f7",
+    "f8f7",
+    "h3e6"
+   ],
+   "solution_first": "h6f7",
+   "game_url": "https://lichess.org/vnxisKeU/black#52"
+  },
+  {
+   "puzzle_id": "001u3",
+   "rating": 2190,
+   "themes": [
+    "advantage",
+    "hangingPiece",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "hangingPiece"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a6c4",
+   "answer_explanation": "This move wins the knight on c4 and forces a trade that simplifies to a favorable endgame. If Black takes back with dxc4, White recaptures with Nxe6, forking the rook and bishop, winning material and leaving White up a piece. Other moves allow Black to maintain counterplay.",
+   "answer_raw": "Qxc4+ (a6c4)\n\nwhy: This move wins the knight on c4 and forces a trade that simplifies to a favorable endgame. If Black takes back with dxc4, White recaptures with Nxe6, forking the rook and bishop, winning material and leaving White up a piece. Other moves allow Black to maintain counterplay.",
+   "seq_elo": 1137.3,
+   "fen": "2r3k1/p4pp1/Qq2p2p/b1Np4/2nP1P2/4P1P1/5K1P/2B1N3 w - - 4 34",
+   "setup_san": "Qb6",
+   "solver_is_white": true,
+   "solution": [
+    "a6c8",
+    "g8h7",
+    "c8b7"
+   ],
+   "solution_first": "a6c8",
+   "game_url": "https://lichess.org/BBn6ipaK/black#66"
+  },
+  {
+   "puzzle_id": "007gO",
+   "rating": 2197,
+   "themes": [
+    "crushing",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e5h2",
+   "answer_explanation": "The queen captures the pawn on h2 delivering check. This forces the king to move (Kh1), after which Rc2 will follow, threatening a deadly check on the back rank (Rc1#) which cannot be adequately defended. Black's attack is decisive due to the exposed position of the white king and the coordination of the black queen and rooks.",
+   "answer_raw": "Qxh2+  \nwhy: The queen captures the pawn on h2 delivering check. This forces the king to move (Kh1), after which Rc2 will follow, threatening a deadly check on the back rank (Rc1#) which cannot be adequately defended. Black's attack is decisive due to the exposed position of the white king and the coordination of the black queen and rooks.",
+   "seq_elo": 1137.3,
+   "fen": "2r3rk/5p2/4p2p/4q3/1Q6/8/1P3PPP/2R2RK1 b - - 1 31",
+   "setup_san": "Rac1",
+   "solver_is_white": false,
+   "solution": [
+    "e5g5",
+    "g2g3",
+    "c8c1"
+   ],
+   "solution_first": "e5g5",
+   "game_url": "https://lichess.org/id1brvZc#61"
+  },
+  {
+   "puzzle_id": "00Aok",
+   "rating": 2236,
+   "themes": [
+    "crushing",
+    "intermezzo",
+    "middlegame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "intermezzo"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4d1",
+   "answer_explanation": "Pinning the rook on f1 to the white king forces immediate concessions (either losing the exchange or allowing further simplification). This is a more forcing and decisive follow-up to the initial piece capture threat than other moves.",
+   "answer_raw": "Bd1+\nwhy: Pinning the rook on f1 to the white king forces immediate concessions (either losing the exchange or allowing further simplification). This is a more forcing and decisive follow-up to the initial piece capture threat than other moves.",
+   "seq_elo": 1137.3,
+   "fen": "5rk1/Q2B1R1p/4p1p1/3p4/3N2b1/2q5/Pr4PP/5RK1 b - - 0 23",
+   "setup_san": "Rxf7",
+   "solver_is_white": false,
+   "solution": [
+    "c3e3",
+    "g1h1",
+    "f8f7",
+    "a7a8",
+    "g8g7",
+    "f1f7",
+    "g7f7",
+    "a8e8",
+    "f7f6"
+   ],
+   "solution_first": "c3e3",
+   "game_url": "https://lichess.org/kVjMAqKr#45"
+  },
+  {
+   "puzzle_id": "003Ec",
+   "rating": 2245,
+   "themes": [
+    "crushing",
+    "long",
+    "middlegame",
+    "pin"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e5f5",
+   "answer_explanation": "This is a forced mate sequence. Capturing the queen with check forces the black king to recapture (gxf5), then Rg7+ Kh6 (only move) followed by Rh7#. Any delay allows Black to escape or counterattack.",
+   "answer_raw": "Qxf5+\n\nwhy: This is a forced mate sequence. Capturing the queen with check forces the black king to recapture (gxf5), then Rg7+ Kh6 (only move) followed by Rh7#. Any delay allows Black to escape or counterattack.",
+   "seq_elo": 1137.2,
+   "fen": "3r4/p4R2/1pb2Pp1/n1p1Qqkp/8/P7/1P4PP/6RK w - - 3 33",
+   "setup_san": "Qf5",
+   "solver_is_white": true,
+   "solution": [
+    "e5e3",
+    "f5f4",
+    "h2h4",
+    "g5f5",
+    "e3h3"
+   ],
+   "solution_first": "e5e3",
+   "game_url": "https://lichess.org/qnd2dxXz/black#64"
+  },
+  {
+   "puzzle_id": "00FHO",
+   "rating": 2248,
+   "themes": [
+    "crushing",
+    "endgame",
+    "rookEndgame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ]
+   },
+   "solved": false,
+   "score": 0.25,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c1c3",
+   "answer_explanation": "This check forces the white king to move to e2 or f2, after which Black can play Rd3 (or similar) attacking the white d5 pawn and potentially preparing to push connected passers with ...c6 and ...b5. This activates the rook and creates threats that restrict White's king and rook.",
+   "answer_raw": "Rc3+\n\nwhy: This check forces the white king to move to e2 or f2, after which Black can play Rd3 (or similar) attacking the white d5 pawn and potentially preparing to push connected passers with ...c6 and ...b5. This activates the rook and creates threats that restrict White's king and rook.",
+   "seq_elo": 1137.2,
+   "fen": "8/1pp5/p2p3p/3P1Pk1/P5P1/1P3K1R/8/2r5 b - - 2 39",
+   "setup_san": "Kf3",
+   "solver_is_white": false,
+   "solution": [
+    "c1c3",
+    "f3g2",
+    "c3h3",
+    "g2h3",
+    "h6h5",
+    "g4h5",
+    "g5h5"
+   ],
+   "solution_first": "c1c3",
+   "game_url": "https://lichess.org/0KBMAMQh#77"
+  },
+  {
+   "puzzle_id": "00Gz6",
+   "rating": 2264,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "long",
+    "pin"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "fork",
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d5e7",
+   "answer_explanation": "This check forks the black king and rook. Black's only legal move is to capture the knight with their queen (Kf7 or Ke8/Qxe7 are illegal since Ke8 is check from the rook), so after ...Qxe7, White plays Rg7+, winning the black queen due to the pin against the king.",
+   "answer_raw": "Ne7+\n\nwhy: This check forks the black king and rook. Black's only legal move is to capture the knight with their queen (Kf7 or Ke8/Qxe7 are illegal since Ke8 is check from the rook), so after ...Qxe7, White plays Rg7+, winning the black queen due to the pin against the king.",
+   "seq_elo": 1137.2,
+   "fen": "r7/p4kp1/1p4p1/2qNn3/Q7/4PP2/PP3K2/6R1 w - - 1 26",
+   "setup_san": "Qc5",
+   "solver_is_white": true,
+   "solution": [
+    "a4f4",
+    "f7e6",
+    "f4e4",
+    "a8f8",
+    "g1g6"
+   ],
+   "solution_first": "a4f4",
+   "game_url": "https://lichess.org/F80hPRFE/black#50"
+  },
+  {
+   "puzzle_id": "00EJb",
+   "rating": 2288,
+   "themes": [
+    "advantage",
+    "endgame",
+    "pin",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d1g1",
+   "answer_explanation": "This move forces White's king to h2 (or h3 if allowed, but only h2 is legal), after which Black can follow up with Qxf2# checkmate. The rook check eliminates the king's escape squares and sets up the decisive queen capture.",
+   "answer_raw": "Rg1+\n\nwhy: This move forces White's king to h2 (or h3 if allowed, but only h2 is legal), after which Black can follow up with Qxf2# checkmate. The rook check eliminates the king's escape squares and sets up the decisive queen capture.",
+   "seq_elo": 1137.2,
+   "fen": "6k1/5pp1/2R1p2p/8/P1B5/1P4P1/1q3QKP/3r4 b - - 2 35",
+   "setup_san": "Kg2",
+   "solver_is_white": false,
+   "solution": [
+    "d1d2",
+    "c6c8",
+    "g8h7",
+    "c4d3",
+    "f7f5",
+    "c8c2",
+    "d2f2"
+   ],
+   "solution_first": "d1d2",
+   "game_url": "https://lichess.org/ki9WEgCM#69"
+  },
+  {
+   "puzzle_id": "00D12",
+   "rating": 2293,
+   "themes": [
+    "crushing",
+    "endgame",
+    "long",
+    "rookEndgame"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d3e3",
+   "answer_explanation": "The move Ke3 defends the rook on e2 and prepares to centralize the king, which is crucial in the endgame. It avoids any immediate tactics involving checks or threats from Black's rook on b3 and king on d5, and sets the stage to eventually push the passed e-pawn.",
+   "answer_raw": "Ke3\n\nwhy: The move Ke3 defends the rook on e2 and prepares to centralize the king, which is crucial in the endgame. It avoids any immediate tactics involving checks or threats from Black's rook on b3 and king on d5, and sets the stage to eventually push the passed e-pawn.",
+   "seq_elo": 1137.1,
+   "fen": "8/6pp/8/3kP3/1p1P2P1/1rpK3P/4R3/8 w - - 0 40",
+   "setup_san": "Rxb3",
+   "solver_is_white": true,
+   "solution": [
+    "e5e6",
+    "c3c2",
+    "d3c2",
+    "b3c3",
+    "c2d2"
+   ],
+   "solution_first": "e5e6",
+   "game_url": "https://lichess.org/iC0vC5to/black#78"
+  },
+  {
+   "puzzle_id": "0072T",
+   "rating": 2320,
+   "themes": [
+    "advantage",
+    "kingsideAttack",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d8d6",
+   "answer_explanation": "Black captures the advanced white pawn on d6, which is threatening to promote. After 1... Qxd6, White's knight on c7 is also hanging. If White recaptures with 2. Nxe8 (or 2. Qxd6 Nxd6), Black recaptures with 2... Qxe8, winning a pawn and clearing White's strong central knight. Black's position becomes solid with a clear material advantage, while White's pieces remain uncoordinated.",
+   "answer_raw": "Qxd6\nwhy: Black captures the advanced white pawn on d6, which is threatening to promote. After 1... Qxd6, White's knight on c7 is also hanging. If White recaptures with 2. Nxe8 (or 2. Qxd6 Nxd6), Black recaptures with 2... Qxe8, winning a pawn and clearing White's strong central knight. Black's position becomes solid with a clear material advantage, while White's pieces remain uncoordinated.",
+   "seq_elo": 1137.1,
+   "fen": "3q1nk1/1bN2rpp/pp1P4/8/3Nn2b/8/PPP2PPP/R1BQ1RK1 b - - 2 16",
+   "setup_san": "Nd4",
+   "solver_is_white": false,
+   "solution": [
+    "h4f2",
+    "f1f2",
+    "e4f2"
+   ],
+   "solution_first": "h4f2",
+   "game_url": "https://lichess.org/aqhibPRF#31"
+  },
+  {
+   "puzzle_id": "006XF",
+   "rating": 2371,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame",
+    "pin"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h5f7",
+   "answer_explanation": "This queen check forces the black king to the corner (Kh8), after which White can play Bh6+ with a crushing attack, as g7 is pinned by the queen and the rook on h8 is overloaded. Black has no good defense; for example, ...g6 allows Qxh8# or Bxg6+ winning the rook.",
+   "answer_raw": "Qf7+  \nwhy: This queen check forces the black king to the corner (Kh8), after which White can play Bh6+ with a crushing attack, as g7 is pinned by the queen and the rook on h8 is overloaded. Black has no good defense; for example, ...g6 allows Qxh8# or Bxg6+ winning the rook.",
+   "seq_elo": 1137.1,
+   "fen": "r5kr/pp1qb1p1/2p4p/3pP2Q/3Pb3/2P1B3/PP4PP/R4RK1 w - - 2 18",
+   "setup_san": "Be4",
+   "solver_is_white": true,
+   "solution": [
+    "h5f7",
+    "g8h7",
+    "f1f6",
+    "e7f6",
+    "f7d7"
+   ],
+   "solution_first": "h5f7",
+   "game_url": "https://lichess.org/Ynra1LLE/black#34"
+  },
+  {
+   "puzzle_id": "00APl",
+   "rating": 2390,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6g7",
+   "answer_explanation": "This move forces a queen trade and eliminates the black rook, leaving white in a materially superior endgame with bishop and rook vs. bishop, and simplifies into a winning position while avoiding any counterplay.",
+   "answer_raw": "Qxg7+\n\nwhy: This move forces a queen trade and eliminates the black rook, leaving white in a materially superior endgame with bishop and rook vs. bishop, and simplifies into a winning position while avoiding any counterplay.",
+   "seq_elo": 1137.1,
+   "fen": "5k2/1p4r1/pb2qp1Q/8/8/3B1bP1/PP3P1P/2R3K1 w - - 1 30",
+   "setup_san": "Bb6",
+   "solver_is_white": true,
+   "solution": [
+    "d3c4",
+    "f3d5",
+    "c4d5",
+    "e6d5",
+    "h6f6"
+   ],
+   "solution_first": "d3c4",
+   "game_url": "https://lichess.org/daJYZiK5/black#58"
+  },
+  {
+   "puzzle_id": "00BZ6",
+   "rating": 2449,
+   "themes": [
+    "advantage",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f8d6",
+   "answer_explanation": "This move unpins the black knight on d7 and attacks the white queen, while also opening up the bishop's diagonal for potential activity. It is a developing move that improves piece coordination and puts immediate pressure on White's position.",
+   "answer_raw": "Bd6\n\nwhy: This move unpins the black knight on d7 and attacks the white queen, while also opening up the bishop's diagonal for potential activity. It is a developing move that improves piece coordination and puts immediate pressure on White's position.",
+   "seq_elo": 1137.1,
+   "fen": "1r1r1bk1/3n1p1p/1qp3p1/2N1p3/PpQ1P3/4BP2/4N1PP/1RR3K1 b - - 1 24",
+   "setup_san": "Rfc1",
+   "solver_is_white": false,
+   "solution": [
+    "f8c5",
+    "e3c5",
+    "d7c5"
+   ],
+   "solution_first": "f8c5",
+   "game_url": "https://lichess.org/whBlSZL2#47"
+  },
+  {
+   "puzzle_id": "002e8",
+   "rating": 2463,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "master",
+    "middlegame",
+    "pin",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove",
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d4f5",
+   "answer_explanation": "This move attacks the black queen on e5 while also threatening a fork on g7 if the queen moves. Black's queen is undefended, so Nf5 forces either a queen move or an exchange that wins the queen for a knight, improving White's position decisively.",
+   "answer_raw": "Nf5\n\nwhy: This move attacks the black queen on e5 while also threatening a fork on g7 if the queen moves. Black's queen is undefended, so Nf5 forces either a queen move or an exchange that wins the queen for a knight, improving White's position decisively.",
+   "seq_elo": 1137.1,
+   "fen": "3rnrk1/1b3pp1/4pb2/p3q3/1p1N4/3B2R1/PPPQN2P/1K4R1 w - - 2 24",
+   "setup_san": "Rd8",
+   "solver_is_white": true,
+   "solution": [
+    "d2h6",
+    "g7g6",
+    "g3h3"
+   ],
+   "solution_first": "d2h6",
+   "game_url": "https://lichess.org/ygzu5djr/black#46"
+  },
+  {
+   "puzzle_id": "00BKa",
+   "rating": 2482,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c7c8",
+   "answer_explanation": "The rook on c7 is hanging after the black rook moves. Capturing the rook on c8 delivers check, forcing the black king to recapture and winning material. Black can't avoid this, as any other king move loses the queen on a2 to Qd5+. After ...Kxc8, White can play Qd5+ forking the king and queen, winning the black queen.",
+   "answer_raw": "Rxc8+ (c7c8)\n\nwhy: The rook on c7 is hanging after the black rook moves. Capturing the rook on c8 delivers check, forcing the black king to recapture and winning material. Black can't avoid this, as any other king move loses the queen on a2 to Qd5+. After ...Kxc8, White can play Qd5+ forking the king and queen, winning the black queen.",
+   "seq_elo": 1137.1,
+   "fen": "2r3k1/p1Rb1ppp/2n1pn2/8/8/2P3P1/q4PBP/1rNQK2R w K - 3 17",
+   "setup_san": "Rc8",
+   "solver_is_white": true,
+   "solution": [
+    "c7c8",
+    "d7c8",
+    "c1a2",
+    "b1d1",
+    "e1d1"
+   ],
+   "solution_first": "c7c8",
+   "game_url": "https://lichess.org/0bBHtpd4/black#32"
+  },
+  {
+   "puzzle_id": "00GHw",
+   "rating": 2496,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ]
+   },
+   "solved": false,
+   "score": 0.25,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c3e5",
+   "answer_explanation": "This check forces the black king to move, winning a pawn and opening up lines for the white pieces. After the king moves, White can follow up with Rd7+ or other threats, maintaining a strong initiative and exposing Black's king.",
+   "answer_raw": "Qxe5+  \nwhy: This check forces the black king to move, winning a pawn and opening up lines for the white pieces. After the king moves, White can follow up with Rd7+ or other threats, maintaining a strong initiative and exposing Black's king.",
+   "seq_elo": 1137.1,
+   "fen": "r1bq1r2/1p4kp/4p1p1/1NpPp1P1/2P1P3/pPQ4B/P7/2KR3n w - - 0 22",
+   "setup_san": "Nxh1",
+   "solver_is_white": true,
+   "solution": [
+    "c3e5",
+    "g7g8",
+    "d5e6",
+    "d8e7",
+    "d1h1",
+    "e7g7",
+    "e5g7"
+   ],
+   "solution_first": "c3e5",
+   "game_url": "https://lichess.org/VU9ATvfr/black#42"
+  },
+  {
+   "puzzle_id": "00H5n",
+   "rating": 2498,
+   "themes": [
+    "advantage",
+    "endgame",
+    "pin",
+    "quietMove",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "pin",
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f7g7",
+   "answer_explanation": "This move forces checkmate. After Rxg7, the knight on f2 is pinned by the queen on b2, so Black cannot recapture. If Black moves the king to h8, then Qg7# is mate. The immediate Rxg7+ decoys the black rook and leads to an unstoppable mate in two.",
+   "answer_raw": "Qg7+ (f7g7)\n\nwhy: This move forces checkmate. After Rxg7, the knight on f2 is pinned by the queen on b2, so Black cannot recapture. If Black moves the king to h8, then Qg7# is mate. The immediate Rxg7+ decoys the black rook and leads to an unstoppable mate in two.",
+   "seq_elo": 1137.1,
+   "fen": "8/5Rpk/3p3p/p1qPp3/P7/5N1P/1Q3nPK/2r5 w - - 0 36",
+   "setup_san": "Nxf2",
+   "solver_is_white": true,
+   "solution": [
+    "b2b7",
+    "c1h1",
+    "h2g3",
+    "f2e4",
+    "g3g4",
+    "e4f6",
+    "f7f6",
+    "c5b4",
+    "b7b4"
+   ],
+   "solution_first": "b2b7",
+   "game_url": "https://lichess.org/84oSZ8O3/black#70"
+  },
+  {
+   "puzzle_id": "006NL",
+   "rating": 2545,
+   "themes": [
+    "advancedPawn",
+    "advantage",
+    "middlegame",
+    "pin",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "advancedPawn",
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a7b7",
+   "answer_explanation": "Moving the king to b7 defends the knight on c4 and unpins the bishop on g7, while also connecting the rooks in the future. It avoids losing material after moves like Qf2xc4, maintains the pressure on the white knight on c6, and keeps the black king relatively safe on the queenside.",
+   "answer_raw": "Kb7\n\nwhy: Moving the king to b7 defends the knight on c4 and unpins the bishop on g7, while also connecting the rooks in the future. It avoids losing material after moves like Qf2xc4, maintains the pressure on the white knight on c6, and keeps the black king relatively safe on the queenside.",
+   "seq_elo": 1137.1,
+   "fen": "1r6/k2qn1b1/p1N1p1p1/2PpPpN1/2n2P1P/p4B2/1PP2Q2/1K1R3R b - - 0 32",
+   "setup_san": "Nxc6+",
+   "solver_is_white": false,
+   "solution": [
+    "e7c6",
+    "b2b3",
+    "a3a2",
+    "b1a1",
+    "c4e5",
+    "f4e5",
+    "g7e5",
+    "a1a2",
+    "b8b5"
+   ],
+   "solution_first": "e7c6",
+   "game_url": "https://lichess.org/yA3M5Q6W#63"
+  },
+  {
+   "puzzle_id": "00CNA",
+   "rating": 2557,
+   "themes": [
+    "crushing",
+    "opening",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "opening"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g5f7",
+   "answer_explanation": "This move forks the king and rook, forcing the black king to move and winning the rook on f8. It is a forcing tactic that yields a decisive material advantage.",
+   "answer_raw": "Nf7+  \nwhy: This move forks the king and rook, forcing the black king to move and winning the rook on f8. It is a forcing tactic that yields a decisive material advantage.",
+   "seq_elo": 1137.1,
+   "fen": "rnbq1r1k/pp1n2b1/3pB1p1/4P1N1/5P2/2p5/PPP3P1/R1BQK3 w Q - 2 14",
+   "setup_san": "Kh8",
+   "solver_is_white": true,
+   "solution": [
+    "d1d3",
+    "d8g5",
+    "f4g5"
+   ],
+   "solution_first": "d1d3",
+   "game_url": "https://lichess.org/FSuTnQiL/black#26"
+  },
+  {
+   "puzzle_id": "00DzI",
+   "rating": 2590,
+   "themes": [
+    "bishopEndgame",
+    "crushing",
+    "endgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "bishopEndgame",
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.3333333333333333,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6g5",
+   "answer_explanation": "Black\u2019s king moves aggressively toward the vulnerable white pawns on g4 and h2. After Kg5, it threatens to capture g4 next move, which would create a passed e-pawn and win material while the white king is too far away to defend both wings. White\u2019s bishop cannot adequately defend the pawns because it is tied down to guarding d4 and f3. This move improves Black\u2019s king activity and creates decisive threats.",
+   "answer_raw": "Kg5\n\nwhy: Black\u2019s king moves aggressively toward the vulnerable white pawns on g4 and h2. After Kg5, it threatens to capture g4 next move, which would create a passed e-pawn and win material while the white king is too far away to defend both wings. White\u2019s bishop cannot adequately defend the pawns because it is tied down to guarding d4 and f3. This move improves Black\u2019s king activity and creates decisive threats.",
+   "seq_elo": 1137.0,
+   "fen": "8/2p5/2P2k1p/2K1p3/3p2P1/3B1p2/7P/8 b - - 0 42",
+   "setup_san": "Kxc5",
+   "solver_is_white": false,
+   "solution": [
+    "f6g5",
+    "c5d5",
+    "g5f4",
+    "h2h4",
+    "f4e3"
+   ],
+   "solution_first": "f6g5",
+   "game_url": "https://lichess.org/5cjWO8nE#83"
+  },
+  {
+   "puzzle_id": "00FOM",
+   "rating": 2594,
+   "themes": [
+    "bishopEndgame",
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "bishopEndgame",
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4f4",
+   "answer_explanation": "This centralizes the king and secures a blockade on the black pawn's queening square (e5). The move prepares to advance the f-pawn while simultaneously preventing any counterplay from Black's king or bishop, as Kf4 cannot be checked. Other king moves allow Black to make progress with ...d4 or ...Ke6.",
+   "answer_raw": "Kf4\n\nwhy: This centralizes the king and secures a blockade on the black pawn's queening square (e5). The move prepares to advance the f-pawn while simultaneously preventing any counterplay from Black's king or bishop, as Kf4 cannot be checked. Other king moves allow Black to make progress with ...d4 or ...Ke6.",
+   "seq_elo": 1137.0,
+   "fen": "8/5k2/8/3pPPB1/1p4K1/8/8/3b4 w - - 1 46",
+   "setup_san": "Bd1+",
+   "solver_is_white": true,
+   "solution": [
+    "g4h4",
+    "d1a4",
+    "e5e6"
+   ],
+   "solution_first": "g4h4",
+   "game_url": "https://lichess.org/9wp9pR0Q/black#90"
+  },
+  {
+   "puzzle_id": "0018S",
+   "rating": 2619,
+   "themes": [
+    "advantage",
+    "endgame",
+    "pin",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b5a3",
+   "answer_explanation": "The queen check Qc3+ is the most forcing and strongest move, which simultaneously attacks the black queen on c2 and pins the black rook on d8 to the king. After 21. Qc3+ Qxc3 (forced, as moving the king loses the rook) 22. Nxc3, White wins the queen and emerges with a decisive material advantage.",
+   "answer_raw": "Nb5a3+? (best move is Na3)\nwhy: The queen check Qc3+ is the most forcing and strongest move, which simultaneously attacks the black queen on c2 and pins the black rook on d8 to the king. After 21. Qc3+ Qxc3 (forced, as moving the king loses the rook) 22. Nxc3, White wins the queen and emerges with a decisive material advantage.",
+   "seq_elo": 1137.0,
+   "fen": "2kr3r/p4p2/1p2p2p/1N1p2p1/3Q4/1P1P4/2q2PPP/5RK1 w - - 0 21",
+   "setup_san": "b6",
+   "solver_is_white": true,
+   "solution": [
+    "d4a1",
+    "a7a5",
+    "f1c1"
+   ],
+   "solution_first": "d4a1",
+   "game_url": "https://lichess.org/H1ARO2GL/black#40"
+  },
+  {
+   "puzzle_id": "004zh",
+   "rating": 2624,
+   "themes": [
+    "advancedPawn",
+    "attraction",
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "intermezzo",
+    "pin",
+    "promotion",
+    "quietMove",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "advancedPawn",
+     "attraction",
+     "exposedKing",
+     "intermezzo",
+     "pin",
+     "promotion",
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "d6g6",
+   "answer_explanation": "This move sacrifices the rook to eliminate the defensive pawn on g6, after which Bxf7+ forces mate. Black can't capture on g6 due to the pinned bishop on e8, and taking with the king allows an immediate checkmate with Rd8#.",
+   "answer_raw": "Rxg6+  \nwhy: This move sacrifices the rook to eliminate the defensive pawn on g6, after which Bxf7+ forces mate. Black can't capture on g6 due to the pinned bishop on e8, and taking with the king allows an immediate checkmate with Rd8#.",
+   "seq_elo": 1137.0,
+   "fen": "4b1k1/4Pr2/3R2pp/1ppBP2q/8/PP4P1/2P4P/3R3K w - - 3 39",
+   "setup_san": "Qh5",
+   "solver_is_white": true,
+   "solution": [
+    "d1f1",
+    "g8g7",
+    "d5f7",
+    "e8f7",
+    "d6d8",
+    "h5e5",
+    "f1f7",
+    "g7f7",
+    "e7e8q",
+    "e5e8",
+    "d8e8"
+   ],
+   "solution_first": "d1f1",
+   "game_url": "https://lichess.org/sYeKSrqj/black#76"
+  },
+  {
+   "puzzle_id": "002e5",
+   "rating": 2632,
+   "themes": [
+    "crushing",
+    "long",
+    "middlegame",
+    "sacrifice"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g4d7",
+   "answer_explanation": "The knight on d7 is pinned by the white queen and cannot be defended due to the pin from the white bishop on d6 (pawn at d6 exerts pressure). Capturing it wins a piece while maintaining the initiative and attacking the black queen, forcing a favorable trade or further gain.",
+   "answer_raw": "Qxd7\n\nwhy: The knight on d7 is pinned by the white queen and cannot be defended due to the pin from the white bishop on d6 (pawn at d6 exerts pressure). Capturing it wins a piece while maintaining the initiative and attacking the black queen, forcing a favorable trade or further gain.",
+   "seq_elo": 1137.0,
+   "fen": "r2q2k1/pp1n2bp/3P2b1/6N1/6Q1/P3P3/6P1/4K2R w K - 2 22",
+   "setup_san": "Kg8",
+   "solver_is_white": true,
+   "solution": [
+    "g4c4",
+    "g8h8",
+    "h1h7",
+    "g6h7",
+    "g5f7"
+   ],
+   "solution_first": "g4c4",
+   "game_url": "https://lichess.org/qaapuG48/black#42"
+  },
+  {
+   "puzzle_id": "00Aul",
+   "rating": 2666,
+   "themes": [
+    "crushing",
+    "endgame",
+    "long",
+    "quietMove"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f6g6",
+   "answer_explanation": "This check forces the black king to move (Kg3, Kf3, or Kxh5). In each case, the discovered attack from the bishop on h6 leads to winning the rook on e8, as the rook on g6 will pin the black rook to the king after the king moves.",
+   "answer_raw": "Rg6+\n\nwhy: This check forces the black king to move (Kg3, Kf3, or Kxh5). In each case, the discovered attack from the bishop on h6 leads to winning the rook on e8, as the rook on g6 will pin the black rook to the king after the king moves.",
+   "seq_elo": 1137.0,
+   "fen": "4r3/1p3R1p/1pb2R1B/8/6k1/8/r6P/6K1 w - - 0 34",
+   "setup_san": "Kxg4",
+   "solver_is_white": true,
+   "solution": [
+    "f7g7",
+    "g4h4",
+    "h6d2",
+    "e8e1",
+    "d2e1"
+   ],
+   "solution_first": "f7g7",
+   "game_url": "https://lichess.org/WWumMDnF/black#66"
+  },
+  {
+   "puzzle_id": "00IKw",
+   "rating": 2710,
+   "themes": [
+    "advantage",
+    "deflection",
+    "endgame",
+    "sacrifice",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "deflection",
+     "sacrifice"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h3g2",
+   "answer_explanation": "This move gives check while forcing the white king into a vulnerable position. It also attacks the rook on d1, and after Kh1, black can follow up with Rxh2# or other threats.",
+   "answer_raw": "Qg2+\nwhy: This move gives check while forcing the white king into a vulnerable position. It also attacks the rook on d1, and after Kh1, black can follow up with Rxh2# or other threats.",
+   "seq_elo": 1137.0,
+   "fen": "3r2k1/pp1P1p1p/6p1/2R1P2r/5P2/6Pq/3Q3P/3R2K1 b - - 2 33",
+   "setup_san": "Qd2",
+   "solver_is_white": false,
+   "solution": [
+    "d8d7",
+    "d2d7",
+    "h3h2",
+    "g1f1",
+    "h2g3",
+    "d7d8",
+    "g8g7",
+    "d8f6",
+    "g7h6",
+    "f6g5",
+    "h5g5"
+   ],
+   "solution_first": "d8d7",
+   "game_url": "https://lichess.org/R6IG9d87#65"
+  },
+  {
+   "puzzle_id": "005jR",
+   "rating": 2785,
+   "themes": [
+    "advancedPawn",
+    "crushing",
+    "endgame",
+    "long",
+    "promotion"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "advancedPawn",
+     "promotion"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c1c5",
+   "answer_explanation": "This move forks the king and queen, forcing White's response and gaining a decisive material advantage. The king cannot capture the queen due to the knight's protection, and moving the king loses the queen on d5.",
+   "answer_raw": "Qc5+\nwhy: This move forks the king and queen, forcing White's response and gaining a decisive material advantage. The king cannot capture the queen due to the knight's protection, and moving the king loses the queen on d5.",
+   "seq_elo": 1137.0,
+   "fen": "8/5p1k/1P4pp/3Qn3/4BP2/6P1/1p2PK1P/2q5 b - - 2 34",
+   "setup_san": "Kf2",
+   "solver_is_white": false,
+   "solution": [
+    "b2b1q",
+    "e4b1",
+    "e5g4",
+    "f2f3",
+    "c1h1"
+   ],
+   "solution_first": "b2b1q",
+   "game_url": "https://lichess.org/ltr8kYV9#67"
+  }
+ ]
+}
