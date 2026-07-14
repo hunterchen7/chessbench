@@ -27,7 +27,7 @@ export function PuzzleDetail() {
 
 function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; apiBase: string | null }) {
 
-  // Record a human outcome both locally (offline Elo) and on the backend (shared
+  // Record a human outcome both locally (offline points) and on the backend (shared
   // leaderboard). `move` is the player's first move; the server verifies it before crediting.
   const recordSolve = (solved: boolean, move: string | null) => {
     humanRecord(id, solved)
@@ -160,7 +160,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-mono text-2xl font-bold">{p.puzzle_id}</h1>
-              <Badge variant="secondary">Elo {p.rating}</Badge>
+              <Badge variant="secondary">Difficulty {p.rating}</Badge>
               <Badge variant="outline" className="capitalize">
                 {p.categories.tier?.[0] ?? "—"}
               </Badge>
@@ -196,12 +196,14 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                 .map((a, i) => {
                   const san = uciToSan(startFen, a.item.answer_move)
                   const open = expanded === i
+                  const hasAudit = Boolean(a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
                   return (
                     <div key={i} className="rounded-md border">
                       <button
                         className="flex w-full items-center gap-3 px-3 py-2 text-left"
                         onClick={() => setExpanded(open ? null : i)}
+                        disabled={!hasAudit}
                       >
                         {a.item.solved ? (
                           <Check className="size-4 shrink-0 text-chart-2" />
@@ -220,13 +222,22 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                             {a.item.failure_reason}
                           </Badge>
                         )}
-                        {a.item.answer_explanation && (
+                        {hasAudit && (
                           <ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                         )}
                       </button>
-                      {open && a.item.answer_explanation && (
-                        <p className="border-t px-3 py-2 text-sm text-muted-foreground">{a.item.answer_explanation}</p>
-                      )}
+                      {open && hasAudit && <div className="space-y-3 border-t p-3">
+                        {a.item.turns?.map((turn, turnIndex) => <details key={`${turn.solver_ply}-${turnIndex}`} className="rounded-md border bg-muted/20" open={turnIndex === 0}>
+                          <summary className="cursor-pointer p-2 text-xs font-medium">Solver move {turn.solver_ply + 1} · {turn.parsed_move ?? "unparsed"}</summary>
+                          <div className="space-y-2 border-t p-2 text-xs">
+                            {turn.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-2">{turn.system_prompt}</pre></div>}
+                            {turn.prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Prompt</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.prompt}</pre></div>}
+                            <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.raw_response ?? "—"}</pre></div>
+                            <div className="flex flex-wrap gap-3 font-mono text-muted-foreground"><span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span><span>${turn.cost_usd.toFixed(5)}</span></div>
+                          </div>
+                        </details>)}
+                        {!a.item.turns?.length && <><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="whitespace-pre-wrap rounded bg-muted/30 p-3 text-xs">{a.item.answer_raw ?? a.item.answer_explanation ?? "—"}</pre></>}
+                      </div>}
                     </div>
                   )
                 })}

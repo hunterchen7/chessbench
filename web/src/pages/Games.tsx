@@ -3,18 +3,22 @@ import { Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { modeFromSlug } from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
+import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function Games() {
   const { tournaments } = useData()
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Games</h1>
-        <p className="mt-1 text-muted-foreground">
-          Round-robin tournaments where models play both colours. Open one to see standings, the crosstable, and a
-          move-by-move replay of every game.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Stateful games</h1>
+          <p className="mt-1 max-w-3xl text-muted-foreground">
+            Match-point tournaments with both colours, configurable illegal-move handling, and auditable model transcripts.
+            The canonical setup keeps one chat per game and re-sends the authoritative position every turn.
+          </p>
+        </div>
+        <ExportButton track="game" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -33,6 +37,7 @@ export function Games() {
                       {modeFromSlug(t.condition_slug)!.n}. {modeFromSlug(t.condition_slug)!.name}
                     </Badge>
                   )}
+                  {t.condition_slug?.includes("hybrid") && <Badge variant="secondary" className="text-xs font-normal">stateful hybrid</Badge>}
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -46,7 +46,6 @@ export interface PuzzleItem {
   answer_move: string | null
   answer_explanation: string | null
   answer_raw: string | null
-  seq_elo?: number
   fen: string
   setup_san?: string
   solver_is_white: boolean
@@ -56,6 +55,18 @@ export interface PuzzleItem {
   moves_played?: string[]
   solver_plies?: number
   plies_correct?: number
+  turns?: Array<{
+    solver_ply: number
+    system_prompt?: string | null
+    prompt?: string | null
+    raw_response?: string | null
+    parsed_move?: string | null
+    explanation?: string | null
+    prompt_tokens: number
+    completion_tokens: number
+    reasoning_tokens: number
+    cost_usd: number
+  }>
 }
 
 export interface RunSummary {

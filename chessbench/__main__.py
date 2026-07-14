@@ -334,15 +334,6 @@ def cmd_suite_build(args: argparse.Namespace) -> int:
     return 0
 
 
-def _elo_cell(est) -> str:
-    if est is None:
-        return "n/a"
-    if not est.bounded:
-        return f"{'≥' if est.rating >= 2000 else '≤'}{est.rating:.0f}"
-    lo, hi = est.ci95()
-    return f"{est.rating:.0f}±{(hi - lo) / 2:.0f}"
-
-
 def cmd_leaderboard(args: argparse.Namespace) -> int:
     """Points leaderboard on one frozen suite, optionally swept by condition."""
     from .agents import LLMAgent, RandomAgent, StockfishAgent
@@ -589,7 +580,6 @@ def cmd_tournament(args: argparse.Namespace) -> int:
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
     print(f"tournament: {len(model_ids)} models, {args.games} games/pair, condition {condition.game_slug()}\n")
 
-    anchor: dict[str, float] | None = None
     with ExitStack() as stack:
         entries = [TournamentEntry(
             mid,
@@ -602,14 +592,13 @@ def cmd_tournament(args: argparse.Namespace) -> int:
         if args.include_random:
             entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
         eval_engine = None
-        if (args.anchor_elo is not None or args.eval_moves) and find_stockfish():
+        if (args.include_stockfish or args.eval_moves) and find_stockfish():
             eng = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)))
             eval_engine = eng if args.eval_moves else None
-            if args.anchor_elo is not None:
+            if args.include_stockfish:
                 sf = stack.enter_context(StockfishAgent(engine=eng))
                 label = f"stockfish(sk{args.sf_skill})"
-                entries.append(TournamentEntry(label, sf, fixed_rating=args.anchor_elo))
-                anchor = {label: float(args.anchor_elo)}
+                entries.append(TournamentEntry(label, sf))
         openings = None
         if args.openings == "book":
             from .openings import opening_fens
@@ -644,7 +633,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
     if args.save or pusher:
         from .store import TournamentRecord, json_safe, save_tournament
 
-        record = TournamentRecord(result, condition, args.max_plies, anchor=anchor)
+        record = TournamentRecord(result, condition, args.max_plies)
         if args.save:
             save_tournament(record, args.save)
             print(f"saved tournament -> {args.save}")
@@ -765,8 +754,8 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--max-plies", type=int, default=200)
     t.add_argument("--seed", type=int, default=0)
     t.add_argument("--include-random", dest="include_random", action="store_true", help="add a random baseline")
-    t.add_argument("--anchor-elo", dest="anchor_elo", type=float, default=None,
-                   help="pin a Stockfish player to this Elo to set an absolute scale")
+    t.add_argument("--include-stockfish", dest="include_stockfish", action="store_true",
+                   help="add a Stockfish baseline to the match-points table")
     t.add_argument("--sf-nodes", type=int, default=100_000)
     t.add_argument("--sf-skill", type=int, default=3)
     t.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
@@ -786,8 +775,8 @@ def main(argv: list[str] | None = None) -> int:
     t.set_defaults(func=cmd_tournament)
 
     e = sub.add_parser("export", help="write data/index.json listing run records for the web app")
-    e.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
-    e.add_argument("--out", default="webapp/data/index.json")
+    e.add_argument("--runs-dir", dest="runs_dir", default="web/public/data/runs")
+    e.add_argument("--out", default="web/public/data/index.json")
     e.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("sprt", help="A-vs-B with sequential early stopping (SPRT)")
@@ -811,7 +800,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.set_defaults(func=cmd_sprt)
 
     cl = sub.add_parser("category-leaderboard", help="per-category rankings from saved run records")
-    cl.add_argument("--runs-dir", dest="runs_dir", default="webapp/data/runs")
+    cl.add_argument("--runs-dir", dest="runs_dir", default="web/public/data/runs")
     cl.add_argument("--dim", default=None,
                     choices=["tier", "phase", "motif", "mate_pattern", "goal", "length"],
                     help="restrict to one category dimension")

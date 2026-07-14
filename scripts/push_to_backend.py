@@ -8,7 +8,7 @@ ingest endpoints, which upsert them into D1.
 Usage:
     export CHESSBENCH_API=https://chessbench.<subdomain>.workers.dev
     export CHESSBENCH_INGEST_TOKEN=<the INGEST_TOKEN secret>
-    python scripts/push_to_backend.py                     # push webapp/data/{runs,tournaments}
+    python scripts/push_to_backend.py                     # push web/public/data/{runs,tournaments}
     python scripts/push_to_backend.py --runs-dir path --tournaments-dir path
 
 Idempotent: re-pushing a run replaces its rows. Safe to run repeatedly (e.g. after
@@ -23,6 +23,8 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from chessbench.env import load_local_env
 
 RUN_SCHEMA = "chessbench.run.v1"
 TOURNAMENT_SCHEMA = "chessbench.tournament.v1"
@@ -89,11 +91,12 @@ def push_tournaments(api: str, token: str, tdir: Path) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_local_env()
     ap = argparse.ArgumentParser(description="Push runs/tournaments to the chessbench backend.")
     ap.add_argument("--api", default=os.environ.get("CHESSBENCH_API"), help="backend base URL")
     ap.add_argument("--token", default=os.environ.get("CHESSBENCH_INGEST_TOKEN"), help="ingest bearer token")
-    ap.add_argument("--runs-dir", default="webapp/data/runs")
-    ap.add_argument("--tournaments-dir", default="webapp/data/tournaments")
+    ap.add_argument("--runs-dir", default="web/public/data/runs")
+    ap.add_argument("--tournaments-dir", default="web/public/data/tournaments")
     args = ap.parse_args(argv)
 
     if not args.api or not args.token:

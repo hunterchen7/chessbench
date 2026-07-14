@@ -1,5 +1,4 @@
-"""Round-robin tournament: structural correctness (engine-free) and that a
-stronger engine earns a higher game-Elo (engine-gated)."""
+"""Round-robin tournament structure and points ordering."""
 
 import pytest
 
@@ -19,9 +18,8 @@ def test_round_robin_structure():
     res = round_robin(entries, games_per_pair=2, condition=Condition(), config=GameConfig(max_plies=40))
     assert len(res.standings) == 3
     assert len(res.games) == 3 * 2  # 3 pairs, 2 games each
-    # every player has a rating and the right number of games
+    # every player has the right number of games
     for s in res.standings:
-        assert s.rating is not None
         assert s.games == 4  # plays each of the other two twice
     # crosstable is symmetric in counts
     for (a, b), (w, d, ll) in res.crosstable.items():
@@ -80,5 +78,4 @@ def test_stockfish_tops_the_table():
         ]
         res = round_robin(entries, games_per_pair=2, condition=Condition(), config=GameConfig(max_plies=80))
     assert res.standings[0].label == "stockfish"
-    top = res.standings[0].rating
-    assert top is not None and top.rating > res.standings[-1].rating.rating
+    assert res.standings[0].score > res.standings[-1].score

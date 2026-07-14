@@ -1,9 +1,7 @@
-"""Round-robin tournaments among LLMs (and optional engine anchors) -> game Elo.
+"""Round-robin tournaments among LLMs and optional engine baselines.
 
-Every pair plays `games_per_pair` games with alternating colors; each game is one
-observation for the Bradley-Terry fit in `chessbench.rating.tournament_elo`. A
-fixed-rating engine anchor (e.g. Stockfish pinned to a known Elo) puts the whole
-table on an absolute scale; without one, ratings are centered on `anchor`.
+Every pair plays ``games_per_pair`` games with alternating colors. Standings use
+ordinary match points: one for a win, half for a draw, zero for a loss.
 """
 
 from __future__ import annotations
@@ -17,7 +15,6 @@ import chess
 from ..agents import Agent
 from ..conditions import Condition
 from ..core.engine import Engine
-from ..rating import RatingEstimate, tournament_elo
 from .games import GameConfig, GameRecord, MoveRecord, play_game
 
 
@@ -25,7 +22,6 @@ from .games import GameConfig, GameRecord, MoveRecord, play_game
 class TournamentEntry:
     label: str
     agent: Agent
-    fixed_rating: float | None = None  # set for engine anchors
 
 
 @dataclass
@@ -35,7 +31,6 @@ class Standing:
     draws: int = 0
     losses: int = 0
     illegal_forfeits: int = 0
-    rating: RatingEstimate | None = None
 
     @property
     def games(self) -> int:
@@ -78,7 +73,6 @@ def round_robin(
 
     standings = {e.label: Standing(label=e.label) for e in entries}
     cross: dict[tuple[str, str], list[int]] = {}
-    results_for_elo: list[tuple[str, str, float]] = []
     games: list[GameRecord] = []
 
     def bump(a: str, b: str, wdl_index: int) -> None:
@@ -101,8 +95,6 @@ def round_robin(
             if on_game is not None:
                 on_game(record, idx)
             ws = record.white_score
-            results_for_elo.append((white.label, black.label, ws))
-
             if record.termination == "illegal_forfeit":
                 loser = white.label if record.result == "0-1" else black.label
                 standings[loser].illegal_forfeits += 1
@@ -122,11 +114,6 @@ def round_robin(
                 standings[black.label].draws += 1
                 bump(white.label, black.label, 1)
                 bump(black.label, white.label, 1)
-
-    fixed = {e.label: e.fixed_rating for e in entries if e.fixed_rating is not None}
-    ratings = tournament_elo(results_for_elo, fixed=fixed) if results_for_elo else {}
-    for label, est in ratings.items():
-        standings[label].rating = est
 
     ordered = sorted(standings.values(), key=lambda s: (s.score, s.wins), reverse=True)
     crosstable = {k: (v[0], v[1], v[2]) for k, v in cross.items()}

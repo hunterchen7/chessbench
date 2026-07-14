@@ -73,6 +73,7 @@ function publicRun(row: RunRow) {
       solved: row.solved_items,
       solve_rate: row.completed_items ? row.solved_items / row.completed_items : 0,
       first_move_legal_rate: row.completed_items ? row.legal_items / row.completed_items : 0,
+      mean_score: row.completed_items ? row.points / row.completed_items : 0,
       points: row.points,
       max_points: row.max_points,
       cost_usd: row.cost_usd,
@@ -117,78 +118,41 @@ export async function getRun(env: Env, id: string): Promise<Response> {
 /** GET /api/puzzles — the position bank with per-puzzle model solve stats. */
 export async function getPuzzles(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT p.puzzle_id, p.rating, p.fen, p.setup_san, p.solver_is_white,
-            p.themes_json, p.categories_json, p.game_url,
-            COUNT(a.puzzle_id) AS total, COALESCE(SUM(a.solved), 0) AS solved
-       FROM puzzles p
-       LEFT JOIN run_answers a ON a.puzzle_id = p.puzzle_id
-       GROUP BY p.puzzle_id
-       ORDER BY p.rating ASC`,
-  ).all<{
-    puzzle_id: string; rating: number; fen: string; setup_san: string | null
-    solver_is_white: number; themes_json: string; categories_json: string; game_url: string | null
-    total: number; solved: number
-  }>()
-  const puzzles = (results ?? []).map((r) => ({
-    puzzle_id: r.puzzle_id,
-    rating: r.rating,
-    fen: r.fen,
-    setup_san: r.setup_san,
-    solver_is_white: !!r.solver_is_white,
-    themes: JSON.parse(r.themes_json),
-    categories: JSON.parse(r.categories_json),
-    game_url: r.game_url,
-    solved: r.solved,
-    total: r.total,
-  }))
+    `SELECT i.item_id AS puzzle_id, MAX(i.payload_json) AS payload_json,
+            COUNT(*) AS total, COALESCE(SUM(i.solved), 0) AS solved
+       FROM benchmark_items_v2 i
+       JOIN benchmark_runs_v2 r USING(run_id)
+      WHERE r.track='puzzle'
+      GROUP BY i.item_id
+      ORDER BY CAST(json_extract(MAX(i.payload_json), '$.rating') AS INTEGER), i.item_id`,
+  ).all<{ puzzle_id: string; payload_json: string; total: number; solved: number }>()
+  const puzzles = (results ?? []).map((r) => {
+    const p = JSON.parse(r.payload_json) as Record<string, unknown>
+    return { ...p, puzzle_id: r.puzzle_id, solved: r.solved, total: r.total }
+  })
   return json({ puzzles })
 }
 
 /** GET /api/puzzles/:id — a position plus how every model answered it. */
 export async function getPuzzle(env: Env, id: string): Promise<Response> {
-  const pos = await env.DB.prepare(
-    `SELECT puzzle_id, rating, fen, setup_san, solver_is_white, solution_json, solution_first,
-            themes_json, categories_json, game_url
-       FROM puzzles WHERE puzzle_id = ?`,
-  ).bind(id).first<{
-    puzzle_id: string; rating: number; fen: string; setup_san: string | null; solver_is_white: number
-    solution_json: string; solution_first: string | null; themes_json: string
-    categories_json: string; game_url: string | null
-  }>()
-  if (!pos) return error(404, "puzzle not found")
   const { results } = await env.DB.prepare(
-    `SELECT run_id, model, condition_slug, solved, score, first_move_legal, failure_reason,
-            answer_move, answer_explanation, seq_elo
-       FROM run_answers WHERE puzzle_id = ?
-       ORDER BY solved DESC, model ASC`,
+    `SELECT i.run_id, r.variant_key AS model, r.condition_slug, i.solved, i.points,
+            i.first_move_legal, i.failure_reason, i.payload_json
+       FROM benchmark_items_v2 i JOIN benchmark_runs_v2 r USING(run_id)
+      WHERE i.item_id=? AND r.track='puzzle'
+      ORDER BY i.solved DESC, r.variant_key ASC`,
   ).bind(id).all<{
-    run_id: string; model: string; condition_slug: string; solved: number; score: number
-    first_move_legal: number; failure_reason: string | null; answer_move: string | null
-    answer_explanation: string | null; seq_elo: number | null
+    run_id: string; model: string; condition_slug: string; solved: number; points: number
+    first_move_legal: number; failure_reason: string | null; payload_json: string
   }>()
-  const position = {
-    puzzle_id: pos.puzzle_id,
-    rating: pos.rating,
-    fen: pos.fen,
-    setup_san: pos.setup_san,
-    solver_is_white: !!pos.solver_is_white,
-    solution: JSON.parse(pos.solution_json),
-    solution_first: pos.solution_first,
-    themes: JSON.parse(pos.themes_json),
-    categories: JSON.parse(pos.categories_json),
-    game_url: pos.game_url,
-  }
-  const answers = (results ?? []).map((a) => ({
-    run_id: a.run_id,
-    model: a.model,
-    condition: a.condition_slug,
-    solved: !!a.solved,
-    score: a.score,
-    first_move_legal: !!a.first_move_legal,
+  const rows = results ?? []
+  if (!rows.length) return error(404, "puzzle not found")
+  const payloads = rows.map((row) => JSON.parse(row.payload_json) as Record<string, unknown>)
+  const position = { ...payloads[0], puzzle_id: id }
+  const answers = rows.map((a, index) => ({
+    ...payloads[index], run_id: a.run_id, model: a.model, condition: a.condition_slug,
+    solved: !!a.solved, score: a.points, first_move_legal: !!a.first_move_legal,
     failure_reason: a.failure_reason,
-    answer_move: a.answer_move,
-    answer_explanation: a.answer_explanation,
-    seq_elo: a.seq_elo,
   }))
   return json({ position, answers })
 }

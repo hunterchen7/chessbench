@@ -78,7 +78,7 @@ export function Esoteric() {
               <TableRow>
                 <TableHead className="w-12 text-center">#</TableHead>
                 <TableHead>Model</TableHead>
-                <TableHead className="text-right">Solved</TableHead>
+                <TableHead className="text-right">Points</TableHead>
                 <TableHead className="text-right">Rate</TableHead>
               </TableRow>
             </TableHeader>
