@@ -7,6 +7,8 @@ import { Puzzles } from "@/pages/Puzzles"
 import { PuzzleDetail } from "@/pages/PuzzleDetail"
 import { Games } from "@/pages/Games"
 import { TournamentDetail } from "@/pages/TournamentDetail"
+import { Esoteric } from "@/pages/Esoteric"
+import { EsotericDetail } from "@/pages/EsotericDetail"
 import { Methodology } from "@/pages/Methodology"
 
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
             <Route path="puzzles/:id" element={<PuzzleDetail />} />
             <Route path="games" element={<Games />} />
             <Route path="games/:file" element={<TournamentDetail />} />
+            <Route path="esoteric" element={<Esoteric />} />
+            <Route path="esoteric/:id" element={<EsotericDetail />} />
             <Route path="methodology" element={<Methodology />} />
           </Route>
         </Routes>

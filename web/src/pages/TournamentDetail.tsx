@@ -40,9 +40,11 @@ export function TournamentDetail() {
   const isLive = t?.status === "live"
   useEffect(() => {
     if (!isLive) return
+    // Poll faster than a single LLM move (~1-1.5s) so the board advances one ply
+    // at a time rather than jumping ahead a full move each refresh.
     const id = setInterval(() => {
       loadTournament(decoded).then(setT).catch(() => {})
-    }, 3000)
+    }, 1200)
     return () => clearInterval(id)
   }, [isLive, decoded])
 

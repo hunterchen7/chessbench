@@ -210,6 +210,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
 
     by_kind: dict[str, list[bool]] = {}
     needs_engine = any(p.answer_shape == "play" for p in problems)
+    items: list[dict[str, object]] = []
 
     with ExitStack() as stack:
         engine = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes))) if needs_engine else None
@@ -218,21 +219,46 @@ def cmd_composed(args: argparse.Namespace) -> int:
             if p.answer_shape == "play":
                 assert engine is not None
                 res = grade_study(study_agent, p.fen, p.goal or "win", engine, condition)
-                solved, detail = res.solved, res.outcome
+                solved, detail, answer = res.solved, res.outcome, ""
             else:
                 r = grade_composed(solver, p, condition)
-                solved, detail = r.solved, r.detail
+                solved, detail, answer = r.solved, r.detail, r.answer
             by_kind.setdefault(p.kind, []).append(solved)
+            items.append({
+                "id": p.id, "kind": p.kind, "label": p.label, "n": p.n, "fen": p.fen,
+                "goal": p.goal, "solution": p.solution, "themes": p.themes,
+                "answer_shape": p.answer_shape, "solved": solved, "answer": answer, "detail": detail,
+            })
             print(f"  {p.id:<14} {p.label:<20} {'SOLVED' if solved else 'failed':<7} {detail}")
 
     print("\nby stipulation:")
     total = solved_total = 0
+    by_kind_summary: dict[str, dict[str, int]] = {}
     for kind, outs in sorted(by_kind.items()):
         s, n = sum(outs), len(outs)
         total += n
         solved_total += s
+        by_kind_summary[kind] = {"solved": s, "n": n}
         print(f"  {kind:<18} {s}/{n}")
     print(f"  {'TOTAL':<18} {solved_total}/{total}")
+
+    if getattr(args, "save_run", None):
+        import json
+        from datetime import datetime, timezone
+
+        doc = {
+            "schema": "chessbench.composed_run.v1",
+            "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "model": args.model or solver.name, "solver": args.solver,
+            "condition": {"slug": condition.slug(), "temperature": condition.temperature},
+            "summary": {"n": total, "solved": solved_total,
+                        "solve_rate": (solved_total / total if total else 0.0), "by_kind": by_kind_summary},
+            "items": items,
+        }
+        Path(args.save_run).parent.mkdir(parents=True, exist_ok=True)
+        with open(args.save_run, "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=1)
+        print(f"\nsaved composed run -> {args.save_run}")
     return 0
 
 
@@ -580,6 +606,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--data", default=str(DEFAULT_COMPOSED))
     c.add_argument("--seed", type=int, default=0)
     c.add_argument("--sf-nodes", type=int, default=120_000, help="engine nodes for study adjudication")
+    c.add_argument("--save-run", dest="save_run", default=None,
+                   help="write a composed-run JSON (per-problem model results) for the web app")
     _add_condition_args(c)
     c.set_defaults(func=cmd_composed)
 

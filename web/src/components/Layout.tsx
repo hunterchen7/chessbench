@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary"
 const NAV = [
   { to: "/", label: "Leaderboard", end: true },
   { to: "/puzzles", label: "Puzzles" },
+  { to: "/esoteric", label: "Esoteric" },
   { to: "/games", label: "Games" },
   { to: "/methodology", label: "Methodology" },
 ]

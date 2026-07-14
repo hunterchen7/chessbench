@@ -27,15 +27,22 @@ const TIERS = ["all", "beginner", "novice", "intermediate", "advanced", "expert"
 
 export function Puzzles() {
   const { puzzleIndex } = useData()
+  type Sort = "rating" | "rating-desc" | "hardest" | "easiest" | "todo"
   const [tier, setTier] = useState("all")
   const [q, setQ] = useState("")
-  const [sort, setSort] = useState<"rating" | "hardest" | "easiest">("rating")
+  const [sort, setSort] = useState<Sort>("rating")
+  const [mine, setMine] = useState<"all" | "unsolved" | "solved">("all")
   const [limit, setLimit] = useState(120)
   const store = humanStore()
 
   const rows = useMemo(() => {
     let list = Array.from(puzzleIndex.values())
     if (tier !== "all") list = list.filter((e) => e.position.categories.tier?.includes(tier))
+    if (mine !== "all")
+      list = list.filter((e) => {
+        const rec = store[e.position.puzzle_id]
+        return mine === "solved" ? rec?.solved : !rec?.solved
+      })
     if (q.trim()) {
       const needle = q.toLowerCase()
       list = list.filter(
@@ -46,10 +53,12 @@ export function Puzzles() {
     }
     list = list.slice()
     if (sort === "rating") list.sort((a, b) => a.position.rating - b.position.rating)
+    else if (sort === "rating-desc") list.sort((a, b) => b.position.rating - a.position.rating)
     else if (sort === "easiest") list.sort((a, b) => solveStats(b).rate - solveStats(a).rate)
-    else list.sort((a, b) => solveStats(a).rate - solveStats(b).rate)
+    else if (sort === "hardest") list.sort((a, b) => solveStats(a).rate - solveStats(b).rate)
+    else list.sort((a, b) => Number(!!store[a.position.puzzle_id]) - Number(!!store[b.position.puzzle_id]) || a.position.rating - b.position.rating)
     return list
-  }, [puzzleIndex, tier, q, sort])
+  }, [puzzleIndex, tier, q, sort, mine, store])
 
   return (
     <div className="space-y-6">
@@ -80,14 +89,26 @@ export function Puzzles() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-          <SelectTrigger className="w-48">
+        <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
+          <SelectTrigger className="w-52">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="rating">Rating: low → high</SelectItem>
+            <SelectItem value="rating-desc">Rating: high → low</SelectItem>
             <SelectItem value="hardest">Hardest for models</SelectItem>
             <SelectItem value="easiest">Easiest for models</SelectItem>
+            <SelectItem value="todo">Your unsolved first</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={mine} onValueChange={(v) => setMine(v as typeof mine)}>
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">You: all</SelectItem>
+            <SelectItem value="unsolved">You: unsolved</SelectItem>
+            <SelectItem value="solved">You: solved</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground">{rows.length} puzzles</span>

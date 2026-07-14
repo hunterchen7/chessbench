@@ -40,7 +40,7 @@ def _game_dict(record: GameRecord, idx: int) -> dict[str, object]:
 class StreamPusher:
     def __init__(self, base_url: str, token: str, tid: str, *,
                  condition_slug: str, players: list[str], created: str,
-                 min_board_interval: float = 0.5) -> None:
+                 min_board_interval: float = 0.2) -> None:
         self.base = base_url.rstrip("/")
         self.token = token
         self.tid = tid
