@@ -1,155 +1,123 @@
 {
  "models": [
   {
-   "label": "command-r7b",
+   "label": "gpt-5.6",
    "provider": "openrouter",
-   "model_id": "cohere/command-r7b-12-2024",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "deepseek-v4-flash",
-   "provider": "openrouter",
-   "model_id": "deepseek/deepseek-v4-flash",
-   "family": "",
-   "notes": "",
-   "enabled": false
-  },
-  {
-   "label": "gpt-4o-mini",
-   "provider": "openrouter",
-   "model_id": "openai/gpt-4o-mini",
+   "model_id": "openai/gpt-5.6-terra",
    "family": "openai",
-   "notes": "cheap baseline; ~$0.00001/call",
+   "notes": "OpenAI GPT-5.6 (terra tier) — frontier flagship",
    "enabled": true
   },
   {
-   "label": "gpt-oss-20b",
+   "label": "gpt-5.6-luna",
    "provider": "openrouter",
-   "model_id": "openai/gpt-oss-20b",
-   "family": "",
-   "notes": "",
+   "model_id": "openai/gpt-5.6-luna",
+   "family": "openai",
+   "notes": "cheaper GPT-5.6 tier ($1/$6)",
    "enabled": true
-  },
-  {
-   "label": "granite-4-micro",
-   "provider": "openrouter",
-   "model_id": "ibm-granite/granite-4.0-h-micro",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "ling-2.6-flash",
-   "provider": "openrouter",
-   "model_id": "inclusionai/ling-2.6-flash",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "llama-3.1-8b",
-   "provider": "openrouter",
-   "model_id": "meta-llama/llama-3.1-8b-instruct",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "llama-3.3-70b",
-   "provider": "openrouter",
-   "model_id": "meta-llama/llama-3.3-70b-instruct",
-   "family": "meta",
-   "notes": "cheap open-weights",
-   "enabled": true
-  },
-  {
-   "label": "mistral-nemo",
-   "provider": "openrouter",
-   "model_id": "mistralai/mistral-nemo",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "nemotron-3-nano",
-   "provider": "openrouter",
-   "model_id": "nvidia/nemotron-3-nano-30b-a3b",
-   "family": "",
-   "notes": "",
-   "enabled": false
-  },
-  {
-   "label": "nova-micro",
-   "provider": "openrouter",
-   "model_id": "amazon/nova-micro-v1",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "phi-4",
-   "provider": "openrouter",
-   "model_id": "microsoft/phi-4",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "qwen2.5-7b",
-   "provider": "openrouter",
-   "model_id": "qwen/qwen-2.5-7b-instruct",
-   "family": "",
-   "notes": "",
-   "enabled": true
-  },
-  {
-   "label": "seed-1.6-flash",
-   "provider": "openrouter",
-   "model_id": "bytedance-seed/seed-1.6-flash",
-   "family": "",
-   "notes": "",
-   "enabled": false
   },
   {
    "label": "sonnet-5",
    "provider": "openrouter",
    "model_id": "anthropic/claude-sonnet-5",
    "family": "anthropic",
-   "notes": "strong reference model (Claude Sonnet 5)",
+   "notes": "Anthropic Claude Sonnet 5",
    "enabled": true
   },
   {
-   "label": "deepseek-v3.2",
+   "label": "gemini-3.5-flash",
    "provider": "openrouter",
-   "model_id": "deepseek/deepseek-v3.2",
+   "model_id": "google/gemini-3.5-flash",
+   "family": "google",
+   "notes": "Google Gemini 3.5 Flash",
+   "enabled": true
+  },
+  {
+   "label": "gemini-3.1-flash-lite",
+   "provider": "openrouter",
+   "model_id": "google/gemini-3.1-flash-lite",
+   "family": "google",
+   "notes": "cheap Google Gemini 3.1 Flash Lite",
+   "enabled": true
+  },
+  {
+   "label": "grok-4.5",
+   "provider": "openrouter",
+   "model_id": "x-ai/grok-4.5",
+   "family": "xai",
+   "notes": "xAI Grok 4.5",
+   "enabled": true
+  },
+  {
+   "label": "deepseek-v4",
+   "provider": "openrouter",
+   "model_id": "deepseek/deepseek-v4-pro",
    "family": "deepseek",
-   "notes": "newer Chinese, cheap + strong",
+   "notes": "DeepSeek V4 Pro — strong + cheap flagship",
    "enabled": true
   },
   {
-   "label": "glm-4.6",
+   "label": "deepseek-v4-flash",
    "provider": "openrouter",
-   "model_id": "z-ai/glm-4.6",
-   "family": "zhipu",
-   "notes": "newer Chinese (Zhipu GLM)",
+   "model_id": "deepseek/deepseek-v4-flash",
+   "family": "deepseek",
+   "notes": "very cheap DeepSeek V4 Flash ($0.09/$0.18)",
    "enabled": true
   },
   {
-   "label": "qwen3-max",
+   "label": "qwen3.7-max",
    "provider": "openrouter",
-   "model_id": "qwen/qwen3-max",
+   "model_id": "qwen/qwen3.7-max",
    "family": "qwen",
-   "notes": "newer Qwen flagship",
+   "notes": "Qwen 3.7 Max flagship",
    "enabled": true
   },
   {
-   "label": "kimi-k2",
+   "label": "glm-5.2",
    "provider": "openrouter",
-   "model_id": "moonshotai/kimi-k2",
+   "model_id": "z-ai/glm-5.2",
+   "family": "zhipu",
+   "notes": "Zhipu GLM-5.2",
+   "enabled": true
+  },
+  {
+   "label": "kimi-k2.6",
+   "provider": "openrouter",
+   "model_id": "moonshotai/kimi-k2.6",
    "family": "moonshot",
-   "notes": "newer Chinese (Moonshot Kimi)",
+   "notes": "Moonshot Kimi K2.6",
+   "enabled": true
+  },
+  {
+   "label": "minimax-m3",
+   "provider": "openrouter",
+   "model_id": "minimax/minimax-m3",
+   "family": "minimax",
+   "notes": "MiniMax M3",
+   "enabled": true
+  },
+  {
+   "label": "llama-4-maverick",
+   "provider": "openrouter",
+   "model_id": "meta-llama/llama-4-maverick",
+   "family": "meta",
+   "notes": "Meta Llama 4 Maverick",
+   "enabled": true
+  },
+  {
+   "label": "mistral-large-2512",
+   "provider": "openrouter",
+   "model_id": "mistralai/mistral-large-2512",
+   "family": "mistral",
+   "notes": "Mistral Large (2512)",
+   "enabled": true
+  },
+  {
+   "label": "nova-2-lite",
+   "provider": "openrouter",
+   "model_id": "amazon/nova-2-lite-v1",
+   "family": "amazon",
+   "notes": "Amazon Nova 2 Lite",
    "enabled": true
   }
  ]
