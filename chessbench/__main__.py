@@ -224,10 +224,19 @@ def cmd_composed(args: argparse.Namespace) -> int:
     from .tasks.composed import grade_composed, load_composed
 
     condition = _base_condition(args)
-    problems = load_composed(args.data)
+    suite_ref = None
+    if args.suite:
+        from .suite import load_suite
+
+        suite = load_suite(args.suite)
+        problems = suite.composed_problems()
+        suite_ref = f"{suite.name} v{suite.version} {suite.content_hash}"
+    else:
+        problems = load_composed(args.data)
     solver = _build_composed_solver(args.solver, args.model, args.seed)
     print(f"solver: {solver.name} | condition: {condition.slug()}")
-    print(f"problems: {len(problems)} from {args.data}\n")
+    origin = f"suite {suite_ref}" if suite_ref else args.data
+    print(f"problems: {len(problems)} from {origin}\n")
 
     by_kind: dict[str, list[bool]] = {}
     needs_engine = any(p.answer_shape == "play" for p in problems)
@@ -725,6 +734,8 @@ def main(argv: list[str] | None = None) -> int:
                    choices=["oracle", "random", "anthropic", "openai", "openrouter"])
     c.add_argument("--model", default=None, help="model id for LLM solvers")
     c.add_argument("--data", default=str(DEFAULT_COMPOSED))
+    c.add_argument("--suite", default=None,
+                   help="run a frozen composed suite instead of the mutable --data source")
     c.add_argument("--seed", type=int, default=0)
     c.add_argument("--sf-nodes", type=int, default=120_000, help="engine nodes for study adjudication")
     c.add_argument("--save-run", dest="save_run", default=None,

@@ -8,6 +8,8 @@ dist/
 venv/
 # large / generated data (keep the small sample fixture that ships with the repo)
 data/puzzles_balanced.csv
+data/lichess_pool*.csv
+data/lichess_pool*.csv.meta.json
 data/*.zst
 logs/
 *.jsonl
@@ -21,6 +23,7 @@ runs/*.db-wal
 
 # private (held-out) benchmark suites — never publish
 suites/private/
+corpora/private/
 
 # webapp debug logs (keep run records + index)
 webapp/data/runs/*.log

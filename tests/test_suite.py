@@ -51,3 +51,15 @@ def test_items_are_rating_stratified():
     ratings = [int(it["rating"]) for it in suite.items]
     assert all(600 <= r < 2800 for r in ratings)
     assert len(set(it["id"] for it in suite.items)) == len(suite.items)  # no duplicates
+
+
+def test_checked_in_composed_suite_loads_as_composed_problems():
+    suite = load_suite(
+        pathlib.Path(__file__).resolve().parent.parent / "suites" / "public" / "esoteric-seed-v1.json"
+    )
+    problems = suite.composed_problems()
+    assert suite.kind == "composed"
+    assert problems
+    assert any(problem.kind == "selfmate" for problem in problems)
+    with pytest.raises(ValueError, match="not puzzle"):
+        suite.puzzles()

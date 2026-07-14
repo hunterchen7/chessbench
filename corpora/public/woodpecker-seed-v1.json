@@ -1,0 +1,1648 @@
+{
+ "name": "woodpecker-seed-v1",
+ "title": "Woodpecker full lines — seed-v1",
+ "version": "1.0.0",
+ "track": "woodpecker",
+ "visibility": "public",
+ "description": "Longer orthodox tactics requiring the entire main line in one response, including forced replies.",
+ "item_type": "puzzle",
+ "sources": [
+  {
+   "id": "lichess-puzzles",
+   "title": "Lichess open puzzle database",
+   "url": "https://database.lichess.org/#puzzles",
+   "license": "CC0-1.0",
+   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "snapshot": "local 500-row seed fixture; upstream date unknown",
+   "notes": "FEN before the setup move; UCI solution begins after applying moves[0]."
+  }
+ ],
+ "selection": {
+  "algorithm": "stable-sha256-priority-within-rating-bands",
+  "seed": 20260714,
+  "rating_bands": [
+   [
+    600,
+    1000
+   ],
+   [
+    1000,
+    1400
+   ],
+   [
+    1400,
+    1800
+   ],
+   [
+    1800,
+    2200
+   ],
+   [
+    2200,
+    2600
+   ]
+  ],
+  "per_band": 12,
+  "minimum_popularity": 80,
+  "minimum_plays": 50,
+  "minimum_solver_plies": 2,
+  "source_pool_sha256": "24782ec5363d0bc20856e24bb9cd1ea42022b400491f49dba80dd22b4acd1a14"
+ },
+ "items": [
+  {
+   "id": "000rO",
+   "fen": "3R4/8/K7/pB2b3/1p6/1P2k3/3p4/8 w - - 4 58",
+   "moves": [
+    "a6a5",
+    "e5c7",
+    "a5b4",
+    "c7d8"
+   ],
+   "rating": 1110,
+   "rating_deviation": 82,
+   "popularity": 85,
+   "nb_plays": 73,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "master",
+    "short"
+   ],
+   "game_url": "https://lichess.org/tzeeBEc2#115",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "0018P",
+   "fen": "5R2/1p6/p1p5/2P1rk2/2K3p1/2P1p1P1/1P5P/8 b - - 1 44",
+   "moves": [
+    "f5e6",
+    "f8e8",
+    "e6f5",
+    "e8e5",
+    "f5e5",
+    "c4d3",
+    "e5d5",
+    "d3e3",
+    "a6a5",
+    "e3f4",
+    "d5c4",
+    "f4g4"
+   ],
+   "rating": 1909,
+   "rating_deviation": 76,
+   "popularity": 91,
+   "nb_plays": 239,
+   "themes": [
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "rookEndgame",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/Xg1Gtfjr/black#88",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "001Fg",
+   "fen": "2R2r1k/pQ4pp/5rp1/3B4/q2n4/7P/P4PP1/5RK1 w - - 3 30",
+   "moves": [
+    "c8c7",
+    "d4e2",
+    "g1h2",
+    "a4f4",
+    "h2h1",
+    "e2g3",
+    "f2g3",
+    "f4f1"
+   ],
+   "rating": 1474,
+   "rating_deviation": 75,
+   "popularity": 96,
+   "nb_plays": 2847,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/y0QalMAw#59",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "001kG",
+   "fen": "rnbq3r/1p2bkpp/p4n2/8/2pNP3/2N5/PPP3PP/R1BQ1RK1 b - - 1 11",
+   "moves": [
+    "e7c5",
+    "d1h5",
+    "f7g8",
+    "h5c5"
+   ],
+   "rating": 1921,
+   "rating_deviation": 76,
+   "popularity": 93,
+   "nb_plays": 1048,
+   "themes": [
+    "advantage",
+    "opening",
+    "pin",
+    "short"
+   ],
+   "game_url": "https://lichess.org/xXAEaVto/black#22",
+   "opening_tags": "Sicilian_Defense Sicilian_Defense_Najdorf_Variation",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "002Ds",
+   "fen": "8/1pp5/p2p4/P2Pk2p/1PP1p2P/2n1K2P/3N4/8 b - - 0 45",
+   "moves": [
+    "b7b6",
+    "b4b5",
+    "c3d1",
+    "e3e2",
+    "a6b5",
+    "a5a6"
+   ],
+   "rating": 1992,
+   "rating_deviation": 76,
+   "popularity": 90,
+   "nb_plays": 116,
+   "themes": [
+    "crushing",
+    "endgame",
+    "knightEndgame",
+    "long"
+   ],
+   "game_url": "https://lichess.org/2SrvOtZN/black#90",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "002Mm",
+   "fen": "rn1qr1k1/ppp3pQ/3p1pP1/3Pp3/2P1P3/8/PP3PP1/R1B1K3 b Q - 2 16",
+   "moves": [
+    "g8f8",
+    "h7h8",
+    "f8e7",
+    "h8g7"
+   ],
+   "rating": 921,
+   "rating_deviation": 82,
+   "popularity": 97,
+   "nb_plays": 240,
+   "themes": [
+    "deflection",
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/wAkPv4uG/black#32",
+   "opening_tags": "Three_Knights_Opening Three_Knights_Opening_Other_variations",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "002O7",
+   "fen": "r3qrk1/2p2pp1/p2bpn1p/2ppNb2/3P1P2/1PP1P1B1/P2N2PP/R2Q1RK1 b - - 0 14",
+   "moves": [
+    "f5g4",
+    "e5g4",
+    "f6g4",
+    "d1g4"
+   ],
+   "rating": 1008,
+   "rating_deviation": 97,
+   "popularity": 91,
+   "nb_plays": 357,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/dFEPPiEc/black#28",
+   "opening_tags": "Queens_Pawn_Game Queens_Pawn_Game_Accelerated_London_System",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "0039T",
+   "fen": "1r5r/p3kp2/4p2p/4P3/3R1Pp1/6P1/P1P4P/4K2R w K - 1 25",
+   "moves": [
+    "d4a4",
+    "b8b1",
+    "e1f2",
+    "b1h1",
+    "a4a7",
+    "e7f8"
+   ],
+   "rating": 1115,
+   "rating_deviation": 87,
+   "popularity": 93,
+   "nb_plays": 830,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "long",
+    "rookEndgame",
+    "skewer"
+   ],
+   "game_url": "https://lichess.org/BrtVeJlj#49",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "003Jb",
+   "fen": "6k1/3bqr1p/2rpp1pR/p7/Pp1QP3/1B3P2/1PP3P1/2KR4 w - - 6 22",
+   "moves": [
+    "d4a7",
+    "e7g5",
+    "c1b1",
+    "g5h6"
+   ],
+   "rating": 993,
+   "rating_deviation": 81,
+   "popularity": 90,
+   "nb_plays": 392,
+   "themes": [
+    "advantage",
+    "fork",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/8RvK0idj#43",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "003S3",
+   "fen": "r4k1r/pNqnppb1/6pn/2p3Np/7P/2P2Q2/PP3PP1/R1B1K2R b KQ - 2 15",
+   "moves": [
+    "a8b8",
+    "g5e6",
+    "f8g8",
+    "e6c7"
+   ],
+   "rating": 1349,
+   "rating_deviation": 74,
+   "popularity": 95,
+   "nb_plays": 14364,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "pin",
+    "short"
+   ],
+   "game_url": "https://lichess.org/Eu6S0GPA/black#30",
+   "opening_tags": "Modern_Defense Modern_Defense_Other_variations",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "003aS",
+   "fen": "8/8/5k1p/6p1/1R4PP/1p2KP2/8/1r6 w - - 0 43",
+   "moves": [
+    "h4h5",
+    "b3b2",
+    "b4b6",
+    "f6e5",
+    "f3f4",
+    "g5f4"
+   ],
+   "rating": 1921,
+   "rating_deviation": 77,
+   "popularity": 93,
+   "nb_plays": 233,
+   "themes": [
+    "advancedPawn",
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "long",
+    "rookEndgame"
+   ],
+   "game_url": "https://lichess.org/I7ZktFeR#85",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "004Ax",
+   "fen": "8/8/4R1kp/p7/5rPK/8/7P/8 b - - 2 42",
+   "moves": [
+    "g6f7",
+    "e6h6",
+    "f4f6",
+    "h6h7",
+    "f7g6",
+    "h7a7"
+   ],
+   "rating": 2064,
+   "rating_deviation": 80,
+   "popularity": 92,
+   "nb_plays": 647,
+   "themes": [
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "long",
+    "rookEndgame"
+   ],
+   "game_url": "https://lichess.org/x2mMwVJD/black#84",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "004Ys",
+   "fen": "r4rk1/3q1pbp/p1n1p1p1/2p3NP/1p3B2/3P3Q/PPP3P1/R3R1K1 b - - 2 19",
+   "moves": [
+    "d7d4",
+    "f4e3",
+    "d4f6",
+    "e1f1",
+    "f6e5",
+    "h5g6",
+    "e5e3",
+    "h3e3"
+   ],
+   "rating": 2383,
+   "rating_deviation": 83,
+   "popularity": 90,
+   "nb_plays": 465,
+   "themes": [
+    "advantage",
+    "defensiveMove",
+    "middlegame",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/LcIJdugn/black#38",
+   "opening_tags": "Sicilian_Defense Sicilian_Defense_McDonnell_Attack",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "005YM",
+   "fen": "5k2/p4pp1/1qn3r1/3pP2p/5P2/1NPQ4/Pr3RPP/R5K1 w - - 5 24",
+   "moves": [
+    "b3d4",
+    "b2f2",
+    "g1f2",
+    "c6d4",
+    "d3d4",
+    "b6b2"
+   ],
+   "rating": 2429,
+   "rating_deviation": 104,
+   "popularity": 90,
+   "nb_plays": 261,
+   "themes": [
+    "advantage",
+    "long",
+    "middlegame"
+   ],
+   "game_url": "https://lichess.org/fDmK2ipV#47",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "005wy",
+   "fen": "1r6/pp2kpp1/2n1p1n1/3p2PQ/5P2/2PqP3/PP1N4/2KR3R w - - 3 27",
+   "moves": [
+    "h5h7",
+    "c6b4",
+    "c3b4",
+    "b8c8",
+    "d2c4",
+    "c8c4"
+   ],
+   "rating": 2031,
+   "rating_deviation": 77,
+   "popularity": 94,
+   "nb_plays": 6885,
+   "themes": [
+    "long",
+    "mate",
+    "mateIn3",
+    "middlegame",
+    "queensideAttack",
+    "sacrifice"
+   ],
+   "game_url": "https://lichess.org/mBQMheB4#53",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "006NL",
+   "fen": "1r6/k2qn1b1/p1b1p1p1/2PpPpN1/2nN1P1P/p4B2/1PP2Q2/1K1R3R w - - 0 32",
+   "moves": [
+    "d4c6",
+    "e7c6",
+    "b2b3",
+    "a3a2",
+    "b1a1",
+    "c4e5",
+    "f4e5",
+    "g7e5",
+    "a1a2",
+    "b8b5"
+   ],
+   "rating": 2545,
+   "rating_deviation": 89,
+   "popularity": 86,
+   "nb_plays": 125,
+   "themes": [
+    "advancedPawn",
+    "advantage",
+    "middlegame",
+    "pin",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/yA3M5Q6W#63",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "006of",
+   "fen": "r2qr2k/1pp2pp1/1b4np/pP2P3/P4n2/BQN2N1P/5PP1/R3R1K1 w - - 3 20",
+   "moves": [
+    "b3f7",
+    "d8d3",
+    "c3e2",
+    "f4e2",
+    "e1e2",
+    "d3e2"
+   ],
+   "rating": 2589,
+   "rating_deviation": 114,
+   "popularity": 89,
+   "nb_plays": 981,
+   "themes": [
+    "advantage",
+    "kingsideAttack",
+    "long",
+    "middlegame"
+   ],
+   "game_url": "https://lichess.org/MIdWd89x#39",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "006yP",
+   "fen": "6R1/8/Kpk1p3/1p1pP3/6P1/PPP1r3/8/8 b - - 3 40",
+   "moves": [
+    "e3c3",
+    "g8c8",
+    "c6d7",
+    "c8c3"
+   ],
+   "rating": 819,
+   "rating_deviation": 89,
+   "popularity": 80,
+   "nb_plays": 152,
+   "themes": [
+    "crushing",
+    "endgame",
+    "master",
+    "rookEndgame",
+    "short",
+    "skewer"
+   ],
+   "game_url": "https://lichess.org/vf9MOLH1/black#80",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "0072T",
+   "fen": "3q1nk1/1bN2rpp/pp1P4/1N6/4n2b/8/PPP2PPP/R1BQ1RK1 w - - 1 16",
+   "moves": [
+    "b5d4",
+    "h4f2",
+    "f1f2",
+    "e4f2"
+   ],
+   "rating": 2320,
+   "rating_deviation": 79,
+   "popularity": 87,
+   "nb_plays": 520,
+   "themes": [
+    "advantage",
+    "kingsideAttack",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/aqhibPRF#31",
+   "opening_tags": "Philidor_Defense Philidor_Defense_Lion_Variation",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00734",
+   "fen": "rn3bk1/2rqp2p/2p3p1/3p1p2/3P1P1B/pP1BP3/P1Q2PRP/1KR5 b - - 0 26",
+   "moves": [
+    "b8a6",
+    "d3f5",
+    "e7e6",
+    "f5g6"
+   ],
+   "rating": 1692,
+   "rating_deviation": 74,
+   "popularity": 89,
+   "nb_plays": 128,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "pin",
+    "short"
+   ],
+   "game_url": "https://lichess.org/jM0Jnw0u/black#52",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00798",
+   "fen": "6K1/4k3/4P3/6pp/6rP/4R1P1/8/8 w - - 0 60",
+   "moves": [
+    "g8g7",
+    "g5h4",
+    "g7h6",
+    "h4g3"
+   ],
+   "rating": 1931,
+   "rating_deviation": 76,
+   "popularity": 88,
+   "nb_plays": 549,
+   "themes": [
+    "crushing",
+    "discoveredAttack",
+    "endgame",
+    "rookEndgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/4DOjQjiM#119",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "007ku",
+   "fen": "r1bq3Q/1np2kp1/p5B1/1p1Pp3/1Pn2BP1/2b2P2/P3K3/R4N2 b - - 5 35",
+   "moves": [
+    "f7g6",
+    "h8h5",
+    "g6f6",
+    "f4g5"
+   ],
+   "rating": 1663,
+   "rating_deviation": 75,
+   "popularity": 89,
+   "nb_plays": 965,
+   "themes": [
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/QveLbBjG/black#70",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "008P4",
+   "fen": "8/4k3/1p1p4/rP2p1p1/P2nP1P1/3BK3/8/R7 w - - 0 35",
+   "moves": [
+    "e3d2",
+    "d4b3",
+    "d2c3",
+    "b3a1"
+   ],
+   "rating": 692,
+   "rating_deviation": 97,
+   "popularity": 95,
+   "nb_plays": 1686,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "short"
+   ],
+   "game_url": "https://lichess.org/3GoHPRp3#69",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "008qL",
+   "fen": "r7/6pk/p2p4/2p1p1qp/1pP1PrP1/1P1Q1P1P/1P4K1/R4R2 w - - 0 25",
+   "moves": [
+    "d3d6",
+    "a8d8",
+    "d6d8",
+    "g5d8"
+   ],
+   "rating": 1878,
+   "rating_deviation": 75,
+   "popularity": 96,
+   "nb_plays": 514,
+   "themes": [
+    "advantage",
+    "endgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/TUrSVmLC#49",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "008tL",
+   "fen": "8/7k/pR5p/3p4/5r2/2P1p2P/P5P1/6K1 w - - 0 40",
+   "moves": [
+    "b6a6",
+    "e3e2",
+    "a6e6",
+    "f4f1"
+   ],
+   "rating": 1230,
+   "rating_deviation": 77,
+   "popularity": 95,
+   "nb_plays": 3177,
+   "themes": [
+    "advancedPawn",
+    "crushing",
+    "endgame",
+    "master",
+    "rookEndgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/yhNupFCi#79",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "0092z",
+   "fen": "2r3k1/2qR1ppp/p7/2p2Q2/P7/7P/5PP1/6K1 b - - 3 26",
+   "moves": [
+    "c7c6",
+    "f5f7",
+    "g8h8",
+    "f7g7"
+   ],
+   "rating": 991,
+   "rating_deviation": 91,
+   "popularity": 94,
+   "nb_plays": 442,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "game_url": "https://lichess.org/fjaha7q0/black#52",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "009FP",
+   "fen": "r1b1k1nr/ppp2pbp/3ppqp1/8/2BnP3/N2P2QP/PPP2PP1/R1B1K2R b KQkq - 4 9",
+   "moves": [
+    "e6e5",
+    "c1g5",
+    "f6g5",
+    "g3g5"
+   ],
+   "rating": 1368,
+   "rating_deviation": 75,
+   "popularity": 97,
+   "nb_plays": 3380,
+   "themes": [
+    "advantage",
+    "opening",
+    "short",
+    "trappedPiece"
+   ],
+   "game_url": "https://lichess.org/2ndCtdd9/black#18",
+   "opening_tags": "Pirc_Defense Pirc_Defense_Other_variations",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "009IO",
+   "fen": "3rk3/5p1r/p2Np1p1/3bP3/P2n4/8/1P3RPP/5RK1 b - - 4 25",
+   "moves": [
+    "e8e7",
+    "f2f7",
+    "h7f7",
+    "f1f7"
+   ],
+   "rating": 1162,
+   "rating_deviation": 83,
+   "popularity": 87,
+   "nb_plays": 547,
+   "themes": [
+    "hookMate",
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/LJBrm9Or/black#50",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "009XT",
+   "fen": "rn1qk2r/pp3ppp/3bp1b1/3p4/3Pn2N/3BB3/PPP2PPP/RN1Q1RK1 w kq - 4 10",
+   "moves": [
+    "h4g6",
+    "d6h2",
+    "g1h1",
+    "h7g6"
+   ],
+   "rating": 2022,
+   "rating_deviation": 73,
+   "popularity": 93,
+   "nb_plays": 16301,
+   "themes": [
+    "crushing",
+    "intermezzo",
+    "opening",
+    "short"
+   ],
+   "game_url": "https://lichess.org/bf23N8Ng#19",
+   "opening_tags": "Caro-Kann_Defense Caro-Kann_Defense_Exchange_Variation",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "009bR",
+   "fen": "4r2k/3q2r1/1p4pQ/p1pP4/2P4P/1N4p1/PP3RK1/8 b - - 1 37",
+   "moves": [
+    "g7h7",
+    "f2f8",
+    "e8f8",
+    "h6f8"
+   ],
+   "rating": 1024,
+   "rating_deviation": 77,
+   "popularity": 82,
+   "nb_plays": 154,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "game_url": "https://lichess.org/rvHGlZar/black#74",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00AEM",
+   "fen": "r4rk1/p2q1p1p/1p3Qp1/2p4P/3p4/5R2/PPP2PP1/4R1K1 b - - 0 22",
+   "moves": [
+    "d7d8",
+    "e1e7",
+    "d8e7",
+    "f6e7"
+   ],
+   "rating": 1727,
+   "rating_deviation": 75,
+   "popularity": 100,
+   "nb_plays": 64,
+   "themes": [
+    "crushing",
+    "endgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/xJtWPx56/black#44",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00AhO",
+   "fen": "r1b2rk1/2q2p1p/1p2pbp1/pP6/2P1Q3/P2B1N2/5PPP/3R1RK1 w - - 0 20",
+   "moves": [
+    "e4a8",
+    "c8b7",
+    "a8a7",
+    "f8a8",
+    "a7a8",
+    "b7a8"
+   ],
+   "rating": 1233,
+   "rating_deviation": 82,
+   "popularity": 92,
+   "nb_plays": 2542,
+   "themes": [
+    "advantage",
+    "clearance",
+    "long",
+    "master",
+    "middlegame",
+    "trappedPiece"
+   ],
+   "game_url": "https://lichess.org/9PjjgfVE#39",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00AoZ",
+   "fen": "8/1R6/p1pk4/6bp/1QP5/P7/KP6/3r2q1 b - - 2 44",
+   "moves": [
+    "g1c5",
+    "b7d7",
+    "d6d7",
+    "b4c5"
+   ],
+   "rating": 1090,
+   "rating_deviation": 108,
+   "popularity": 93,
+   "nb_plays": 3458,
+   "themes": [
+    "advantage",
+    "deflection",
+    "endgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/356BAYqk/black#88",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00B7G",
+   "fen": "1rb2r1k/4q2p/p2p4/3B1p2/1pPb4/1P2NQ2/P5PP/2R2RK1 w - - 1 24",
+   "moves": [
+    "g1h1",
+    "e7e3",
+    "f3e3",
+    "d4e3"
+   ],
+   "rating": 1643,
+   "rating_deviation": 75,
+   "popularity": 86,
+   "nb_plays": 153,
+   "themes": [
+    "crushing",
+    "master",
+    "masterVsMaster",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/jBgjHSYd#47",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00BZ6",
+   "fen": "1r1r1bk1/3n1p1p/1qp3p1/2N1p3/PpQ1P3/4BP2/4N1PP/1R3RK1 w - - 0 24",
+   "moves": [
+    "f1c1",
+    "f8c5",
+    "e3c5",
+    "d7c5"
+   ],
+   "rating": 2449,
+   "rating_deviation": 78,
+   "popularity": 93,
+   "nb_plays": 503,
+   "themes": [
+    "advantage",
+    "master",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/whBlSZL2#47",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Bn4",
+   "fen": "1k6/pp6/4nNp1/P6p/3pr3/7P/3R1PPK/8 b - - 0 40",
+   "moves": [
+    "e4e5",
+    "f6d7",
+    "b8c7",
+    "d7e5"
+   ],
+   "rating": 689,
+   "rating_deviation": 101,
+   "popularity": 85,
+   "nb_plays": 724,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "short"
+   ],
+   "game_url": "https://lichess.org/jvMUtZF5/black#80",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00CMj",
+   "fen": "7R/8/8/6p1/2p1p1k1/2PbK2p/P7/8 w - - 4 71",
+   "moves": [
+    "e3f2",
+    "e4e3",
+    "f2e3",
+    "g4g3"
+   ],
+   "rating": 1647,
+   "rating_deviation": 76,
+   "popularity": 96,
+   "nb_plays": 25585,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "master",
+    "short"
+   ],
+   "game_url": "https://lichess.org/JJZ8AIxT#141",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00CpR",
+   "fen": "4r1k1/B7/2p2pK1/3n3p/8/1Q3PP1/P6r/8 b - - 0 31",
+   "moves": [
+    "e8e5",
+    "b3b8",
+    "e5e8",
+    "b8e8"
+   ],
+   "rating": 632,
+   "rating_deviation": 89,
+   "popularity": 85,
+   "nb_plays": 319,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "game_url": "https://lichess.org/tX2xyrPX/black#62",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Cs4",
+   "fen": "2r1q1k1/8/b2b1r1p/Pp1pNpp1/3Pn3/1RPQ3P/P1B1NPP1/4R1K1 w - - 3 28",
+   "moves": [
+    "a2a4",
+    "b5a4",
+    "d3a6",
+    "a4b3"
+   ],
+   "rating": 1401,
+   "rating_deviation": 86,
+   "popularity": 85,
+   "nb_plays": 74,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/fswqBBFw#55",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00CtS",
+   "fen": "Q5k1/5q2/p2p4/b1p1pr2/P7/6P1/4KP1R/8 b - - 3 38",
+   "moves": [
+    "g8g7",
+    "a8h8",
+    "g7g6",
+    "h8h6"
+   ],
+   "rating": 970,
+   "rating_deviation": 77,
+   "popularity": 96,
+   "nb_plays": 3146,
+   "themes": [
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short",
+    "swallowstailMate"
+   ],
+   "game_url": "https://lichess.org/yKolw9vl/black#76",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00D12",
+   "fen": "8/6pp/8/3kP3/1p1P2P1/rPpK3P/4R3/8 b - - 1 39",
+   "moves": [
+    "a3b3",
+    "e5e6",
+    "c3c2",
+    "d3c2",
+    "b3c3",
+    "c2d2"
+   ],
+   "rating": 2293,
+   "rating_deviation": 88,
+   "popularity": 90,
+   "nb_plays": 1288,
+   "themes": [
+    "crushing",
+    "endgame",
+    "long",
+    "rookEndgame"
+   ],
+   "game_url": "https://lichess.org/iC0vC5to/black#78",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00DdW",
+   "fen": "5rk1/4bppp/4b3/1p1pPpPP/2pP4/2P5/rqNQKP2/2RRN3 b - - 5 23",
+   "moves": [
+    "e7a3",
+    "c1b1",
+    "b2b3",
+    "b1b3"
+   ],
+   "rating": 1693,
+   "rating_deviation": 75,
+   "popularity": 87,
+   "nb_plays": 780,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "short",
+    "trappedPiece"
+   ],
+   "game_url": "https://lichess.org/bT7kcwFH/black#46",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00DkJ",
+   "fen": "3r1bnr/2p2ppp/2b5/R1k5/5P2/2N5/4N1PP/1R4K1 b - - 3 21",
+   "moves": [
+    "c5d6",
+    "b1d1",
+    "d6e7",
+    "a5e5",
+    "e7f6",
+    "d1d8"
+   ],
+   "rating": 1575,
+   "rating_deviation": 75,
+   "popularity": 92,
+   "nb_plays": 3060,
+   "themes": [
+    "crushing",
+    "deflection",
+    "exposedKing",
+    "long",
+    "middlegame"
+   ],
+   "game_url": "https://lichess.org/JJiGlqDg/black#42",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00EJb",
+   "fen": "6k1/5pp1/2R1p2p/8/P1B5/1P4P1/1q3Q1P/3r2K1 w - - 1 35",
+   "moves": [
+    "g1g2",
+    "d1d2",
+    "c6c8",
+    "g8h7",
+    "c4d3",
+    "f7f5",
+    "c8c2",
+    "d2f2"
+   ],
+   "rating": 2288,
+   "rating_deviation": 81,
+   "popularity": 87,
+   "nb_plays": 450,
+   "themes": [
+    "advantage",
+    "endgame",
+    "pin",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/ki9WEgCM#69",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00EXM",
+   "fen": "r1n1r1k1/3R1ppp/2p5/5P2/8/1P2B3/P7/5RK1 b - - 6 33",
+   "moves": [
+    "e8e3",
+    "d7d8",
+    "e3e8",
+    "d8e8"
+   ],
+   "rating": 677,
+   "rating_deviation": 83,
+   "popularity": 100,
+   "nb_plays": 64,
+   "themes": [
+    "backRankMate",
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "game_url": "https://lichess.org/8NAvp1ZS/black#66",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Ec4",
+   "fen": "2rq1r1k/p5pp/8/1p1BpPb1/2Pp2Q1/P2P2R1/6PP/R5K1 b - - 3 25",
+   "moves": [
+    "c8c7",
+    "g4g5",
+    "d8g5",
+    "g3g5"
+   ],
+   "rating": 823,
+   "rating_deviation": 97,
+   "popularity": 85,
+   "nb_plays": 346,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/HUFGdjKK/black#50",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00F1l",
+   "fen": "8/2k1b3/5p2/RBpK1Pp1/Pp1p2P1/3P4/2r5/8 b - - 2 45",
+   "moves": [
+    "b4b3",
+    "a5a7",
+    "c7b8",
+    "a7e7"
+   ],
+   "rating": 836,
+   "rating_deviation": 80,
+   "popularity": 80,
+   "nb_plays": 189,
+   "themes": [
+    "crushing",
+    "endgame",
+    "master",
+    "short",
+    "skewer"
+   ],
+   "game_url": "https://lichess.org/By9yxCU0/black#90",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00FGc",
+   "fen": "1r4k1/5p2/2q3bp/4R3/p1r5/P1N5/1PP1Q2P/1KR5 w - - 2 33",
+   "moves": [
+    "b1a2",
+    "c4c3",
+    "b2c3",
+    "f7f6"
+   ],
+   "rating": 2438,
+   "rating_deviation": 84,
+   "popularity": 86,
+   "nb_plays": 137,
+   "themes": [
+    "advantage",
+    "middlegame",
+    "sacrifice",
+    "short"
+   ],
+   "game_url": "https://lichess.org/N39SSpf9#65",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00GuD",
+   "fen": "1n5k/4r1p1/p2q1rPp/1ppB4/8/3P4/PPP1RPQ1/2K4R b - - 4 25",
+   "moves": [
+    "e7e2",
+    "h1h6",
+    "g7h6",
+    "g6g7",
+    "h8h7",
+    "g7g8q"
+   ],
+   "rating": 1152,
+   "rating_deviation": 76,
+   "popularity": 88,
+   "nb_plays": 562,
+   "themes": [
+    "advancedPawn",
+    "kingsideAttack",
+    "long",
+    "mate",
+    "mateIn3",
+    "middlegame",
+    "promotion",
+    "sacrifice"
+   ],
+   "game_url": "https://lichess.org/zcHeWRaO/black#50",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00GuG",
+   "fen": "2R5/7p/1K4k1/8/5p2/5n2/8/8 w - - 0 63",
+   "moves": [
+    "c8c6",
+    "g6f5",
+    "b6c5",
+    "h7h5"
+   ],
+   "rating": 2484,
+   "rating_deviation": 94,
+   "popularity": 91,
+   "nb_plays": 1546,
+   "themes": [
+    "advantage",
+    "defensiveMove",
+    "endgame",
+    "master",
+    "short"
+   ],
+   "game_url": "https://lichess.org/6xU6SaA2#125",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Gz6",
+   "fen": "r7/p3qkp1/1p4p1/3Nn3/Q7/4PP2/PP3K2/6R1 b - - 0 25",
+   "moves": [
+    "e7c5",
+    "a4f4",
+    "f7e6",
+    "f4e4",
+    "a8f8",
+    "g1g6"
+   ],
+   "rating": 2264,
+   "rating_deviation": 104,
+   "popularity": 89,
+   "nb_plays": 1182,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "long",
+    "pin"
+   ],
+   "game_url": "https://lichess.org/F80hPRFE/black#50",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00H2L",
+   "fen": "8/8/2p2p2/p4P1p/Pk5P/4K1P1/8/8 w - - 1 39",
+   "moves": [
+    "e3d3",
+    "c6c5",
+    "d3e2",
+    "c5c4",
+    "g3g4",
+    "h5g4"
+   ],
+   "rating": 2357,
+   "rating_deviation": 89,
+   "popularity": 90,
+   "nb_plays": 657,
+   "themes": [
+    "crushing",
+    "endgame",
+    "long",
+    "pawnEndgame",
+    "quietMove"
+   ],
+   "game_url": "https://lichess.org/UMoEkwn0#77",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00H8a",
+   "fen": "5bk1/2R4p/6p1/8/2b1NP1P/4P1K1/r7/8 b - - 2 45",
+   "moves": [
+    "c4d3",
+    "e4f6",
+    "g8h8",
+    "c7h7"
+   ],
+   "rating": 803,
+   "rating_deviation": 81,
+   "popularity": 89,
+   "nb_plays": 329,
+   "themes": [
+    "arabianMate",
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "game_url": "https://lichess.org/7UUQgJDC/black#90",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Hpe",
+   "fen": "1rr3k1/4Qppp/qp2p3/P2pn3/3N4/4P2P/5PP1/RR4K1 b - - 3 29",
+   "moves": [
+    "b6a5",
+    "b1b8",
+    "c8b8",
+    "e7c7",
+    "b8c8",
+    "c7e5"
+   ],
+   "rating": 1768,
+   "rating_deviation": 76,
+   "popularity": 90,
+   "nb_plays": 192,
+   "themes": [
+    "advantage",
+    "fork",
+    "long",
+    "middlegame"
+   ],
+   "game_url": "https://lichess.org/7DmRgaqW/black#58",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00Huv",
+   "fen": "3r2q1/5prk/p3pQpp/1p2P3/2p4R/2P2P1P/PPB2P2/6K1 b - - 2 29",
+   "moves": [
+    "g8f8",
+    "h4h6",
+    "h7g8",
+    "f6h4"
+   ],
+   "rating": 1763,
+   "rating_deviation": 78,
+   "popularity": 91,
+   "nb_plays": 597,
+   "themes": [
+    "clearance",
+    "crushing",
+    "endgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/KGI2jWmb/black#58",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00IDw",
+   "fen": "4r3/pN3kpp/2N1b3/2R5/5b2/P7/1P3PPP/7K w - - 1 30",
+   "moves": [
+    "g2g3",
+    "e6h3",
+    "c5c1",
+    "f4c1"
+   ],
+   "rating": 1862,
+   "rating_deviation": 75,
+   "popularity": 86,
+   "nb_plays": 184,
+   "themes": [
+    "advantage",
+    "endgame",
+    "quietMove",
+    "short"
+   ],
+   "game_url": "https://lichess.org/KmTVU8Fo#59",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00IUW",
+   "fen": "8/Q1p1r1kp/5pp1/3P3r/4P3/2N2bPq/PPP2R1P/5RK1 w - - 3 23",
+   "moves": [
+    "a7e3",
+    "h3g3",
+    "h2g3",
+    "h5h1"
+   ],
+   "rating": 1654,
+   "rating_deviation": 74,
+   "popularity": 97,
+   "nb_plays": 2630,
+   "themes": [
+    "clearance",
+    "kingsideAttack",
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "operaMate",
+    "sacrifice",
+    "short"
+   ],
+   "game_url": "https://lichess.org/83tyhOfz#45",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00J5q",
+   "fen": "8/5Qpk/4p3/1p6/p7/1q1bB2P/5PP1/6K1 b - - 0 32",
+   "moves": [
+    "a4a3",
+    "e3d4",
+    "e6e5",
+    "f7b3"
+   ],
+   "rating": 2160,
+   "rating_deviation": 80,
+   "popularity": 89,
+   "nb_plays": 83,
+   "themes": [
+    "crushing",
+    "endgame",
+    "short"
+   ],
+   "game_url": "https://lichess.org/GpZfwLfY/black#64",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00JaW",
+   "fen": "8/r7/Pk5p/3R2p1/4p1P1/4P3/3K4/8 b - - 0 48",
+   "moves": [
+    "a7a6",
+    "d5d6",
+    "b6a5",
+    "d6a6",
+    "a5a6",
+    "d2c3",
+    "a6b7",
+    "c3d4"
+   ],
+   "rating": 1080,
+   "rating_deviation": 80,
+   "popularity": 88,
+   "nb_plays": 204,
+   "themes": [
+    "crushing",
+    "endgame",
+    "exposedKing",
+    "rookEndgame",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/K2MPI0zt/black#96",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  },
+  {
+   "id": "00JtR",
+   "fen": "1rbk3r/3qp1b1/p3p1Bp/1N1P2p1/8/P5P1/1P2Q1P1/R3K2R w KQ - 2 23",
+   "moves": [
+    "d5e6",
+    "d7b5",
+    "e2d2",
+    "d8c7",
+    "a1c1",
+    "c7b7",
+    "g6e4",
+    "b7a7"
+   ],
+   "rating": 2178,
+   "rating_deviation": 78,
+   "popularity": 92,
+   "nb_plays": 3813,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "middlegame",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/eQy3tkuB#45",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": []
+  }
+ ],
+ "validation": {
+  "validator": "chessbench.corpus.v1",
+  "items": 60,
+  "valid": true,
+  "errors": [],
+  "unique_ids": 60,
+  "unique_positions": 60,
+  "theme_counts": {
+   "advancedPawn": 4,
+   "advantage": 21,
+   "arabianMate": 1,
+   "backRankMate": 1,
+   "clearance": 3,
+   "crushing": 27,
+   "defensiveMove": 6,
+   "deflection": 3,
+   "discoveredAttack": 1,
+   "endgame": 31,
+   "exposedKing": 4,
+   "fork": 6,
+   "hookMate": 1,
+   "intermezzo": 1,
+   "kingsideAttack": 4,
+   "knightEndgame": 1,
+   "long": 14,
+   "master": 11,
+   "masterVsMaster": 1,
+   "mate": 12,
+   "mateIn2": 10,
+   "mateIn3": 2,
+   "middlegame": 26,
+   "opening": 3,
+   "operaMate": 1,
+   "pawnEndgame": 1,
+   "pin": 6,
+   "promotion": 1,
+   "queensideAttack": 1,
+   "quietMove": 2,
+   "rookEndgame": 9,
+   "sacrifice": 4,
+   "short": 39,
+   "skewer": 3,
+   "swallowstailMate": 1,
+   "trappedPiece": 3,
+   "veryLong": 7
+  },
+  "rating": {
+   "min": 632,
+   "max": 2589,
+   "mean": 1602.92
+  },
+  "solver_plies": {
+   "2": 39,
+   "3": 14,
+   "4": 5,
+   "5": 1,
+   "6": 1
+  }
+ },
+ "content_hash": "sha256:44e52b3476cebad1106b",
+ "schema": "chessbench.corpus.v1"
+}

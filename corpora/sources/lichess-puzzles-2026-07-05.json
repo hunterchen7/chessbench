@@ -1,0 +1,39 @@
+{
+ "schema": "chessbench.source_pool_receipt.v1",
+ "source_page": "https://database.lichess.org/#puzzles",
+ "source_dump": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+ "source_license": "CC0-1.0",
+ "source_license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+ "upstream_snapshot": "2026-07-05",
+ "retrieved": "2026-07-14T22:53:26+00:00",
+ "publishable_full_scan": true,
+ "selection": {
+  "algorithm": "lowest-stable-sha256-priority-per-rating-bucket",
+  "seed": 20260714,
+  "rating_low": 400,
+  "rating_high_exclusive": 3000,
+  "bucket_width": 200,
+  "per_bucket": 250,
+  "minimum_popularity": 80,
+  "minimum_plays": 50
+ },
+ "scanned": 6057356,
+ "eligible": 4710588,
+ "retained": 3250,
+ "bucket_counts": {
+  "400-599": 250,
+  "600-799": 250,
+  "800-999": 250,
+  "1000-1199": 250,
+  "1200-1399": 250,
+  "1400-1599": 250,
+  "1600-1799": 250,
+  "1800-1999": 250,
+  "2000-2199": 250,
+  "2200-2399": 250,
+  "2400-2599": 250,
+  "2600-2799": 250,
+  "2800-2999": 250
+ },
+ "output_sha256": "c6f202da8b801cc091f4b4e070e9e2528883584b2db33a86f34cea081f0097ed"
+}

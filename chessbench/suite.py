@@ -27,6 +27,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from random import Random
 
+from .tasks.composed import ComposedProblem
 from .tasks.puzzles import Puzzle
 from .types import SuiteKind, Visibility
 
@@ -46,6 +47,11 @@ class Suite:
         if self.kind != "puzzle":
             raise ValueError(f"suite '{self.name}' is {self.kind}, not puzzle")
         return [Puzzle(**it) for it in self.items]  # type: ignore[arg-type]
+
+    def composed_problems(self) -> list[ComposedProblem]:
+        if self.kind != "composed":
+            raise ValueError(f"suite '{self.name}' is {self.kind}, not composed")
+        return [ComposedProblem(**it) for it in self.items]  # type: ignore[arg-type]
 
     def compute_hash(self) -> str:
         payload = {k: v for k, v in asdict(self).items() if k != "content_hash"}
@@ -83,6 +89,52 @@ def build_puzzle_suite(
     suite = Suite(
         name=name, version=version, visibility=visibility, kind="puzzle",
         source=source_label, seed=seed, items=[asdict(p) for p in chosen],
+    )
+    suite.content_hash = suite.compute_hash()
+    return suite
+
+
+def freeze_puzzle_suite(
+    puzzles: list[Puzzle],
+    *,
+    name: str,
+    version: str = "1",
+    visibility: Visibility = "public",
+    source_label: str,
+    seed: int = 0,
+) -> Suite:
+    """Freeze an already-curated puzzle corpus without sampling it again."""
+    suite = Suite(
+        name=name,
+        version=version,
+        visibility=visibility,
+        kind="puzzle",
+        source=source_label,
+        seed=seed,
+        items=[asdict(puzzle) for puzzle in puzzles],
+    )
+    suite.content_hash = suite.compute_hash()
+    return suite
+
+
+def freeze_composed_suite(
+    problems: list[ComposedProblem],
+    *,
+    name: str,
+    version: str = "1",
+    visibility: Visibility = "public",
+    source_label: str,
+    seed: int = 0,
+) -> Suite:
+    """Freeze a validated esoteric corpus as a runnable composed suite."""
+    suite = Suite(
+        name=name,
+        version=version,
+        visibility=visibility,
+        kind="composed",
+        source=source_label,
+        seed=seed,
+        items=[asdict(problem) for problem in problems],
     )
     suite.content_hash = suite.compute_hash()
     return suite

@@ -10,6 +10,25 @@
 6. Every paid result becomes durable before the next item starts.
 7. Raw visible provider output is retained; hidden chain of thought is not inferred.
 8. The hosted data store is exportable as versioned JSON.
+9. A published corpus has explicit provenance and license, deterministic selection, unique task positions, a
+   successful verifier report, and a content hash. A suite is frozen from a corpus; it is not the source pool.
+
+## Corpus lifecycle
+
+```text
+upstream snapshot -> bounded source pool -> validated corpus -> frozen suite -> benchmark runs
+```
+
+- Upstream snapshots are immutable release dates or checksums, never an unlabelled live URL.
+- Large Lichess sources use stable SHA-256 priority sampling within rating bands. The whole snapshot is scanned;
+  taking the first N rows is forbidden because source ordering would bias membership.
+- Standard and Woodpecker headline collections are disjoint. Woodpecker requires at least two solver moves.
+- Orthodox lines are replayed with `python-chess`, including alternate lines. Duplicate shown positions fail QA.
+- Composed positions are checked with the native stipulation verifier. Duplicate starting positions fail QA.
+- Studies remain out of the first esoteric release because structural FEN validity is not enough to establish a
+  sound win/draw study or a stable interactive defender protocol.
+- Public corpora support reproducibility but may be contaminated. Private, generated post-cutoff corpora use the
+  same schema and validators but live under the gitignored `corpora/private/` and `suites/private/` paths.
 
 ## Protocol axes
 

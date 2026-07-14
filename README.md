@@ -37,6 +37,49 @@ Evaluated models receive a neutral chess task. They are never told that the requ
 
 Reasoning effort, exact reasoning-token budget, and output-token cap are part of a model variant's identity. For example, the same provider model at `low`, `high`, and `4096` exact reasoning tokens appears as three distinct rows.
 
+## Puzzle corpora
+
+The checked-in releases contain fast development seeds and the first full-dump public collections:
+
+| Corpus | Items | Admission rule |
+| --- | ---: | --- |
+| `standard-seed-v1` | 100 | 20 positions in each of five 400-point rating bands |
+| `woodpecker-seed-v1` | 60 | 12 per band, at least two solver moves, disjoint from Standard |
+| `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
+| `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
+| `esoteric-seed-v1` | 50 | Native-verifier-passing non-study compositions with unique starting positions |
+
+The Standard and Woodpecker source positions come from the CC0 Lichess puzzle database. Public v1 was sampled
+from all 6,057,356 puzzles in the 2026-07-05 snapshot; its pinned intermediate pool retained 3,250 positions and
+has SHA-256 `c6f202da…f0097ed`. The seed uses the repository's 500-row fixture. Esoteric combines
+CC0-derived directmates with ChessBench-constructed or search-discovered positions. Studies are withheld until
+their interactive adjudication contract and provenance are frozen.
+
+Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
+item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`
+are the execution artifacts. See [corpora/README.md](corpora/README.md) for the release policy.
+
+Rebuild the seed release or create a larger deterministic Lichess source pool:
+
+```bash
+python3 scripts/build_corpora.py
+python3 scripts/download_puzzles.py --per-bucket 5000 \
+  --snapshot YYYY-MM-DD --out data/lichess_pool_YYYY-MM-DD.csv
+python3 scripts/build_corpora.py \
+  --tactical-source data/lichess_pool_YYYY-MM-DD.csv \
+  --lichess-snapshot YYYY-MM-DD --release public-v1 \
+  --include-master --skip-esoteric \
+  --standard-per-band 40 --woodpecker-per-band 20
+```
+
+Run each frozen collection:
+
+```bash
+python3 -m chessbench puzzles --suite suites/public/standard-public-v1.json --mode 2
+python3 -m chessbench puzzles --suite suites/public/woodpecker-public-v1.json --mode 4
+python3 -m chessbench composed --suite suites/public/esoteric-seed-v1.json
+```
+
 ## Durable architecture
 
 ```text
@@ -138,6 +181,7 @@ The benchmark grader uses `python-chess`; models never determine whether their o
 
 ```text
 chessbench/        Python protocols, agents, graders, persistence, providers
+corpora/           Versioned source collections, provenance, selection, QA reports
 registry/          Committed model registry
 scripts/           Cloudflare outbox sync and data utilities
 server/            Cloudflare Worker, D1 migrations, JSON API

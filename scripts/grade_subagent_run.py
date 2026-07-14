@@ -61,7 +61,7 @@ class PrecomputedAgent:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--answers", required=True, help="JSON array of {id, moves, explanation}")
-    ap.add_argument("--suite", default="suites/public/tactical-public-v1.json")
+    ap.add_argument("--suite", default="suites/public/standard-public-v1.json")
     ap.add_argument("--out", required=True)
     ap.add_argument("--model", default="claude-opus-4-8")
     args = ap.parse_args()
