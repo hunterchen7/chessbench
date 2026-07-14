@@ -76,6 +76,9 @@ export function ModelDetail() {
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">{decoded}</h1>
           <Badge variant="outline">{run.provider}</Badge>
+          {run.condition.reasoning_effort && (
+            <Badge className="bg-chart-4/15 text-chart-4">🧠 thinking: {run.condition.reasoning_effort}</Badge>
+          )}
         </div>
       </div>
 

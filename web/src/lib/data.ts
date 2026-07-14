@@ -10,6 +10,7 @@ export interface Condition {
   prompt_style: string
   context_mode?: string
   explain?: boolean
+  reasoning_effort?: string | null
   slug: string
 }
 

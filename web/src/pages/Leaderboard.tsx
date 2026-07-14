@@ -120,7 +120,12 @@ export function Leaderboard() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{modeLabel(row.run.condition)}</Badge>
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Badge variant="secondary">{modeLabel(row.run.condition)}</Badge>
+                            {row.run.condition.reasoning_effort && (
+                              <Badge className="bg-chart-4/15 text-chart-4">🧠 {row.run.condition.reasoning_effort}</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold tabular-nums">
                           {e.value}

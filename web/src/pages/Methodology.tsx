@@ -200,6 +200,12 @@ export function Methodology() {
                 opening book is forced.
               </p>
               <p>
+                <span className="text-foreground">Reasoning effort</span> is its own axis: reasoning models can be run
+                at <span className="font-mono">low</span>/<span className="font-mono">medium</span>/
+                <span className="font-mono">high</span> thinking budgets (the <span className="font-mono">🧠</span>{" "}
+                badge), recorded in the condition so the same model at different efforts are distinct, comparable rows.
+              </p>
+              <p>
                 <span className="text-foreground">Contamination</span> is the biggest validity risk: public Lichess
                 puzzles may sit in training data, so a model could recall rather than calculate. A private,
                 engine-generated suite exists to control for this; treat public-suite numbers as an upper bound.
