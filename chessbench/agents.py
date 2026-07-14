@@ -39,9 +39,12 @@ class MoveContext:
     illegal_feedback: str | None = None
     last_opponent_move_san: str | None = None
     ply: int = 0
+    last_system_prompt: str | None = None
     last_prompt: str | None = None
     last_raw_response: str | None = None
     last_explanation: str | None = None
+    last_usage: dict[str, object] | None = None
+    last_cost: float = 0.0
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -116,15 +119,38 @@ class LLMAgent:
         self._model = model
         self._condition = condition or conditions.HEADLINE
         self.name = model.name
+        self._messages: list[Message] = []
+        self._system = (
+            "Solve this chess puzzle across turns. Keep track of the line, but "
+            "trust each newly supplied position as authoritative."
+        )
+
+    def reset_puzzle(self) -> None:
+        self._messages = []
 
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         cond = ctx.condition
-        prompt = conditions.build_puzzle_prompt(board, cond, ctx.illegal_feedback)
-        raw = self._model.generate(
-            prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+        prompt = conditions.build_puzzle_prompt(
+            board, cond, ctx.illegal_feedback, history_san=ctx.history_san
         )
+        if cond.context_mode == conditions.ContextMode.FRESH:
+            raw = self._model.generate(
+                prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            )
+        else:
+            if not self._messages:
+                self._messages.append({"role": "system", "content": self._system})
+                ctx.last_system_prompt = self._system
+            self._messages.append({"role": "user", "content": prompt})
+            raw = self._model.chat(
+                self._messages, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            )
+            self._messages.append({"role": "assistant", "content": raw})
         ctx.last_prompt = prompt
         ctx.last_raw_response = raw
+        usage = getattr(self._model, "last_usage", None)
+        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
+        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
         move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
@@ -136,12 +162,16 @@ class LLMAgent:
     def solve_line(self, board: chess.Board, ctx: TurnContext) -> str:
         """Answer a tactical puzzle in one request with the full variation."""
         cond = ctx.condition
+        self.reset_puzzle()
         prompt = conditions.build_puzzle_prompt(board, cond, ctx.illegal_feedback)
         raw = self._model.generate(
             prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
         )
         ctx.last_prompt = prompt
         ctx.last_raw_response = raw
+        usage = getattr(self._model, "last_usage", None)
+        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
+        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
         _move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         return raw
@@ -224,7 +254,13 @@ class LLMGameAgent:
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
 
+        if is_first:
+            ctx.last_system_prompt = self._system
+        ctx.last_prompt = user
         ctx.last_raw_response = raw
+        usage = getattr(self._model, "last_usage", None)
+        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
+        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
         move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         if move is not None:

@@ -423,6 +423,7 @@ class BenchmarkStore:
         }
 
     def unsynced_item_documents(self, run_id: str) -> list[dict[str, object]]:
+        from .categories import categorize_puzzle
         from .store import _position_fields
 
         rows = self._db.execute(
@@ -439,7 +440,7 @@ class BenchmarkStore:
             payload = {
                 **result,
                 **_position_fields(puzzle),
-                "categories": {},
+                "categories": categorize_puzzle(result["themes"], result["rating"]),
             }
             docs.append({
                 "run_id": run_id,

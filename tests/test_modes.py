@@ -41,3 +41,13 @@ def test_mode_presets_and_default():
     assert mode_condition(1).legality == Legality.FREE_FORM
     assert mode_condition(2).legality == Legality.LEGAL_LIST
     assert mode_condition(3).prompt_style == PromptStyle.COACHED
+
+
+def test_stateful_and_stateless_puzzle_contexts_have_distinct_ids():
+    from dataclasses import replace
+    from chessbench.conditions import ContextMode
+
+    stateful = mode_condition(2)
+    stateless = replace(stateful, context_mode=ContextMode.FRESH)
+    assert stateful.slug() != stateless.slug()
+    assert "pctx-hybrid" in stateful.slug()

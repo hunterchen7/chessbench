@@ -15,7 +15,22 @@ interface GamePayload {
   plies?: number
   pgn?: string
   start_fen?: string | null
-  moves?: unknown[]
+  moves?: Array<{
+    ply?: number
+    color?: string
+    attempts?: Array<{
+      system_prompt?: string | null
+      prompt?: string | null
+      raw_response?: string
+      parsed_move?: string | null
+      legal?: boolean
+      explanation?: string | null
+      prompt_tokens?: number
+      completion_tokens?: number
+      reasoning_tokens?: number
+      cost_usd?: number
+    }>
+  }>
 }
 
 interface IngestGameBody {
@@ -39,7 +54,7 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
   }
   const idx = Number.isFinite(g.idx) ? Number(g.idx) : 0
   const gameId = `${tid}#${idx}`
-  await env.DB.batch([
+  const headerStatements: D1PreparedStatement[] = [
     env.DB.prepare(
       `INSERT INTO live_tournaments (tid, created, condition_slug, players_json, status, updated)
        VALUES (?, ?, ?, ?, 'live', ?)
@@ -61,7 +76,30 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
            g.pgn ?? "", g.start_fen ?? null, JSON.stringify(g.moves ?? []), now()),
     // A completed game clears the live board (it's between games now).
     env.DB.prepare(`DELETE FROM live_boards WHERE tid = ?`).bind(tid),
-  ])
+    env.DB.prepare(`DELETE FROM game_turn_logs_v2 WHERE game_id = ?`).bind(gameId),
+  ]
+  const logStatements: D1PreparedStatement[] = []
+  for (const move of g.moves ?? []) {
+    for (const [attemptIndex, attempt] of (move.attempts ?? []).entries()) {
+      logStatements.push(env.DB.prepare(
+        `INSERT INTO game_turn_logs_v2
+         (game_id, ply, attempt, color, system_prompt, prompt, raw_response, parsed_move, legal, explanation,
+          prompt_tokens, completion_tokens, reasoning_tokens, cost_usd, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        gameId, move.ply ?? 0, attemptIndex, move.color ?? "unknown", attempt.system_prompt ?? null, attempt.prompt ?? null,
+        attempt.raw_response ?? "", attempt.parsed_move ?? null, attempt.legal ? 1 : 0,
+        attempt.explanation ?? null, attempt.prompt_tokens ?? 0, attempt.completion_tokens ?? 0,
+        attempt.reasoning_tokens ?? 0, attempt.cost_usd ?? 0, now(),
+      ))
+    }
+  }
+  await env.DB.batch(headerStatements)
+  // D1 batch sizes are finite; long games can contain hundreds of turns and
+  // retries, so commit transcript rows in bounded chunks.
+  for (let offset = 0; offset < logStatements.length; offset += 50) {
+    await env.DB.batch(logStatements.slice(offset, offset + 50))
+  }
   return json({ ok: true, game_id: gameId })
 }
 

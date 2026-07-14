@@ -88,7 +88,7 @@ class Condition:
     representation: Representation = Representation.FEN_ASCII
     notation: Notation = Notation.SAN
     prompt_style: PromptStyle = PromptStyle.MINIMAL
-    context_mode: ContextMode = ContextMode.FRESH  # game-track axis
+    context_mode: ContextMode = ContextMode.HYBRID  # stateful chat + authoritative board each turn
     puzzle_protocol: PuzzleProtocol = PuzzleProtocol.MOVE_BY_MOVE
     retry_attempts: int = 3      # only used when legality == RETRY
     otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
@@ -108,11 +108,19 @@ class Condition:
             raise ValueError("max_output_tokens must be positive")
 
     def slug(self) -> str:
-        base = "__".join(
-            [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
-        )
+        base = self._base_slug()
         if self.puzzle_protocol == PuzzleProtocol.FULL_LINE:
             base += "__full-line"
+        else:
+            base += f"__pctx-{self.context_mode.value}"
+        return self._reasoning_slug(base)
+
+    def _base_slug(self) -> str:
+        return "__".join(
+            [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
+        )
+
+    def _reasoning_slug(self, base: str) -> str:
         if self.reasoning_effort is not None:
             base += f"__reason-{self.reasoning_effort}"
         elif self.reasoning_max_tokens is not None:
@@ -120,7 +128,7 @@ class Condition:
         return base
 
     def game_slug(self) -> str:
-        return self.slug() + "__" + self.context_mode.value
+        return self._reasoning_slug(self._base_slug() + "__" + self.context_mode.value)
 
     def to_dict(self) -> dict[str, object]:
         """Canonical, JSON-safe condition manifest used in run identities."""
@@ -207,7 +215,12 @@ def _san_history_to_pgn(history_san: list[str]) -> str:
     return " ".join(out)
 
 
-def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str | None = None) -> str:
+def build_puzzle_prompt(
+    bd: chess.Board,
+    cond: Condition,
+    illegal_feedback: str | None = None,
+    history_san: list[str] | None = None,
+) -> str:
     """Assemble the full user prompt for a single-position puzzle move."""
     notation_name = "SAN (e.g. Nf3, exd5, O-O)" if cond.notation == Notation.SAN else "UCI (e.g. g1f3, e5d6)"
     lines = [
@@ -217,6 +230,8 @@ def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str 
     ]
     if cond.legality == Legality.LEGAL_LIST:
         lines += ["", _legal_line(bd, cond)]
+    if history_san:
+        lines += ["", "Moves already played in this puzzle: " + _san_history_to_pgn(history_san)]
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
     if cond.puzzle_protocol == PuzzleProtocol.FULL_LINE:

@@ -1,6 +1,3 @@
-// Types + loaders for the chessbench JSON data contract (produced by
-// `python -m chessbench ... --save-run` + `chessbench export`).
-
 const DATA = import.meta.env.BASE_URL + "data/"
 
 export interface Condition {
@@ -9,9 +6,23 @@ export interface Condition {
   notation: string
   prompt_style: string
   context_mode?: string
+  puzzle_protocol?: "move_by_move" | "full_line"
   explain?: boolean
   reasoning_effort?: string | null
+  reasoning_max_tokens?: number | null
+  max_output_tokens?: number
   slug: string
+}
+
+export interface ModelVariant {
+  key: string
+  base_key: string
+  display_name: string
+  label?: string
+  provider: string
+  model_id: string
+  reasoning: { effort?: string | null; max_tokens?: number | null; exclude?: boolean }
+  max_output_tokens: number
 }
 
 export interface Categories {
@@ -35,13 +46,16 @@ export interface PuzzleItem {
   answer_move: string | null
   answer_explanation: string | null
   answer_raw: string | null
-  seq_elo: number
+  seq_elo?: number
   fen: string
   setup_san?: string
   solver_is_white: boolean
   solution: string[]
   solution_first: string | null
   game_url?: string
+  moves_played?: string[]
+  solver_plies?: number
+  plies_correct?: number
 }
 
 export interface RunSummary {
@@ -50,32 +64,58 @@ export interface RunSummary {
   solve_rate: number
   mean_score: number
   first_move_legal_rate: number
-  puzzle_elo: number
-  puzzle_elo_ci: [number | null, number | null]
-  puzzle_elo_bounded: boolean
+  points: number
+  max_points: number
   cost_usd: number | null
 }
 
-export interface Run {
-  schema: string
+export interface SuiteRef {
+  name: string
+  version?: string | null
+  visibility?: string | null
+  content_hash?: string | null
+}
+
+export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed"
+export type Track = "puzzle" | "woodpecker" | "esoteric" | "game"
+
+export interface RunIndexEntry {
+  run_id: string
+  file: string
+  track: Track
   kind: string
-  created: string
+  status: RunStatus
   model: string
+  model_variant: ModelVariant
   provider: string
-  suite: { name: string; version: string; visibility: string; content_hash: string } | null
+  created: string
+  updated_at?: string
+  completed_at?: string | null
   condition: Condition
+  condition_slug: string
+  suite: SuiteRef | null
+  progress: { completed: number; total: number }
   summary: RunSummary
+  usage?: { prompt_tokens: number; completion_tokens: number; reasoning_tokens: number; cost_usd: number }
+  error?: string | null
+}
+
+export interface Run extends RunIndexEntry {
+  schema: string
   themes: { theme: string; n: number; accuracy: number }[]
   items: PuzzleItem[]
 }
 
-export interface RunIndexEntry {
-  file: string
+export interface PuzzleAnswer {
   model: string
-  created: string
   condition: string
-  suite: string | null
-  summary: RunSummary
+  item: PuzzleItem
+}
+
+export interface PuzzleEntry {
+  position: PuzzleItem
+  answers: PuzzleAnswer[]
+  aggregate?: { solved: number; total: number }
 }
 
 export interface Standing {
@@ -86,9 +126,9 @@ export interface Standing {
   games: number
   score: number
   illegal_forfeits: number
-  rating: number | null
-  rating_ci: [number | null, number | null]
-  bounded: boolean
+  rating?: number | null
+  rating_ci?: [number | null, number | null]
+  bounded?: boolean
   accuracy?: number | null
 }
 
@@ -101,6 +141,22 @@ export interface GameMove {
   illegal_attempts: number
   eval_cp: number | null
   forfeited: boolean
+  attempts?: Array<{
+    system_prompt?: string | null
+    prompt: string | null
+    raw_response: string
+    parsed_move: string | null
+    legal: boolean
+    explanation?: string | null
+    prompt_tokens: number
+    completion_tokens: number
+    reasoning_tokens: number
+    cost_usd: number
+  }>
+  prompt_tokens?: number
+  completion_tokens?: number
+  reasoning_tokens?: number
+  cost_usd?: number
 }
 
 export interface TournamentGame {
@@ -147,98 +203,212 @@ export interface TournamentIndexEntry {
   winner: string | null
 }
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`${url}: ${res.status}`)
-  return res.json()
+export interface Dataset {
+  runs: RunIndexEntry[]
+  tournaments: TournamentIndexEntry[]
+  apiBase: string | null
 }
 
-// The app prefers the Cloudflare backend API and falls back to the static JSON
-// bundled in public/data. VITE_API_BASE overrides the probe (e.g. a dev worker);
-// otherwise it probes the same-origin /api. Probed once and cached.
+async function fetchJSON<T>(url: string): Promise<T> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url}: ${response.status}`)
+  return response.json() as Promise<T>
+}
+
 let cachedBase: string | null | undefined
 export async function resolveApiBase(): Promise<string | null> {
   if (cachedBase !== undefined) return cachedBase
   const configured = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "")
-  const candidates = configured ? [configured] : ["/api"]
-  for (const base of candidates) {
+  for (const base of configured ? [configured] : ["/api"]) {
     try {
-      const res = await fetch(`${base}/health`)
-      if (res.ok) return (cachedBase = base)
+      const response = await fetch(`${base}/health`)
+      if (response.ok) return (cachedBase = base)
     } catch {
-      /* unreachable — fall through to static */
+      // Fall through to the committed static fixture bundle.
     }
   }
   return (cachedBase = null)
 }
 
-// --- aggregated app state ---
-
-export interface PuzzleAnswer {
-  model: string
-  condition: string
-  item: PuzzleItem
-}
-
-export interface PuzzleEntry {
-  position: PuzzleItem
-  answers: PuzzleAnswer[]
-}
-
-export interface Dataset {
-  runs: Run[]
-  puzzleIndex: Map<string, PuzzleEntry>
-  tournaments: TournamentIndexEntry[]
-  apiBase: string | null
-}
-
-async function loadFrom(base: string | null): Promise<Dataset> {
-  const indexUrl = base ? `${base}/index` : `${DATA}index.json`
-  const index = await fetchJSON<{ runs: RunIndexEntry[] }>(indexUrl)
-  const runs: Run[] = []
-  for (const meta of index.runs) {
-    const url = base ? `${base}/runs/${encodeURIComponent(meta.file)}` : `${DATA}runs/${meta.file}`
-    try {
-      runs.push(await fetchJSON<Run>(url))
-    } catch (e) {
-      console.warn("failed to load run", meta.file, e)
-    }
+function conditionFromSlug(slug: string): Condition {
+  const parts = slug.split("__")
+  const effort = parts.find((part) => part.startsWith("reason-"))?.slice(7) ?? null
+  const puzzleContext = parts.find((part) => part.startsWith("pctx-"))?.slice(5)
+  const gameContext = parts.find((part) => ["fresh", "growing", "hybrid"].includes(part))
+  return {
+    legality: parts[0] ?? "free_form",
+    representation: parts[1] ?? "fen_pieces",
+    notation: parts[2] ?? "san",
+    prompt_style: parts[3] ?? "minimal",
+    puzzle_protocol: parts.includes("full-line") ? "full_line" : "move_by_move",
+    context_mode: puzzleContext ?? gameContext,
+    reasoning_effort: effort?.endsWith("t") ? null : effort,
+    reasoning_max_tokens: effort?.endsWith("t") ? Number(effort.slice(0, -1)) : null,
+    slug,
   }
-  const puzzleIndex = new Map<string, PuzzleEntry>()
-  for (const run of runs) {
-    for (const item of run.items) {
-      let entry = puzzleIndex.get(item.puzzle_id)
-      if (!entry) {
-        entry = { position: item, answers: [] }
-        puzzleIndex.set(item.puzzle_id, entry)
-      }
-      entry.answers.push({ model: run.model, condition: run.condition.slug, item })
-    }
+}
+
+function fallbackVariant(model: string, condition: Condition, provider = "unknown"): ModelVariant {
+  const display = model.includes("/") ? model.split("/").at(-1)! : model
+  const reasoning = { effort: condition.reasoning_effort, max_tokens: condition.reasoning_max_tokens, exclude: true }
+  return {
+    key: `${model}--${condition.reasoning_max_tokens ? `r${condition.reasoning_max_tokens}t` : `r-${condition.reasoning_effort ?? "default"}`}`,
+    base_key: model,
+    display_name: display,
+    provider,
+    model_id: model,
+    reasoning,
+    max_output_tokens: condition.max_output_tokens ?? 2048,
   }
-  let tournaments: TournamentIndexEntry[] = []
+}
+
+function normalizeSummary(value: Partial<RunSummary> & Record<string, unknown>): RunSummary {
+  const n = Number(value.n ?? 0)
+  const mean = Number(value.mean_score ?? value.solve_rate ?? 0)
+  return {
+    n,
+    solved: Number(value.solved ?? 0),
+    solve_rate: Number(value.solve_rate ?? 0),
+    mean_score: mean,
+    first_move_legal_rate: Number(value.first_move_legal_rate ?? 0),
+    points: Number(value.points ?? mean * n),
+    max_points: Number(value.max_points ?? n),
+    cost_usd: value.cost_usd == null ? null : Number(value.cost_usd),
+  }
+}
+
+function normalizeIndex(raw: Record<string, unknown>): RunIndexEntry {
+  const conditionValue = raw.condition
+  const condition = typeof conditionValue === "string"
+    ? conditionFromSlug(conditionValue)
+    : (conditionValue as Condition | undefined) ?? conditionFromSlug(String(raw.condition_slug ?? ""))
+  const suiteValue = raw.suite
+  const suite = typeof suiteValue === "string"
+    ? { name: suiteValue }
+    : (suiteValue as SuiteRef | null | undefined) ?? null
+  const model = String(raw.model ?? "unknown")
+  const variant = (raw.model_variant as ModelVariant | null | undefined) ?? fallbackVariant(model, condition)
+  const summary = normalizeSummary((raw.summary ?? {}) as Partial<RunSummary> & Record<string, unknown>)
+  const track = (raw.track ?? raw.kind ?? (condition.puzzle_protocol === "full_line" ? "woodpecker" : "puzzle")) as Track
+  const runId = String(raw.run_id ?? raw.file ?? `${variant.key}-${condition.slug}`)
+  return {
+    run_id: runId,
+    file: String(raw.file ?? runId),
+    track,
+    kind: String(raw.kind ?? track),
+    status: (raw.status as RunStatus | undefined) ?? "completed",
+    model: variant.key,
+    model_variant: variant,
+    provider: variant.provider,
+    created: String(raw.created ?? raw.created_at ?? ""),
+    updated_at: raw.updated_at as string | undefined,
+    completed_at: raw.completed_at as string | null | undefined,
+    condition,
+    condition_slug: condition.slug,
+    suite,
+    progress: (raw.progress as { completed: number; total: number } | undefined) ?? { completed: summary.n, total: summary.max_points },
+    summary,
+    usage: raw.usage as RunIndexEntry["usage"],
+    error: raw.error as string | null | undefined,
+  }
+}
+
+async function loadIndex(base: string | null): Promise<RunIndexEntry[]> {
+  const doc = await fetchJSON<{ runs: Record<string, unknown>[] }>(base ? `${base}/index` : `${DATA}index.json`)
+  return (doc.runs ?? []).map(normalizeIndex)
+}
+
+async function loadTournamentIndex(base: string | null): Promise<TournamentIndexEntry[]> {
   try {
-    const turl = base ? `${base}/tournaments` : `${DATA}tournaments/index.json`
-    tournaments = (await fetchJSON<{ tournaments: TournamentIndexEntry[] }>(turl)).tournaments
+    const url = base ? `${base}/tournaments` : `${DATA}tournaments/index.json`
+    return (await fetchJSON<{ tournaments: TournamentIndexEntry[] }>(url)).tournaments ?? []
   } catch {
-    tournaments = []
+    return []
   }
-  return { runs, puzzleIndex, tournaments, apiBase: base }
 }
 
 export async function loadDataset(): Promise<Dataset> {
   const base = await resolveApiBase()
   try {
-    return await loadFrom(base)
-  } catch (e) {
-    // Backend reachable at /health but its data failed (e.g. un-migrated D1): fall
-    // back to the bundled static JSON instead of bricking the whole app.
+    const [runs, tournaments] = await Promise.all([loadIndex(base), loadTournamentIndex(base)])
+    return { runs, tournaments, apiBase: base }
+  } catch (error) {
     if (base) {
-      console.warn("API data load failed; falling back to static data", e)
       cachedBase = null
-      return loadFrom(null)
+      const [runs, tournaments] = await Promise.all([loadIndex(null), loadTournamentIndex(null)])
+      return { runs, tournaments, apiBase: null }
     }
-    throw e
+    throw error
   }
+}
+
+export async function loadRun(file: string): Promise<Run> {
+  const base = await resolveApiBase()
+  const raw = await fetchJSON<Record<string, unknown>>(
+    base ? `${base}/runs/${encodeURIComponent(file)}` : `${DATA}runs/${file}`,
+  )
+  const meta = normalizeIndex(raw)
+  return {
+    ...meta,
+    schema: String(raw.schema ?? "chessbench.run.v1"),
+    themes: (raw.themes as Run["themes"] | undefined) ?? [],
+    items: (raw.items as PuzzleItem[] | undefined) ?? [],
+  }
+}
+
+let puzzleCache: Promise<PuzzleEntry[]> | null = null
+export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
+  if (puzzleCache) return puzzleCache
+  puzzleCache = (async () => {
+    const base = await resolveApiBase()
+    if (base) {
+      const doc = await fetchJSON<{ puzzles: Array<Record<string, unknown>> }>(`${base}/puzzles`)
+      return doc.puzzles.map((p) => ({
+        position: {
+          puzzle_id: String(p.puzzle_id), rating: Number(p.rating), themes: (p.themes as string[]) ?? [],
+          categories: (p.categories as Categories) ?? {}, solved: false, score: 0,
+          first_move_legal: false, failure_reason: null, answer_move: null,
+          answer_explanation: null, answer_raw: null, fen: String(p.fen ?? ""),
+          solver_is_white: Boolean(p.solver_is_white), solution: [], solution_first: null,
+          setup_san: p.setup_san as string | undefined, game_url: p.game_url as string | undefined,
+        },
+        answers: [],
+        aggregate: { solved: Number(p.solved ?? 0), total: Number(p.total ?? 0) },
+      }))
+    }
+    const runs = await loadIndex(null)
+    const full = await Promise.all(runs.filter((run) => run.track === "puzzle").map((run) => loadRun(run.file)))
+    const map = new Map<string, PuzzleEntry>()
+    for (const run of full) for (const item of run.items) {
+      const entry = map.get(item.puzzle_id) ?? { position: item, answers: [] }
+      entry.answers.push({ model: run.model, condition: run.condition.slug, item })
+      map.set(item.puzzle_id, entry)
+    }
+    return [...map.values()]
+  })()
+  return puzzleCache
+}
+
+export async function loadPuzzle(id: string): Promise<PuzzleEntry | null> {
+  const base = await resolveApiBase()
+  if (base) {
+    try {
+      const doc = await fetchJSON<{ position: PuzzleItem; answers: Array<Record<string, unknown>> }>(
+        `${base}/puzzles/${encodeURIComponent(id)}`,
+      )
+      return {
+        position: doc.position,
+        answers: doc.answers.map((answer) => ({
+          model: String(answer.model),
+          condition: String(answer.condition),
+          item: { ...doc.position, ...(answer as unknown as Partial<PuzzleItem>) },
+        })),
+      }
+    } catch {
+      return null
+    }
+  }
+  return (await loadPuzzleIndex()).find((entry) => entry.position.puzzle_id === id) ?? null
 }
 
 export async function loadTournament(file: string): Promise<Tournament> {

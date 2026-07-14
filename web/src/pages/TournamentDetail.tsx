@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Radio, Trophy } from "lucide-react"
+import { ArrowLeft, MessageSquareText, Radio, Trophy } from "lucide-react"
 import { loadTournament, type Tournament, type TournamentGame } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
+import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -51,10 +52,7 @@ export function TournamentDetail() {
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
   if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
 
-  // Live standings have no Elo yet — order by score, then Elo when the final doc lands.
-  const standings = t.standings.slice().sort(
-    (a, b) => (b.rating ?? -1e9) - (a.rating ?? -1e9) || b.score - a.score,
-  )
+  const standings = t.standings.slice().sort((a, b) => b.score - a.score || b.wins - a.wins)
   const live = t.live_game
 
   return (
@@ -72,6 +70,7 @@ export function TournamentDetail() {
           <span className="font-mono">{t.condition.slug}</span>
           {isLive ? " · updating live" : ` · max ${t.max_plies} plies`}
         </p>
+        <div className="mt-3"><ExportButton track="game" /></div>
       </div>
 
       {live && (
@@ -94,7 +93,7 @@ export function TournamentDetail() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {isLive ? "Standings (live — points so far)" : "Standings (Bradley–Terry game Elo)"}
+            Standings {isLive ? "(live)" : ""} — match points
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -103,9 +102,8 @@ export function TournamentDetail() {
               <TableRow>
                 <TableHead className="w-12 text-center">#</TableHead>
                 <TableHead>Player</TableHead>
-                <TableHead className="text-right">Elo</TableHead>
                 <TableHead className="text-right">W–D–L</TableHead>
-                <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-right">Points</TableHead>
                 <TableHead className="text-right">Forfeits</TableHead>
               </TableRow>
             </TableHeader>
@@ -116,14 +114,6 @@ export function TournamentDetail() {
                     {i === 0 ? <Trophy className="mx-auto size-4 text-chart-4" /> : i + 1}
                   </TableCell>
                   <TableCell className="font-medium">{short(s.label)}</TableCell>
-                  <TableCell className="text-right font-mono font-semibold tabular-nums">
-                    {s.rating != null ? s.rating.toFixed(0) : "—"}
-                    {s.rating_ci[0] != null && s.rating_ci[1] != null && (
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        ±{((s.rating_ci[1] - s.rating_ci[0]) / 2).toFixed(0)}
-                      </span>
-                    )}
-                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {s.wins}–{s.draws}–{s.losses}
                   </TableCell>
@@ -188,6 +178,34 @@ export function TournamentDetail() {
               </button>
             </div>
             <GameReplay game={open} />
+            <div className="mt-6 border-t pt-5">
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <MessageSquareText className="size-4" /> Model transcript
+              </div>
+              <div className="space-y-2">
+                {open.moves.flatMap((move) => (move.attempts ?? []).map((attempt, attemptIndex) => (
+                  <details key={`${move.ply}-${attemptIndex}`} className="group rounded-lg border bg-muted/20">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-3 text-sm">
+                      <span className="font-medium">Ply {move.ply} · {move.color} · attempt {attemptIndex + 1}</span>
+                      <span className={attempt.legal ? "text-emerald-600" : "text-rose-600"}>
+                        {attempt.legal ? attempt.parsed_move ?? "legal" : "illegal"}
+                      </span>
+                    </summary>
+                    <div className="space-y-3 border-t p-3 text-xs">
+                      {attempt.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-3">{attempt.system_prompt}</pre></div>}
+                      <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Turn prompt</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.prompt ?? "—"}</pre></div>
+                      <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.raw_response}</pre></div>
+                      <div className="flex flex-wrap gap-3 font-mono text-muted-foreground">
+                        <span>{attempt.prompt_tokens} prompt</span><span>{attempt.completion_tokens} completion</span><span>{attempt.reasoning_tokens} reasoning tokens</span><span>${attempt.cost_usd.toFixed(5)}</span>
+                      </div>
+                    </div>
+                  </details>
+                )))}
+                {!open.moves.some((move) => (move.attempts?.length ?? 0) > 0) && (
+                  <p className="text-sm text-muted-foreground">This legacy game predates per-turn transcript capture.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

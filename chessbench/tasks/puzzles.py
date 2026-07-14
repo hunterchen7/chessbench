@@ -86,6 +86,28 @@ class PuzzleResult:
     answer_move: str | None = None
     answer_explanation: str | None = None
     answer_raw: str | None = None
+    turns: list[dict[str, object]] = field(default_factory=list)
+
+
+def _turn_record(k: int, ctx: TurnContext, parsed_move: chess.Move | None) -> dict[str, object]:
+    usage = ctx.last_usage or {}
+    details = usage.get("completion_tokens_details")
+    reasoning_value = details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
+    reasoning_tokens = int(reasoning_value) if isinstance(reasoning_value, (int, float, str)) else 0
+    prompt_value = usage.get("prompt_tokens", 0)
+    completion_value = usage.get("completion_tokens", 0)
+    return {
+        "solver_ply": k,
+        "system_prompt": ctx.last_system_prompt,
+        "prompt": ctx.last_prompt,
+        "raw_response": ctx.last_raw_response,
+        "parsed_move": parsed_move.uci() if parsed_move else None,
+        "explanation": ctx.last_explanation,
+        "prompt_tokens": int(prompt_value) if isinstance(prompt_value, (int, float, str)) else 0,
+        "completion_tokens": int(completion_value) if isinstance(completion_value, (int, float, str)) else 0,
+        "reasoning_tokens": reasoning_tokens,
+        "cost_usd": ctx.last_cost,
+    }
 
 
 def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
@@ -156,6 +178,9 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
 
     board = chess.Board(puzzle.fen)
     board.push(chess.Move.from_uci(puzzle.moves[0]))
+    reset = getattr(agent, "reset_puzzle", None)
+    if callable(reset):
+        reset()
 
     lines = puzzle.solution_lines()
     n_solver = puzzle.num_solver_plies() or 1
@@ -168,6 +193,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
     first_move_legal: bool | None = None
     all_moves_legal = True
     answer: dict[str, str | None] = {"move": None, "explanation": None, "raw": None}
+    turns: list[dict[str, object]] = []
 
     def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
         return PuzzleResult(
@@ -177,6 +203,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             illegal_attempts=illegal_attempts, failure_reason=reason,
             solver_plies=n_solver, plies_correct=plies_correct, moves_played=moves_played,
             answer_move=answer["move"], answer_explanation=answer["explanation"], answer_raw=answer["raw"],
+            turns=turns,
         )
 
     k = 0  # solver-ply index (0-based)
@@ -192,6 +219,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
             raw = agent.choose(board, ctx)
             move = board_utils.parse_move(board, raw)
+            turns.append(_turn_record(k, ctx, move))
             if k == 0 and answer["raw"] is None:  # capture the model's first answer for auditing/UI
                 answer["move"] = move.uci() if move else raw[:40]
                 answer["explanation"] = ctx.last_explanation
@@ -286,6 +314,7 @@ def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> Puzz
         answer_move=answer_move,
         answer_explanation=ctx.last_explanation,
         answer_raw=(ctx.last_raw_response or raw)[:2000],
+        turns=[_turn_record(0, ctx, moves[0] if moves else None)],
     )
 
 

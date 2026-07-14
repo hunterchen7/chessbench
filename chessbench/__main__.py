@@ -54,7 +54,7 @@ def _base_condition(args: argparse.Namespace) -> Condition:
     return replace(
         cond,
         notation=Notation(args.notation),
-        context_mode=ContextMode(getattr(args, "context_mode", "fresh")),
+        context_mode=ContextMode(getattr(args, "context_mode", "hybrid")),
         retry_attempts=args.retry_attempts,
         otb_illegal_limit=args.otb_limit,
         explain=args.explain,
@@ -169,7 +169,11 @@ def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, sta
     if spec == "openrouter":
         from .models import OpenRouterModel
 
-        return LLMGameAgent(OpenRouterModel(model_id or "openai/gpt-4o-mini"), cond)
+        return LLMGameAgent(OpenRouterModel(
+            model_id or "openai/gpt-4o-mini",
+            reasoning_effort=cond.reasoning_effort,
+            reasoning_max_tokens=cond.reasoning_max_tokens,
+        ), cond)
     raise SystemExit(f"unknown player: {spec}")
 
 
@@ -192,8 +196,6 @@ def cmd_play(args: argparse.Namespace) -> int:
 
     print(f"score: {res.a} {res.a_wins}  /  draws {res.draws}  /  {res.b} {res.b_wins}")
     print(f"{res.a} score: {res.a_score:.1%}")
-    ed = res.elo_diff()
-    print(f"Elo({res.a}) - Elo({res.b}) ~ {ed:+.0f}" if ed is not None else "Elo diff: n/a (shutout)")
     for i, g in enumerate(res.games, 1):
         print(f"  game {i}: {g.result:>7}  {g.termination:<16} {g.plies} plies  "
               f"(illegal-move rate W+B {g.illegal_rate():.1%})")
@@ -474,7 +476,14 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         total_cost = float(getattr(model, "total_cost", prior_cost))
         item_cost = max(0.0, total_cost - prior_cost)
         prior_cost = total_cost
-        store.save_puzzle_result(handle.run_id, seq, puzzle, result, cost_usd=item_cost)
+        prompt_tokens = sum(int(turn.get("prompt_tokens", 0)) for turn in result.turns)
+        completion_tokens = sum(int(turn.get("completion_tokens", 0)) for turn in result.turns)
+        reasoning_tokens = sum(int(turn.get("reasoning_tokens", 0)) for turn in result.turns)
+        store.save_puzzle_result(
+            handle.run_id, seq, puzzle, result, cost_usd=item_cost,
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            reasoning_tokens=reasoning_tokens,
+        )
 
     try:
         report, results = run_puzzles(
@@ -569,8 +578,8 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_tournament(args: argparse.Namespace) -> int:
-    """Round-robin among LLMs (+ optional Stockfish anchor) -> game-Elo."""
-    from .agents import LLMAgent, RandomAgent, StockfishAgent
+    """Round-robin among LLMs (+ optional Stockfish baseline) -> match points."""
+    from .agents import LLMGameAgent, RandomAgent, StockfishAgent
     from .core.engine import Engine, EngineConfig, find_stockfish
     from .tasks.games import GameConfig
     from .tasks.tournament import TournamentEntry, format_tournament, round_robin
@@ -582,7 +591,14 @@ def cmd_tournament(args: argparse.Namespace) -> int:
 
     anchor: dict[str, float] | None = None
     with ExitStack() as stack:
-        entries = [TournamentEntry(mid, LLMAgent(_build_model(args.provider, mid), condition)) for mid in model_ids]
+        entries = [TournamentEntry(
+            mid,
+            LLMGameAgent(_build_model(
+                args.provider, mid,
+                reasoning_effort=condition.reasoning_effort,
+                reasoning_max_tokens=condition.reasoning_max_tokens,
+            ), condition),
+        ) for mid in model_ids]
         if args.include_random:
             entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
         eval_engine = None
@@ -703,6 +719,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--context-mode", dest="context_mode", default="fresh",
                    choices=[e.value for e in ContextMode])
     _add_condition_args(g)
+    g.set_defaults(legality="retry", context_mode="hybrid")
     g.add_argument("--pgn-out", default=None, help="write game PGNs to this file")
     g.set_defaults(func=cmd_play)
 
@@ -765,6 +782,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="diversify games from an opening book vs the standard start (default). "
                         "At temperature 1.0 games self-diversify, so the book is opt-in.")
     _add_condition_args(t)
+    t.set_defaults(legality="retry", context_mode="hybrid")
     t.set_defaults(func=cmd_tournament)
 
     e = sub.add_parser("export", help="write data/index.json listing run records for the web app")
@@ -789,6 +807,7 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--sf-skill", type=int, default=3)
     sp.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
     _add_condition_args(sp)
+    sp.set_defaults(legality="retry", context_mode="hybrid")
     sp.set_defaults(func=cmd_sprt)
 
     cl = sub.add_parser("category-leaderboard", help="per-category rankings from saved run records")

@@ -14,17 +14,14 @@ export function getUid(): string {
   return uid
 }
 
-export interface HumanElo {
-  rating: number
-  bounded: boolean
-}
-
 export interface HumanRow {
   handle: string | null
   me: boolean
   n: number
   solved: number
-  elo: HumanElo
+  points: number
+  max_points: number
+  accuracy: number
 }
 
 /** Record a solve server-side (fire-and-forget; never throws). `move` is the first

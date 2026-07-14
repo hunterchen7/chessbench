@@ -2,15 +2,10 @@ import type { RunSummary, Condition } from "./data"
 
 export const pct = (x: number) => (x * 100).toFixed(1) + "%"
 
-export const TIER_ORDER = ["beginner", "novice", "intermediate", "advanced", "expert", "master"]
+export const pointsText = (summary: RunSummary) =>
+  `${Number.isInteger(summary.points) ? summary.points.toFixed(0) : summary.points.toFixed(2)}/${summary.max_points}`
 
-export function eloText(s: RunSummary): { value: string; ci?: string } {
-  if (!s.puzzle_elo_bounded) return { value: (s.puzzle_elo >= 2000 ? "≥" : "≤") + s.puzzle_elo.toFixed(0) }
-  const [lo, hi] = s.puzzle_elo_ci
-  if (typeof lo === "number" && typeof hi === "number")
-    return { value: s.puzzle_elo.toFixed(0), ci: "±" + ((hi - lo) / 2).toFixed(0) }
-  return { value: s.puzzle_elo.toFixed(0) }
-}
+export const TIER_ORDER = ["beginner", "novice", "intermediate", "advanced", "expert", "master"]
 
 const CONDITION_LABEL: Record<string, string> = {
   free_form: "Free-form",
@@ -33,7 +28,7 @@ export const MODES: ModeInfo[] = [
   { n: 3, name: "Coached", blurb: "legal moves + tactical tips" },
 ]
 export function modeInfo(c: Condition): ModeInfo | null {
-  if (c.reasoning_effort) return null
+  if (c.puzzle_protocol === "full_line") return null
   if (c.legality === "free_form" && c.prompt_style === "minimal") return MODES[0]
   if (c.legality === "legal_list" && c.prompt_style === "minimal") return MODES[1]
   if (c.legality === "legal_list" && c.prompt_style === "coached") return MODES[2]

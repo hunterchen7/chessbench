@@ -1,309 +1,181 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Trophy, User, Users } from "lucide-react"
+import { Activity, ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
-import type { Run } from "@/lib/data"
-import { eloText, MODES, modeInfo, pct } from "@/lib/format"
-import { humanSummary } from "@/lib/human"
+import type { RunIndexEntry } from "@/lib/data"
+import { MODES, modeInfo, pct, pointsText } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ModelIdentity } from "@/components/ModelIdentity"
+import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-const displayName = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
+type Mode = 1 | 2 | 3
+type ModeMap = Partial<Record<Mode, RunIndexEntry>>
 
-function ModeBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <button
-      onClick={onClick}
-      className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
-        active ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
+    <div className="border-l border-border/70 pl-4 first:border-l-0 first:pl-0">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <div className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{note}</div>
+    </div>
   )
 }
 
-type ModeMap = Partial<Record<1 | 2 | 3, Run>>
+const TRACKS = [
+  { to: "/puzzles", icon: ListChecks, label: "Standard", copy: "Independent move-finding under three prompt scaffolds.", tone: "text-emerald-600" },
+  { to: "/woodpecker", icon: Activity, label: "Woodpecker", copy: "One response must calculate the complete forced line.", tone: "text-violet-600" },
+  { to: "/esoteric", icon: Sparkles, label: "Esoteric", copy: "Selfmates, helpmates, proof games, and studies.", tone: "text-amber-600" },
+  { to: "/games", icon: Swords, label: "Games", copy: "Stateful head-to-head play with match-point standings.", tone: "text-rose-600" },
+]
 
 export function Leaderboard() {
-  const { runs, puzzleIndex, tournaments, apiBase } = useData()
-  // "compare" = the 3-mode matrix; "1"/"2"/"3" = a single mode ranked.
+  const { runs, tournaments, apiBase } = useData()
   const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
   const [humans, setHumans] = useState<HumanRow[]>([])
+  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle"), [runs])
+  const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
+  const [suite, setSuite] = useState("")
+  const activeSuite = suite || suites[0] || ""
 
   useEffect(() => {
-    if (apiBase) fetchHumanLeaderboard(apiBase).then(setHumans)
+    if (apiBase) void fetchHumanLeaderboard(apiBase).then(setHumans)
   }, [apiBase])
 
-  // Group public-suite runs by model and by help mode (Raw / Assisted / Coached).
-  const byModelMode = useMemo(() => {
-    const m = new Map<string, ModeMap>()
-    for (const r of runs) {
-      if (r.suite && r.suite.name !== "tactical-public-v1") continue // matrix compares one suite
-      const mi = modeInfo(r.condition)
-      if (!mi) continue
-      const rec = m.get(r.model) ?? {}
-      const cur = rec[mi.n]
-      if (!cur || r.summary.n > cur.summary.n) rec[mi.n] = r
-      m.set(r.model, rec)
+  const byVariant = useMemo(() => {
+    const grouped = new Map<string, ModeMap>()
+    for (const run of standard) {
+      if (activeSuite && run.suite?.name !== activeSuite) continue
+      const mode = modeInfo(run.condition)
+      if (!mode) continue
+      const record = grouped.get(run.model_variant.key) ?? {}
+      const current = record[mode.n]
+      if (!current || run.progress.completed > current.progress.completed || run.created > current.created) record[mode.n] = run
+      grouped.set(run.model_variant.key, record)
     }
-    return m
-  }, [runs])
+    return grouped
+  }, [standard, activeSuite])
 
-  // Models ordered by their Assisted (mode 2) Elo, falling back to any mode.
-  const modelRows = useMemo(() => {
-    const arr = Array.from(byModelMode.entries()).map(([model, modes]) => {
-      const anchor = modes[2] ?? modes[3] ?? modes[1]
-      return { model, modes, anchorElo: anchor?.summary.puzzle_elo ?? -1 }
-    })
-    arr.sort((a, b) => b.anchorElo - a.anchorElo)
-    return arr
-  }, [byModelMode])
+  const rows = useMemo(() => Array.from(byVariant.entries()).map(([key, modes]) => {
+    const anchor = modes[2] ?? modes[3] ?? modes[1]!
+    return { key, modes, anchor }
+  }).filter((row) => row.anchor).sort((a, b) => b.anchor.summary.points - a.anchor.summary.points), [byVariant])
 
-  const singleRows = useMemo(() => {
+  const single = useMemo(() => {
     if (view === "compare") return []
-    const n = Number(view) as 1 | 2 | 3
-    return modelRows
-      .filter((r) => r.modes[n])
-      .map((r) => ({ model: r.model, run: r.modes[n]! }))
-      .sort((a, b) => b.run.summary.puzzle_elo - a.run.summary.puzzle_elo)
-  }, [modelRows, view])
+    const mode = Number(view) as Mode
+    return rows.flatMap((row) => row.modes[mode] ? [row.modes[mode]!] : [])
+      .sort((a, b) => b.summary.points - a.summary.points || b.summary.solve_rate - a.summary.solve_rate)
+  }, [rows, view])
 
-  const human = humanSummary(puzzleIndex)
+  const baseModels = new Set(runs.map((run) => run.model_variant.base_key)).size
+  const completed = runs.filter((run) => run.status === "completed").length
+  const active = runs.filter((run) => run.status === "running" || run.status === "partial")
+  const cost = runs.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
-        <p className="mt-1 text-muted-foreground">
-          LLMs ranked by <span className="font-medium text-foreground">puzzle Elo</span> — a maximum-likelihood
-          rating fit to which Lichess-rated puzzles each model solves.
-        </p>
-      </div>
-
-      <Tabs defaultValue="puzzle">
-        <TabsList>
-          <TabsTrigger value="puzzle">Puzzle Elo</TabsTrigger>
-          <TabsTrigger value="game">Game Elo</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="puzzle" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {modelRows.length} models · {puzzleIndex.size} unique puzzles · public suite
-            </p>
-            <div className="flex flex-wrap gap-1">
-              <ModeBtn active={view === "compare"} onClick={() => setView("compare")}>
-                Compare modes
-              </ModeBtn>
-              {MODES.map((m) => (
-                <ModeBtn key={m.n} active={view === String(m.n)} onClick={() => setView(String(m.n) as "1" | "2" | "3")}>
-                  {m.n}. {m.name}
-                </ModeBtn>
-              ))}
-            </div>
+    <div className="space-y-10">
+      <section className="grid gap-8 border-b border-border/70 pb-8 xl:grid-cols-[1fr_520px] xl:items-end">
+        <div>
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+            <span className="size-1.5 rounded-full bg-emerald-500" /> Live benchmark corpus
           </div>
-          {view !== "compare" && (
-            <p className="-mt-2 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Mode {view}: {MODES[Number(view) - 1].name}
-              </span>{" "}
-              — {MODES[Number(view) - 1].blurb}
-            </p>
-          )}
-
-          <Card>
-            <CardContent className="p-0">
-              {view === "compare" ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12 text-center">#</TableHead>
-                      <TableHead>Model</TableHead>
-                      {MODES.map((m) => (
-                        <TableHead key={m.n} className="text-right">
-                          {m.n}. {m.name}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {modelRows.map((row, i) => (
-                      <TableRow key={row.model}>
-                        <TableCell className="text-center font-mono text-muted-foreground">
-                          {i === 0 ? <Trophy className="mx-auto size-4 text-chart-4" /> : i + 1}
-                        </TableCell>
-                        <TableCell>
-                          <Link to={`/model/${encodeURIComponent(row.model)}`} className="font-medium hover:underline">
-                            {displayName(row.model)}
-                          </Link>
-                        </TableCell>
-                        {MODES.map((m) => {
-                          const run = row.modes[m.n]
-                          return (
-                            <TableCell key={m.n} className="text-right">
-                              {run ? (
-                                <>
-                                  <span className="font-mono font-semibold tabular-nums">{eloText(run.summary).value}</span>
-                                  <div className="text-xs text-muted-foreground">{pct(run.summary.solve_rate)}</div>
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12 text-center">#</TableHead>
-                      <TableHead>Model</TableHead>
-                      <TableHead className="text-right">Puzzle Elo</TableHead>
-                      <TableHead className="text-right">Solve rate</TableHead>
-                      <TableHead className="text-right">Legal 1st</TableHead>
-                      <TableHead className="text-right">Cost</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {singleRows.map((row, i) => {
-                      const e = eloText(row.run.summary)
-                      return (
-                        <TableRow key={row.model}>
-                          <TableCell className="text-center font-mono text-muted-foreground">
-                            {i === 0 ? <Trophy className="mx-auto size-4 text-chart-4" /> : i + 1}
-                          </TableCell>
-                          <TableCell>
-                            <Link to={`/model/${encodeURIComponent(row.model)}`} className="font-medium hover:underline">
-                              {displayName(row.model)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-semibold tabular-nums">
-                            {e.value}
-                            {e.ci && <span className="ml-1 text-xs font-normal text-muted-foreground">{e.ci}</span>}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">{pct(row.run.summary.solve_rate)}</TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            {pct(row.run.summary.first_move_legal_rate)}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            {row.run.summary.cost_usd != null ? `$${row.run.summary.cost_usd.toFixed(3)}` : "—"}
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                    {singleRows.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
-                          No models have been run in this mode yet.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {human.n > 0 && human.elo && (
-                      <TableRow className="bg-secondary/40">
-                        <TableCell className="text-center">
-                          <User className="mx-auto size-4 text-chart-2" />
-                        </TableCell>
-                        <TableCell className="font-medium">You (human)</TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {human.elo.bounded ? human.elo.rating.toFixed(0) : `≥${human.elo.rating.toFixed(0)}`}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(human.solved / human.n)}</TableCell>
-                        <TableCell className="text-right text-muted-foreground">—</TableCell>
-                        <TableCell className="text-right text-muted-foreground">—</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-          <p className="text-xs text-muted-foreground">
-            Elo shown with ± half-CI where bounded; <span className="font-mono">≤/≥</span> marks a railed estimate
-            (solved none / solved all). Solve out more puzzles in the{" "}
-            <Link to="/puzzles" className="underline">
-              puzzle browser
-            </Link>{" "}
-            to place yourself on the board.
+          <h1 className="max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.045em] sm:text-6xl">
+            How well do language models actually <span className="text-muted-foreground">understand chess?</span>
+          </h1>
+          <p className="mt-5 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            A points-first, tool-free evaluation across tactical puzzles, full-line calculation, composed problems,
+            and stateful games. Every prompt condition and reasoning budget stays visible.
           </p>
+        </div>
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 xl:grid-cols-2">
+          <Stat label="Base models" value={String(baseModels)} note="budget variants separate" />
+          <Stat label="Completed runs" value={String(completed)} note={`${runs.length} total manifests`} />
+          <Stat label="Game sets" value={String(tournaments.length)} note="match-point scoring" />
+          <Stat label="Recorded cost" value={`$${cost.toFixed(2)}`} note="provider-reported" />
+        </div>
+      </section>
 
-          {apiBase && humans.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="size-4 text-chart-2" /> Top human solvers
-                </CardTitle>
-                <CardDescription>Shared across everyone who solves in the browser.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12 text-center">#</TableHead>
-                      <TableHead>Solver</TableHead>
-                      <TableHead className="text-right">Puzzle Elo</TableHead>
-                      <TableHead className="text-right">Solved</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {humans.map((h, i) => (
-                        <TableRow key={i} className={h.me ? "bg-secondary/40" : undefined}>
-                          <TableCell className="text-center font-mono text-muted-foreground">{i + 1}</TableCell>
-                          <TableCell className="font-medium">
-                            {h.handle || `anon #${i + 1}`}
-                            {h.me && <Badge variant="outline" className="ml-2 text-xs font-normal">you</Badge>}
-                          </TableCell>
-                          <TableCell className="text-right font-mono font-semibold tabular-nums">
-                            {h.elo.bounded ? h.elo.rating.toFixed(0) : `≥${h.elo.rating.toFixed(0)}`}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            {h.solved}/{h.n}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {TRACKS.map(({ to, icon: Icon, label, copy, tone }) => (
+          <Link key={to} to={to} className="group">
+            <Card className="h-full border-border/70 bg-card/70 transition-all group-hover:-translate-y-0.5 group-hover:border-foreground/30 group-hover:shadow-lg">
+              <CardContent className="flex h-full items-start gap-4 pt-6">
+                <Icon className={`mt-0.5 size-5 shrink-0 ${tone}`} />
+                <div>
+                  <div className="flex items-center gap-2 font-semibold">{label} <ArrowRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" /></div>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy}</p>
+                </div>
               </CardContent>
             </Card>
-          )}
-        </TabsContent>
+          </Link>
+        ))}
+      </section>
 
-        <TabsContent value="game" className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Playing strength from head-to-head games, rated with a Bradley–Terry model over tournament results.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tournaments.map((t) => (
-              <Link key={t.file} to={`/games/${encodeURIComponent(t.file)}`}>
-                <Card className="h-full transition-colors hover:border-ring">
-                  <CardHeader>
-                    <CardTitle className="text-base">{t.file.replace(/\.json$/, "")}</CardTitle>
-                    <CardDescription>
-                      {t.n_players} players · {t.n_games} games
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Trophy className="size-4 text-chart-4" />
-                      Winner: <span className="font-medium">{t.winner ?? "—"}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-            {tournaments.length === 0 && (
-              <p className="text-sm text-muted-foreground">No tournaments recorded yet.</p>
-            )}
+      {active.length > 0 && (
+        <section className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><Activity className="size-4 text-amber-600" /> Runs with durable progress</div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {active.slice(0, 6).map((run) => {
+              const ratio = run.progress.total ? run.progress.completed / run.progress.total : 0
+              return <div key={run.run_id} className="rounded-lg border bg-background/70 p-3">
+                <div className="flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{run.model_variant.display_name}</span><Badge variant="outline">{run.status}</Badge></div>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-amber-500" style={{ width: `${ratio * 100}%` }} /></div>
+                <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"><span>{run.track}</span><span>{run.progress.completed}/{run.progress.total}</span></div>
+              </div>
+            })}
           </div>
-        </TabsContent>
-      </Tabs>
+        </section>
+      )}
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle points</h2></div>
+            <p className="mt-1 text-sm text-muted-foreground">One point per complete puzzle; correct prefixes receive fractional credit.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
+            <div className="flex rounded-md border bg-background p-0.5">
+              <button onClick={() => setView("compare")} className={`rounded px-2.5 py-1 text-xs ${view === "compare" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Compare</button>
+              {MODES.map((mode) => <button key={mode.n} onClick={() => setView(String(mode.n) as typeof view)} className={`rounded px-2.5 py-1 text-xs ${view === String(mode.n) ? "bg-foreground text-background" : "text-muted-foreground"}`}>{mode.n}. {mode.name}</button>)}
+            </div>
+            <ExportButton track="puzzle" />
+          </div>
+        </div>
+
+        <Card className="overflow-hidden border-border/70">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead className="w-12 text-center">#</TableHead><TableHead>Model variant</TableHead>
+                {view === "compare" ? MODES.map((mode) => <TableHead key={mode.n} className="text-right">{mode.name}</TableHead>) : <><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead></>}
+              </TableRow></TableHeader>
+              <TableBody>
+                {(view === "compare" ? rows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
+                  const run = row.anchor
+                  return <TableRow key={row.key} className="group">
+                    <TableCell className="text-center font-mono text-xs text-muted-foreground">{index === 0 ? <Trophy className="mx-auto size-4 text-amber-500" /> : index + 1}</TableCell>
+                    <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`}><ModelIdentity variant={run.model_variant} /></Link></TableCell>
+                    {view === "compare" ? MODES.map((mode) => {
+                      const cell = row.modes[mode.n]
+                      return <TableCell key={mode.n} className="text-right">{cell ? <><div className="font-mono font-semibold tabular-nums">{pointsText(cell.summary)}</div><div className="text-[11px] text-muted-foreground">{pct(cell.summary.solve_rate)} solved</div></> : <span className="text-muted-foreground">—</span>}</TableCell>
+                    }) : <><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
+                  </TableRow>
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </section>
+
+      {humans.length > 0 && <section>
+        <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Users className="size-4" /> Human puzzle points</CardTitle><CardDescription>Optional browser solves, ranked by verified points.</CardDescription></CardHeader>
+          <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{humans.slice(0, 6).map((human, index) => <div key={`${human.handle}-${index}`} className="flex items-center justify-between rounded-lg border p-3"><div><div className="text-sm font-medium">{human.handle || `anon #${index + 1}`}</div><div className="text-xs text-muted-foreground">{human.solved} solved · {pct(human.accuracy)}</div></div><div className="font-mono font-semibold">{human.points}/{human.max_points}</div></div>)}</CardContent>
+        </Card>
+      </section>}
     </div>
   )
 }

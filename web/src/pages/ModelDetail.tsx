@@ -1,326 +1,86 @@
-import { Fragment, useMemo, useState } from "react"
+import { Fragment, useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Check, ChevronDown, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { eloText, MODES, modeInfo, pct, TIER_ORDER } from "@/lib/format"
+import { loadRun, type Run } from "@/lib/data"
+import { MODES, modeInfo, pct, pointsText, TIER_ORDER } from "@/lib/format"
 import { uciToSan } from "@/lib/chess"
-import { EloChart, type EloPoint } from "@/components/EloChart"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ModelIdentity } from "@/components/ModelIdentity"
+import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="text-sm text-muted-foreground">{label}</div>
-        <div className="mt-1 text-2xl font-bold tabular-nums">{value}</div>
-        {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
-      </CardContent>
-    </Card>
-  )
+function Stat({ label, value, note, icon: Icon }: { label: string; value: string; note: string; icon: typeof Scale }) {
+  return <Card><CardContent className="flex items-start gap-3 pt-6"><Icon className="mt-1 size-4 text-muted-foreground" /><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</div><div className="mt-0.5 text-xs text-muted-foreground">{note}</div></div></CardContent></Card>
 }
 
 export function ModelDetail() {
   const { model = "" } = useParams()
-  const decoded = decodeURIComponent(model)
+  const key = decodeURIComponent(model)
   const { runs } = useData()
-  const mine = useMemo(
-    () => runs.filter((r) => r.model === decoded).sort((a, b) => b.summary.n - a.summary.n),
-    [runs, decoded],
-  )
-  const [slug, setSlug] = useState(mine[0]?.condition.slug ?? "")
+  const mine = useMemo(() => runs.filter((run) => run.model_variant.key === key).sort((a, b) => b.created.localeCompare(a.created)), [runs, key])
+  const [selected, setSelected] = useState("")
+  const activeId = selected || mine[0]?.run_id || ""
+  const meta = mine.find((run) => run.run_id === activeId) ?? mine[0]
+  const [run, setRun] = useState<Run | null>(null)
   const [filter, setFilter] = useState<"all" | "solved" | "failed">("all")
   const [openPuzzle, setOpenPuzzle] = useState<string | null>(null)
-  const run = mine.find((r) => r.condition.slug === slug) ?? mine[0]
 
-  if (!run)
-    return (
-      <div>
-        <p>No runs for {decoded}.</p>
-        <Link to="/" className="text-sm underline">
-          Back to leaderboard
-        </Link>
-      </div>
-    )
+  useEffect(() => {
+    if (!meta) return
+    setRun(null)
+    void loadRun(meta.file).then(setRun)
+  }, [meta])
 
-  const points: EloPoint[] = run.items.map((it, i) => ({
-    index: i + 1,
-    seq_elo: it.seq_elo,
-    rating: it.rating,
-    solved: it.solved,
-    puzzle_id: it.puzzle_id,
-  }))
-  const e = eloText(run.summary)
+  if (!meta) return <div><p>No published runs for {key}.</p><Link to="/" className="text-sm underline">Back to overview</Link></div>
+  const displayRun = run ?? ({ ...meta, schema: "", themes: [], items: [] } as Run)
+  const variant = meta.model_variant
 
-  // Tier-bucketed accuracy from this run's items.
   const byTier = TIER_ORDER.map((tier) => {
-    const items = run.items.filter((it) => it.categories.tier?.includes(tier))
-    const solved = items.filter((it) => it.solved).length
-    return { tier, n: items.length, solved }
-  }).filter((t) => t.n > 0)
+    const items = displayRun.items.filter((item) => item.categories.tier?.includes(tier))
+    return { tier, n: items.length, solved: items.filter((item) => item.solved).length, points: items.reduce((sum, item) => sum + item.score, 0) }
+  }).filter((row) => row.n)
 
-  // This model across the 3 help modes (public suite), if run in more than one.
-  const modeRuns = MODES.map((m) => ({
-    mode: m,
-    run: mine.find((r) => r.suite?.name !== "reasoning-mini-v1" && modeInfo(r.condition)?.n === m.n),
-  }))
-  const hasModeComparison = modeRuns.filter((x) => x.run).length > 1
+  const modeRuns = MODES.map((mode) => ({ mode, run: mine.find((candidate) => modeInfo(candidate.condition)?.n === mode.n && candidate.track === "puzzle") }))
+  const cumulative = displayRun.items.reduce<Array<{ item: string; points: number }>>((acc, item) => {
+    acc.push({ item: item.puzzle_id, points: (acc.at(-1)?.points ?? 0) + item.score })
+    return acc
+  }, [])
 
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-8">
+    <section className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-7">
       <div>
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="size-4" /> Leaderboard
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{decoded}</h1>
-          <Badge variant="outline">{run.provider}</Badge>
-          {run.condition.reasoning_effort && (
-            <Badge className="bg-chart-4/15 text-chart-4">🧠 thinking: {run.condition.reasoning_effort}</Badge>
-          )}
-        </div>
+        <Link to="/" className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Overview</Link>
+        <ModelIdentity variant={variant} />
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output budgets are part of this participant’s identity.</p>
       </div>
-
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Condition</span>
-        <Select value={run.condition.slug} onValueChange={setSlug}>
-          <SelectTrigger className="w-[360px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {mine.map((r) => (
-              <SelectItem key={r.condition.slug} value={r.condition.slug}>
-                {r.condition.slug} · {r.summary.n} puzzles
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap items-center gap-2">
+        {mine.length > 1 && <select value={meta.run_id} onChange={(event) => setSelected(event.target.value)} className="h-8 max-w-sm rounded-md border bg-background px-2 text-xs">{mine.map((candidate) => <option key={candidate.run_id} value={candidate.run_id}>{candidate.track} · {candidate.condition.slug} · {candidate.suite?.name ?? "no suite"}</option>)}</select>}
+        <ExportButton model={variant.key} />
       </div>
+    </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Puzzle Elo" value={e.value} sub={e.ci ? `95% CI ${e.ci}` : "railed"} />
-        <Stat
-          label="Solve rate"
-          value={pct(run.summary.solve_rate)}
-          sub={`${run.summary.solved}/${run.summary.n} solved`}
-        />
-        <Stat label="Mean score" value={pct(run.summary.mean_score)} sub="partial credit" />
-        <Stat label="Legal 1st move" value={pct(run.summary.first_move_legal_rate)} sub="first-attempt legal" />
-      </div>
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
+      <Stat icon={Check} label="Complete solves" value={`${meta.summary.solved}/${meta.summary.n}`} note={pct(meta.summary.solve_rate)} />
+      <Stat icon={Database} label="Legal first" value={pct(meta.summary.first_move_legal_rate)} note={`${meta.progress.completed}/${meta.progress.total} durable items`} />
+      <Stat icon={CircleDollarSign} label="Recorded cost" value={meta.summary.cost_usd == null ? "—" : `$${meta.summary.cost_usd.toFixed(4)}`} note={`${meta.usage?.reasoning_tokens?.toLocaleString() ?? 0} reasoning tokens`} />
+    </section>
 
-      {hasModeComparison && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Across the 3 help modes</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mode</TableHead>
-                  <TableHead className="text-right">Puzzle Elo</TableHead>
-                  <TableHead className="text-right">Solve rate</TableHead>
-                  <TableHead className="text-right">Legal 1st</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {modeRuns.map(({ mode, run: r }) => (
-                  <TableRow key={mode.n} className={r === run ? "bg-secondary/40" : undefined}>
-                    <TableCell>
-                      <span className="font-medium">
-                        {mode.n}. {mode.name}
-                      </span>{" "}
-                      <span className="text-xs text-muted-foreground">{mode.blurb}</span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono font-semibold tabular-nums">
-                      {r ? eloText(r.summary).value : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{r ? pct(r.summary.solve_rate) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {r ? pct(r.summary.first_move_legal_rate) : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+    {modeRuns.filter((item) => item.run).length > 1 && <Card><CardHeader><CardTitle className="text-base">Prompt scaffold comparison</CardTitle></CardHeader><CardContent className="grid gap-2 md:grid-cols-3">{modeRuns.map(({ mode, run: candidate }) => <div key={mode.n} className="rounded-lg border p-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{mode.n}. {mode.name}</div><div className="mt-2 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete` : "not run"}</div></div>)}</CardContent></Card>}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Sequential puzzle-Elo trajectory</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EloChart points={points} final={run.summary.puzzle_elo_bounded ? run.summary.puzzle_elo : undefined} />
-        </CardContent>
-      </Card>
+    {run && cumulative.length > 0 && <Card><CardHeader><CardTitle className="text-base">Points accumulation</CardTitle></CardHeader><CardContent><div className="flex h-32 items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle">{cumulative.map((point, index) => <div key={point.item} title={`${point.item}: ${point.points.toFixed(2)} points`} className="min-w-0 flex-1 bg-emerald-500/70 transition-colors hover:bg-emerald-500" style={{ height: `${Math.max(2, point.points / Math.max(1, meta.summary.max_points) * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.points.toFixed(2)} points`} />)}</div><div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>first item</span><span>{meta.summary.points.toFixed(2)} total points</span></div></CardContent></Card>}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Accuracy by tier</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tier</TableHead>
-                  <TableHead className="text-right">Solved</TableHead>
-                  <TableHead className="text-right">Accuracy</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {byTier.map((t) => (
-                  <TableRow key={t.tier}>
-                    <TableCell className="capitalize">{t.tier}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {t.solved}/{t.n}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{pct(t.solved / t.n)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+    {run && <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+      <Card><CardHeader><CardTitle className="text-base">Points by difficulty tier</CardTitle></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Tier</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top themes</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Theme</TableHead>
-                  <TableHead className="text-right">n</TableHead>
-                  <TableHead className="text-right">Accuracy</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {run.themes.slice(0, 10).map((t) => (
-                  <TableRow key={t.theme}>
-                    <TableCell>{t.theme}</TableCell>
-                    <TableCell className="text-right tabular-nums text-muted-foreground">{t.n}</TableCell>
-                    <TableCell className="text-right tabular-nums">{pct(t.accuracy)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Per-puzzle answer sheet: exactly what the model played on each puzzle. */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
-          <CardTitle className="text-base">
-            Answer sheet
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              what {decoded.includes("/") ? decoded.split("/")[1] : decoded} played, puzzle by puzzle
-            </span>
-          </CardTitle>
-          <div className="flex gap-1">
-            {(["all", "solved", "failed"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`rounded-md px-2.5 py-1 text-xs capitalize transition-colors ${
-                  filter === f ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>Puzzle</TableHead>
-                <TableHead className="text-right">Rating</TableHead>
-                <TableHead>Played</TableHead>
-                <TableHead>Best</TableHead>
-                <TableHead>Note</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {run.items
-                .slice()
-                .sort((a, b) => a.rating - b.rating)
-                .filter((it) => (filter === "all" ? true : filter === "solved" ? it.solved : !it.solved))
-                .map((it) => {
-                  const played = uciToSan(it.fen, it.answer_move) ?? it.answer_move ?? "—"
-                  const best = uciToSan(it.fen, it.solution_first) ?? it.solution_first ?? "—"
-                  const open = openPuzzle === it.puzzle_id
-                  const canOpen = !!it.answer_explanation
-                  return (
-                    <Fragment key={it.puzzle_id}>
-                      <TableRow
-                        className={canOpen ? "cursor-pointer" : undefined}
-                        onClick={canOpen ? () => setOpenPuzzle(open ? null : it.puzzle_id) : undefined}
-                      >
-                        <TableCell className="text-center">
-                          {it.solved ? (
-                            <Check className="mx-auto size-4 text-chart-2" />
-                          ) : (
-                            <X className="mx-auto size-4 text-destructive/70" />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Link
-                            to={`/puzzles/${it.puzzle_id}`}
-                            className="font-mono text-sm hover:underline"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {it.puzzle_id}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{it.rating}</TableCell>
-                        <TableCell className={`font-mono ${it.solved ? "text-chart-2" : ""}`}>
-                          {played}
-                          {canOpen && (
-                            <ChevronDown
-                              className={`ml-1 inline size-3 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-muted-foreground">{best}</TableCell>
-                        <TableCell>
-                          {!it.solved && it.failure_reason && (
-                            <Badge variant="secondary" className="text-xs font-normal">
-                              {it.failure_reason}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      {open && it.answer_explanation && (
-                        <TableRow>
-                          <TableCell />
-                          <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">Its reasoning: </span>
-                            {it.answer_explanation}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  )
-                })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  )
+      <Card><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="flex gap-1">{(["all", "solved", "failed"] as const).map((value) => <button key={value} onClick={() => setFilter(value)} className={`rounded px-2 py-1 text-xs capitalize ${filter === value ? "bg-foreground text-background" : "text-muted-foreground"}`}>{value}</button>)}</div></CardHeader>
+        <CardContent className="max-h-[640px] overflow-auto p-0"><Table><TableHeader><TableRow><TableHead className="w-8" /><TableHead>Puzzle</TableHead><TableHead className="text-right">Points</TableHead><TableHead>Answer</TableHead><TableHead>Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
+          const open = openPuzzle === item.puzzle_id
+          const answer = displayRun.track === "woodpecker" ? item.moves_played?.join(" ") : uciToSan(item.fen, item.answer_move) ?? item.answer_move
+          return <Fragment key={item.puzzle_id}><TableRow className={item.answer_explanation ? "cursor-pointer" : undefined} onClick={() => item.answer_explanation && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className="size-4 text-rose-500" />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="max-w-[260px] truncate font-mono text-xs">{answer || "—"}{item.answer_explanation && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</TableCell><TableCell>{item.failure_reason ? <Badge variant="outline">{item.failure_reason}</Badge> : <Badge variant="secondary">complete</Badge>}</TableCell></TableRow>{open && item.answer_explanation && <TableRow><TableCell /><TableCell colSpan={4} className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Visible explanation: </span>{item.answer_explanation}</TableCell></TableRow>}</Fragment>
+        })}</TableBody></Table></CardContent></Card>
+    </div>}
+  </div>
 }

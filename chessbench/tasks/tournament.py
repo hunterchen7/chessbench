@@ -128,28 +128,16 @@ def round_robin(
     for label, est in ratings.items():
         standings[label].rating = est
 
-    ordered = sorted(
-        standings.values(),
-        key=lambda s: (s.rating.rating if s.rating else 0.0, s.score),
-        reverse=True,
-    )
+    ordered = sorted(standings.values(), key=lambda s: (s.score, s.wins), reverse=True)
     crosstable = {k: (v[0], v[1], v[2]) for k, v in cross.items()}
     return TournamentResult(standings=ordered, games=games, crosstable=crosstable)
 
 
 def format_tournament(result: TournamentResult) -> str:
-    lines = [f"{'#':>2} {'player':<38} {'Elo':>10} {'games':>6} {'W-D-L':>10} {'score':>6} {'illegal':>7}"]
-    lines.append("-" * 86)
+    lines = [f"{'#':>2} {'player':<38} {'points':>8} {'games':>6} {'W-D-L':>10} {'rate':>6} {'illegal':>7}"]
+    lines.append("-" * 84)
     for i, s in enumerate(result.standings, 1):
-        if s.rating is not None and s.rating.bounded:
-            lo, hi = s.rating.ci95()
-            elo = f"{s.rating.rating:.0f}±{(hi - lo) / 2:.0f}"
-        elif s.rating is not None:
-            elo = f"{s.rating.rating:.0f}*"  # anchored (fixed) or railed
-        else:
-            elo = "n/a"
         wdl = f"{s.wins}-{s.draws}-{s.losses}"
         pct = s.score / s.games if s.games else 0.0
-        lines.append(f"{i:>2} {s.label:<38} {elo:>10} {s.games:>6} {wdl:>10} {pct:>5.0%} {s.illegal_forfeits:>7}")
-    lines.append("\n(* = fixed anchor or unbounded; Elo shown as rating±half-CI otherwise)")
+        lines.append(f"{i:>2} {s.label:<38} {s.score:>8.1f} {s.games:>6} {wdl:>10} {pct:>5.0%} {s.illegal_forfeits:>7}")
     return "\n".join(lines)

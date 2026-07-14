@@ -1,217 +1,86 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
 }
 
-function Mono({ children }: { children: React.ReactNode }) {
-  return (
-    <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 text-xs leading-relaxed text-foreground">
-      {children}
-    </pre>
-  )
-}
-
-const MODES = [
-  {
-    n: 1,
-    name: "Raw",
-    tag: "free-form legality",
-    desc: "The position only — FEN and a piece list. The model must produce a legal move on its own; an illegal move is a failure. This is the honest measure of chess ability.",
-    prompt: `You are a chess engine. Find the single best move.
-
-FEN: 6k1/5ppp/8/8/8/8/5PPP/1R4K1 w - - 0 1
-Pieces:
-  White: Kg1 Rb1 Pf2 Pg2 Ph2
-  Black: Kg8 Pf7 Pg7 Ph7
-Side to move: White
-
-Reply with your move in SAN.`,
-  },
-  {
-    n: 2,
-    name: "Assisted",
-    tag: "legal moves given · default",
-    desc: "Everything in Raw, plus the full list of legal moves in SAN and UCI. This removes the legality burden so the score reflects move choice, not board tracking. It is the default headline mode.",
-    prompt: `…position as above…
-
-Legal moves: Rb8+ (b1b8), Ra1 (b1a1), Rc1 (b1c1),
-  Kf1 (g1f1), Kh1 (g1h1), f3 (f2f3), f4 (f2f4), …
-
-Reply with your move in SAN.`,
-  },
-  {
-    n: 3,
-    name: "Coached",
-    tag: "legal moves + tactical coaching",
-    desc: "Everything in Assisted, plus a tactical checklist that primes the model to calculate forcing moves. This is the max-help mode — the molded coaching prompt was tuned by A/B-testing several variants on a fixed model.",
-    prompt: `…position + legal moves as above…
-
-This is a tactical position: there is a concrete best move.
-1. List every CHECK, CAPTURE, and threat — forcing moves first.
-2. Calculate the opponent's forced replies 2-3 moves deep.
-3. Hunt for forks, pins, skewers, discovered attacks,
-   back-rank mates, removing the defender, trapped pieces.
-4. Prefer a forcing line that wins material or mates.
-5. Confirm the move is legal and doesn't hang.
-
-Reply with your move, then a brief 'why:'.`,
-  },
-]
+const HELP = [
+  ["1", "Raw", "FEN + piece locations", "The model receives the position and must generate a legal move without a candidate list."],
+  ["2", "Assisted", "Raw + SAN/UCI legal moves", "The same task with every legal move supplied, isolating move choice from board-legality tracking."],
+  ["3", "Coached", "Assisted + chess advice", "Adds a fixed forcing-move and blunder-check checklist. It is a prompt ablation, not assumed to be stronger."],
+] as const
 
 export function Methodology() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Methodology</h1>
-        <p className="mt-1 max-w-3xl text-muted-foreground">
-          chessbench measures how well language models play chess along two tracks — solving rated puzzles and
-          playing full games against each other — and reports results as Elo ratings on the same scale humans use.
+    <div className="space-y-10">
+      <header className="max-w-4xl">
+        <Badge variant="outline">Protocol v2</Badge>
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
+        <p className="mt-3 text-base leading-relaxed text-muted-foreground">
+          Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
+          reasoning budget, output cap, and sampling settings. Those fields form the identity of a result.
         </p>
-      </div>
+      </header>
 
-      {/* Help modes */}
       <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold">The three help modes</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            The same puzzle is scored under different amounts of scaffolding. How much you help the model changes the
-            result dramatically, so every run records exactly which mode it used.
-          </p>
-        </div>
-        <div className="rounded-md border border-chart-4/30 bg-chart-4/5 p-3 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Finding:</span> more help isn't always better. A/B-testing
-          the coaching variants on a fixed model, the plain <span className="font-mono">Assisted</span> mode matched or
-          beat every <span className="font-mono">Coached</span> variant — heavy scaffolding distracted the model more
-          than it helped. So the headline leaderboard uses the assisted mode, and coaching is reported as its own axis
-          rather than assumed to be an upgrade.
-        </div>
+        <div><h2 className="text-xl font-semibold">Three information prompts</h2><p className="mt-1 text-sm text-muted-foreground">The information supplied is independent from how conversation state is handled.</p></div>
         <div className="grid gap-4 lg:grid-cols-3">
-          {MODES.map((m) => (
-            <Card key={m.n} className="flex flex-col">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Badge variant="secondary">Mode {m.n}</Badge>
-                  {m.name}
-                </CardTitle>
-                <Badge variant="outline" className="w-fit text-xs font-normal">
-                  {m.tag}
-                </Badge>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-3">
-                <p className="text-sm text-muted-foreground">{m.desc}</p>
-                <Mono>{m.prompt}</Mono>
-              </CardContent>
-            </Card>
-          ))}
+          {HELP.map(([n, name, tag, description]) => <Card key={n}>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Badge variant="secondary">Mode {n}</Badge>{name}</CardTitle></CardHeader>
+            <CardContent><div className="mb-3 font-mono text-xs text-foreground">{tag}</div><p className="text-sm leading-relaxed text-muted-foreground">{description}</p></CardContent>
+          </Card>)}
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Puzzle Elo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Prose>
-              <p>
-                Each puzzle carries a Lichess rating — the Elo at which a human solves it ~50% of the time. Given which
-                puzzles a model solved, we fit the single rating <span className="font-mono text-foreground">R</span>{" "}
-                that best explains the outcomes, using the same logistic model Lichess uses:
-              </p>
-              <Mono>{`P(solve | rating r) = 1 / (1 + 10^((r − R)/400))`}</Mono>
-              <p>
-                <span className="font-mono text-foreground">R</span> is the maximum-likelihood fit over all attempts
-                (solved harder puzzles push it up; failed easy ones pull it down). A 95% confidence interval comes from
-                the Fisher information. Solving none rails to <span className="font-mono">≤</span> a floor; solving
-                everything rails to <span className="font-mono">≥</span> a ceiling.
-              </p>
-              <p>
-                The <span className="text-foreground">sequential trajectory</span> on each model page replays the same
-                fit puzzle-by-puzzle, easiest first — so you can watch the rating climb and stall.
-              </p>
-            </Prose>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Puzzle conversation state</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p><span className="font-medium text-foreground">No state ever crosses puzzle boundaries.</span> Each puzzle starts a new session.</p>
+            <p>For multi-move standard puzzles, the canonical policy keeps one conversation across solver moves. On every turn it also sends the authoritative current FEN, piece list, legal moves when enabled, and the line so far. This preserves continuity without trusting the model's internal board state.</p>
+            <p><span className="font-mono text-foreground">fresh</span> is retained as a named ablation: each solver move is a new request with all required state reconstructed in the prompt.</p>
+          </Prose></CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Game Elo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Prose>
-              <p>
-                Models play a round-robin, both colours. Ratings come from a Bradley–Terry fit over every result (a
-                draw counts as half a point), optionally anchored to a Stockfish player at a fixed Elo to put the whole
-                table on an absolute scale.
-              </p>
-              <p>
-                Games run in the assisted mode (legal moves are provided), so a result reflects chess, not whether a
-                model can avoid an illegal move. If a game reaches the move cap, a Stockfish evaluation adjudicates it:
-                a side that is winning by more than ~2 pawns takes the point instead of a hollow draw.
-              </p>
-              <p>
-                When move-by-move evaluation is on, each move's centipawn swing yields a Lichess-style{" "}
-                <span className="text-foreground">accuracy %</span> for the game.
-              </p>
-            </Prose>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Woodpecker is a separate track</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p>The model sees one position and must return the complete forced solution in a single response. There are no intermediate opponent replies and therefore no between-move conversation policy.</p>
+            <p>The grader parses the full sequence and awards prefix credit only while every preceding solver move remains correct.</p>
+          </Prose></CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Legality handling</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Prose>
-              <p>How an illegal move is treated is its own axis:</p>
-              <ul className="ml-4 list-disc space-y-1">
-                <li>
-                  <span className="font-mono text-foreground">free-form</span> — an illegal move is an immediate loss
-                  of the puzzle / game.
-                </li>
-                <li>
-                  <span className="font-mono text-foreground">retry</span> — the model is told its move was illegal and
-                  gets a few more tries.
-                </li>
-                <li>
-                  <span className="font-mono text-foreground">legal-list</span> — every legal move is supplied up
-                  front, so illegal moves are essentially impossible.
-                </li>
-                <li>
-                  <span className="font-mono text-foreground">otb</span> — an "over the board" framing where the{" "}
-                  <span className="font-mono">N</span>th cumulative illegal move forfeits.
-                </li>
-              </ul>
-            </Prose>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Points</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p>Standard, Woodpecker, and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
+            <p>Games use ordinary match points: win = 1, draw = 0.5, loss = 0. Leaderboards do not convert performance to Elo.</p>
+          </Prose></CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Sampling &amp; caveats</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Prose>
-              <p>
-                Models are sampled at their native <span className="text-foreground">temperature 1.0</span> — how
-                they're actually used — rather than greedy decoding. Games self-diversify at that temperature, so no
-                opening book is forced.
-              </p>
-              <p>
-                <span className="text-foreground">Reasoning effort</span> is its own axis: reasoning models can be run
-                at <span className="font-mono">low</span>/<span className="font-mono">medium</span>/
-                <span className="font-mono">high</span> thinking budgets (the <span className="font-mono">🧠</span>{" "}
-                badge), recorded in the condition so the same model at different efforts are distinct, comparable rows.
-              </p>
-              <p>
-                <span className="text-foreground">Contamination</span> is the biggest validity risk: public Lichess
-                puzzles may sit in training data, so a model could recall rather than calculate. A private,
-                engine-generated suite exists to control for this; treat public-suite numbers as an upper bound.
-              </p>
-            </Prose>
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Game sessions and illegality</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p>The canonical game policy is <span className="font-mono text-foreground">hybrid</span>: one growing chat per game plus an authoritative position and move history on every turn. Sessions reset between games.</p>
+            <p>Legality is independently configurable: immediate forfeit, feedback-and-retry, supplied legal list, or an over-the-board cumulative illegal-move limit. The selected policy is visible with every result.</p>
+          </Prose></CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Model variants and no tools</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p>A base model at different reasoning efforts or exact reasoning-token budgets is treated as a distinct model variant. Output-token caps are part of that identity too.</p>
+            <p>No engine, browser, code execution, retrieval, or provider tool is offered. Compatible providers receive <span className="font-mono text-foreground">tool_choice: none</span>, and a returned tool call invalidates the response.</p>
+          </Prose></CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Audit logs and durable progress</CardTitle></CardHeader>
+          <CardContent><Prose>
+            <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, legality, provider token counts, reasoning-token count, and cost. Provider-hidden chain of thought is neither requested for publication nor reconstructed.</p>
+            <p>Each completed item is committed locally to SQLite and queued for idempotent Cloudflare D1 ingestion. A run can resume after interruption or exhausted credits without replaying completed items. Filtered data can be exported as JSON from the dashboard.</p>
+          </Prose></CardContent>
         </Card>
       </div>
     </div>

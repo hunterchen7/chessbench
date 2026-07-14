@@ -12,6 +12,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 import chess
@@ -25,6 +26,11 @@ def _move_dict(m: MoveRecord) -> dict[str, object]:
         "ply": m.ply, "color": m.color, "san": m.san, "uci": m.uci,
         "first_attempt_legal": m.first_attempt_legal, "illegal_attempts": m.illegal_attempts,
         "eval_cp": m.eval_cp, "forfeited": m.forfeited,
+        "attempts": [asdict(attempt) for attempt in m.attempts],
+        "prompt_tokens": sum(a.prompt_tokens for a in m.attempts),
+        "completion_tokens": sum(a.completion_tokens for a in m.attempts),
+        "reasoning_tokens": sum(a.reasoning_tokens for a in m.attempts),
+        "cost_usd": sum(a.cost_usd for a in m.attempts),
     }
 
 

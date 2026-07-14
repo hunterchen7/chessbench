@@ -50,7 +50,7 @@ def test_run_record_export_is_self_contained_and_valid(tmp_path):
     assert len(items) == 2
     assert items[0]["rating"] == 1200                  # ordered easy -> hard
     assert items[0]["fen"] and "solution" in items[0]  # board + solution embedded
-    assert "seq_elo" in items[0] and "categories" in items[0]
+    assert "turns" in items[0] and "categories" in items[0]
     assert items[0]["answer_explanation"] == "back-rank mate"
 
 

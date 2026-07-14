@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Chess } from "chess.js"
 import { ArrowLeft, Check, ChevronDown, Lightbulb, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
+import { loadPuzzle, type PuzzleEntry } from "@/lib/data"
 import { pct } from "@/lib/format"
 import { uciLineToSan, uciToSan } from "@/lib/chess"
 import { humanRecord } from "@/lib/human"
@@ -16,8 +17,15 @@ type Status = "playing" | "solved" | "failed"
 
 export function PuzzleDetail() {
   const { id = "" } = useParams()
-  const { puzzleIndex, apiBase } = useData()
-  const entry = puzzleIndex.get(id)
+  const { apiBase } = useData()
+  const [entry, setEntry] = useState<PuzzleEntry | null | undefined>(undefined)
+  useEffect(() => { setEntry(undefined); void loadPuzzle(id).then(setEntry) }, [id])
+  if (entry === undefined) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle…</div>
+  if (entry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
+  return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} />
+}
+
+function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; apiBase: string | null }) {
 
   // Record a human outcome both locally (offline Elo) and on the backend (shared
   // leaderboard). `move` is the player's first move; the server verifies it before crediting.
@@ -26,8 +34,8 @@ export function PuzzleDetail() {
     if (apiBase) void pushSolve(apiBase, id, solved, move)
   }
 
-  const startFen = entry?.position.fen ?? "8/8/8/8/8/8/8/8 w - - 0 1"
-  const orientation: "white" | "black" = entry?.position.solver_is_white ? "white" : "black"
+  const startFen = entry.position.fen
+  const orientation: "white" | "black" = entry.position.solver_is_white ? "white" : "black"
 
   const gameRef = useRef(new Chess(startFen))
   const [fen, setFen] = useState(startFen)
@@ -36,18 +44,9 @@ export function PuzzleDetail() {
   const [reveal, setReveal] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
 
-  const solution = entry?.position.solution ?? []
+  const solution = entry.position.solution ?? []
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
 
-  if (!entry)
-    return (
-      <div className="space-y-2">
-        <p>Puzzle {id} not found.</p>
-        <Link to="/puzzles" className="text-sm underline">
-          Back to puzzles
-        </Link>
-      </div>
-    )
   const p = entry.position
 
   function reset() {

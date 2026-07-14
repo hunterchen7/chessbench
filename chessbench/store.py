@@ -1,11 +1,9 @@
 """Persistent run records -- the data contract the web app reads.
 
-A puzzle run is serialized to a single self-contained JSON file: a manifest
-(model, condition, suite, timestamp), the aggregate summary (solve rate,
-puzzle-Elo + CI), the sequential Elo trajectory (rating after each puzzle,
-ordered easy -> hard), and the per-puzzle results including the model's move,
-explanation, correctness, and categories. A static web app can read a directory
-of these directly; a database-backed backend can ingest the same shape.
+A puzzle run is serialized to a self-contained JSON document: a manifest,
+points summary, and auditable per-puzzle prompts, responses, token usage, moves,
+correctness, and categories. A static app can read these documents directly;
+the Cloudflare backend ingests the same shape incrementally.
 """
 
 from __future__ import annotations
@@ -21,7 +19,6 @@ import chess
 
 from .categories import categorize_puzzle
 from .conditions import Condition
-from .rating import elo_trajectory
 from .report import PuzzleReport
 from .tasks.puzzles import Puzzle, PuzzleResult
 
@@ -63,18 +60,17 @@ class RunRecord:
     created: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
 
     def to_dict(self) -> dict[str, object]:
-        # Order puzzles easy -> hard; compute the sequential Elo in that order.
-        ordered = sorted(self.results, key=lambda r: r.rating)
-        traj = elo_trajectory([(float(r.rating), r.solved) for r in ordered])
         items = []
-        for r, seq in zip(ordered, traj):
+        for r in self.results:
             item: dict[str, object] = {
                 "puzzle_id": r.puzzle_id, "rating": r.rating, "themes": r.themes,
                 "categories": categorize_puzzle(r.themes, r.rating),
                 "solved": r.solved, "score": r.score, "first_move_legal": r.first_move_legal,
                 "failure_reason": r.failure_reason,
                 "answer_move": r.answer_move, "answer_explanation": r.answer_explanation,
-                "answer_raw": r.answer_raw, "seq_elo": round(seq, 1),
+                "answer_raw": r.answer_raw,
+                "moves_played": r.moves_played, "solver_plies": r.solver_plies,
+                "plies_correct": r.plies_correct, "turns": r.turns,
             }
             item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
             items.append(item)
@@ -141,7 +137,7 @@ def load_run(path: str | Path) -> dict[str, object]:
 
 @dataclass
 class TournamentRecord:
-    """A saved round-robin: standings (game-Elo + CI), every game (result + PGN +
+    """A saved round-robin: point standings, every game (result + PGN +
     per-move eval), and the crosstable -- the data contract for the web games viewer."""
 
     result: TournamentResult
@@ -166,17 +162,9 @@ class TournamentRecord:
 
         standings = []
         for s in self.result.standings:
-            rt = s.rating
-            lo, hi = rt.ci95() if rt else (None, None)
             standings.append({
                 "label": s.label, "wins": s.wins, "draws": s.draws, "losses": s.losses,
                 "games": s.games, "score": s.score, "illegal_forfeits": s.illegal_forfeits,
-                "rating": round(rt.rating, 1) if rt else None,
-                "rating_ci": [
-                    round(lo, 1) if lo is not None and math.isfinite(lo) else None,
-                    round(hi, 1) if hi is not None and math.isfinite(hi) else None,
-                ],
-                "bounded": rt.bounded if rt else False,
                 "accuracy": round(acc_sum[s.label] / acc_n[s.label], 1) if acc_n[s.label] else None,
             })
         games = []
@@ -187,8 +175,12 @@ class TournamentRecord:
                 "start_fen": g.start_fen,
                 "moves": [{
                     "ply": m.ply, "color": m.color, "san": m.san, "uci": m.uci,
-                    "first_attempt_legal": m.first_attempt_legal, "illegal_attempts": m.illegal_attempts,
                     "eval_cp": m.eval_cp, "forfeited": m.forfeited,
+                    "attempts": [asdict(attempt) for attempt in m.attempts],
+                    "prompt_tokens": sum(a.prompt_tokens for a in m.attempts),
+                    "completion_tokens": sum(a.completion_tokens for a in m.attempts),
+                    "reasoning_tokens": sum(a.reasoning_tokens for a in m.attempts),
+                    "cost_usd": sum(a.cost_usd for a in m.attempts),
                 } for m in g.records],
             })
         crosstable = [{"a": a, "b": b, "w": w, "d": d, "l": ll}

@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Check } from "lucide-react"
-import { useData } from "@/lib/useData"
-import type { PuzzleEntry } from "@/lib/data"
+import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
 import { pct } from "@/lib/format"
 import { humanStore } from "@/lib/human"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,6 +17,10 @@ import {
 } from "@/components/ui/select"
 
 function solveStats(entry: PuzzleEntry) {
+  if (entry.aggregate) {
+    const { solved, total } = entry.aggregate
+    return { solved, total, rate: total ? solved / total : 0 }
+  }
   const answers = entry.answers
   const solved = answers.filter((a) => a.item.solved).length
   return { solved, total: answers.length, rate: answers.length ? solved / answers.length : 0 }
@@ -26,7 +29,8 @@ function solveStats(entry: PuzzleEntry) {
 const TIERS = ["all", "beginner", "novice", "intermediate", "advanced", "expert", "master"]
 
 export function Puzzles() {
-  const { puzzleIndex } = useData()
+  const [entries, setEntries] = useState<PuzzleEntry[] | null>(null)
+  useEffect(() => { void loadPuzzleIndex().then(setEntries) }, [])
   type Sort = "rating" | "rating-desc" | "hardest" | "easiest" | "todo"
   const [tier, setTier] = useState("all")
   const [q, setQ] = useState("")
@@ -36,7 +40,7 @@ export function Puzzles() {
   const store = humanStore()
 
   const rows = useMemo(() => {
-    let list = Array.from(puzzleIndex.values())
+    let list = entries ? entries.slice() : []
     if (tier !== "all") list = list.filter((e) => e.position.categories.tier?.includes(tier))
     if (mine !== "all")
       list = list.filter((e) => {
@@ -58,7 +62,9 @@ export function Puzzles() {
     else if (sort === "hardest") list.sort((a, b) => solveStats(a).rate - solveStats(b).rate)
     else list.sort((a, b) => Number(!!store[a.position.puzzle_id]) - Number(!!store[b.position.puzzle_id]) || a.position.rating - b.position.rating)
     return list
-  }, [puzzleIndex, tier, q, sort, mine, store])
+  }, [entries, tier, q, sort, mine, store])
+
+  if (!entries) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle index…</div>
 
   return (
     <div className="space-y-6">
