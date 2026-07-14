@@ -1,0 +1,1295 @@
+{
+ "schema": "chessbench.composed_run.v1",
+ "created": "2026-07-14T17:10:10+00:00",
+ "model": "inclusionai/ling-2.6-flash",
+ "solver": "openrouter",
+ "condition": {
+  "slug": "legal_list__fen_pieces__san__minimal",
+  "temperature": 1.0
+ },
+ "summary": {
+  "n": 60,
+  "solved": 6,
+  "solve_rate": 0.1,
+  "by_kind": {
+   "directmate": {
+    "solved": 1,
+    "n": 16
+   },
+   "helpmate": {
+    "solved": 0,
+    "n": 10
+   },
+   "proofgame": {
+    "solved": 2,
+    "n": 7
+   },
+   "reflexmate": {
+    "solved": 0,
+    "n": 4
+   },
+   "selfmate": {
+    "solved": 0,
+    "n": 9
+   },
+   "series_directmate": {
+    "solved": 0,
+    "n": 3
+   },
+   "series_helpmate": {
+    "solved": 1,
+    "n": 3
+   },
+   "study": {
+    "solved": 2,
+    "n": 8
+   }
+  }
+ },
+ "items": [
+  {
+   "id": "dm1",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "a1a8"
+   ],
+   "themes": [
+    "directmate",
+    "backRankMate",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Rh1",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "sm1",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "8/1Q6/8/4R3/3p4/8/1q6/5k1K w - - 0 1",
+   "goal": null,
+   "solution": [
+    "b7g2"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Re1",
+   "detail": "key e5e1 does not force s#1"
+  },
+  {
+   "id": "hm2",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "8/3K4/8/8/8/8/3k4/2Q4N b - - 0 1",
+   "goal": null,
+   "solution": [
+    "d2e2",
+    "c1c5",
+    "e2f1",
+    "c5f2"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#2**, meaning **helpmate in 2 moves**, where **both sides cooperate** to checkmate the side to move (Black) in exactly 2 moves.\n\n### Initial Position (FEN: 8/3K4/8/8/8/8/3k4/2Q4N b - - 0 1)\n\nLet\u2019s interpret the FEN:\n\n- 8/3K4/8/8/8/8/3k4/2Q4N b - - 0 1\n\nBreaking it down by rank (from rank 8 to 1):\n\n- Rank 8: `8` \u2192 empty\n- Rank 7: `3K4` \u2192 White king on f7? Wait \u2014 let's parse carefully.\n\nWait: FEN is read from rank 8 to rank 1.\n\nSo:\n\n- Rank 8: `8` \u2192 8 empty squares\n- Rank 7: `3K4` \u2192 king on d7? No: `3K4` means 3 empty, then K, then 4 empty \u2192 so K is on **d7**? Wait: positions:\n\nRank 7: a b c d e f g h  \n`3K4` \u2192 3 empty (a,b,c), K on d, then 4 empty (e,f,g,h) \u2192 so **White king on d7**\n\nBut wait \u2014 the problem says: \"Pieces: White: Kd7, Qc1, Nh1; Black: Kd2\"\n\nSo that matches:\n- Kd7 \u2192 White king on d7\n- Qc1 \u2192 White queen on c1\n- Nh1 \u2192 White knight on h1\n- Black king on d2\n\nFEN confirms:\n- Rank 3: `3k4` \u2192 k on d3? Wait no:\n\nWait FEN: 8/3K4/8/8/8/8/3k4/2Q4N\n\nLet\u2019s go rank by rank:\n\n1. Rank 8: `8` \u2192 all empty\n2. Rank 7: `3K4` \u2192 K on d7 \u2192 White king\n3. Rank 6: `8` \u2192 empty\n4. Rank 5: `8` \u2192 empty\n5. Rank 4: `8` \u2192 empty\n6. Rank 3: `8` \u2192 empty\n7. Rank 2: `3k4` \u2192 k on d2 \u2192 Black king\n8. Rank 1: `2Q4N` \u2192 pieces: 2 empty, Q, 4 empty, N \u2192 so Q on c1, N on h1\n\nYes! So:\n- White: Kd7, Qc1, Nh1\n- Black: Kd2\n- Side to move: **Black**\n- Goal: **h#2** \u2014 Black to move, and after Black and White each make one move (total 2 plies), Black is checkmated.\n\nBut since it's **helpmate**, Black must help White to deliver mate on move 2.\n\nSo:\n- Black moves first (move 1)\n- White responds (move 2)\n- Result: Black is checkmated\n\nWe need to find two moves (Black then White) that result in mate.\n\nLet\u2019s analyze the position.\n\n### Position Summary:\n\n- White king: d7\n- White queen: c1\n- White knight: h1\n- Black king: d2\n\nWhite is trying to deliver checkmate in two moves, with Black cooperating.\n\nBlack\u2019s king is on d2, White king on d7 \u2014 so they are far apart.\n\nWhite queen on c1, knight on h1.\n\nLet\u2019s consider possible Black moves.\n\nBlack king on d2. Possible moves:\n- d3\n- e3\n- c3\n- d1\n- e2\n- c2\n- e1\n- c1 \u2014 but c1 is occupied by White queen, so not allowed.\n\nSo Black king can move to: d3, e3, c3, d1, e2, c2, e1\n\nNow, White wants to deliver mate on move 2.\n\nLet\u2019s consider likely mate patterns.\n\nWhite has queen and knight \u2014 possible mating net.\n\nBut the black king is near the corner? d2 is near queenside, but not corner.\n\nWait \u2014 d2 is on the 2nd rank, d-file.\n\nTo deliver mate with queen and knight, possible patterns like \"bishop and knight mate\", but here we have queen and knight \u2014 which can deliver mate, but usually requires king on e8 or similar.\n\nBut let\u2019s look at possible checks.\n\nSuppose Black plays: **Kd3**\n\nThen White to move. Can White deliver mate?\n\nCurrent White pieces: Qc1, Nh1, Kd7\n\nAfter Black moves to d3, can White give checkmate?\n\nFor example:\n- Qe3+? But Kd2 to Kd3, then Qe3+ is check, but not mate \u2014 Black king can move.\n\nBut we need mate in one after White\u2019s move.\n\nSo after Black\u2019s first move, White must deliver checkmate.\n\nSo we need: after Black moves, White has a move that checkmates.\n\nLet\u2019s try possible Black moves.\n\n### Try: Black plays Kc3\n\nThen White to move. Can White mate?\n\nPieces: Qc1, Nh1, Kd7\n\nIf Black is on c3, can White deliver mate?\n\n- Qc2+? But c2 is empty, Qc2 would be check, but not mate \u2014 Kc3 to c2 or d3 or d2 or d4 etc.\n- Qd2+? Check, but Black king can go to d4 or c4 or c2.\n- Nf3+? Not attacking c3.\n- Not obvious.\n\n### Try: Black plays Kd1\n\nThen White king is on d7, so not close.\n\nWhite queen on c1 \u2014 can go to d1+? Qd1+ \u2014 but Kd1 is moving to d1? No, Black king moves to d1, so if White plays Qd1+, it would be into the king? No \u2014 Qd1 would be to d1, but if Black king is on d1, then Qd1 is occupied \u2014 invalid.\n\nSo queen cannot go to d1 if king is there.\n\n### Try: Black plays Ke3? No, king on d2, can't go to e3? Wait: d2 to e3 is diagonal? No \u2014 king moves one square any direction.\n\nd2 neighbors: c1, c2, c3, d1, d3, e1, e2, e3\n\nSo possible: d3, e3, c3, d1, e2, c2, e1\n\nAll are possible.\n\nWait \u2014 e3 is possible? d2 to e3 is diagonal, yes, king can move diagonally.\n\nSo all 8 directions except where blocked \u2014 but no pieces in between, so all adjacent squares are open except d1? d1 is empty.\n\nWait \u2014 d1 is empty? Yes.\n\nBut c1 has White queen, so Black cannot go to c1.\n\nSo possible: d3, e3, c3, d1, e2, c2, e1\n\nNow, let\u2019s consider **Kd3**\n\nThen White to move.\n\nCan White play **Qd2#**? Qc1 to d2 \u2014 is that possible? Qc1 to d2 is diagonal, yes, and d2 is empty? After Black moves to d3, d2 is empty \u2014 yes.\n\nSo Qd2+ \u2014 check.\n\nBut is it mate?\n\nBlack king on d3, after Qd2+, where can it go?\n\nSquares around d3: c2, c3, c4, d4, e4, e3, e2\n\nBut:\n- c2: White queen on d2? No, queen is on d2 \u2014 so c2 is adjacent to d2 \u2014 but queen is on d2, so c2 is attacked by queen? Yes, but for black king to go to c2, it would be moving to a square attacked by white queen \u2014 but in checkmate, the king cannot move to any safe square.\n\nBut after Qd2+, black king is in check.\n\nCan it go to c2? c2 is adjacent to d2 (queen), so yes, queen attacks c2 \u2014 so c2 is attacked.\n\nd4: adjacent to d3? Yes, and queen on d2 attacks d4? Yes, same file \u2014 so d4 is attacked by queen.\n\ne3: occupied by black king? No \u2014 black king was on d3, moving to e3? But e3 is adjacent.\n\nBut e3: is it attacked? Queen on d2 attacks e3? d2 to e3 is diagonal \u2014 yes, one square diagonal \u2014 so e3 is attacked by",
+   "detail": "3-ply line is not a h#2"
+  },
+  {
+   "id": "ser_dm2",
+   "kind": "series_directmate",
+   "label": "ser-#2",
+   "n": 2,
+   "fen": "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "a1a7",
+    "a7a8"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a composed chess problem with the stipulation **ser-#2** (selfmate in 2), meaning **White** must make two consecutive moves, giving check only on the second move, and delivering checkmate on the second move.\n\n### Initial Position (FEN: 7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1)\n\nFrom the FEN and piece list:\n\n- White: King on g1, Rook on a1\n- Black: King on h8, pawns on f7, g7, h7\n- Side to move: White\n- White must give check **only on the second move**, and **mate on move 2**\n\nSo White plays two moves: first move (no check), second move (checkmate).\n\nLet\u2019s analyze the board.\n\n### Board Visualization (relevant part):\n\n```\n7: k . . . . . . .\n6: . . . . . . . .\n5: . . . . . . . .\n4: . . . . . . . .\n3: . . . . . . . .\n2: . . . . . . . .\n1: R . . . . . . K\n    a b c d e f g h\n```\n\nBlack pawns: f7, g7, h7 \u2014 so Black's king on h8 is surrounded by pawns on g7 and h7, and cannot go to g8 or h7. But h8 is the back rank.\n\nWhite has a rook on a1 and king on g1.\n\nWhite needs to maneuver the rook to deliver mate on move 2, after an initial developing move.\n\nSince it's **ser-#2**, White must **compel** Black to be mated after White's second move, but White chooses both moves.\n\nWait \u2014 in selfmate, **White forces Black to deliver checkmate**? No \u2014 wait, standard terminology:\n\n- **selfmate**: White moves first and forces Black to deliver checkmate on or before a specified move. But here the stipulation is **ser-#2**, and it says: \"The side to move plays 2 consecutive moves (giving check only on the last), ending in checkmate.\"\n\nBut the side to move is **White**, so White is making both moves? That suggests it's a **helpmate** or **selfmate**?\n\nBut the problem says: \"The side to move plays 2 consecutive moves (giving check only on the last), ending in checkmate.\"\n\nThat sounds like **White plays two moves**, and on the second move, gives checkmate.\n\nBut in standard chess problem terminology:\n- **ser-#2** = selfmate in 2: White moves first and forces Black to deliver checkmate on move 2.\nBut here, the side to move is White, and it says \"plays 2 consecutive moves\" \u2014 that suggests White is making both moves.\n\nBut that would be a **mate in 2** with White to move \u2014 but then why \"ser\"?\n\nWait \u2014 perhaps there's confusion.\n\nBut the problem explicitly says: \"The side to move plays 2 consecutive moves (giving check only on the last), ending in checkmate.\"\n\nSo **White plays move 1 and move 2**, and move 2 is checkmate. No Black moves in between.\n\nSo it's **not** a selfmate \u2014 it's a **helpmate** or just a **two-move mate where White plays both sides**? That doesn't make sense in standard chess.\n\nWait \u2014 unless it's a **selfmate** where White moves, and Black is forced to move in a way that leads to mate on move 2.\n\nBut the problem says: \"plays 2 consecutive moves\" \u2014 implying White moves twice in a row.\n\nBut in standard chess, you can't move twice in a row unless it's a problem stipulation.\n\nGiven the FEN and the pieces, let's look at possible moves.\n\nWhite has Rook on a1, King on g1.\n\nBlack: King on h8, pawns on f7, g7, h7.\n\nSo Black's king is stuck on h8 \u2014 surrounded by pawns on g7 and h7, and can't go to g8 (blocked by pawn on g7? No \u2014 g7 is a pawn, so g8 is adjacent).\n\nWait: Black king on h8.\n\nAdjacent squares: g8, g7, h7.\n\nBut h7 has a black pawn, g7 has a black pawn, g8 is empty? Let's check.\n\nFEN: 7k/5ppp/8/8/8/8/8/R5K1\n\nSo:\n- Rank 7: k on h8 \u2192 so h8 = Black king\n- Rank 6: 5ppp \u2192 so f6, g6, h6? Wait: 5ppp means five empty, then ppp \u2014 so 5 empty squares, then three pawns.\n\nWait \u2014 FEN: 7k means 7 empty, then k \u2192 so rank 8: 7k \u2192 a8 to g8 empty, h8 = k\n\nRank 7: 5ppp \u2192 a7 to e7 empty, f7,p7,g7,h7 = p,p,p \u2014 so f7, g7, h7 have pawns.\n\nRank 6: 8 \u2192 all empty\n\n...\n\nRank 2: empty\n\nRank 1: R...K \u2192 a1=R, h1=K\n\nSo Black king on h8.\n\nAdjacent squares:\n- g8: empty\n- g7: pawn\n- h7: pawn\n\nSo Black king can move to g8.\n\nBut if White plays first, maybe to restrict.\n\nBut the stipulation says White plays two consecutive moves, giving check only on the last, ending in checkmate.\n\nSo move 1: some move, no check\nMove 2: checkmate\n\nAnd no Black moves.\n\nSo it's a **two-move mate** with White to move.\n\nStandard mate in 2.\n\nLet\u2019s try.\n\nWhite to move.\n\nOption: Rook to a8? But a8 is empty.\n\nRxa8? No, not mating.\n\nMaybe Rook to h1? Then Rh1+? But that would be check on move 1 \u2014 not allowed.\n\nSo first move must not give check.\n\nSo Rook cannot move to a1 to h1 (horizontal) because that would be along 1st rank, no check unless enemy king on rank \u2014 but Black king is on h8.\n\nSo moving rook on a1 to any square on 1st rank won't give check.\n\nOr moving king? Kg1 to somewhere \u2014 no check possible.\n\nSo first move: likely Rook move.\n\nTry: Rook to a8.\n\n1. Ra1-a8\n\nNo check.\n\nNow Black king on h8, but now rook on a8 \u2014 not attacking h8? a8 to h8 is rank 8, so yes, rook attacks h8.\n\nBut it's White's turn again? No \u2014 if White plays two moves consecutively, then after 1. Ra8, White plays move 2.\n\nSo after 1. Ra8, the rook is on a8, attacking the 8th rank.\n\nThen 2. Rxa7#? No, no piece on a7.\n\nWait \u2014 can White play 2. Rh8#? But rook is on a8, not h8.\n\nTo get to h8, rook needs to move.\n\nBut after 1. Ra8, can White play 2. Rh8#? That would require moving rook from a8 to h8 in one move \u2014 not possible.\n\nSo need to get rook to h-file.\n\nAlternative: 1. Rf1? Then 2. Rf8#? But rook on f1, then to f8 \u2014 not adjacent.\n\nNo, rook can go from f1 to f8 in one move \u2014 yes, if path clear.\n\nf1 to f8: all squares in between are empty? Yes, from FEN, files e,f,g,h on rank 1: R on a1, then b1,c1,d1,e1,f1,g1,h1=K.\n\nSo f1 is empty.\n\nSo 1. Rf1 \u2014 no check (rook moving to f1, not attacking h8), then 2. Rf8# \u2014 checkmate?\n\nRook on f8 \u2014 attacking f-file and 8th rank.\n\nBlack king on h8 \u2014 adjacent to f8? f8 to h8 is two squares away \u2014 not adjacent.\n\nKing on h8, attacked by rook on f8? Only if same rank or file.\n\nf8 and h8 \u2014 same rank (8th), two files apart \u2014 so rook on f8 attacks along 8th rank, so h8 is attacked? Yes \u2014 rook attacks entire rank and file.\n\nSo if rook on f8, it attacks h8.\n\nAnd king on h8, no escape: g",
+   "detail": "2-move series is not a ser-#2"
+  },
+  {
+   "id": "ser_hm2",
+   "kind": "series_helpmate",
+   "label": "ser-h#2",
+   "n": 2,
+   "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "a7a6",
+    "a6a5",
+    "g6g7"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **ser-h#2**, which means:\n\n- **Ser-h#**: Series helpmate in 2 moves.\n- That is: **Black moves first**, makes two moves (White does not move), and then White delivers checkmate in one move.\n- So the full sequence is: **Black move 1, Black move 2, White mate**.\n\n### Initial Position (from FEN):\n```\nFEN: 7k/p7/5KQ1/8/8/8/8/8 b - - 0 1\n```\n\nLet\u2019s interpret the board:\n\n- Black King: h8 \u2192 `Kh8`\n- Black Pawn: a7 \u2192 `Pa7`\n- White King: f6 \u2192 `Kf6`\n- White Queen: g6 \u2192 `Qg6`\n- Side to move: **Black**\n- So Black is to move first.\n\nWe need to find two black moves such that after those two moves, White can deliver **checkmate** in one move.\n\n---\n\n### Step 1: Analyze the board\n\nLet\u2019s sketch the position:\n\n- **White Kf6**: on f6\n- **White Qg6**: on g6 \u2014 so queen is adjacent to king (g6 vs f6) \u2014 they are one square apart horizontally.\n- **Black Kh8**: on h8\n- **Black Pa7**: on a7\n\nBoard (simplified, only relevant squares):\n\n```\n8: . . . . . . . k\n7: . . . . . . . .\n6: . . . . . K Q .\n5: . . . . . . . .\n4: . . . . . . . .\n3: . . . . . . . .\n2: . . . . . . . .\n1: P . . . . . . .\n    a b c d e f g h\n```\n\nWait \u2014 FEN: `7k/p7/5KQ1/8/...`\n\nSo:\n- Row 8 (rank 8): `7k` \u2192 h8 is black king\n- Row 7: `p7` \u2192 a7 is black pawn\n- Row 6: `5KQ1` \u2192 so on rank 6: 5 empty, then K on f6, Q on g6, then 1 empty \u2192 so f6=K, g6=Q\n- Rows 1-5: all empty except row 1 has a pawn on a1? Wait no:\n\nWait, FEN is read from rank 8 to rank 1.\n\nSo:\n- Rank 8: `7k` \u2192 7 empty, k on h8\n- Rank 7: `p7` \u2192 p on a7, 7 empty\n- Rank 6: `5KQ1` \u2192 5 empty, K on f6, Q on g6, 1 empty \u2192 so h6 is empty\n- Ranks 5 to 1: `8/8/8/8` \u2192 all empty\n\nWait \u2014 last part: `8/8/8/8` \u2192 that's 4 rows? But we already did rank 8,7,6 \u2014 so ranks 5,4,3,2,1?\n\nWait, standard FEN: 8 ranks, from 8 to 1.\n\nGiven: `7k/p7/5KQ1/8/8/8/8/8`\n\nThat\u2019s 8 parts:\n1. `7k` \u2192 rank 8\n2. `p7` \u2192 rank 7\n3. `5KQ1` \u2192 rank 6\n4. `8` \u2192 rank 5\n5. `8` \u2192 rank 4\n6. `8` \u2192 rank 3\n7. `8` \u2192 rank 2\n8. `8` \u2192 rank 1\n\nSo:\n- Rank 1: all empty\n- Rank 2: all empty\n- ...\n- Rank 5: all empty\n- Rank 6: K on f6, Q on g6\n- Rank 7: pawn on a7\n- Rank 8: king on h8\n\nSo board:\n\n- White: Kf6, Qg6\n- Black: Kh8, Pa7\n\nAll other squares empty.\n\n---\n\n### Goal: Black to move, make two moves, then White mates in one.\n\nWe need to find a **ser-h#2** solution.\n\nLet\u2019s think about what White\u2019s mating move could be.\n\nWhite has Kf6 and Qg6. Very close.\n\nPossible mating ideas: Queen checkmate? King checkmate?\n\nBut the enemy king is on h8.\n\nTo mate on h8, we could use:\n- Qh8# \u2014 queen on h8, checkmating king on h8\n- Or Rh8# \u2014 but no rook\n- Or king on g8, but not possible\n\nSo likely: **Qh8#** is the mating move.\n\nCan White play Qh8#?\n\nCurrently, Qg6 can go to h8? Yes \u2014 queen moves diagonally: g6 \u2192 h7 \u2192 h8? No, g6 to h8 is one diagonal step? Wait:\n\ng6 to h7 is one diagonal, h7 to h8 is not diagonal \u2014 wait, no: queen moves any number diagonally, orthogonally, or vertically.\n\nFrom g6, queen can go to:\n- Diagonally: f5, e4, d3, c2, b1 \u2014 or h7, h8? Wait: g6 to h7 is one square diagonally up-right. Then h7 to h8 is vertical \u2014 but queen can\u2019t change direction.\n\nWait: queen moves in straight line. So from g6, the diagonal going up-right is: g6 \u2192 h7 \u2192 then would go off board. So only h7 is on that diagonal.\n\nTo get to h8, queen would need to go vertically up from g6: g7, g8 \u2014 but h8 is not on that file.\n\nSo Qg6 cannot go to h8 directly.\n\nWait \u2014 h8 is on the 8th rank, h-file.\n\nQueen is on g6 \u2014 so to reach h8, it would need to go via h7 or g7-h8? No \u2014 not straight.\n\nSo Qg6 cannot reach h8 in one move.\n\nAlternative: checkmate with king? Kf6 to g8? Not checkmate.\n\nOr maybe after black moves, the king is in a position to be mated by queen or king.\n\nLet\u2019s consider possible black moves.\n\nBlack has only two pieces: king on h8, pawn on a7.\n\nBlack must move two times. Since only two pieces, and king must move (can't castle, no rooks), and pawn can move.\n\nBut pawn on a7 \u2014 can it move? a7-a6, a6-a5, etc. But it's black's turn.\n\nBut moving the pawn might not help. Let's see.\n\nBlack\u2019s king is on h8. Possible moves:\n- h7\n- g8\n- g7\n\nBut king cannot move to a square attacked by white.\n\nBut in ser-h# problems, usually the king is not in check initially, and we don't care about legality of black moves in terms of check \u2014 but actually, in helpmate, all moves must be legal.\n\nSo black king on h8 \u2014 is it in check?\n\nWhite queen on g6 attacks:\n- g6 attacks f6 (K), g7, h6, and diagonals: f5, e4, d3, c2, b1 \u2014 and g7, g8? No \u2014 queen on g6 attacks along rank, file, diagonal.\n\nSo from g6:\n- Horizontal: g7, g8\n- Vertical: g5, g4, g3, g2, g1\n- Diagonals: f5, e4, d3, c2, b1 (down-left), and h7 (up-right)\n\nSo h8 is not attacked by queen.\n\nKing on f6 \u2014 attacks surrounding squares.\n\nSo h8 is not attacked by white king either (knight moves? no). So black king on h8 is not in check.\n\nSo black can move.\n\nNow, we need two black moves, then white mates.\n\nLet\u2019s suppose the mating move is Qh8#. But can queen get to h8?\n\nFrom g6, queen can go to h7 (diagonal), then from h7 to h8 (vertical). But that would take two moves \u2014 but white only gets one move after black\u2019s two.\n\nBut in this problem, white only makes **one** move after black\u2019s two \u2014 so white cannot move the queen twice.\n\nSo Qh8# is not possible unless the queen is already on h7 or something.\n\nAlternative: maybe king checkmate? Kf6 to g8? Then g8#? But black king would be on h8, white king on f6 \u2014 not near.\n\nUnless black",
+   "detail": "2-move series is not a ser-h#2"
+  },
+  {
+   "id": "pg3",
+   "kind": "proofgame",
+   "label": "proof game in 3 plies",
+   "n": 3,
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "e7e5",
+    "g1f3"
+   ],
+   "themes": [
+    "proofgame",
+    "beginner"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "Alright \u2014 let\u2019s parse the given position.\n\n**Given FEN:**  \n`rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2`\n\nInterpret it carefully:  \n- White is at the bottom, Black at the top in standard FEN.  \n- Row 8 (top rank): r n b q k b n r (same as start) \u2192 `rnbqkbnr`  \n- Row 7: p p p p 1 p p p \u2192 `pppp1ppp`  \n- Row 6: empty? Actually `8` means empty 8 squares.  \nWait, let's parse properly:  \n\nRow 8: r n b q k b n r \u2192 `rnbqkbnr`  \nRow 7: p p p p 1 p p p \u2192 `pppp1ppp`  \nRow 6: 8 \u2192 all empty  \nRow 5: 4 p 3 \u2192 four empty, then p, then three empty? That would be `....p...` but FEN says `4p3`.  \nRow 4: 4 P 3 \u2192 four empty, then P, then three empty \u2192 `....P...`  \nRow 3: empty  \nRow 2: P P P P 1 P P P \u2192 `PPPP1PPP`  \nRow 1: R N B Q K B N R \u2192 `RNBQKBNR`\n\nBut standard starting board has white pawns on row 2, black on row 7.  \nHere row 2 (White's back rank) has `PPPP1PPP` \u2014 so e2 empty? Wait, `PPPP1PPP` means files a-d have pawn, e empty, f-g-h pawn.  \nRow 7: `pppp1ppp` \u2192 a2-pawn missing? No, row 7 is black's side, black pawns on a7,b7,c7,d7,f7,g7,h7, e7 empty.  \n\nLet me map coordinates:  \nRank 8: r(8a), n(8b), b(8c), q(8d), k(8e), b(8f), n(8g), r(8h)  \nRank 7: p(7a), p(7b), p(7c), p(7d), .(7e), p(7f), p(7g), p(7h)  \nRank 6: all empty (8)  \nRank 5: .(5a), .(5b), .(5c), .(5d), p(5e), .(5f), .(5g), .(5h)  \nRank 4: .(4a), .(4b), .(4c), .(4d), P(4e), .(4f), .(4g), .(4h)  \nRank 3: all empty (8)  \nRank 2: P(2a), P(2b), P(2c), P(2d), .(2e), P(2f), P(2g), P(2h)  \nRank 1: R(1a), N(1b), B(1c), Q(1d), K(1e), B(1f), N(1g), R(1h)\n\nPieces listed also: White: Ke1, Qd1, Ra1, Rh1, Bc1, Bf1, Nb1, Nf3, Pa2, Pb2, Pc2, Pd2, Pf2, Pg2, Ph2, Pe4.  \nBlack: Ke8, Qd8, Ra8, Rh8, Bc8, Bf8, Nb8, Ng8, Pe5, Pa7, Pb7, Pc7, Pd7, Pf7, Pg7, Ph7.\n\nCheck: In the board above, we see  \n- White knight on f3 (Nf3) matches.  \n- White pawn on e4 (Pe4) matches (on rank 4, e-file).  \n- Black pawn on e5 (Pe5) matches.  \n\nSo the position is after some moves.\n\n---\n\n**Stipulation:** Proof game in 3 plies (3 half-moves total, i.e., White, Black, White).  \nWe need to find a sequence of 3 moves leading to the given position, starting from the initial position.\n\n---\n\n**Step 1 \u2013 Look at the position**\n\nWhite to move? No, Black to move in the given FEN (`b` means Black to move). But the problem says \"Side to move: Black\", so the position shown is to be reached after 3 plies, with Black to move.  \n\nThat means:  \nMove 1 (White), Move 2 (Black), Move 3 (White) \u2014 and after White's 3rd move, we reach the given position, with Black to move.\n\nSo the 3 plies: 1. White, 2. Black, 3. White.\n\n---\n\n**Step 2 \u2013 Compare with start**\n\nIn start, pawns on 2nd and 7th rank.  \nHere, white pawn on e4 (advanced 2 squares), black pawn on e5 (advanced 2 squares).  \nAlso, white pawn on a2, b2, c2, d2, f2, g2, h2 \u2014 all still on 2nd rank except e pushed to 4th.  \nBlack pawns: a7,b7,c7,d7,f7,g7,h7 (e missing, and e5 pushed to 5th).\n\nAlso, white knight on f3 \u2014 that\u2019s the only piece moved maybe? And black knight on g8? Wait, black knight: listed Ng8, so still on g8, not moved.  \n\nWhite pieces: Queen d1, King e1, Rooks a1/h1, Bishops c1/f1, Knights b1 and f3, pawns as given.  \nBlack: King e8, Queen d8, Rooks a8/h8, Bishops c8/f8, Knights b8/g8, pawns as given.\n\nSo only difference from start is:  \n- White e-pawn advanced to e4.  \n- Black e-pawn advanced to e5.  \n- White knight moved from b1 to f3? Or g1 to f3? Wait, White knight: listed Nb1 and Nf3. That means one knight still on b1, one on f3. So one knight moved from g1 to f3? No, g1 knight would go to f3 in one move (g1-f3). Or b1 to f3 is a knight move? b1 to f3 is not a legal knight move (knight moves in L shape: from b1, possible f2 or c3, not f3). So the knight on f3 must have come from g1 (g1-f3 is a legal knight move). So white played g1-f3.\n\nSo moves:  \n1. White: g1-f3 (Ngf3 or Nf3)  \n2. Black: ? e-pawn advanced 2 squares? e7-e5 possible.  \n3. White: e2-e4 (e4)  \n\nThat would give:  \nStart \u2192 1. Nf3 e5 2. e4   \u2014 but wait, after 1. Nf3, Black plays e5, then White plays e4, we reach the position.\n\nCheck:  \nAfter 1. Nf3:  \nBoard: White knight on f3, everything else same.  \nAfter 1... e5:  \nBlack pawn to e5.  \nAfter 2. e4:  \nWhite pawn to e4.  \n\nThat matches the given position exactly.\n\nCheck castling rights: KQkq still possible? Yes, no moves affecting rooks or king.  \nEn passant: after e5, then e4, the en passant target would be e6? Wait, no: after Black plays e7-e5, the en passant target is e6. Then White plays e2-e4, which is not en passant, so en passant target becomes none. In FEN it says \"-\" for en passant, so that's fine.\n\nHalfmove clock: 0? In FEN it's \"- 1 2\" \u2014 the \"-\" means no en passant, and \"1 2\" means halfmove clock 1, fullmove 2. Wait, no: FEN fields: after en passant, then halfmove clock, then fullmove. Here: \"- 1 2\" \u2192 en passant \"-\", halfmove clock 1, fullmove 2. That means 1 half-move since last capture/pawn advance. In our sequence: after 1. Nf3 (no capture, pawn not moved), halfmove clock would be 1. Then after 1... e5 (pawn moved), halfmove clock resets to 0? No, FEN's halfmove clock",
+   "detail": "3 plies reach the target in 3"
+  },
+  {
+   "id": "study_kqk",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/4k3/8/8/4K3/6Q1 w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "beginner"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "unconverted"
+  },
+  {
+   "id": "dm1_000rZ",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13",
+   "goal": null,
+   "solution": [
+    "d6h2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": true,
+   "answer": "1. ... Qxh2#",
+   "detail": "key d6h2 forces #1"
+  },
+  {
+   "id": "dm1_001KR",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "6k1/p1p3pp/4N3/1p6/2q1r1n1/2B5/PP4PP/3R1R1K w - - 0 29",
+   "goal": null,
+   "solution": [
+    "f1f8"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Rh1+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm1_001cr",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "8/3B2pp/p5k1/6P1/1ppp1K2/8/1P6/8 w - - 0 39",
+   "goal": null,
+   "solution": [
+    "d7e8"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Bd5+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm1_001gi",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "N6r/1p1k1ppp/2np4/b3p3/4P1b1/N1Q5/P4PPP/R3KB1R b KQ - 0 18",
+   "goal": null,
+   "solution": [
+    "a5c3"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. ... Bxf1",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm1_001pC",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "r4rk1/pp3ppp/3b4/2p1pPB1/7N/2PP3n/PP4PP/R2Q2RK b - - 0 18",
+   "goal": null,
+   "solution": [
+    "h3f2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. ...Bf5",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm1_001wb",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "r3k2r/pb1p1ppp/1b4q1/1Q2P3/8/2NP1PP1/PP4P1/R1B2R1K b kq - 0 17",
+   "goal": null,
+   "solution": [
+    "g6h5"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. ... Qg1+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm2_000Zo",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "4r3/1k6/pp3P2/1b5p/3R1p2/P1R2P2/1P4PP/6K1 b - - 0 35",
+   "goal": null,
+   "solution": [
+    "e8e1"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. ... Bf1",
+   "detail": "key b5f1 does not force #2"
+  },
+  {
+   "id": "dm2_000hf",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "r1bq3r/pp1nbkp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 w - - 0 20",
+   "goal": null,
+   "solution": [
+    "e2e6"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qd4+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm2_001Wz",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "6k1/5ppp/r1p5/p1n1rP2/8/2P2N1P/2P3P1/3R2K1 w - - 0 22",
+   "goal": null,
+   "solution": [
+    "d1d8"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Rd5",
+   "detail": "key d1d5 does not force #2"
+  },
+  {
+   "id": "dm2_001om",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "5r1k/pp4pp/5p2/1BbQp1r1/7K/7P/1PP3P1/3R3R b - - 3 26",
+   "goal": null,
+   "solution": [
+    "c5f2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Rf8+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm2_001w5",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "1rb3k1/q4rP1/4p2p/3p3p/3P1P2/2P5/2QK3P/3R2R1 w - - 1 30",
+   "goal": null,
+   "solution": [
+    "c2h7"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Rh1!",
+   "detail": "key g1h1 does not force #2"
+  },
+  {
+   "id": "dm2_002Mm",
+   "kind": "directmate",
+   "label": "#2",
+   "n": 2,
+   "fen": "rn1qrk2/ppp3pQ/3p1pP1/3Pp3/2P1P3/8/PP3PP1/R1B1K3 w Q - 3 17",
+   "goal": null,
+   "solution": [
+    "h7h8"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn2",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qf8+",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm3_001wR",
+   "kind": "directmate",
+   "label": "#3",
+   "n": 3,
+   "fen": "6nr/p4p1p/k1p5/1p6/1QN5/2P1P3/4KPqP/8 w - - 0 27",
+   "goal": null,
+   "solution": [
+    "b4a5"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn3",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qd4",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "dm3_004kB",
+   "kind": "directmate",
+   "label": "#3",
+   "n": 3,
+   "fen": "4rr1k/p1Qn2pp/3p1q2/8/8/2P5/PP3PPP/RN3RK1 b - - 0 16",
+   "goal": null,
+   "solution": [
+    "f6f2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn3",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. ... Ra8",
+   "detail": "key e8a8 does not force #3"
+  },
+  {
+   "id": "dm3_007en",
+   "kind": "directmate",
+   "label": "#3",
+   "n": 3,
+   "fen": "rn3rk1/4pp1p/3p2pB/2q4P/3QP1b1/Pp6/1P2B3/1K1R2NR b - - 0 20",
+   "goal": null,
+   "solution": [
+    "c5c2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn3",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qe5+",
+   "detail": "key c5e5 does not force #3"
+  },
+  {
+   "id": "sm1_0",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "8/8/8/4q2Q/4rk1K/7R/8/8 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "h5g5"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qg4+",
+   "detail": "key h5g4 does not force s#1"
+  },
+  {
+   "id": "sm1_1",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "6R1/2Q5/2r5/8/8/7k/2q5/7K w - - 0 1",
+   "goal": null,
+   "solution": [
+    "c7h2"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Looking at this problem, I need to find White's move that forces Black to deliver checkmate on the next move.\n\n**Current position analysis:**\n- White: King on h1, Queen on c7, Rook on g8\n- Black: King on h3, Queen on c2, Rook on c6\n- White to move, needs to force Black to give mate\n\n**Key observation:** The only way Black can deliver checkmate is by moving their rook to give checkmate. The Black rook on c6 could potentially give checkmate if it moves to c1 (delivering checkmate to the White king on h1 - but that's not on the same rank/file, so that wouldn't be checkmate).\n\nWait, let me reconsider. For Black to deliver mate, they need to put the White king in check from which there is no escape. \n\nThe Black queen on c2 attacks the c-file. If Black plays Qc1+, that would check the White king. But the White king on h1 could escape to g1 or g2.\n\nActually, let me look at what happens if White plays a waiting move or advances the king. \n\nThe key is: **1. Kg1**. \n\nAfter 1. Kg1, Black is in a zugzwang-like position. If Black doesn't mate immediately, White can move the king away and the game continues. But Black must mate now.\n\nCan Black mate with Qc1+? 1... Qc1+ would be check, but White king can go to f1, f2, or h1 (wait, h1 is now attacked by the Black rook on c6? No, c6-h6 diagonal doesn't hit h1).\n\nLet me reconsider: Actually, the only mating move I can see is if Black rook moves to deliver mate. But where?\n\nWait - after **1. Kg1**, if Black plays **1... Rc1#** - that's checkmate! The rook checks the king on g1, and since the king is on the edge and the queen on c7 doesn't defend c1 (it's on c7), and no other piece can interpose, it's mate.\n\nIs there any way for White to prevent this? If White plays any other move, Black simply doesn't mate and the problem is lost. So White must play 1. Kg1, forcing Black's only mating response.\n\n**1. Kg1**",
+   "detail": "key h1g1 does not force s#1"
+  },
+  {
+   "id": "sm1_2",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "k6K/r7/q7/8/6Q1/8/7R/8 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "g4c8"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Looking at this problem, I need to find a move where White forces Black to deliver checkmate on the next move.\n\nCurrent position:\n- White: King on h8, Queen on g4, Rook on h2\n- Black: King on a8, Queen on a6, Rook on a7\n- Side to move: White\n\nLet me analyze what happens with potential moves:\n\nIf White plays **Qg8**:\n- Queen moves from g4 to g8\n- Now Black has Ra8# (rook on a8 delivers back-rank checkmate)\n- But wait, let me check if there are any defenses...\n- Black cannot capture the queen with anything meaningful\n- Black's rook on a7 can move to a8 for checkmate\n\nActually, let me reconsider more carefully:\n\n**Qg8** would be the forcing move:\n- After Qg8, Black is in a position where they MUST deliver mate\n- Black can play Ra8# (rook checkmate on a8)\n- Black cannot capture the queen with king (Kb7 doesn't help avoid mate)\n- Black cannot capture with queen (Qg8 is defended by... actually let me check: Qg8 is attacked by Black's queen on a6? No, a6 to g8 is not a straight line attack)\n- Actually, Qg8 is safe from Black's queen on a6 (different diagonal/rook line)\n\nAfter Qg8, Black's only mating move is Ra8# because:\n- The rook can go to a8 for back-rank mate\n- Black's king cannot go to b7 (would be in check from White's queen on g8 via... actually no direct check, but the requirement is mate for Black)\n- Black's queen cannot deliver mate\n\nSo White plays Qg8, forcing Black to play Ra8# for checkmate.\n\nQg8",
+   "detail": "key g4g8 does not force s#1"
+  },
+  {
+   "id": "sm1_3",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "8/8/8/8/8/R6Q/5k1K/4rq2 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "h3g2"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Looking at this chess problem with stipulation s#1 (selfmate in 1), I need to find the move where White forces Black to deliver checkmate immediately.\n\nCurrent position:\n- White: Kh2, Qh3, Ra3\n- Black: Kf2, Qf1, Re1\n- White to move\n\nLet me analyze what happens if White plays different moves:\n\nIf White plays Qh7+:\n- Black's king is on f2, so Qh7+ would be an illegal move (queen can't reach h7 from h3 in one move, and it's not currently attacking h7)\n\nWait, let me reconsider. The black queen is on f1. If White moves the queen:\n\nTry Qf3+:\n- Black king on f2 is in check from White's queen on f3\n- Black's legal move: Kf1 or Kg1 or Kf2 is illegal (in check)\n- If Kf1: then White has Ra3 which attacks f1 for a discovered check? No...\n- Actually with Black king on f1, White's queen on f3 would give check, but we need Black to deliver mate\n\nLet me think differently. For s#1, White moves and forces Black to deliver checkmate.\n\nIf White plays Qf3+:\n- Black king on f2 is in check\n- Black must move king\n- Black can play Kf1 or Kg1 or Ke2\n\nBut if I consider what if: Qh3 is already on the board. If White plays Qf7+:\n- Qf7+ would be a check from f3 to f7\n- Black king on f2 is attacked\n- Black must move king from f2\n- Only legal moves for Black king: Kg1, Kg2, Kg3, Kf1\n- If Kf1: then Black queen on f1 is pinned? No...\n\nActually, let me check Qf2+:\n- White queen moves from h3 to f2, checking the black king\n- Black king on f2 is captured? No, that's illegal\n\nWait - the key insight: if White plays Qf7+, this is valid (queen from h3 to f7 doesn't pass through f2). But actually, Qf7+ would put black king on f2 in check. Black must move king. The only safe square might be Kg1 or Kf1, but if Black plays Kf1, then White's Ra3 is still there, and it's Black's move...\n\nLet me reconsider the solution: The only way this works is if White plays a move that uncovers a check from the rook, and Black's only response is to move into mate or be in check from multiple directions.\n\nActually, if White plays Ra3-a1:\n- This would be a rook check on a-file\n- Black king on f2 would need to move\n- But this doesn't force mate\n\nThe correct move appears to be: **Qf3+**\n\nNo wait - let me think about this more carefully. \n\nActually the solution is: White plays Qf3+. Black king on f2 is in check. Black must move. If Black plays Kf1, then position becomes:\n- White: Qf3, Ra3\n- Black: Kf1, Qf1, Re1\n\nNow Black's queen on f1 is giving check to White's king on h2? No, f1-h2 is not a straight line.\n\nI think the answer is actually **Qf2+** - but that would capture on f2 where the black king is.\n\nWait, the only logical solution: **Qh3+** is already there. \n\nActually, the correct move is **Qf3+**:\n- Black king must move from f2\n- If Black plays any king move, then White's rook on a3 can be used...\n\nAfter re-examining, I realize the solution must be: The white queen moves to deliver a check that forces the black king to a square where it will be mated by Black's own queen.\n\nLooking at the setup: if White plays **Qf3+**, Black king on f2 is checked. Black must move. The only move that doesn't lose immediately is Kf1 or Kg1 or Ke2.\n\nBut if Black plays Kf1, then White's queen on f3 is giving check, and Black must move king again... \n\nActually, the simplest analysis: White plays **Qf7+**. This is a discovered attack if the rook were on f-file, but it's not. \n\nI think I found it: The move is **Qf2+** - no, can't move to occupied square.\n\nThe answer must be: **Qh1+**\n\nNo, let me reconsider from scratch. For s#1 with these pieces, if White plays Qf3+, Black king on f2 is in check. Black moves king to, say, f1. Now Black's turn with pieces on f1, but White just moved...\n\nI believe the correct first move is: **Qf3+**\n\nBut actually, analyzing more carefully: The key is that after White's move, Black must be in a position where every possible king move results in immediate checkmate delivered by Black's own pieces.\n\nThe only move that makes sense is **Qf3+**, forcing Black's king to flee, and then Black delivers mate with their queen or rook.\n\nHowever, given the position, the actual solution appears to be:\n\n**Qf3+**\n\nBut wait - I need to verify. After Qf3+, Black king on f2 is in check. Black moves king to, say, g1. Now White to move again? No, in selfmate, after White's move, Black must deliver mate immediately.\n\nSo after Qf3+, if Black plays any king move, is Black delivering checkmate? No, Black would need to capture or give check.\n\nActually, the correct move is likely **Ra3-f3+** or similar.\n\nAfter careful analysis, I believe the solution is:\n\n**Qf3+**",
+   "detail": "key h3f1 does not force s#1"
+  },
+  {
+   "id": "sm1_4",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "5r2/1R6/3q3Q/8/8/8/2k1K3/8 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "h6d2"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qe6+",
+   "detail": "key h6e6 does not force s#1"
+  },
+  {
+   "id": "sm1_5",
+   "kind": "selfmate",
+   "label": "s#1",
+   "n": 1,
+   "fen": "1q1Rr3/6Q1/8/8/8/8/K1k5/8 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "g7b2"
+   ],
+   "themes": [
+    "selfmate",
+    "intermediate"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Qg8",
+   "detail": "key g7g8 does not force s#1"
+  },
+  {
+   "id": "sm2_0",
+   "kind": "selfmate",
+   "label": "s#2",
+   "n": 2,
+   "fen": "7k/4r3/5R1K/3q4/8/8/8/1Q6 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "f6f8"
+   ],
+   "themes": [
+    "selfmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "We are given a composed chess problem with stipulation **s#2** (selfmate in 2).  \nThat means: **White to move must force Black to deliver checkmate on or before move 2**, despite Black trying to avoid it.\n\n### Current Position (from FEN: 7k/4r3/5R1K/3q4/8/8/8/1Q6 w - - 0 1)\n\nLet\u2019s reconstruct the board:\n\n- **White**: King on h6, Rook on f6, Queen on b1\n- **Black**: King on h8, Rook on e7, Queen on d5\n- White to move.\n\nWe need White to make a move such that **no matter what Black does**, White is mated in 2.\n\nLet\u2019s analyze.\n\n---\n\n### Step 1: Understand the threats\n\nWhite wants to be mated. So White must walk into a forced mate net.\n\nCurrent Black pieces:\n- Kh8\n- Re7 (rook on e7)\n- Qd5 (queen on d5)\n\nWhite pieces:\n- Kh6\n- Rf6\n- Qb1\n\nLet\u2019s look at possible mating nets.\n\nBlack has a rook on e7 and queen on d5 \u2014 potentially a back-rank or diagonal mate.\n\nBut White\u2019s king is on h6 \u2014 so if Black can get a rook or queen to h6, that\u2019s a back-rank mate.\n\nBut White is moving first \u2014 and must force Black to mate.\n\nSo White must make a move that **compels** Black to deliver checkmate on move 2, no matter what.\n\nLet\u2019s consider possible White moves.\n\n---\n\n### Try: Qb1\u2013b7?\n\nQb7+ \u2014 checking the black king on h8.\n\nBlack king on h8, so:\n- Qb7+ would be a check.\n- Then Black must move king: only possible square is g8 (since h7 is attacked by queen?) Wait \u2014 queen on b7, so diagonal to h8? No \u2014 b7 to h8 is not a straight line. b7 to h8 is 6 files right, 1 rank up \u2014 not diagonal. So queen on b7 does not attack h8.\n\nWait: b7 to h8: difference is 6 files, 1 rank \u2014 not a straight line. So Qb7 does **not** check king on h8.\n\nSo Qb7 is not a check.\n\nSo that move does nothing.\n\n---\n\n### Try: Rf6\u2013f7?\n\nRf7 \u2014 attacking f-file. But black king is on h8, not in check.\n\nNo immediate effect.\n\n---\n\n### Try: Rf6\u2013h6?\n\nRook to h6 \u2014 attacking h-file. Then Rh6+ \u2014 check! Black king on h8 is in check from rook on h6.\n\nYes! Rh6+ is a check.\n\nSo 1. Rh6+\n\nBlack king on h8 must move. Only legal squares: g8 (since g7 is not attacked yet?) Let's see.\n\nAfter 1. Rh6+, black king must move.\n\nPossible moves from h8:\n- g8 \u2014 is it attacked?\n- h7 \u2014 is it attacked? By what? White queen on b1, rook now on h6 \u2014 so h7 is attacked by rook on h6? Yes! Rook on h6 attacks h7.\n- So h7 is attacked.\n- g7? Not directly attacked unless queen or bishop covers it \u2014 but no.\n\nSo black king can only go to g8.\n\nSo 1... Kg8\n\nNow it's White's second move \u2014 but wait, s#2 means White moves, then Black moves, then White moves \u2014 and on Black's second move (i.e., move 2), Black must deliver mate.\n\nWait \u2014 in selfmate, the forcing side (White) moves first, and the opponent (Black) must deliver mate on or before move 2.\n\nSo:\n\n- Move 1: White moves\n- Black responds\n- Move 2: White moves again\n- Then Black delivers mate on his second move (i.e., the 4th plies total)\n\nBut stipulation s#2 means: White forces Black to deliver mate in 2 moves \u2014 i.e., on Black's second move.\n\nSo sequence:\n\n1. White move\n1... Black move\n2. White move\n2... Black delivers mate\n\nSo after White's second move, Black must have a mating move.\n\nSo back to 1. Rh6+\n\n1... Kg8 (only move)\n\nNow White to move \u2014 must make a move such that Black can deliver mate on the next move.\n\nSo what can White play?\n\nWe need that after White's second move, Black has a checkmate.\n\nSo let's see: after 1. Rh6+ Kg8, what can White do?\n\nSuppose White plays Qb1\u2013b7? Still not helpful.\n\nOr Qb1\u2013d3? Not sure.\n\nWait \u2014 perhaps White can sacrifice queen or rook to allow a discovered check or back-rank mate.\n\nAnother idea: maybe 1. Qb1\u2013d3?\n\nQd3 \u2014 attacks e4, f2, etc. Not immediately threatening.\n\nBlack can play ... Re1+? But Re7 is already on e7 \u2014 can Black play Re1+? Yes, if rook moves to e1.\n\nBut Black's rook is on e7 \u2014 can it go to e1? Yes, if not blocked.\n\nBut let's see.\n\nAlternative idea: maybe 1. Qb1\u2013a2+ ?\n\nQa2+ \u2014 check? Black king on h8 \u2014 not in check. a2 is not attacking h8.\n\nNo.\n\nWait \u2014 what if White plays Kg6? Then king moves toward danger? Not helpful.\n\nBack to Rh6+.\n\nAfter 1. Rh6+ Kg8\n\nNow, what if White plays 2. Qb1\u2013h7? Qh7 \u2014 attacking h8? Queen on h7 attacks h8 \u2014 yes! So queen on h7 threatens mate on h8, but black king is on g8.\n\nBut then Black can play ... Rh8# \u2014 rook from e7 to h8? Is that possible?\n\nBlack rook on e7 \u2014 can it go to h8? Yes, if not blocked. e7 to h8 is diagonal \u2014 but rook doesn't move diagonally. So rook cannot go to h8.\n\nQueen on d5 \u2014 can go to h1? No.\n\nWait \u2014 how can Black deliver mate?\n\nMaybe a discovered check?\n\nOr back-rank mate: if White's king is on h6, and Black gets a rook to h6? No, rook is already on h6.\n\nWait \u2014 after 1. Rh6+, Black king goes to g8.\n\nNow, if White plays 2. Qb1\u2013g6? Qg6 \u2014 attacking g8? Queen on g6 attacks g8 \u2014 yes! So Black king on g8 is attacked.\n\nBut then Black can play ... Qd5\u2013g8? No, queen can't jump.\n\nWait \u2014 can Black deliver mate?\n\nWhat if White plays 2. Rf6\u2013f7? Then Black plays ... Re1#? Let's see:\n\nAfter 1. Rh6+ Kg8\n\n2. Rf6\u2013f7\n\nNow board:\n- White: Kh6, Qb1, Rf7\n- Black: Kh8? No \u2014 Kg8, Re7, Qd5\n\nWait, black king is on g8.\n\nCan Black play ... Re1+? Rook from e7 to e1 \u2014 yes, if clear.\n\ne7 to e1 \u2014 file open? Yes, no pieces in between.\n\nSo ... Re1+ \u2014 check.\n\nThen White king on h6 \u2014 can go to g7, h7.\n\nBut then Black plays ... Qd5\u2013h1#? Queen from d5 to h1 \u2014 diagonal, yes! d5-h1 is diagonal.\n\nSo 2... Qh1# \u2014 mate!\n\nLet\u2019s verify:\n\nAfter 1. Rh6+ Kg8\n\n2. Rf6\u2013f7 (or any other move) \u2014 does it matter?\n\nWait \u2014 is the rook moving necessary?\n\nSuppose instead White plays 2. Qb1\u2013b7? Then Black can play ... Re1+ \u2014 check.\n\nThen White king on h6 \u2014 moves to g7 or h7.\n\nThen Black plays ... Qd5\u2013h1# \u2014 queen to h1, diagonal, checkmate.\n\nYes! Because:\n- After 1. Rh6+ Kg8\n- 2. Qb1\u2013b7 (or any move)\n- Then 2... Re1+ \u2014 check\n- White king must move: g7 or h7\n- Then 2... Qd5\u2013h1",
+   "detail": "key b1b7 does not force s#2"
+  },
+  {
+   "id": "sm2_1",
+   "kind": "selfmate",
+   "label": "s#2",
+   "n": 2,
+   "fen": "1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "c1a1"
+   ],
+   "themes": [
+    "selfmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Qb5",
+   "detail": "key b6b5 does not force s#2"
+  },
+  {
+   "id": "rm1_0",
+   "kind": "reflexmate",
+   "label": "r#1",
+   "n": 1,
+   "fen": "6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1",
+   "goal": null,
+   "solution": [
+    "h3h5"
+   ],
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qf8",
+   "detail": "key g8f8 does not force r#1"
+  },
+  {
+   "id": "rm1_1",
+   "kind": "reflexmate",
+   "label": "r#1",
+   "n": 1,
+   "fen": "6q1/8/1R6/4Q3/8/1r6/5K2/3k4 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "f2f1"
+   ],
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "1. Qb5+",
+   "detail": "key e5b5 does not force r#1"
+  },
+  {
+   "id": "rm1_2",
+   "kind": "reflexmate",
+   "label": "r#1",
+   "n": 1,
+   "fen": "8/2r2k2/K7/8/4q3/8/8/1R4Q1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "b1b6"
+   ],
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Sb6",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "rm1_3",
+   "kind": "reflexmate",
+   "label": "r#1",
+   "n": 1,
+   "fen": "8/8/7K/2q5/7k/8/R7/Q6r w - - 0 1",
+   "goal": null,
+   "solution": [
+    "a1g7"
+   ],
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "Qa1",
+   "detail": "no legal move parsed"
+  },
+  {
+   "id": "hm2_0",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "8/6Q1/8/8/1K6/8/k2B4/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "a2b1",
+    "d2c1",
+    "b1a2",
+    "g7b2"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#2** (helpmate in 2 moves), meaning **Black is to move**, and both sides **cooperate** to force **Black to be checkmated in exactly 2 moves**.\n\n### Given FEN:\n```\n8/6Q1/8/8/1K6/8/k2B4/8 b - - 0 1\n```\n\nLet\u2019s interpret the position:\n\n- **Black to move**\n- **Pieces:**\n  - White: Kb4, Qg7, Bd2\n  - Black: Ka2\n- So:\n  - White king on b4\n  - White queen on g7\n  - White bishop on d2 (light-squared bishop)\n  - Black king on a2\n\nBoard visualization (rank 8 to 1):\n\n```\n8 | . . . . . . . .\n7 | . . . . . . Q .\n6 | . . . . . . . .\n5 | . . . . . . . .\n4 | . . . . . . . .\n3 | . . . . . . . .\n2 | . . k . . . . .\n1 | . . . . . . . .\n    a b c d e f g h\n```\n\nWait \u2014 let's reconstruct from FEN properly.\n\nFEN: `8/6Q1/8/8/1K6/8/k2B4/8 b - - 0 1`\n\nBreak it down rank by rank (from rank 8 to rank 1):\n\n- Rank 8: `8` \u2192 all empty\n- Rank 7: `6Q1` \u2192 6 empty, then Q, then 1 empty \u2192 so Q on g7\n- Rank 6: `8` \u2192 empty\n- Rank 5: `8` \u2192 empty\n- Rank 4: `1K6` \u2192 K on b4\n- Rank 3: `8` \u2192 empty\n- Rank 2: `k2B4` \u2192 k on a2, then 2 empty, then B on d2, then 4 empty\n- Rank 1: `8` \u2192 empty\n\nSo:\n- White king: b4\n- White queen: g7\n- White bishop: d2 (light square)\n- Black king: a2\n\nBlack to move.\n\nWe need **h#2**: Black to move, and in two plies (Black move + White reply), Black is checkmated, and it must be exactly 2 moves.\n\nSince both sides cooperate, White will help Black deliver checkmate.\n\nBut Black is the one delivering mate, so Black must give checkmate on move 2 (i.e., after White's first reply).\n\nSo:\n- Move 1: Black moves\n- Move 2: White moves\n- After White's move, Black is checkmated.\n\nBut wait: h#2 means **Black delivers mate on move 2**, but since Black moves first, the sequence is:\n\n1. Black move\n2. White move\n3. Black move \u2192 mate\n\nWait \u2014 no. In standard chess notation, a full move is White + Black.\n\nBut in helpmates, the numbering is:\n- h#2 means: after Black's second move, i.e., on move 2 (Black's second move), mate is delivered.\n\nSo the sequence is:\n1. Black move\n2. White move\n3. Black move \u2192 mate\n\nBut the problem says \"stipulation: h#2\", and \"side to move: Black\", so:\n\n- Black moves first\n- Then White\n- Then Black mates\n\nAnd it must be in **exactly 2 moves** \u2014 meaning Black's second move is the mating move.\n\nSo we need:\n1. ... move by Black\n2. White move\n3. Black move \u2192 #\n\nBut the problem says \"give the full line as 4 moves (the side to move first, then alternating)\".\n\nSo 4 moves means:\n1. Black\n2. White\n3. Black\n4. White\n\nWait \u2014 that can't be, because mate occurs on Black's second move, which would be move 3 in the game.\n\nBut the problem says \"stipulation: h#2\", and \"give the full line as 4 moves\".\n\nThis is confusing.\n\nBut in helpmate studies, when they say h#2, it means:\n- Black to move\n- Mate in 2 moves (i.e., after Black's second move)\n- So moves: 1. Black, 2. White, 3. Black \u2192 mate\n\nBut the problem says \"give the full line as 4 moves (the side to move first, then alternating)\".\n\nThat suggests they want:\n1. Black\n2. White\n3. Black\n4. White\n\nBut mate occurs on move 3 (Black's second move), so the 4th move (White) shouldn't exist.\n\nUnless the problem counts plies.\n\nAlternatively, perhaps they mean: list the moves in order, starting from the side to move (Black), and include the mating move and the reply, so:\n\n- Move 1: Black\n- Move 2: White\n- Move 3: Black (mate)\n\nBut they ask for 4 moves.\n\nWait \u2014 maybe they consider each \"move\" as a pair, but want the entire sequence including the mate and the response? But in h#2, the mate is on Black's second move, so only 3 plies.\n\nBut the instruction says: \"give the full line as 4 moves (the side to move first, then alternating)\".\n\nSo perhaps they want:\n1. Black's first move\n2. White's first move\n3. Black's second move (mate)\n4. White's second move \u2014 but that doesn't make sense because mate ends the game.\n\nAlternatively, maybe it's a typo, and they mean 3 moves.\n\nBut let's look at the position.\n\n### Position:\n- Black king on a2\n- White king on b4\n- White queen on g7\n- White bishop on d2\n\nBlack to move.\n\nWe need to help Black deliver mate in 2 moves.\n\nLet\u2019s think.\n\nBlack king is on a2. It can move to a1, a3, or b2 (but b2 is occupied by white king? No \u2014 white king is on b4).\n\nSquares around black king:\n- a1, b1, b2, a3, b3\n\nBut a1 is empty, b1 empty, b2 empty, a3 empty, b3 empty.\n\nWhite king on b4 \u2014 not controlling a2 directly.\n\nBut white queen on g7 controls the long diagonals, files, ranks.\n\nBishop on d2 \u2014 controls long dark diagonal.\n\nLet\u2019s see possible black moves.\n\nSuppose black plays ...Kb3.\n\nThen white can play Qg8#? No, queen on g7 to g8 is not checkmate.\n\nWait \u2014 we need black to deliver mate.\n\nSo black must move a piece to deliver checkmate on move 3.\n\nBut black only has a king. So the mate must be by the black king.\n\nSo black king must move to a square where it delivers checkmate on move 3.\n\nBut for that, the square must be attacked only by white king, and not be in check before.\n\nBut currently, is black king in check?\n\nBlack king on a2.\n\nAttacks on a2:\n- From white queen on g7: no \u2014 not diagonal, not file, not rank.\n- From white bishop on d2: dark squares \u2014 d2 to a5 is diagonal, but a2 is on a-file, d2 is two squares right and up \u2014 the diagonal from d2 goes to c3, b4, a5 \u2014 so a2 is not on that diagonal.\n- So black king is not in check.\n\nGood.\n\nNow, black must move king to a square that, after white moves, black can deliver mate.\n\nLet\u2019s suppose black moves king to a3.\n\nThen white must move a piece to allow mate.\n\nThen black moves king to a4? But a4 is empty.\n\nCan black king go from a3 to a4 and deliver mate?\n\nFor that, a4 must be attacked only by black king, and white king must not be able to capture.\n\nBut white queen is on g7 \u2014 too far.\n\nWhite bishop on d2 \u2014 not controlling a4.\n\nWhite king on b4 \u2014 controls a4? b4 to a4 is adjacent \u2014 yes, white king controls a4.\n\nSo if black king moves to a4, white king can capture it \u2014 not mate.\n\nSimilarly, a5: white king on b4 doesn't control a5. Queen on g7 doesn't. Bishop on d2 doesn't. So a5 might be possible.\n\nBut let's think of a known helpmate idea.\n\nPerhaps black king goes to b3.\n\nThen white must move.\n",
+   "detail": "0-ply line is not a h#2"
+  },
+  {
+   "id": "hm2_1",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "2k5/6Q1/6K1/7N/8/8/8/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "c8d8",
+    "g6f6",
+    "d8e8",
+    "g7e7"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a **helpmate in 2** (h#2) chess problem, where **both sides cooperate** to checkmate the side to move in exactly 2 moves.\n\n### Given:\n- **FEN**: `2k5/6Q1/6K1/7N/8/8/8/8 b - - 0 1`\n- **Pieces**:\n  - White: Kg6, Qg7, Nh5\n  - Black: Kc8\n- **Side to move**: Black\n- **Goal**: Black moves first, then White, then Black, then White \u2014 resulting in **checkmate on move 2** (i.e., after White\u2019s second move).\n\nWe need to find a **sequence of 4 moves** (Black, White, Black, White) that leads to **mate on move 2** (after White\u2019s second move).\n\n---\n\n### Board Analysis (from FEN):\n\nLet\u2019s reconstruct the board:\n\n```\n8: . . k . . . . .\n7: . . . . . Q . .\n6: . . . . . . K .\n5: . . . . . . . N\n4: . . . . . . . .\n3: . . . . . . . .\n2: . . . . . . . .\n1: . . . . . . . .\n    a b c d e f g h\n```\n\n- Black king on c8 (a1 is a8 in FEN row 1 \u2192 c8 is correct)\n- White queen on g7\n- White king on g6\n- White knight on h5\n- Black to move\n\n---\n\n### Goal: Mate in 2 (helpmate), both sides cooperate.\n\nSo Black must make a move that, followed by White\u2019s reply, leads to a position where Black\u2019s second move sets up a final checkmate by White on move 2.\n\nSo the sequence is:\n\n1. Black move  \n2. White move  \n3. Black move  \n4. White move \u2014 **#**\n\nWe need to find such a line.\n\n---\n\nLet\u2019s analyze possible black first moves.\n\nBlack king on c8. Available moves: b8, b7, c7, d7, d8.\n\nLet\u2019s try to see what happens if Black moves the king toward the center or helps White deliver mate.\n\nWhite has a queen on g7 and king on g6, knight on h5.\n\nThe knight on h5 is attacking g7 and f7.\n\nBut let\u2019s look for a known pattern: perhaps Black king moves to help the queen or knight deliver mate.\n\nTry:\n\n**1. ... Kb8**\n\nThen White can play:\n\n**2. Qg7+!** \u2014 forcing the black king to move.\n\nBut let\u2019s see:\n\nAfter 1. Kc8 \u2192 Kb8  \n2. Qg7+ \u2014 Kc8 or Ka8?\n\nWait \u2014 better idea: maybe Black king moves to c7, then White queen delivers a discovered attack or mates.\n\nTry:\n\n**1. ... Kc7**\n\nThen White plays **2. Qc3+!** \u2014 wait, but then Black can capture?\n\nWait \u2014 let's think of a **helpmate** where Black king walks into the path of a white queen or knight for a mating net.\n\nAnother idea: the white knight on h5 is on a5-like square \u2014 it attacks g7 and f7.\n\nBut white queen on g7 \u2014 so if black king moves to g8, then queen can mate? Not sure.\n\nWait \u2014 let's try:\n\n**1. ... Kb8**\n\nThen **2. Qa7+!** \u2014 forcing Kc8 or Kc7?\n\nIf Kc8, then 3. Kf6? \u2014 not helpful.\n\nWait \u2014 perhaps:\n\nWe need the final mate to be by queen or knight.\n\nLook: White has Qg7 and Kg6, Nf5 (but knight is on h5).\n\nWait \u2014 knight on h5 \u2014 if black king moves to g8, then knight can go to f7# \u2014 but that\u2019s after black moves.\n\nWait \u2014 let\u2019s try:\n\n**1. ... Kb8**\n\n**2. Kf6!** \u2014 king moves toward center? Not clear.\n\nWait \u2014 perhaps:\n\nWe need black to help deliver a **knight mate** on g7 or something.\n\nWait \u2014 white knight is on h5. From h5, it can go to f6, g7, f4, g3.\n\nIf black king is on g8, then knight on f6 or g7 could deliver mate.\n\nBut let\u2019s try:\n\n**1. ... Kb8**\n\n**2. Qg8+!** \u2014 king moves to c8? No, Qg8+ \u2014 if Kc8, then QxK? But that\u2019s capture, not mate.\n\nWait \u2014 maybe:\n\n**1. ... Kc7**\n\n**2. Qb2+!** \u2014 Kd6? Not helpful.\n\nAlternative idea: maybe black king goes to d8, then white queen moves to h8, delivering discovered check with knight?\n\nWait \u2014 let\u2019s look for known patterns.\n\nAnother approach: the only way to mate in 2 in helpmate is if the final move is a quiet move that delivers mate \u2014 but no, in helpmate, the final move by White delivers mate.\n\nSo after Black\u2019s second move, White plays a mating move.\n\nSo position after Black\u2019s 2nd move must be such that White can deliver mate.\n\nLet\u2019s try:\n\n**1. ... Kb8**\n\n**2. Kf5!** \u2014 why? To clear f6 for knight?\n\nThen **2... Kc8** (forced?) \u2014 no, black doesn\u2019t have to cooperate that way.\n\nWait \u2014 in helpmate, black must cooperate, so black will choose the move that allows mate.\n\nSo black will choose the best helping move.\n\nTry:\n\n**1. ... Kb8**\n\nNow White must play a move that sets up mate on next move.\n\nSuppose:\n\n**2. Qf7+!** \u2014 then Kc8 or Ka8?\n\nIf Kc8, then 3. Nd6+ \u2014 Kb8, then 4. Qb7#? Let\u2019s see:\n\nAfter 1... Kb8  \n2. Qf7+ \u2014 Kc8 (only move, since b7 is occupied?) No, b7 is empty.\n\nWait: from c8, king can go to b8, b7, c7, d7, d8.\n\nAfter Qf7+, king cannot go to b8 (queen attacks b8? Queen on f7, so a8-h1 diagonal? No.\n\nQf7 attacks along file 7, rank 7, and diagonals.\n\nFrom f7, queen attacks:\n- rank 7: all squares\n- file f: all\n- diagonals: a1-h8? f7 is on a1-h8 diagonal? f7 to a2 is diagonal.\n\nBut Kc8: c8 is not on f7\u2019s diagonals or files.\n\nSo Kc8 is safe from Qf7+.\n\nSo after 1... Kb8  \n2. Qf7+ \u2014 Kc8 is possible.\n\nThen 3. Nf6+ \u2014 Kd8? Then 4. Qd7#? Let\u2019s see:\n\nAfter 3. Nf6+, king must move. If Kd8, then 4. Qd7# \u2014 yes! Queen on d7 delivers mate.\n\nBut can White play Qd7? Only if not blocked.\n\nFrom f7 to d7: queen moving diagonally? f7 to d7 is not diagonal \u2014 f7 to d7 is two files left, same rank? No: f7 to d7 is two squares left on same rank? No: f7 is rank 7, d7 is rank 7 \u2014 so same rank.\n\nWait: f7 to d7 is horizontal move \u2014 file f to d, same rank 7.\n\nBut Qf7 to Qd7 is along rank 7 \u2014 so yes, possible.\n\nBut after 2... Kc8, is Qd7 safe? Yes.\n\nSo:\n\n1. ... Kb8  \n2. Qf7+ Kc8  \n3. Nf6+ Kd8  \n4. Qd7# \u2014 mate.\n\nBut is Nf6 legal? Knight on h5 to f6 \u2014 yes, that\u2019s a knight move.\n\nAnd after Nf6+, black king on c8 must move \u2014 to d8 or b8.\n\nIf Kd8, then Qd7# \u2014 mate.\n\nIf Kb8, then Qxb8# \u2014 also mate! But is Qxb8 possible?\n\nYes, queen on d7 to b8? No",
+   "detail": "5-ply line is not a h#2"
+  },
+  {
+   "id": "hm2_2",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "8/8/8/8/6Q1/2k5/6B1/5K2 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "c3d3",
+    "f1e1",
+    "d3e3",
+    "g4e4"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#2** (helpmate in 2), where **both sides cooperate** to checkmate the side to move (Black) in exactly 2 moves.\n\n### Given:\n- **FEN**: `8/8/8/8/6Q1/2k5/6B1/5K2 b - - 0 1`\n- **Pieces**:\n  - White: Kf1, Qg4, Bg2\n  - Black: Kc3\n- **Side to move**: Black\n- **Goal**: Black to move, and after both sides cooperate, Black is checkmated in exactly 2 full moves (i.e., after Black's 2nd move).\n\nWe need to output the full line as 4 moves:  \n**Black 1, White 1, Black 2, White 2** \u2014 resulting in Black being checkmated after White's second move.\n\n---\n\n### Step 1: Analyze the position\n\nLet\u2019s reconstruct the board:\n\n```\n8 | . . . . . . . .\n7 | . . . . . . . .\n6 | . . . . . . . .\n5 | . . . . . . . .\n4 | . . . . . . Q .\n3 | . . k . . . . .\n2 | . . . . . B . .\n1 | . . . . . . . K\n    a b c d e f g h\n```\n\n- White: King on f1, Queen on g4, Bishop on g2\n- Black: King on c3\n- Side to move: Black\n\nWhite is trying to help Black walk into a forced mate in 2.\n\nSince it's **h#2**, Black is mated on the **h-file**? Wait \u2014 actually, \"h#2\" in helpmate notation means: **Black is mated on move 2**, i.e., the final move is a checkmate delivered by White on Black's second move.\n\nBut let's clarify: **h#2** means \"helpmate in 2, with the Black king being mated on move 2\". So Black moves first, White responds, Black moves again, and White delivers mate.\n\nBoth sides cooperate.\n\nSo we need to find two black moves that, with White's help, lead to a forced mate on move 4 (i.e., after White's second move).\n\n---\n\n### Step 2: Try to find a forced line\n\nBlack king is on c3. It's very close to the white king on f1 and bishop on g2, queen on g4.\n\nWhite\u2019s pieces are all powerful \u2014 queen on g4 attacks along g-file and diagonals; bishop on g2 controls long diagonals; king on f1 is near.\n\nBlack king on c3 \u2014 where can it go?\n\nBlack\u2019s possible moves:\n- Kb3\n- Kb2\n- Kc2\n- Kc4\n- Kd3\n- Kd2\n- Kb4? No, too far.\n\nBut Black must move king \u2014 likely toward the center or away.\n\nBut since White wants to help mate Black, probably White will use queen and bishop to cut off escapes and deliver mate on h2 or h1 or g3, etc.\n\nWait \u2014 \"h#2\" might indicate that the mate is delivered on the h-file, or that the last move is to h-square.\n\nBut in helpmate, the number just indicates move number. h#2 means mate on move 2 (i.e., after Black's second move).\n\nSo we need:\n\n1. Black moves\n2. White moves\n3. Black moves\n4. White moves \u2014 checkmate\n\nLet\u2019s try to find such a line.\n\n---\n\n### Step 3: Look for forced cooperation\n\nBlack king on c3. To get mated, likely near the white pieces.\n\nSuppose Black moves king toward white \u2014 like Kc4 or Kb3.\n\nBut let\u2019s consider possible mates.\n\nWhite has queen on g4, bishop on g2 \u2014 so g3, h2, h4, f2, e2, e4, etc., are controlled.\n\nA common mate pattern might be:\n- Queen to h4 or h2\n- Bishop to h3 or f3\n- King to f2 or g2\n- Deliver mate on h2 or g2\n\nBut let\u2019s try to find a forced line.\n\nTry:\n\n**1. Kc3 Kc4**? That seems to move away.\n\nOr **1. Kc3 Kc2**?\n\nWait \u2014 Black king is on c3. Adjacent squares: b3, b2, b4, c4, d4, d3, d2, c2.\n\nBut some may be attacked.\n\nBut let's think: White wants to box Black in.\n\nPerhaps:\n\n1. Kc3 Kc4  \n2. Qg5+ Kb4  \n3. Qh4+ Ka3  \n4. Qa4# \u2014 but that\u2019s not h#, and also not 2 plies.\n\nWait \u2014 we need mate on move 2, i.e., after White\u2019s second move.\n\nLet\u2019s suppose:\n\n1. Black: Kc3-d3  \n2. White: Qd4+  \n3. Black: Kc3  \n4. White: Qc3# \u2014 but again, not h#.\n\nWait \u2014 maybe the mate is on h2.\n\nWhite has bishop on g2 \u2014 can deliver bishop mate on h2 if king is on h2.\n\nOr queen on g4 can support.\n\nWait \u2014 suppose Black king ends up on h2, and White delivers mate with queen or bishop.\n\nBut king on h2 is possible.\n\nLet\u2019s try:\n\n1. Kc3 Kb4  \n2. Qf4+ Ka3  \n3. Qa4+ Kb2  \n4. Qa2# \u2014 mate on a2, not h.\n\nNot good.\n\nWait \u2014 maybe:\n\n1. Kc3 Ka4  \n2. Qa4# \u2014 that\u2019s mate in 1, but we need 2 moves.\n\nNot allowed.\n\nWe need **exactly 2 moves** \u2014 so Black moves, White responds, Black moves, White mates.\n\nSo total: 4 half-moves.\n\nLet\u2019s look for a known helpmate idea.\n\nAnother idea: Black king is cornered. Maybe:\n\n1. Kc3 Kc2  \n2. Qc4+ Kb2  \n3. Qb3+ Ka1  \n4. Qa2# \u2014 but again, not h#.\n\nWait \u2014 perhaps the mate is on h1 or h2.\n\nWhite has bishop on g2 \u2014 so if king is on h2, bishop can give check from g3, but bishop is on g2.\n\nWait \u2014 bishop on g2 controls h3, f1, e4, etc.\n\nFrom g2, it controls a8-h1 diagonal.\n\nSo h1 is attacked by bishop on g2.\n\nSimilarly, g4 queen attacks h5, h3, g1, f2, e2, etc.\n\nWait \u2014 if Black king goes to h2, then:\n\n- Queen on g4 attacks h4, g5, f4, etc., but not h2 directly.\n- Bishop on g2 attacks h3, f1, e4 \u2014 not h2.\n\nSo h2 is not attacked by either.\n\nWait \u2014 then how can mate be on h#?\n\nUnless the move is to h1, h3, etc.\n\nWait \u2014 perhaps \"h#2\" just means \"mate in 2\", and the # is part of the notation, not the square.\n\nIn helpmate notation: **h#2** means \"helpmate in 2 moves\", i.e., Black is mated on move 2.\n\nSo we don\u2019t need the mate to be on h-file.\n\nSo proceed.\n\nLet\u2019s try:\n\n1. Kc3 Kc4  \n2. Qg5+ Kb4  \n3. Qh4+ Ka3  \n4. Qa4# \u2014 but 4 moves: Black1, White1, Black2, White2.\n\nBut is this forced?\n\nAfter 1. Kc3, Black king moves to c4.\n\nWhite plays Qg5+ \u2014 checking, forcing king to move.\n\nBlack must move: Kc4-b4 or Kc4-d4.\n\nIf Kb4, then White Qh4+ \u2014 king must go to a3.\n\nThen White Qa4# \u2014 mate.\n\nBut is Qa4 legal? Queen from g4 to a4 \u2014 yes, long diagonal, no pieces in way? Let's see:\n\ng4 to a4: diagonal through f3, e2, d1 \u2014 but e2, d1 are empty? Board:\n\n- e2: empty\n- d1: empty\n- c1",
+   "detail": "14-ply line is not a h#2"
+  },
+  {
+   "id": "hm2_3",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "6Q1/8/8/8/1K6/8/1k6/6N1 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "b2b1",
+    "b4a3",
+    "b1a1",
+    "g8a2"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#2** (helpmate in 2), meaning **Black is to move and both sides cooperate to checkmate Black in exactly 2 moves**.\n\n### Initial Position (FEN):\n`6Q1/8/8/8/1K6/8/1k6/6N1 b - - 0 1`\n\nLet\u2019s interpret the FEN:\n\n- 8th rank: `6Q1` \u2192 White queen on g8\n- 7th rank: empty\n- 6th rank: empty\n- 5th rank: empty\n- 4th rank: empty\n- 3rd rank: `1K6` \u2192 White king on b4\n- 2nd rank: `1k6` \u2192 Black king on b2\n- 1st rank: `6N1` \u2192 White knight on g1\n\nSo:\n- White: Kb4, Qg8, Ng1\n- Black: Kb2\n- Side to move: **Black**\n\nGoal: **Black to move, and both sides cooperate to deliver checkmate to Black in exactly 2 full moves (i.e., after White's second reply)**.\n\nThis is a **helpmate in 2** \u2014 Black moves first, then White responds, then Black moves again, and **Black is checkmated after White's second move**.\n\nSo the sequence will be:\n1. Black move\n2. White move\n3. Black move\n4. White move \u2014 resulting in checkmate\n\nWe need to find the correct line.\n\n---\n\n### Step-by-step analysis:\n\nCurrent position:\n\n- Black king on b2\n- White king on b4\n- White queen on g8\n- White knight on g1\n\nBlack is in the corner of his own king \u2014 but he must move.\n\nSince it's h#2, the checkmate must occur on h1 or h8? Wait \u2014 h#2 means **mate on h-file**, but in helpmate, the final move delivers mate, and it's Black who is mated.\n\nBut Black's king is on b2. To be mated on the h-file? That seems odd.\n\nWait \u2014 perhaps \"h#2\" means **mate on h1 or h8**, i.e., the checkmate occurs on a square of the h-file.\n\nBut Black's king starts on b2. How can it end up on h1 or h8 to be mated?\n\nAlternatively, maybe \"h#2\" means **mate in 2 moves where the final move is to the h-file**, but Black's king may not need to be on h-file if it's already near.\n\nBut more likely, in helpmate problems, h#2 means **the black king is checkmated on the h-file in 2 moves**.\n\nBut Black king is on b2. To get to h1 or h8, it must move.\n\nBut let's think: in helpmate, Black usually moves into a position where White delivers mate.\n\nGiven the pieces:\n\n- White has a queen and a knight \u2014 strong mating material.\n- White king is on b4, close to black king.\n- Black king on b2.\n\nLet\u2019s consider possible first moves for Black.\n\nBlack king on b2. Possible moves:\n- a2\n- a1\n- a3\n- b1\n- b3\n- c1\n- c2\n- c3\n\nBut moving the king might be necessary to allow mating net.\n\nLet\u2019s suppose Black moves **Kb3**.\n\nThen White can play Qb8+, forcing Kc3, then Ngf3#? Wait \u2014 but it's helpmate, so Black must help deliver mate.\n\nWait \u2014 in **helpmate**, Black moves first, and both sides cooperate to get Black mated on move 2.\n\nSo Black's moves must be such that after White's second move, Black is checkmated.\n\nLet\u2019s try to find a line.\n\nTry:\n\n1. Kb3 (Black moves king forward)\n2. Qb2+ (White queen blocks, checks)\n\nBut then Black could play Ka4, etc. Not leading to mate.\n\nAlternatively, maybe Black moves king to a1 or a3 to allow queen or knight to deliver mate.\n\nWait \u2014 White has a knight on g1. That can deliver a knight mate on f3 or h3, but not near b2.\n\nAlternatively, queen on g8 \u2014 can deliver checks along 8th rank or diagonals.\n\nAnother idea: maybe Black moves Kc2, then White plays Qc7#, but then Black isn't moving second time.\n\nWait \u2014 the sequence must be 4 moves: Black, White, Black, White \u2014 and after White's second move, Black is mated.\n\nSo after move 4 (White's second move), Black is in checkmate.\n\nSo position after move 4: Black king is in check, no legal moves, and was not in check before.\n\nLet\u2019s try to find such a line.\n\nTry:\n\n1. Kc3 (Black king moves toward center)\n2. Qc2+ (White queen checks, forcing king to move)\n   - If Black plays Kd3, then 3. Nhf3#? No, not on f3.\n   - Or Kc1, then 3. Qc1# \u2014 but that's mate in 1, not 2.\n\nWait \u2014 we need mate on move 4.\n\nAlternative idea: use the knight.\n\nWhite knight on g1 can go to f3, e5, h3, etc.\n\nSuppose:\n\n1. Kb3 (Black)\n2. Qb8 (White) \u2014 threatening Qb2#\n\nThen Black must move king.\n\n3. Kc3 (Black)\n4. Qc7# \u2014 but is that possible?\n\nWait: after 1. Kb3, 2. Qb8+, Black cannot play Kc3 because Qb8+ is a check on b8? No \u2014 Qb8 is not checking if king is on b3.\n\nWait: White queen on g8. To check Black king on b3, it would need to be on the same diagonal.\n\ng8 to b3 is a diagonal? g8-f7-e6-d5-c4-b3 \u2014 yes, long diagonal.\n\nSo if White queen moves to b3, it would check.\n\nBut currently, queen is on g8.\n\nSo perhaps:\n\n1. Kb3\n2. Qb3+ (diagonal check)\n\nThen Black king must move.\n\n3. Kc4 (for example)\n4. Nf3# \u2014 but knight from g1 to f3 is possible, but does it deliver mate?\n\nAfter 1. Kb3, 2. Qb3+, Black king moves to c4 (only safe square?), then 3. Nf3? But it's Black's move \u2014 no, after 2. Qb3+, Black moves, then White moves.\n\nWait: move order:\n\n1. Black: Kb3\n2. White: Qb3+\n   - Black king must move. Options: c3, c4, b4, a3, a4? Let's see.\n\nFrom b3, king can go to:\n- a2, a3, a4\n- b4\n- c2, c3, c4\n\nBut a2 and c2 are occupied? No \u2014 empty.\n\nBut check: is Qb3+ a check? Yes, queen on b3, king on b3? No \u2014 king moves to b3, then queen moves to b3? That would be capturing.\n\nWait \u2014 no: in SAN, you can't move a piece to a square occupied by your own piece.\n\nSo White cannot play Qb3 if Black king is on b3 \u2014 that would be capturing the king.\n\nSo 2. Qb3+ is invalid if Black king moves to b3.\n\nSo Black cannot stay on b3.\n\nSo after 1. Kb3, White cannot play Qb3.\n\nAlternative: 1. Kb3, 2. Qa8? Not helpful.\n\nWait \u2014 perhaps Black should move the king to a1 or a3 to allow queen to deliver discovered check or something.\n\nAnother idea: maybe Black moves Kc2.\n\nThen White can play Qc7+, forcing king to c3 or b3 or d3.\n\nThen White knight jumps to f3 or h3.\n\nBut let's look for a known helpmate pattern.\n\nGiven the pieces, perhaps:\n\n1. Kb3 (Black)\n2. Qb2+ (White) \u2014 but is this check? Queen on g8 to b2: diagonal g8-f7-e6-d5-c4-b3-a2 \u2014 b2 is not on that diagonal. g8 to b2: difference in file: 6, rank: 6 \u2014 yes, it is a diagonal! g8 to a2 is one diagonal, but b2? g8 (file 6",
+   "detail": "2-ply line is not a h#2"
+  },
+  {
+   "id": "hm2_4",
+   "kind": "helpmate",
+   "label": "h#2",
+   "n": 2,
+   "fen": "8/8/8/3k4/8/3B1K2/6Q1/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "d5e5",
+    "f3f2",
+    "e5f4",
+    "g2g3"
+   ],
+   "themes": [
+    "helpmate",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a **helpmate in 2 (h#2)** chess problem.  \nThat means: **Black moves first**, then White, then Black, then White \u2014 and on White's second move (i.e., the 4th plies overall), White delivers checkmate. Both sides **cooperate** to achieve this.\n\n---\n\n### Given:\n- **FEN**: `8/8/8/3k4/8/3B1K2/6Q1/8 b - - 0 1`\n- **Pieces**:\n  - White: Kf3, Qg2, Bd3\n  - Black: Kd5\n- **Side to move**: Black\n- **Goal**: Black and White cooperate so that **White is checkmated on move 2** (i.e., after 4 plies, with White\u2019s second move being checkmate).\n\nWait \u2014 but the stipulation says **h#2**, which means **helpmate in 2**, where **Black is mated**, and **White helps** to deliver mate.\n\nBut the problem says: \"checkmate the side to move in exactly 2 moves\". The side to move is **Black**, so **Black is mated in 2**.\n\nBut in standard helpmate, **Black is mated**, and **White helps**. So this is a **helpmate in 2**: Black moves, White moves, Black moves, White delivers mate.\n\nBut the initial position has **White to move**, but the problem says **\"Side to move: Black\"**, and the FEN confirms it's **Black to move**.\n\nSo let's clarify the sequence:\n\n- **Ply 1**: Black moves\n- **Ply 2**: White moves\n- **Ply 3**: Black moves\n- **Ply 4**: White delivers **mate**\n\nSo the solution will be 4 moves: Black, White, Black, White#.\n\nWe are to output the full line as **4 moves in SAN**, starting from the side to move (Black).\n\n---\n\n### Initial Position (FEN):  \n`8/8/8/3k4/8/3B1K2/6Q1/8 b - - 0 1`\n\nLet\u2019s reconstruct the board:\n\n```\n8: ........\n7: ........\n6: ........\n5: ....k...   (Kd5)\n4: ........\n3: ...B.K..   (Bd3, Kf3)\n2: ......Q.   (Qg2)\n1: ........\n   a b c d e f g h\n```\n\nSo:\n- Black king: d5\n- White king: f3\n- White bishop: d3\n- White queen: g2\n\nWhite to move? No \u2014 **Black to move**.\n\nBut White is to deliver mate on move 2 (i.e., on the 4th plies). So Black must move first, and help White to deliver mate on the next move.\n\nLet\u2019s analyze possible lines.\n\n---\n\nWe need to get to a position where after Black\u2019s first move and White\u2019s response, Black moves again, and then White delivers checkmate.\n\nLet\u2019s think about how White can deliver mate with K, B, Q.\n\nCurrent White pieces:\n- King: f3\n- Bishop: d3\n- Queen: g2\n\nThat\u2019s a very small number of pieces. To deliver mate, likely with the black king cornered.\n\nBut the black king is on d5 \u2014 very centralized.\n\nTo deliver mate in 2 moves, the black king must be forced to a corner, and White must have mating net.\n\nBut let\u2019s look at possibilities.\n\n### Step 1: Black moves\n\nBlack has only one piece: king on d5. Possible moves:\n\n- Kc5\n- Kc6\n- Kd6\n- Ke5\n- Ke4\n\n(assuming no other black pieces)\n\nSo 5 possible king moves.\n\nWhite will then move a piece (K, B, or Q), then Black moves again, then White mates.\n\nLet\u2019s try to find a line.\n\nWe need the final position to be a **checkmate** for Black, with White to move.\n\nSo after move 4 (White\u2019s second move), Black is in check, cannot escape.\n\nLet\u2019s consider possible mating patterns.\n\nWith K, B, Q \u2014 possible mates on the edge.\n\nBut current White king is on f3, bishop on d3, queen on g2.\n\nSuppose Black moves king to c5.\n\nThen:\n\n1... Kc5\n\nWhite to move. What can White do?\n\n2. Qg3+? Kb5 \u2014 then Black moves, then White mates? Not likely.\n\nAlternatively, maybe 2. Qf2+? But Kd5 to c5, then Qf2+ is check? Qg2 to f2 is check, but Kc5 is on c5, f2 attacks? No, f2 is adjacent to c5? No \u2014 f2 is two files away from c5.\n\nWait: c5 to f2: not adjacent.\n\nSo Qf2+ not check.\n\nAlternatively, 2. Bc6? B d3 to c6 \u2014 that\u2019s a diagonal, c6 is adjacent to c5 \u2014 so Bc6+? Check.\n\nYes: Bc6+ \u2014 king on c5, bishop on c6 \u2014 yes, check.\n\nThen Black moves: 2... Kb5 or Kd5 or Kc4 or Kb6, etc.\n\nThen White moves again to mate.\n\nBut after Bc6+, Black king is on c5, check.\n\nPossible Black replies:\n- Kb5\n- Kb6\n- Kd6\n- Kc4\n\nThen White must deliver mate.\n\nBut can White mate from there with one move?\n\nSuppose 1... Kc5\n2. Bc6+ Kb5\n\nNow White to move: can White mate? With Kf3, Bc6, Qg2 \u2014 hard to mate.\n\nMaybe 2. Qc4+? Qg2 to c4 \u2014 check? Qg2 to c4 is diagonal, c4 to c5 is adjacent \u2014 yes, Qc4+ is check.\n\nThen 1... Kc5 2. Qc4+ Kb5 or Kd6? Let's see.\n\nIf 2... Kb5, then White can try Qxb5#? But Q on c4 to b5 is not direct.\n\nWait \u2014 Qc4 to b5 is diagonal? c4 to b5 is adjacent? Yes \u2014 diagonal.\n\nBut is b5 attacked? After 2... Kb5, Black king moves to b5.\n\nThen White plays Qxb5# \u2014 yes! Queen to b5, checkmate.\n\nIs that possible?\n\nLet\u2019s test:\n\n1. ... Kc5  \n2. Qc4+ Kb5  \n3. Qxb5#\n\nBut wait \u2014 after 1... Kc5, 2. Qc4+ \u2014 is that check?\n\nQg2 to c4: is c4 attacked? Q on g2, moving to c4 \u2014 that\u2019s a diagonal. c4 is on the same diagonal (a2-g8)? No \u2014 g2 to c4: g2-f3-e4-d5-c4? No \u2014 g2 to c4 is not a straight diagonal.\n\nWait: g2 to c4: difference in files: g to c is 5 files left, rank 2 to 4 is +2. Not same diagonal.\n\nSo Qg2 to c4 is **not** a bishop diagonal. The queen is on g2, c4 is not on same rank, file, or diagonal.\n\nSo Qc4 is **not** a legal move? Wait \u2014 queen can move any number vertically, horizontally, or diagonally.\n\nBut from g2 to c4: that's 5 files left and 2 ranks up \u2014 not straight. So **not** a straight line. So queen cannot go from g2 to c4 in one move unless via intermediate squares, but in one move, it must be straight.\n\nSo Qc4 is **not** a valid queen move from g2.\n\nSo that doesn't work.\n\nAlternative: 2. Qf3? Qg2 to f3 \u2014 not straight. No.\n\nQg2 can move along rank 2, file g, or diagonals like g2-h1, g2-f1, g2-h3, g2-f3? g2 to f3: file changes by 1, rank by 1 \u2014 yes! That's diagonal.\n\ng2 to f3: down-left diagonal? g2 to f3 is up one and left one \u2014 yes, diagonal.\n\nSo Qf3 is possible.\n\nBut is Qf3+ a check? King on c5 \u2014 f3 is not adjacent to c5, and not same line.\n\nSo no.\n\nBack to 1... Kc5.\n\nWhite could play 2",
+   "detail": "5-ply line is not a h#2"
+  },
+  {
+   "id": "hm3_0",
+   "kind": "helpmate",
+   "label": "h#3",
+   "n": 3,
+   "fen": "4Q3/8/7N/8/6K1/8/8/1k6 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "b1c2",
+    "e8h8",
+    "c2d3",
+    "h6f5",
+    "d3e4",
+    "h8d4"
+   ],
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#3** (helpmate in 3 moves), meaning **both sides cooperate** to checkmate the side to move (Black) in exactly 3 plies (i.e., 3 moves by Black, with White assisting).\n\n### Given:\n- **FEN**: `4Q3/8/7N/8/6K1/8/8/1k6 b - - 0 1`\n- **Pieces**:\n  - White: Kg4, Qe8, Nh6\n  - Black: Kb1\n- **Side to move**: Black\n- **Goal**: Black to move, and both sides cooperate to achieve **h#3** (checkmate on h3 in exactly 3 moves)\n\nWe need to find a sequence of **6 moves** (3 full moves: Black 1, White 1, Black 2, White 2, Black 3, White 3), ending in **checkmate on h3** on move 3 (i.e., after Black\u2019s third move, the king is mated on h3, and it\u2019s White\u2019s turn \u2014 but since it's h#3, the mate occurs on the 3rd move by Black).\n\nBut in helpmate conventions, **h#3** means: Black is to move, and the game ends in checkmate on move 3 (i.e., after Black's third move), with Black delivering the mate (possibly with White's help). So the final position after Black's third move must be checkmate, and it must be Black's king or a Black piece delivering the mate.\n\nBut in this case, the only Black piece is the king. So likely, the Black king is delivering the final checkmate (assisted by White pieces).\n\nLet\u2019s analyze the position.\n\n---\n\n### Initial Position (FEN: 4Q3/8/7N/8/6K1/8/8/1k6 b - - 0 1)\n\nLet\u2019s reconstruct the board:\n\n- Rank 8: `4Q3` \u2192 White queen on e8\n- Rank 7: `7N` \u2192 White knight on g7? Wait: 7N means 7 empty squares and one N \u2014 so the N is on b8? No.\n\nWait: FEN is read from rank 8 to rank 1.\n\nSo:\n\n- Rank 8: `4Q3` \u2192 e8 = Q\n- Rank 7: `7N` \u2192 7 empty, then N \u2192 so N is on b7? No: 7N means 7 files empty, then N \u2192 so the N is on the 8th file? No: files are a-h.\n\nWait: FEN notation: each character is a piece or number. Numbers are empty squares. Letters are pieces. Uppercase = white, lowercase = black.\n\nSo rank 8: `4Q3` \u2192 4 empty, Q, 3 empty \u2192 so Q on e8.\n\nRank 7: `7N` \u2192 7 empty squares, then N \u2192 so N on h7? Because 7 empties (a-g), then N on h7.\n\nWait: a=1, b=2, ..., h=8. So 7 empty squares means from a to g are empty, then h7 has N? No: the 7th rank is the 7th rank from the top.\n\nWait: FEN is written from **rank 8 to rank 1**.\n\nSo:\n\n- Rank 8: `4Q3` \u2192 a8-d8 empty, e8=Q, f8-h8 empty\n- Rank 7: `7N` \u2192 a7-g7 empty, h7=N\n- Rank 6: `/8/` \u2192 entire rank 6 empty\n- Rank 5: `6K1` \u2192 a5-f5 empty, g5=K, h5 empty\n- Rank 4: `/8/` \u2192 empty\n- Rank 3: `/8/` \u2192 empty\n- Rank 2: `/1k6` \u2192 a2 empty, b2=k, c2-h2 empty\n\nWait: last part: `1k6` \u2192 1 empty, then k6 \u2192 so a1 empty, b1=k, then 6 empty? But that would be 7 characters.\n\nWait: `1k6` \u2192 1 empty square, then k (black king), then 6 empty \u2192 total 8 squares.\n\nSo:\n\n- Rank 1: a1 empty, b1 = k (black king), c1 to h1 empty\n\nBut black king is on b1.\n\nWhite king is on g5 (from `6K1`: 6 empty, K, 1 empty \u2192 so g5=K)\n\nWhite queen on e8, white knight on h7.\n\nSo:\n\n- White: Kg5, Qe8, Nh7\n- Black: Kb1\n\nWait! The problem says: \"Pieces: White: Kg4, Qe8, Nh6\"\n\nBut according to FEN, it's Kg5 and Nh7.\n\nThere's a discrepancy.\n\nLet me recheck the FEN: `4Q3/8/7N/8/6K1/8/8/1k6 b - - 0 1`\n\nBreak it down:\n\n- Rank 8: 4Q3 \u2192 4 empty, Q, 3 empty \u2192 e8 = Q\n- Rank 7: 7N \u2192 7 empty, N \u2192 h7 = N\n- Rank 6: 8 \u2192 all empty\n- Rank 5: 6K1 \u2192 6 empty, K, 1 empty \u2192 g5 = K\n- Rank 4: 8 \u2192 all empty\n- Rank 3: 8 \u2192 all empty\n- Rank 2: 1k6 \u2192 1 empty (a2), k (b2), 6 empty (c2-h2) \u2192 so b2 = k\n\nSo:\n- White king: g5\n- White queen: e8\n- White knight: h7\n- Black king: b2? No, b2 is rank 2 \u2192 b2 = k (black king)\n\nBut the problem says: \"Pieces: White: Kg4, Qe8, Nh6; Black: Kb1\"\n\nThis contradicts the FEN.\n\nPossibility: the FEN might be miswritten, or the piece list is from the problem setter's interpretation.\n\nBut the FEN is authoritative.\n\nHowever, the problem explicitly says:\n\n> Pieces:\n> White: Kg4, Qe8, Nh6\n> Black: Kb1\n\nSo perhaps the FEN is correct, but the piece list is wrong? Or vice versa.\n\nWait: let's trust the FEN, but the problem says \"Pieces: ...\" so maybe the FEN is consistent with that.\n\nWait: `6K1` on rank 5 \u2192 that's g5.\n\nBut problem says Kg4.\n\nSimilarly, `7N` on rank 7 \u2192 h7, but problem says Nh6.\n\nAnd `1k6` on rank 1 \u2192 b1 = k, but problem says Kb1 \u2014 that matches.\n\nWait: rank 1 is the back rank for white? No: in standard FEN, rank 8 is white's back rank, rank 1 is black's back rank.\n\nSo black king on b1 is correct.\n\nBut white king on g5, not g4.\n\nWhite knight on h7, not h6.\n\nWhite queen on e8 \u2014 matches.\n\nSo the piece list in the problem seems inconsistent with the FEN.\n\nBut the problem says: \"Pieces: White: Kg4, Qe8, Nh6; Black: Kb1\"\n\nSo perhaps the FEN was mistranscribed?\n\nAlternatively, maybe the FEN is correct, and the piece list is a mistake.\n\nBut let's look at the move count: h#3 \u2014 mate on h3.\n\nh3 is a square on the 3rd rank, h-file.\n\nSo the mate is on h3.\n\nCurrently, black king is on b1 or b2? According to FEN, b2? No: rank 2, b-file \u2192 b2.\n\nWait: rank 2, b-file \u2192 b2.\n\nBut in the FEN: `1k6` on rank 1? No:\n\nWait: FEN is from rank 8 to rank 1.\n\nSo:\n\n- 8th rank: 4Q3 \u2192 e8\n- 7th: 7N \u2192 h7\n- 6th: 8 \u2192 empty\n- 5th: 6K1 \u2192 g5\n- 4th: 8 \u2192 empty\n- 3rd: 8 \u2192 empty\n- 2nd: 1k6 \u2192 a2 empty, b2=k, c2-h2 empty\n- 1st: (implied) but wait \u2014 `1k6` is the 8th field? No.\n\nWait",
+   "detail": "0-ply line is not a h#3"
+  },
+  {
+   "id": "hm3_1",
+   "kind": "helpmate",
+   "label": "h#3",
+   "n": 3,
+   "fen": "7Q/4k3/8/8/8/4N3/8/4K3 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "e7f7",
+    "h8f8",
+    "f7g6",
+    "e3f5",
+    "g6h7",
+    "f8g7"
+   ],
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "Alright \u2014 let\u2019s work through this h#3 (helpmate in 3) problem. Both sides cooperate to checkmate Black\u2019s king in exactly 3 moves, with Black to move first.\n\nFEN: `7Q/4k3/8/8/8/4N3/8/4K3 b - - 0 1`  \n\nInterpretation:  \n- Black king on e7 (k3 = e7?? Wait, 4k3 means 4 empty squares, then k, then 3 empty \u2014 so row: 4 empty, k, 3 empty \u2192 rank 4 would be if from bottom, but here ranks are 8..1? Let's check.)  \n- Actually, FEN is from White's perspective, rank 1 is White's back rank.  \nBoard setup from bottom to top (rank 8 to rank 1):  \n\nRank 8: 7Q (7 empty, then White Queen on h8)  \nRank 7: 4k3 (4 empty, black king on e7? Wait: 4 empty, k, then 3 empty \u2192 so k is on e7 if counting from a-file left to right: a b c d e f g h \u2192 4 empty = a-d empty, e = k, f-g-h empty \u2192 yes, black king e7).  \nRank 6: 8 (empty)  \nRank 5: 8 (empty)  \nRank 4: 8 (empty)  \nRank 3: 4N3 (4 empty, N, 3 empty \u2192 knight on d3?) Let's count: a-d empty, e = N, f-g-h empty \u2192 knight on e3)  \nRank 2: 8 (empty)  \nRank 1: 4K3 (4 empty, K, 3 empty \u2192 king on e1)  \n\nSo pieces:  \nWhite: Ke1, Qh8, Ne3  \nBlack: Ke7  \n\nBlack to move.  \n\nWe need moves: Black move 1, White move 2, Black move 3, White move 4, Black move 5, White move 6 = mate.\n\nh#3 means helper mates in 3 moves \u2014 Black moves first, then White helps, then Black, then White, then Black, then White mates on move 6.\n\n---\n\n### Step 1: Analyze position  \nBlack king is on e7, essentially blockaded by White king on e1 and White knight on e3 and white queen on h8.  \nBlack has no pawns, only king.  \n\nGoal: after 3 black moves (with white cooperating), black king is mated on move 6.\n\nSince white queen is on h8, maybe we can use queen to deliver final mate on h-file or 8th rank.\n\nBut black king must be driven to a corner or mating square.\n\nLet's try to find a line.\n\n---\n\n**Move 1 (Black):**  \nBlack king from e7. Possible moves: d7, d6, d8, e8, f8, f7.  \nWe need to help white to mate in 3 moves, so black must move in a way that allows white to assist.  \n\nMaybe black moves king to f8? Then white can queen or knight to help corner.\n\nTry:  \n1... Kf8  \n\n2. White: maybe Qf8#? No, that's mate in 1, we need 3 moves. So white must not mate yet.\n\nWe need to force black king to h8 or g8 for back rank mate, or h1 etc.\n\nMaybe black king goes toward h8 to be mated on h8.\n\nTry:  \n1... Kf8  \n2. Qg7+? But that's check, but we don't want to mate yet. Actually in helpmates, white usually moves to unmask or deliver a check that forces black closer.  \n\nBut let's think of known helpmate patterns.\n\n---\n\nMaybe black king goes to e8?  \n1... Ke8  \n\nThen white can play Qe8#? Too early. No.\n\nWe need to get black king to h8 and white queen on h8 for mate? But queen is on h8 already. If black king goes to h8, then white queen can capture? No, mate means king is in check and cannot move.\n\nBut on move 6, white delivers mate.\n\nMaybe final mate is Qh8# with black king on g8? Or Qg8#?  \n\nWait, white queen on h8 can mate on h8 if black king is on g8 or h7 or g7.\n\nBut black king starts near e7.\n\nLet's try to find a cooperative line.\n\n---\n\n**Attempt:**\n\n1. Kf8 (Black moves king to f8)  \nNow white can play Qf8#? That's mate in 1, but we need 3 plies (3 moves each side? Wait, h#3 means 3 moves total by each side? Or 3 plies? Usually h#3 means 3 half-moves by each side, so 6 moves total, which matches \"6 moves\" in the prompt.)\n\nSo mate on move 6 (white's 3rd move).\n\nSo after 1... Kf8, white must not mate.\n\n2. Qe8 (maybe pinning or forcing)  \nThen black moves: 2... Kg7?  \nThen white: Qg8+? Kf7  \nThen black: Kf6?  \nThen white mates? Not clear.\n\nBetter to look for a forced path.\n\n---\n\nMaybe black king goes to d7 first.\n\n1... Kd7  \n2. Qd8+ (keeping queen on d8 for mate) Kc6  \n3. Kd2 (to support) Kb5  \n4. Qb8+ Ka5  \n5. Qa8+ Kb4  \n6. Qa4#? No, not mate.\n\nNot working.\n\n---\n\nAlternative idea: Use knight to help queen to h8 for back rank mate.\n\nBut knight is on e3.\n\nMaybe black king goes to e8, white knight goes to d5 or something.\n\nLet's try:\n\n1... Ke8  \n2. Kd2 (white king moves toward black)  \n2... Kd8  \n3. Ke3 (white king closer)  \n3... Kc7  \n4. Nf5 (knight to f5)  \n4... Kb6  \n5. Qb8+ Ka6  \n6. Qa8# \u2014 that could work! Let's check if black must cooperate.\n\nBut in move 3, black could play differently.\n\nWe need to force black king to a8 or h8.\n\nWait, maybe black king goes to f7, then white queen goes to f8, then black king to g7, white queen to g8, black king to h7, white queen to h8 mate? But that would mate on move 6? Let's count:\n\n1. Kf7  \n2. Qf8+ (check) Ke6? No, black king wants to go to h8.  \nBetter: Black king moves toward h8.\n\n---\n\n**Better approach:**  \nFinal mate likely Qh8#. So black king must be on g8 or h7 at move 6.\n\nLet's try to force black king to g8.\n\n1... Kf8  \n2. Kd2 (to allow queen to come to h8?)  \n2... Ke7? Bad.  \n2... Ke8? Then white can play Qe8# next? No, white can't mate yet because black would have moved after white's move. Wait, in helpmates, the moves alternate, and the final mate is on white's 3rd move (6th ply).\n\nSo sequence:  \n1. Black move  \n2. White move  \n3. Black move  \n4. White move  \n5. Black move  \n6. White move = mate.\n\nSo after 5 black moves? No: Black moves on 1,3,5; White on 2,4,6.\n\nSo mate on 6.\n\nWe need to get black king to a corner and white queen to deliver mate.\n\n---\n\nTry:\n\n1... Kf8  \n2. Qh8 (threatening mate, but not yet, because black can capture? No, black king would be in check if on g8, but not yet)  \nActually, if white plays 2. Qh8, then black could play 2... Kg8, then white to move: 3. Qg8# \u2014 that's mate in 3? Wait, that's only 2 full moves. But we need 3 moves each.\n\nSo white must not mate before move 6.\n\nSo white must make moves that don't give checkmate until the final move.\n\nSo maybe white uses king and queen to box",
+   "detail": "6-ply line is not a h#3"
+  },
+  {
+   "id": "hm3_2",
+   "kind": "helpmate",
+   "label": "h#3",
+   "n": 3,
+   "fen": "7N/3Q4/8/8/8/2k5/8/4K3 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "c3c4",
+    "h8f7",
+    "c4b4",
+    "f7d6",
+    "b4a5",
+    "d7b5"
+   ],
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "Alright \u2014 let's break down the problem.\n\nWe have:  \n- **FEN**: `7N/3Q4/8/8/8/2k5/8/4K3 b - - 0 1`  \n- **White pieces**: Ke1, Qd7, Nh8  \n- **Black pieces**: Kc3  \n- **Side to move**: Black  \n- **Stipulation**: h#3 (helpmate in 3 moves) \u2014 both sides cooperate to checkmate Black in exactly 3 moves.  \n\nThat means **Black moves first**, then White, then Black, then White, then Black, then White \u2014 and after White\u2019s 3rd move, Black is checkmated.\n\nSo moves:  \n1. Black \u2026  \n2. White \u2026  \n3. Black \u2026  \n4. White \u2026  \n5. Black \u2026  \n6. White \u2026 (mate)  \n\n---\n\n### Step 1: Understand board setup\nFrom FEN `7N/3Q4/8/8/8/2k5/8/4K3`:\n\nRank 8: `7N` \u2192 a8 empty, b8 empty, \u2026 g8 empty, h8 has N.  \nRank 7: `3Q4` \u2192 d7 has Q.  \nRank 6-5: empty.  \nRank 4: empty.  \nRank 3: `2k5` \u2192 c3 has k (Black king).  \nRank 2: empty.  \nRank 1: `4K3` \u2192 e1 has K (White king).\n\nSo White king on e1, White queen on d7, White knight on h8.  \nBlack king on c3.\n\n---\n\n### Step 2: Helpmate in 3 \u2014 Black cooperates to get mated in 3 moves\n\nWe need to find a sequence where Black\u2019s moves help White deliver mate on move 6 (White\u2019s 3rd move).\n\nSince Black king is on c3, it\u2019s near the center but not too close to edge. White queen on d7 is far. White knight on h8 can be used for mating net.\n\nPossible idea:  \nBlack king must move into a position where White can deliver discovered check or knight mate.\n\nLet\u2019s try to think of a line.\n\n---\n\n**1. Black move**: Maybe Kc3 moves to c2 or c4 or b3 or d3? But must help mate.\n\nIf Black moves Kc3-c2, then White can bring queen closer?  \n\nBut White\u2019s queen on d7 can go to d3, d2, etc. Knight on h8 can go to f7, g6, etc.\n\nWe need mate on 6th move (White\u2019s 3rd move). So after Black\u2019s 3rd move, White gives mate.\n\nLet\u2019s try to work backwards.\n\n---\n\n### Possible mating pattern:\nKnight on h8 can deliver mate if Black king is on g8 or f8 or g7 or f7, but Black king starts on c3, so must be driven there.\n\nMaybe queen helps to restrict king.\n\nAlternatively, maybe a back-rank mate? But white king on e1, so not back rank for black.\n\nMaybe knight mates on f7 or g6 etc.\n\nLet\u2019s try:\n\n1. Black: Kc3-c2  \n2. White: Qd7-d3 (attacking c3, but king on c2) \u2014 not immediately helpful.  \nMaybe White plays Qd7-d8?  \n\nBetter to try to force king to g8 or h8 for knight mate.\n\nFrom c3, king can go to c4, c2, b3, d3.\n\nSuppose:  \n1. Kc3-c4  \n2. Qd7-d4 (threatening Qd8#) \u2014 but not mate yet.  \nBut Black helps by moving king toward queen.\n\nWait, in helpmates, we need Black\u2019s moves to open lines and not block.\n\nMaybe:  \n1. Kc3-c2  \n2. Qd7-c7 (attacking c-file, setting up for queen mate)  \n3. Kc2-c3 (back??) that seems bad.  \n\nAlternatively, maybe knight comes down from h8 to g6, then queen mates.\n\nLet\u2019s try concrete:\n\n1. Kc3-b3 (king moves toward queen file)  \n2. Qd7-a4 (diagonal long range) \u2014 but a4 doesn\u2019t help much.  \n\nMaybe better:  \nWe need mate on h3? No, Black king on c3.\n\nWait \u2014 maybe the mate is knight on f7+ or g6+, forcing king to h8, then knight mates on h8? But knights don\u2019t mate alone.\n\nMaybe a double check.\n\nLet\u2019s think of a known helpmate pattern.\n\nPerhaps:\n\n1. Kc3-c2  \n2. Qd7-d3+  \n3. Kc2-b3 (forced? no, king can go c1, c3? but c3 is start, maybe not allowed if occupied)  \nActually, in helpmates, pieces can occupy squares, but kings can't be in check.\n\nWe need Black to move king into a position where after White\u2019s 3rd move, it\u2019s mated.\n\nLet me try a different approach:  \nWhite queen on d7 can give checks along d-file.  \nWhite knight on h8 can go to f7, giving check.\n\nSuppose after some moves, Black king is on g8, then White knight h8-g6 gives check, Black king to h8, then White queen mates on h8? But queen can\u2019t get there.\n\nAlternatively, maybe mate by knight on f7# if king is on g8 or e8.\n\nLet\u2019s try:\n\n1. Kc3-d3  \n2. Qd7-h7 (attacking d3, preparing queen mate)  \n3. Kd3-e3 (king moves, but now queen can go to e7#? e7# is possible if queen on e7, but king on e3 \u2014 no, not mate).  \n\nHmm.\n\nMaybe a different idea:  \nAfter 1. Kc3-c4  \n2. Qd7-d4+  \n3. Kc4-d4 (king can\u2019t go to d4 if attacked? Wait, if queen moves to d4, it\u2019s check, king can capture queen? But then not mate later.)\n\nWe need to avoid capturing the queen early.\n\nMaybe:  \n1. Kc3-b3  \n2. Qd7-c7 (threatening Qc8#)  \n3. Kb3-a3 (king moves away)  \n4. Qc7-c3# \u2014 but that\u2019s mate in 4? Wait, no, that would be checkmate on 4th move (White\u2019s 2nd move), but we need mate in 3 moves total (6 plies).\n\nWe need mate on move 6 (White\u2019s 3rd move). So Black must have moves 1,3,5 to help.\n\nLet\u2019s try a forced line:\n\n1. Kc3-c2  \n2. Qd7-a4 (setting up a battery on a-file? Not really)  \n\nAlternatively:  \n1. Kc3-b4 (king moves toward knight)  \n2. Qd7-h3 (attacking b4, preparing knight mate)  \n3. Kb4-c4 (king moves)  \n4. Qh3-g3 (threatening Qg4#)  \n5. Kc4-d4  \n6. Ng8-f6# \u2014 but knight on h8 to f6 is possible, but is that mate?  \nIf king on d4, knight on f6 attacks d5, e4, e8, g8, d7, h7 \u2014 not d4. So no.\n\nWe need a better plan.\n\nMaybe the mate is on c3? But king starts there, so must move.\n\nWait \u2014 maybe after moving king away, White queen and knight coordinate.\n\nLet\u2019s try:\n\n1. Kc3-c4  \n2. Qd7-d3+ (check, king must move)  \n3. Kc4-d3 (king moves into check? No, can\u2019t move into check. So king can go c4-b4, c4-b3, c4-b5, c4-b6, c4-e4, c4-d5?) Wait, d4 is attacked by queen? Qd3 attacks d-file, so d4 is safe? No, d3 to d4 is clear, but king on d4 would be on same file as queen on d3 \u2014 yes, that\u2019s attacked. So king can\u2019t go d4.  \n\nPossible king moves from c4: b3, b4 (but c4 to b4 is possible if not attacked), b5, d3 (attacked by queen), d4 (attacked by queen), d5, e4, e3, e5.  \n",
+   "detail": "8-ply line is not a h#3"
+  },
+  {
+   "id": "hm3_3",
+   "kind": "helpmate",
+   "label": "h#3",
+   "n": 3,
+   "fen": "8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "h3g4",
+    "d6f8",
+    "g4h3",
+    "e1f1",
+    "h3h2",
+    "f8d6"
+   ],
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a chess problem with stipulation **h#3** (helpmate in 3 moves), where **both sides cooperate** to checkmate the side to move (Black) in exactly 3 moves.\n\n### Given:\n- **FEN**: `8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1`\n- **Pieces**:\n  - White: King at a2 (Ka2), Queen at e1 (Qe1), Bishop at d6 (Bd6)\n  - Black: King at h3 (Kh3)\n- **Side to move**: Black\n- **Goal**: Black to move, and both sides cooperate to achieve **checkmate in exactly 3 moves**.\n\nWe are to provide the full line as 6 moves (i.e., 3 full moves), in SAN notation, starting from Black's first move.\n\n---\n\n### Step 1: Understand the position\n\nLet\u2019s reconstruct the board from the FEN:\n\n```\n8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1\n```\n\nRank 8: . . . . . . . .  \nRank 7: . . . . . . . .  \nRank 6: . . . B . . . .  \nRank 5: . . . . . . . .  \nRank 4: . . . . . . . .  \nRank 3: . . . . . k . .  \nRank 2: K . . . . . . .  \nRank 1: . . . Q . . . .  \n\nFiles: a b c d e f g h\n\nSo:\n- White King: a2\n- White Queen: e1\n- White Bishop: d6\n- Black King: h3\n\nBlack to move. Both sides cooperate to checkmate Black in 3 moves.\n\nWe need to find a sequence of 3 moves (6 plies) starting with Black, ending with Black being in checkmate on move 3 (i.e., after White\u2019s third move).\n\n---\n\n### Step 2: Analyze possible lines\n\nBlack is on h3. The white queen on e1 controls the h-file and diagonal. The bishop on d6 controls long diagonals, especially toward h3 (d6\u2013e5\u2013f4\u2013g3\u2013h2, or d6\u2013c5\u2013b4\u2013a3, etc.), but not directly h3.\n\nLet\u2019s see: d6 to h3 is 4 squares diagonally? d6\u2013c5\u2013b4\u2013a3 \u2014 no, that\u2019s not toward h3. Actually, d6 to h3: difference is +4 files, -3 ranks \u2192 not same diagonal. So bishop on d6 does **not** attack h3.\n\nQueen on e1: controls e-file, 1st rank, and a7-h1 diagonal. h3 is on the a7-h1 diagonal? Let's see: e1 to h3: +3 files, +2 ranks \u2014 not same diagonal. Wait: a7-h1 diagonal goes from a7 (rank 7) to h1 (rank 1). h3 is not on that diagonal.\n\nWait: h3 is on:\n- h-file\n- 3rd rank\n- diagonal: a8-h1? No, h3 is two ranks above h1. The diagonal from h3 goes to g2, f1, e0 \u2014 so only g2 and f1 are on that diagonal.\n\nSo currently, no white piece attacks h3. But we need to help white to deliver mate in 3.\n\nSince it's **helpmate**, Black must help white to deliver checkmate on move 3.\n\nStandard helpmate idea: Black moves king into the path of white pieces to allow discovered check, or to walk into a mating net.\n\nLet\u2019s consider possible first moves for Black.\n\nBlack king on h3. Possible moves:\n- h2\n- g3\n- g2\n\n(Other squares like h4 are off board.)\n\nLet\u2019s try **Kh3\u2013g3**\n\nThen white can play, say, Qe1\u2013g3#? But that would be mate on move 2, but we need mate on move 3.\n\nWait: h#3 means mate on move 3, i.e., after 3 moves by each side.\n\nSo:\n- Move 1: Black moves\n- Move 2: White responds\n- Move 3: Black moves\n- Move 4: White responds\n- Move 5: Black moves\n- Move 6: White delivers mate\n\nSo mate on White\u2019s third move.\n\nSo we need a line where after Black\u2019s third move, White delivers mate.\n\nLet\u2019s try to find such a line.\n\n---\n\n### Try: 1... Kh3\u2013g2\n\nThen White might play, say, Qe1\u2013g3? Threatening Qg3# next move.\n\nBut then Black can move king away.\n\nBut in helpmates, Black must cooperate \u2014 so maybe Black walks into mate.\n\nTry:\n\n1... Kh3\u2013g2  \n2. Qe1\u2013g3+!  (checking, forcing king to move)  \nBut then Black king on g2, check: where can it go? h2, h1, f2, f1, g1, g3 \u2014 but g3 is attacked by queen? After Qe1\u2013g3+, the queen is on g3, so king cannot go to g3.\n\nBut if Black plays 2... Kh2? Then white can play 3. Qg3\u2013h3#? But that\u2019s mate on move 3? Wait: move 3 is white\u2019s second move.\n\nWait: let's count:\n\n- 1. Black moves (move 1)\n- 2. White moves (move 1 for white)\n- 3. Black moves (move 2)\n- 4. White moves (move 2)\n- 5. Black moves (move 3)\n- 6. White moves (move 3) \u2192 mate\n\nSo mate on white\u2019s third move (move 6).\n\nSo we need a line where after Black\u2019s third move, white delivers mate.\n\nLet\u2019s try to set up a battery or discovered check.\n\nIdea: use the bishop and queen on diagonal.\n\nBishop on d6, queen on e1. If we can get queen to e3 or d1, and bishop to f4 or something.\n\nBut black king is on h3. Maybe black king walks toward the queen or bishop.\n\nAnother idea: king walks to g3, then queen goes to g3#? But that\u2019s mate on move 2.\n\nBut we need mate on move 3.\n\nWait \u2014 perhaps:\n\n1... Kh3\u2013h2  \n2. Qe1\u2013h4+! (forcing king to g2 or h3)  \nIf 2... Kg2, then 3. Bd6\u2013f4? Not helpful.\n\nWait, maybe:\n\n1... Kh3\u2013g3  \n2. Qe1\u2013g3# \u2192 mate in 2, too fast.\n\nBut we need mate in 3.\n\nSo perhaps black must move king away, then white sets up a trap.\n\nTry:\n\n1... Kh3\u2013h4  \n2. Qe1\u2013h4+?? \u2192 stalemate? No, king to h4 is not allowed if in check? Wait, 2. Qe1\u2013h4+ would be illegal if king is on h3? No, king moves to h4, then queen attacks h4? Wait, no: if black plays 1... Kh4, then white plays 2. Qe1\u2013h4+, but then king is on h4, queen moves to h4 \u2014 that\u2019s not a check, because the king is already on h4. You can\u2019t give check to a king that\u2019s on the square you\u2019re moving to, unless it\u2019s a capture.\n\nIn check, the king must be in check after the move. So to deliver check, the king must move *to* a square attacked, or a piece moves to attack.\n\nSo 2. Qe1\u2013h4 is not a check, because the king is on h3, not on h4.\n\nSo after 1... Kh4, white can play 2. Qe1\u2013h1? Not helpful.\n\nAlternative idea: use the bishop to control a diagonal, and queen to deliver discovered check.\n\nWait \u2014 what if black moves king to g3, then white plays Bf4\u2013h2#, for example.\n\nBut bishop on d6 to h2 is a diagonal (d6\u2013c5\u2013b4\u2013a3? No \u2014 d6 to h2: +4 files, -4 ranks \u2192 yes, d6\u2013e5\u2013f4\u2013g3\u2013h2 \u2014 so yes, bishop on d6 attacks h2.\n\nSo if black king goes to g3, then white can play Bf4\u2013h2, but bishop is on d6, not",
+   "detail": "2-ply line is not a h#3"
+  },
+  {
+   "id": "ser_dm3",
+   "kind": "series_directmate",
+   "label": "ser-#3",
+   "n": 3,
+   "fen": "7k/5ppp/8/8/8/8/8/1R4K1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "b1a1",
+    "a1a7",
+    "a7a8"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a composed chess problem with stipulation **ser-#3**, meaning White delivers checkmate in exactly 3 moves, with check given on the third move.\n\n### Initial Position (FEN: 7k/5ppp/8/8/8/8/8/1R4K1 w - - 0 1)\n\nLet\u2019s interpret the board:\n\n- **White**: King on g1, Rook on b1\n- **Black**: King on h8, pawns on f7, g7, h7\n- It's White to move.\n\nWe need to find a sequence of **three moves** by White such that:\n- The first two moves are not checks (or at most don't deliver check),\n- The **third move is checkmate**.\n\nLet\u2019s analyze the position.\n\n---\n\n### Step 1: Understand the board\n\n```\n8: . . . . . . . k\n7: . . . . p p p .\n6: . . . . . . . .\n5: . . . . . . . .\n4: . . . . . . . .\n3: . . . . . . . .\n2: . . . . . . . .\n1: . . . . . . . R K\n    a b c d e f g h\n```\n\nWhite: Kg1, Rb1  \nBlack: Kh8, f7, g7, h7 pawns\n\nSo Black has a pawn storm on the kingside, but the kings are far apart.\n\nWhite\u2019s rook is on b1 \u2014 can it get to h1 to deliver back rank mate? Possibly.\n\nBut Black\u2019s king is on h8, and pawns on f7, g7, h7 \u2014 so if White can get the rook to h1, and maybe advance a pawn or clear the h-file?\n\nBut pawns are on f7, g7, h7 \u2014 so h7 is blocked by a pawn. So rook can't go to h1 unless the pawn moves.\n\nBut pawns are black pawns \u2014 they can't move for White.\n\nSo how can White deliver mate?\n\nWait \u2014 maybe the pawns are actually **White** pawns?\n\nWait! Let's recheck the FEN: `7k/5ppp/8/8/8/8/8/1R4K1 w - - 0 1`\n\nStandard FEN: rows from 8 to 1.\n\nSo:\n\n- Rank 8: 7k \u2192 . . . . . . . k \u2192 so black king on h8\n- Rank 7: 5ppp \u2192 five dots, then ppp \u2192 so . . . . p p p \u2192 so pawns on a7? No \u2014 5 dots = 5 empty files, then ppp = 3 pawns \u2192 files a,b,c,d,e,f,g,h \u2192 5 dots = a-e empty, then f,g,h = ppp \u2192 so pawns on f7, g7, h7 \u2192 correct.\n\nSo black pawns on f7, g7, h7.\n\nWhite: rank 1: 1R4K1 \u2192 so a1 empty, b1 = R, c1-d1-e1-f1-g1 empty, h1 = K? Wait: 1R4K1 \u2192 that\u2019s: a1: ., b1: R, c1: ., d1: ., e1: ., f1: ., g1: K? Wait no: 1R4K1 = 1 (a1), R (b1), 4 (c1-f1 empty), K (g1), 1 (h1 empty)? That can\u2019t be.\n\nWait: 1R4K1 = 1 empty, R, 4 empty, K, 1 empty \u2192 total 1+1+4+1+1 = 8? No: 1 + 1 + 4 + 1 + 1 = 8 \u2192 yes.\n\nSo positions:\n- a1: .\n- b1: R\n- c1: .\n- d1: .\n- e1: .\n- f1: .\n- g1: K\n- h1: .\n\nWait! That would put White king on g1 \u2014 correct.\n\nBut then h1 is empty.\n\nSo White king on g1, rook on b1.\n\nBlack king on h8, pawns on f7, g7, h7.\n\nSo Black\u2019s king is on h8, with pawns on f7, g7, h7 \u2014 so the h-file is blocked by a pawn on h7.\n\nWhite wants to mate with the rook on h1? But h7 pawn blocks.\n\nUnless White can move the pawn? But it\u2019s Black\u2019s pawn.\n\nWait \u2014 maybe White can promote a pawn? But no pawns on a2, etc.\n\nWait \u2014 are there any other pieces? No.\n\nSo White has only king and rook.\n\nBlack has king and three pawns.\n\nSo it's a king and rook vs king and pawns endgame.\n\nBut White is to move, and must mate in 3.\n\nLet\u2019s think.\n\nThe only way to mate with a rook is to drive the enemy king to the edge and deliver back-rank or side-rank mate.\n\nCurrently, Black king is on h8 \u2014 already on the edge.\n\nBut h7 has a pawn, g7 has a pawn \u2014 so the king is trapped on h8? Can it move?\n\nBlack king on h8 \u2014 possible moves: g8, g7 \u2014 but g7 has a pawn, so only g8 is free? But is g8 attacked?\n\nBut Black is not moving \u2014 we are.\n\nWait \u2014 White is to move.\n\nSo White needs to force mate in 3.\n\nLet\u2019s consider possible moves.\n\n### Idea: Use the rook to restrict the black king.\n\nBut black king is on h8, with pawns on f7, g7, h7 \u2014 so it can only go to g8 (if not attacked).\n\nBut if White attacks g8, then black king is trapped? But checkmate requires the king to be in check with no escape.\n\nBut currently, black king is on h8 \u2014 not in check.\n\nWhite must deliver check on move 3.\n\nSo moves 1 and 2: developing, move 3: checkmate.\n\nLet\u2019s try to find a sequence.\n\n### Try: 1. Rh1+ ? \n\nBut Rh1: rook from b1 to h1 \u2014 is it legal? Path is clear? b1 to h1 \u2014 ranks, so yes, if no pieces in between.\n\nBut h7 has a pawn \u2014 but that\u2019s on rank 7, not in between. So rook can go to h1.\n\n1. Rh1+ \u2014 this puts black king in check.\n\nBlack king on h8 \u2014 attacked by rook on h1 \u2014 so must move.\n\nOnly move: Kg8 (since h8 is attacked, g8 is only other option \u2014 but is g8 attacked?) Not yet.\n\nAfter 1. Rh1+, Kg8.\n\nNow White\u2019s second move.\n\nWhat can White play?\n\nMaybe Kf2? Or move the rook?\n\nBut we need to set up for checkmate on move 3.\n\nAfter 1... Kg8, the king is on g8.\n\nNow, if White can get the rook to h1 or g1 or h8, etc.\n\nBut black still has pawns on f7, g7, h7 \u2014 blocking.\n\nWait \u2014 can White play 2. Rh8? Rook to h8 \u2014 but h7 has a pawn \u2014 so rook can go to h8? Yes, if the pawn is there \u2014 but the pawn is on h7, so rook can capture? No \u2014 rook on h8 would be capturing nothing \u2014 but h8 is empty? Wait: black king was on h8, but moved to g8.\n\nSo h8 is empty.\n\nBut h7 has a black pawn \u2014 so rook can move to h8? Yes, vertically \u2014 h1 to h8 is clear? h1 to h8: files same, ranks 1 to 8 \u2014 pieces: h7 has pawn \u2014 so rook moving from h1 to h8 would pass through h7? No \u2014 rook moves any number of squares vertically or horizontally, jumping over pieces? No \u2014 cannot jump.\n\nSo rook on h1 going to h8 must have clear path. But h7 has a pawn \u2014 so rook cannot go from h1 to h8 because h7 is occupied.\n\nSo 2. Rh8 is illegal.\n\nSimilarly, any rook move along h-file is blocked by pawn on h7.\n\nSo rook cannot go up the h-file.\n\nAlternative: rook goes to a-file or something.\n\nBut then how to mate?\n\nMaybe 1. Rh1+ Kg8 2. Kf2 Kf8 3. Re1#? No \u2014 not mate.\n\nWait \u2014 maybe White can use the pawn? But pawns are black.\n\nWait \u2014 unless",
+   "detail": "3-move series is not a ser-#3"
+  },
+  {
+   "id": "ser_dm4",
+   "kind": "series_directmate",
+   "label": "ser-#4",
+   "n": 4,
+   "fen": "7k/5ppp/8/8/8/8/8/2R3K1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "c1c2",
+    "c2a2",
+    "a2a7",
+    "a7a8"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "expert"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a composed chess problem with stipulation **ser-#4**, meaning White must deliver checkmate in exactly 4 moves (with check given only on the last move). The position is:\n\n```\nFEN: 7k/5ppp/8/8/8/8/8/2R3K1 w - - 0 1\n```\n\nPieces:\n- White: King on g1, Rook on c1\n- Black: King on h8, pawns on f7, g7, h7\n\nWhite to move.\n\n---\n\n### Step 1: Analyze the position\n\nWhite has a king on g1 and a rook on c1.  \nBlack has a king on h8 and three pawns on f7, g7, h7 \u2014 forming a kind of pawn wall on the 7th rank, but actually on the 7th rank? Wait: the FEN is:\n\n`7k/5ppp/8/8/8/8/8/2R3K1`\n\nSo from bottom to top (rank 1 to 8):\n\n- Rank 1: `2R3K1` \u2192 Rook on c1, King on g1\n- Rank 2\u20136: empty\n- Rank 7: `5ppp` \u2192 pawns on f7, g7, h7? Wait: `5ppp` means 5 empty files, then ppp \u2192 so files a\u2013e: 5 files empty, then f, g, h have pawns \u2192 so pawns on f7, g7, h7\n- Rank 8: `7k` \u2192 king on h8\n\nSo Black king is on h8, pawns on f7, g7, h7 \u2014 so the black king is trapped on h8, but pawns are on f7, g7, h7.\n\nWhite has only a rook and a king.\n\nGoal: Deliver checkmate in exactly 4 moves, with check only on the 4th move.\n\n---\n\n### Step 2: Consider possible plans\n\nWhite\u2019s rook on c1 can go to c8 to deliver mate \u2014 c8 is in front of the black king on h8? No, c8 is far.\n\nBut maybe the rook can go to h1, then h2, then h3, then h8#? But black king is on h8, so h8# is possible if rook gets to h8.\n\nBut black king is on h8, and pawns on f7, g7, h7 \u2014 so the black king is on h8, and pawns on g7 and h7 \u2014 so the king is on the edge, but pawns block some squares.\n\nBut black king can move? In the FEN, black king is on h8, and pawns on f7, g7, h7 \u2014 so the black king cannot move to g8 (blocked by pawn on g7?), no: g7 is a pawn, so g8 is empty? Wait: the black king is on h8, so adjacent squares:\n\n- g8: empty? Yes, because pawns are on f7, g7, h7 \u2014 so g8 is empty.\n- g7: pawn\n- h7: pawn\n\nSo black king can move to g8.\n\nSimilarly, f8 is empty.\n\nSo black king can escape.\n\nBut White must force mate in 4.\n\nLet\u2019s consider using the rook to attack along the h-file or a file.\n\nAnother idea: maybe 1. Rh3+? But Rh3+ would be check, but we cannot give check on move 1 or 2 or 3 \u2014 only on move 4.\n\nSo White must avoid giving check until the 4th move.\n\nSo first three moves must be quiet (in terms of check), and only the 4th move is checkmate.\n\nSo we need a forced line where White maneuvers the rook to deliver mate on move 4.\n\nLet\u2019s consider moving the rook to h1, then h2, then h3, then h8#.\n\nBut can White do that?\n\nTry:\n\n1. Rh3 \u2014 no check, but is it useful? Then black can move king.\n\nBut let's think of a more forced line.\n\nAlternatively, maybe 1. Rc1\u2013c8? But c8 is not near the king.\n\nWait \u2014 perhaps the pawn on f7 or g7 can be used? But pawns are not moving \u2014 no, pawns can move, but White has no pawns to move. Only king and rook.\n\nSo only pieces that can move are White\u2019s king and rook.\n\nBlack\u2019s pawns are on f7, g7, h7 \u2014 they cannot move because it\u2019s White\u2019s turn, and Black has no legal move? Wait \u2014 Black\u2019s king is on h8, and can move to g8 or f8.\n\nSo Black has moves.\n\nBut in a problem like this, we assume Black plays optimally to avoid mate.\n\nSo we need a forced mate.\n\nLet\u2019s try to find a sequence.\n\nIdea: Use the rook to control the h-file, and king to support.\n\nBut let\u2019s try:\n\n1. Rc1\u2013c8 \u2014 just moves rook to c8. No check. Black can play Kg8 or Kf8.\n\nThen 2. Rc8\u2013h8 \u2014 but then Rh8+ would be check on move 2 \u2014 not allowed. So cannot give check on move 2.\n\nSo Rh8 cannot happen until move 4.\n\nSo maybe the rook goes to h8 on move 4.\n\nSo perhaps:\n\n1. ... something\n2. ...\n3. ...\n4. Rh8#\n\nSo we need to get the rook to h8 on move 4, delivering mate.\n\nSo the rook must get to h8.\n\nCurrently on c1.\n\nSo possible path: c1 \u2192 c2 \u2192 c3 \u2192 c4 \u2192 ... but not helpful.\n\nOr c1 \u2192 h1 \u2192 h2 \u2192 h3 \u2192 h8.\n\nBut to get from c1 to h1, need to move rook along first rank? But king is on g1 \u2014 so rook on c1, king on g1 \u2014 so rook can move to any square on first rank not occupied.\n\nSo 1. Rh1 \u2014 safe, no check.\n\nThen Black\u2019s turn.\n\nBlack king on h8, pawns on f7,g7,h7.\n\nBlack can move king to g8 or f8.\n\nSuppose Black plays Kg8.\n\nThen 2. Rh2 \u2014 still no check. Now rook on h2.\n\nBlack king can go to f8 or h7? h7 has pawn, so no. So f8 or g8.\n\nSay Kf8.\n\nThen 3. Rh3 \u2014 still no check. Rook on h3.\n\nThen 4. Rh8# \u2014 mate.\n\nBut is that forced? Can Black avoid this?\n\nAfter 1. Rh1, if Black plays Kf8 instead of Kg8.\n\nThen 2. Rh2 \u2014 still no check.\n\nBlack can go to g8 or e8.\n\nSay Ke8.\n\nThen 3. Rh3 \u2014 no check.\n\nThen 4. Rh8# \u2014 still mate.\n\nSo seems like if White plays Rh1, Rh2, Rh3, Rh8#, it works.\n\nBut wait \u2014 after 1. Rh1, is there any way for Black to prevent the mate?\n\nFor example, can Black interpose a piece? But no pieces in between.\n\nOr can Black capture the rook? No, because the rook is on h1, and black king is on h8, pawns on f7,g7,h7 \u2014 no black piece on h1, h2, etc.\n\nSo no interference.\n\nBut wait \u2014 after 1. Rh1, Black\u2019s king is on h8, and h1 is being attacked, but no piece to capture.\n\nSo Black must move king.\n\nSimilarly, on h2, h3, etc.\n\nSo the line:\n\n1. Rh1  \nBlack king moves away, say to g8 or f8.\n\n2. Rh2  \nBlack moves again.\n\n3. Rh3  \nStill no check.\n\n4. Rh8# \u2014 mate.\n\nBut is Rh3 safe? On move 3, we play Rh3 \u2014 is that check? No, because the rook is moving to h3, but the black king is on, say, f8 \u2014 so distance from h3 to f8 is more than one square, and not in line \u2014 so no check.\n\nThen on move 4, Rh8 \u2014 now the rook moves to h8, giving check, and it's mate.\n\nBut is it mate? Black king on f8, rook on h8 \u2014 not adjacent. Wait! Problem!\n\nIf black king is on f8, and rook goes to h8, then the king is not in check, because h8 and f8 are not adjacent \u2014 there's g8 in between.\n\nOh no! Mistake",
+   "detail": "2-move series is not a ser-#4"
+  },
+  {
+   "id": "ser_hm3",
+   "kind": "series_helpmate",
+   "label": "ser-h#3",
+   "n": 3,
+   "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "a7a6",
+    "a6a5",
+    "a5a4",
+    "g6g7"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "We are given a **ser-#3** problem: Black to move, and after Black makes three consecutive moves (without White responding), White delivers **mate in 1** on the third move.\n\n### Initial Position (FEN: 7k/p7/5KQ1/8/8/8/8/8 b - - 0 1)\n\nLet\u2019s interpret the board:\n\n- **Black king** on h8\n- **Black pawn** on a7\n- **White king** on f6\n- **White queen** on g6\n\nSo, the board looks like this (from Black's perspective, but we'll use standard coordinates):\n\n```\n8 | . . . . . . . k\n7 | . . . . . . . p\n6 | . . . . . . Q .\n5 | . . . . . . K .\n4 | . . . . . . . .\n3 | . . . . . . . .\n2 | . . . . . . . .\n1 | . . . . . . . .\n    a b c d e f g h\n```\n\nWhite to move? No \u2014 **Black is to move**, and must make 3 moves, then White delivers **mate in 1**.\n\nSo:  \n**1. Black move \u2192 2. Black move \u2192 3. Black move \u2192 then 4. White move (mate)**\n\nBut since it's ser-h#3, the stipulation is **helpmate in 3**, where Black moves 3 times (alternating with White, but White doesn't move except at the end), and the final position after Black's third move is mated by White.\n\nWait \u2014 actually, in **helpmate** (ser-h#), the stipulation means:\n\n> Black to move, and with the help of White, achieve checkmate in 3 moves. That is, Black makes a move, then White makes a move, then Black, then White, then Black, then White \u2014 and on the third move by Black, the position is mate.\n\nBut the problem says: \"The side to move plays 3 consecutive moves (the opponent does not move), then the opponent delivers mate.\"\n\nThat is **not standard helpmate** \u2014 this is a **selfmate** or **ser-h#** where Black moves three times in a row, then White gives mate.\n\nSo it's **ser-h#3**: Black moves 3 times (no White moves in between), then White gives mate in 1.\n\nSo the sequence is:\n\n1. Black move 1  \n2. Black move 2  \n3. Black move 3  \n4. White move \u2014 checkmate\n\nWe must find three legal Black moves (without White intervening), such that after the third, White can deliver checkmate in one move.\n\n---\n\n### Step 1: Analyze the position\n\nBlack to move.\n\nPieces:\n- Black: K h8, P a7\n- White: K f6, Q g6\n\nAvailable moves for Black:\n\n- **King**: h8 \u2014 can go to g8 or g7 (h7 is occupied by pawn? No, pawn is on a7. So h7 is empty.)\n  - h8 \u2192 g8, g7, h7\n- **Pawn a7**: can go to a6, a5 (since it's on 7th rank, can move 1 or 2)\n\nSo possible first moves:\n- Kg8, Kh7, Kg7, a6, a5\n\nWe need to try to lead to a position where after three Black moves, White can mate in 1.\n\nWhite has a queen on g6 and king on f6 \u2014 very strong central position.\n\nWhite\u2019s mating options: likely using the queen to deliver mate, possibly on g7 or h8 or similar.\n\nLet\u2019s suppose the final mate is **Qg7#** \u2014 queen to g7, checkmating the black king on h8 (adjacent, but not in check unless queen attacks h8).\n\nWait: Qg7 attacks h8? Yes \u2014 g7 to h8 is diagonal? No: g7 to h8 is **diagonal** (g7-h8 is one step diagonally). So yes, Qg7 attacks h8.\n\nBut if Black king is on h8, and White queen moves to g7, that is **check**, and if Black has no escape, it's mate.\n\nBut can Black king escape from h8? Only to g8 or g7.\n\nBut if White queen is on g6, and moves to g7, then g7 attacks f8, g8, h8.\n\nSo if Black king is on h8, and queen moves to g7, that\u2019s check. Can Black king go to g8? Only if g8 is empty.\n\nBut after three Black moves, we want White to deliver mate.\n\nSo perhaps the idea is to **block the Black king** or **force it into a corner**, and then mate with queen.\n\nLet\u2019s try to find a sequence.\n\n---\n\n### Try: Black moves pawn to a6, then a5, then a4? Then White mates?\n\nBut why would that help?\n\nAlternatively, maybe Black king moves toward the center, and White queen chases.\n\nBut let\u2019s think of a **forced sequence** that leads to a mate.\n\nSuppose after three Black moves, the black king is on g8, and the white queen is on g7 \u2014 then Qg7# is mate.\n\nSo can we get Black king to g8 in three moves?\n\nFrom h8:\n- Move 1: Kg8\n- Then already on g8.\n\nBut we need three Black moves.\n\nSo perhaps:\n\n1. Kg8  \n2. Kg7  \n3. Kg8  \nThen White plays Qg7# \u2014 but is that mate?\n\nAfter 3... Kg8, the king is on g8. Queen on g7 attacks g8 \u2014 yes. Are all squares around g8 covered?\n\ng8 is attacked by Qg7.\n\nSquares around g8: f8, f7, g7, h7, h8.\n\nBut Black king is on g8.\n\nCan it move? f8? Is it attacked? Not yet. h8? Not attacked. f7? Not attacked.\n\nSo unless those are guarded, it\u2019s not mate.\n\nSo Qg7# is not mate unless all escape squares are guarded.\n\nSo we need a **better plan**.\n\n---\n\n### Consider: White queen on g6, black pawn on a7.\n\nWhat if Black moves pawn to a6, then a5, then a4? Then White plays Qxa5#? No \u2014 Qa5 is not checkmate.\n\nWait \u2014 maybe the pawn blocks the king, or enables a discovered check?\n\nAlternatively, perhaps the black king is forced to move, and the pawn advances to allow the white queen to deliver a back-rank mate.\n\nLet\u2019s look at **back rank mate**: if black king is on h8, and rook on h-file, but no rook.\n\nBut queen can deliver mate on h8 if the king is trapped.\n\nBut currently, the king can go to g8 or h7.\n\nSo to mate on h8, we need to cover g8 and h7.\n\nSuppose after three moves, the black king is on h8, and White plays Qh6# \u2014 but h6 is not attacking h8? Qh6 attacks h-file, so yes, Qh6 attacks h8.\n\nSquares around h8: g8, g7.\n\nSo if both g8 and g7 are attacked, then h8 is mate.\n\nSo maybe:\n\n- After three Black moves, black king is on h8\n- g8 and g7 are attacked by White\n\nHow can White attack g8? Queen or king.\n\nCurrently, White queen is on g6 \u2014 so it attacks g7, h6, f6, etc., but not g8.\n\ng8 is attacked by queen only if queen is on g-file or diagonal.\n\nFrom g6, queen attacks g7, g8? No \u2014 g6 to g8 is same file, so yes! Queen on g6 attacks g7 and g8 (and g5, etc.) \u2014 yes! Because it's a vertical line.\n\nWait: g6 \u2192 g7 \u2192 g8: yes, same file.\n\nSo **White queen on g6 attacks g7 and g8**.\n\nAlso, queen attacks h7 (diagonal: g6-h7), and f7 (g6-f7).\n\nSo g6 attacks:\n- g5, g6, g7, g8 (vertical)\n- f5, f6, f7 (diagonal)\n- h5, h6, h7 (diagonal other way)\n\nSo g8 is attacked.\n\nNow, what about g7? Also attacked.\n\nSo if Black king is on h8, and White queen is on g6, then:\n\n- h8 is attacked by queen? g6 to h8: that's",
+   "detail": "4-move series is a valid ser-h#3"
+  },
+  {
+   "id": "ser_hm4",
+   "kind": "series_helpmate",
+   "label": "ser-h#4",
+   "n": 4,
+   "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "a7a5",
+    "a5a4",
+    "a4a3",
+    "a3a2",
+    "g6g7"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "expert"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a **ser-h#4** problem. That means:\n\n- **Side to move (Black)** makes 4 consecutive moves **without White moving**.\n- After Black's 4th move, **White delivers checkmate** in response.\n- So the sequence is: **Black move 1, Black move 2, Black move 3, Black move 4**, then **White checkmates**.\n\n### Initial Position (FEN: 7k/p7/5KQ1/8/8/8/8/8 b - - 0 1)\n\nLet\u2019s interpret the board:\n\n- **Black king** on h8\n- **Black pawn** on a7\n- **White king** on f6\n- **White queen** on g6\n\nIt\u2019s **Black to move**.\n\nWhite\u2019s pieces: Kf6, Qg6  \nBlack\u2019s pieces: Kh8, Pa7\n\nBoard (from 8th rank to 1st):\n\n```\n8: . . . . . . . k\n7: . . . . . . . p\n6: . . . . . . K Q\n5: . . . . . . . .\n4: . . . . . . . .\n3: . . . . . . . .\n2: . . . . . . . .\n1: . . . . . . . .\n    a b c d e f g h\n```\n\nWhite to move in the solution? No \u2014 Black moves first, 4 times, then White mated.\n\nWe need to find **four black moves** such that after them, White can deliver **checkmate** on the fifth move (i.e., after Black's 4th move, White plays a mating move).\n\nBut since it's **ser-h#4**, the **opponent (White)** delivers the mate \u2014 so after Black's 4th move, the position is such that White has a **forced checkmate in 1**.\n\nSo our goal: find 4 black moves leading to a position where **White to move can checkmate in 1**.\n\nThat means: after Black\u2019s 4th move, the White king and queen are positioned to deliver **checkmate in 1**.\n\nLet\u2019s analyze.\n\n---\n\n### Step 1: Understand possible checkmates in 1 by White\n\nWhite has Kf6, Qg6.\n\nPossible checkmates with K+Q:\n\n- Queen delivers checkmate, possibly with king support.\n- Common patterns: back rank, corner, etc.\n\nGiven White king on f6, queen on g6 \u2014 possible mating squares?\n\nLet\u2019s consider where the Black king could be mated.\n\nBlack king starts on h8.\n\nCan White mate on h8? That would require Qh8# \u2014 but Qg6 to h8 is not a direct queen move, and king is on f6, not adjacent.\n\nBut after Black moves, perhaps the Black king is driven to a corner.\n\nPossible corners: h1, a1, h8, a8.\n\nBut White\u2019s king is on f6 \u2014 far away. To deliver mate, the White king must be close enough to cover escape squares.\n\nBut in a **mate in 1**, the White king might not need to move \u2014 if the queen delivers mate and the king covers.\n\nBut let\u2019s think: what is the only way White can deliver checkmate in 1?\n\n- Queen delivers check, and the Black king has no escape, and the check is not parried.\n\nSo possible mate squares for Black king:\n\n- h8: Qh8# \u2014 but need to clear the way.\n- a8: Qa8# \u2014 queen on g6 to a8 is diagonal, but no pieces in way? But king on f6 \u2014 not adjacent to a8, so unless king moves, can't cover.\n\nBut in a **mate in 1**, the White king doesn't have to move \u2014 it just needs to cover.\n\nBut to cover a8, king would need to be near \u2014 f6 is not near a8.\n\nSimilarly, h1 \u2014 too far.\n\nWait \u2014 maybe the mate is on g8 or h7?\n\nBut let\u2019s consider: after Black moves, perhaps the Black king is on g8 or h7, and White queen mates on h8 or g8.\n\nWait \u2014 let\u2019s think of possible **mate in 1** positions.\n\nWhite to move: Qg6 \u2014 where can it deliver mate?\n\n- Qg7+? Then king escapes.\n- Qh8# \u2014 possible if Black king is on g8 or h8.\n\nBut Qh8# requires:\n- Queen moves to h8\n- King on f6 covers g8\n- Black king on g8 or h8\n\nBut can Black king be on g8?\n\nCurrently on h8.\n\nCan Black move king to g8? Yes \u2014 but then White queen on g6 can go to h8? h8 is empty?\n\nWait \u2014 let's suppose Black moves king to g8.\n\nThen White queen on g6 can go to h8? No \u2014 g6 to h8 is not a straight line. g6-h7-i8? No, queen moves diagonally, so g6-h7 is one diagonal.\n\ng6 to h8 is not a queen move. g6 to h8 is a knight move? No.\n\nWait: g6 to h8: that\u2019s not a straight line. So Qh8 is not possible from g6.\n\nSo Qh8# is impossible from g6.\n\nWhat about Qf8#? f8 is two files left and two ranks down \u2014 g6 to f8 is diagonal? g6-f7-e8 \u2014 no. g6 to f8 is not a straight line.\n\nWait: g6 to h8: file changes by 1, rank by 2 \u2014 not diagonal.\n\ng6 to f8: file -1, rank +2 \u2014 not diagonal.\n\nSo queen on g6 cannot reach h8, f8, h4, etc.\n\nWhat can queen on g6 attack?\n\n- Same rank: g-file \u2014 g8, g7, g5, g4, etc.\n- Same file? No, it's on g-file \u2014 so entire g-file.\n- Diagonals: from g6, diagonals are:\n  - a1 direction: a1, b2, c3, d4, e5, f6 \u2014 but f6 is occupied by White king.\n  - h8 direction: h8, f7? Wait: g6 to h8: that's +1 file, +2 rank \u2014 not diagonal.\n\nWait: diagonal moves: change in file = change in rank.\n\nFrom g6:\n- Up-right: h7, i8 (off board)\n- Up-left: f7, e8, d9 (off)\n- Down-right: h5, i4\n- Down-left: f5, e4, d3, c2, b1\n\nSo queen on g6 attacks:\n- g8, g7, g5, g4, g3, g2, g1 (g-file)\n- h7, h5 (h-file? no \u2014 queen not on h-file)\nWait \u2014 no: queen on g6 attacks along diagonals:\n- g6 \u2192 h7 \u2192 i8 (so h7)\n- g6 \u2192 f5 \u2192 e4 \u2192 d3 \u2192 c2 \u2192 b1\n- g6 \u2192 e7 \u2192 d8? No: g6 to e7 is -1 file, +1 rank \u2192 so e7, d8? d8 is -2 file, +2 rank \u2014 yes, same difference.\n\nWait: diagonal: (file, rank) changes equally.\n\nFrom g6 (file 6, rank 6):\n- +1f, +1r \u2192 h7\n- +2f, +2r \u2192 i8 (off)\n- -1f, +1r \u2192 f7\n- -2f, +2r \u2192 e8\n- -3f, +3r \u2192 d9 (off)\n- -1f, -1r \u2192 f5\n- -2f, -2r \u2192 e4\n- -3f, -3r \u2192 d3\n- -4f, -4r \u2192 c2\n- -5f, -5r \u2192 b1\n- +1f, -1r \u2192 h5\n- +2f, -2r \u2192 i4\n- etc.\n\nSo queen on g6 attacks:\n- g-file: g1\u2013g8\n- Diagonals: h7, e8, d3, b1, f5, e4, d3, c2, b1, h5, i4\n\nSo possible check: h7, e8, d3, etc.\n\nNow, can White deliver checkmate in 1?\n\nSuppose Black king is on h8. Then h8 is attacked by queen? From g6, h8 is not attacked (not diagonal or file). So no.\n\nIf Black king is on g8: then queen on g6 attacks g8 (same file",
+   "detail": "0-move series is not a ser-h#4"
+  },
+  {
+   "id": "pg2",
+   "kind": "proofgame",
+   "label": "proof game in 2 plies",
+   "n": 2,
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "e7e5"
+   ],
+   "themes": [
+    "proofgame",
+    "beginner"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "Let's analyze the given position and the stipulation: **proof game in 2 plies (i.e., White moves twice)**.\n\n---\n\n### **Given FEN:**\n`rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2`\n\nLet\u2019s parse this FEN:\n\n- **Rank 1 (White back rank):** R N B Q K B N R \u2192 normal\n- **Rank 2:** P P P P 1 P P P \u2192 so d2 is empty? Wait: `pppp1ppp` \u2192 positions: a2-p2, b2-p2, c2-p2, d2-p2? Wait, no:\n\nWait: `pppp1ppp` means:\n- a2: p\n- b2: p\n- c2: p\n- d2: p? No \u2014 the \"1\" means one empty square.\n\nSo: `pppp1ppp` \u2192 4 pawns, then 1 empty, then 3 pawns \u2192 so the empty square is at **d2**?\n\nWait: Let's break it down:\n\n- `p p p p` \u2192 4 pawns \u2192 files a,b,c,d\n- then `1` \u2192 one empty square \u2192 file e\n- then `p p p` \u2192 three pawns \u2192 f, g, h\n\nSo on rank 2: pawns on a2, b2, c2, d2? No \u2014 wait: the fifth character is `1`, so:\n\nActually, standard FEN reading: the first rank description is for rank 8, second for rank 7, etc.\n\nSo:\n\n- 1st: `rnbqkbnr` \u2192 rank 8\n- 2nd: `pppp1ppp` \u2192 rank 7 \u2192 pawns on a7,b7,c7,d7,f7,g7,h7; e7 empty\n- 3rd: `8` \u2192 rank 6: empty\n- 4th: `4p3` \u2192 rank 5: pawn on e5\n- 5th: `4P3` \u2192 rank 4: white pawn on e4\n- 6th: `8` \u2192 rank 3: empty\n- 7th: `PPPP1PPP` \u2192 rank 2: pawns on a2,b2,c2,d2,f2,g2,h2; e2 empty\n- 8th: `RNBQKBNR` \u2192 rank 1: normal\n\nSo the position has:\n\n- White: pawns on a2,b2,c2,d2,f2,g2,h2,e4\n- Black: pawns on a7,b7,c7,d7,f7,g7,h7,e5\n- White: pieces on back rank, e4 pawn advanced\n- Black: pieces on back rank, e5 pawn advanced\n- Empty: d2 and e2 are empty for White; d7,e7? Wait: black has e5 pawn, so e7 is empty.\n\nAlso, side to move is **White**, and it's move 2 (so after 1. ... something, now White to move again).\n\nBut we need a **2-ply proof game**: meaning White makes two moves (White then Black, then White?) \u2014 wait, no.\n\nWait: **Proof game in 2 plies** means **2 half-moves**, i.e., one full move: White moves, then Black moves. But the stipulation says \"proof game in 2 plies\", and the side to move is White, and the position is after 2 plies.\nBut the FEN says `w KQkq - 0 2` \u2014 the \"0 2\" means 0 half-moves since capture or pawn move, and the full move number is 2.\n\nSo the position is after **two plies**: i.e., White move 1, Black move 1, and now it's White's turn again \u2014 but the game stops here, and we are to show a 2-ply game (i.e., two plies: W and B) leading to this position.\n\nBut the problem says: \"proof game in 2 plies\" \u2014 meaning the game lasted exactly 2 plies (i.e., White moves once, Black moves once), and the resulting position is the one given.\n\nBut the side to move in the FEN is White, which is consistent: after 2 plies (W then B), it's White's turn.\n\nSo we need to find a sequence:\n\n1. White move\n2. Black move\n\n...such that the resulting position matches the FEN exactly.\n\nAnd all pieces must be accounted for.\n\n---\n\n### **Compare with starting position:**\n\nStart:\n- All pawns on 2nd/7th rank\n- Pieces on back ranks\n\nAfter 2 plies (W then B), we have:\n\n- White pawn on e4\n- Black pawn on e5\n- All other pawns on starting files (a2-h2 and a7-h7), except e-pawns moved\n- No pieces have moved except possibly kings or roles for castling? But castling requires king or rook move.\n\nBut in the FEN, castling is still `KQkq` \u2014 so no castling has occurred.\n\nSo likely, the only moves are pawn advances.\n\nSo plausible:\n\n- White moves e2-e4 (1. e4)\n- Black moves e7-e5 (1. ... e5)\n\nResulting position: e4 and e5 pawns advanced.\n\nAll other pawns unmoved.\n\nPieces: all on original squares.\n\nCheck FEN:\n\n- Rank 8: RNBQKBNR \u2192 same\n- Rank 7: pawns except e7 empty \u2192 so `pppp1ppp` \u2192 yes, because e7 empty \u2192 so `pppp` (a7-d7), `1` (e7 empty), `ppp` (f7-h7) \u2192 matches\n- Rank 6: 8 \u2192 empty\n- Rank 5: `4p3` \u2192 pawn on e5 \u2192 yes\n- Rank 4: `4P3` \u2192 white pawn on e4 \u2192 yes\n- Rank 3: 8\n- Rank 2: `PPPP1PPP` \u2192 pawns on a2,b2,c2,d2,f2,g2,h2; e2 empty \u2192 yes\n- Rank 1: RNBQKBNR\n\nPerfect match.\n\nAnd castling rights still `KQkq` \u2014 no king or rook moved.\n\nEn passant: `-` \u2014 no en passant possible.\n\nSo the position is reached after:\n\n1. e4  \n2. ... e5\n\nSo the two plies are:\n\n- 1. e4\n- 1. ... e5\n\nBut the problem asks: \"List the moves in order\" for a **proof game in 2 plies**, with side to move White.\n\nSo the sequence is:\n\n1. e4 e5\n\nBut in SAN, for proof game, we just list the moves.\n\nSince it's 2 plies: White's first move, then Black's first move.\n\nSo the answer is:\n\n**e4 e5**\n\n\u2705 This matches the FEN exactly.\n\nNo other pieces moved. All constraints satisfied.\n\n---\n\n### \u2705 Final Answer:\ne4 e5",
+   "detail": "2 plies reach the target in 2"
+  },
+  {
+   "id": "pg4",
+   "kind": "proofgame",
+   "label": "proof game in 4 plies",
+   "n": 4,
+   "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "e7e5",
+    "g1f3",
+    "b8c6"
+   ],
+   "themes": [
+    "proofgame",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a target position with FEN:\n\n```\nr1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3\n```\n\nAnd we are to find a **proof game in exactly 4 plies** (i.e., 4 half-moves, or 2 full moves) starting from the standard chess starting position, reaching this position, with White to move.\n\nLet\u2019s analyze the target position.\n\n---\n\n### Step 1: Parse the Target FEN\n\nFEN: `r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3`\n\nBreak it down:\n\n- **Rank 8**: r1bqkbnr \u2192 R N B Q K B N R (but wait \u2014 standard is rnbqkbnr; here it's r1bqkbnr \u2192 so a1=R, b1=?, c1=B, d1=Q, e1=K, f1=B, g1=N, h1=R)\n  - So: a1=R, b1=empty, c1=B, d1=Q, e1=K, f1=B, g1=N, h1=R\n- **Rank 7**: pppp1ppp \u2192 pawns on a7,b7,c7,d7,f7,g7,h7; e7 empty\n- **Rank 6**: 2n5 \u2192 only c6 has a black piece: Nc6\n- **Rank 5**: 4p3 \u2192 black pawn on e5\n- **Rank 4**: 4P3 \u2192 white pawn on e4\n- **Rank 3**: 5N2 \u2192 white knight on f3\n- **Rank 2**: PPPP1PPP \u2192 pawns on a2,b2,c2,d2,f2,g2,h2; e2 empty\n- **Rank 1**: RNBQKB1R \u2192 R N B Q K B 1 R \u2192 so g1 is empty? Wait: R N B Q K B _ R \u2192 so f1=B, g1=empty, h1=R\n\nWait \u2014 let's write it clearly.\n\nFull board:\n\n```\n8 | r . b q k b n r\n7 | p p p p . p p p\n6 | . . n . . . . .\n5 | . . . . p . . .\n4 | . . . . P . . .\n3 | . . . . . N . .\n2 | P P P P . P P P\n1 | R N B Q K B . R\n  -----------------\n    a b c d e f g h\n```\n\nWhite to move.\n\nPieces:\n\n- White: Ke1, Qd1, Ra1, Rh1, Bc1, Bf1, Nb1, ? \u2014 but f3 has a knight, so Nf3. Also e4 pawn, and f3 knight. So Nb1 must have moved to f3.\n- Black: Ke8, Qd8, Ra8, Rh8, Bc8, Bf8, Nc6, Ng8, and pawns: a7,b7,c7,d7,e5,f7,g7,h7. So Ng8 is still on g8? But only Nc6 is on 6th rank. Ng8 must still be on g8.\n\nWait \u2014 in the FEN, rank 6 is \"2n5\" \u2192 only c6 has a black piece. Rank 7 is full of pawns except e7. So black's knights: one on c6, one still on g8.\n\nSo black has Nc6 and Ng8.\n\nWhite has Nf3.\n\nNow, the key: how did we get here in **4 plies** (4 half-moves)?\n\nStart: standard position.\n\nWe need to reach:\n\n- White knight from b1 to f3\n- Black pawn from e7 to e5\n- Black knight from b8 to c6\n- Some other moves?\n\nLet\u2019s count moves.\n\n4 plies = 4 half-moves = 2 full moves (White, Black, White, Black).\n\nSo:\n\n1. White move\n2. Black move\n3. White move\n4. Black move\n\nAfter these 4 moves, we reach the position.\n\nLet\u2019s see what must have happened.\n\n---\n\n### Step 2: Determine Required Moves\n\nFrom start position:\n\n- White: Nb1-f3 \u2192 possible in one move: Nf3\n- Black: e7-e5 \u2192 two-square push\n- Black: Nb8-c6 \u2192 knight move\n\nBut we only have 4 plies \u2192 4 moves total.\n\nSo possible sequence:\n\n1. Nf3 (White)\n2. e5 (Black)\n3. Nc3? Or something else?\n4. Nc6? (Black knight to c6)\n\nBut after 1. Nf3, e5, 2. Nc3? \u2014 but then Black plays Nc6, but is that legal?\n\nWait \u2014 Nc6: from b8 to c6 \u2014 that's a knight move, yes.\n\nBut can Black play Nc6 on move 4?\n\nLet\u2019s try:\n\n1. Nf3 \u2014 knight to f3\n2. e5 \u2014 pawn to e5\n3. Nc3 \u2014 knight to c3? Or maybe Nc6? But Nc6 is black's piece.\n\nWait \u2014 White cannot move black pieces.\n\nSo:\n\n- Move 1: White plays something\n- Move 2: Black plays something\n- Move 3: White plays something\n- Move 4: Black plays something\n\nWe need:\n\n- White knight to f3 \u2192 so 1. Nf3\n- Black pawn to e5 \u2192 so at some point, e5\n- Black knight to c6 \u2192 so 1. ... ? , then later Nc6\n\nBut can Black play Nc6 on move 4?\n\nLet\u2019s suppose:\n\n1. Nf3 \u2014 develops knight\n2. e5 \u2014 Black pushes pawn\n3. Nc3 \u2014 develops other knight? But why?\n4. Nc6 \u2014 Black knight to c6\n\nBut is Nc6 legal after e5 and Nf3?\n\nYes \u2014 the knight can go to c6 regardless, unless blocked. From b8, knight to c6 is a normal L-shape move. No pieces in the way.\n\nBut wait \u2014 in the starting position, Black\u2019s knight on b8 can go to c6 in one move.\n\nSo why not play it earlier?\n\nBut we have only 4 plies.\n\nSuppose:\n\n1. Nf3\n2. e5\n3. Nc3\n4. Nc6\n\nIs that valid?\n\nLet\u2019s check if all moves are legal and reach the position.\n\nAfter 1. Nf3:\n\n- White knight moves from b1 to f3\n- FEN after move: r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 1\n  - Wait, no: after White moves, it's Black's turn, so fullmove=1, halfmove=0\n  - But FEN says \"w\" to move, and \"2 3\" \u2192 so 2 full moves completed, 3rd move about to start.\n\nWait \u2014 the FEN says: `w KQkq - 2 3`\n\n- Side: White to move\n- Halfmove clock: 2? No \u2014 the 5th field is \"2\" \u2192 halfmove clock (for 50-move rule)\n- 6th field: \"3\" \u2192 fullmove number\n\nSo 3 full moves have been completed, and it's White's turn again \u2192 so 4 plies (4 half-moves) have been played since start.\n\nSo moves: 1. w, 2. b, 3. w, 4. b \u2014 then position after 4th move, and it's White to move.\n\nSo the sequence is:\n\n1. White\n2. Black\n3. White\n4. Black\n\nThen position is as given, White to move.\n\nSo we need 4 moves.\n\nNow, in the target position:\n\n- White knight on f3 \u2192 must have moved there\n- Black knight on c6 \u2192 must have moved there\n- Black pawn on e5 \u2192 must have moved there\n\nSo possible moves:\n\n1. Nf3 \u2014 standard\n2. e5 \u2014 Black pawn push\n3. ? \u2014 White move\n4. Nc6 \u2014 Black knight to c6\n\nBut what does White play on move 3?\n\nPossibilities: Nc",
+   "detail": "7 plies do not reach the target in 4"
+  },
+  {
+   "id": "pg5",
+   "kind": "proofgame",
+   "label": "proof game in 5 plies",
+   "n": 5,
+   "fen": "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3",
+   "goal": null,
+   "solution": [
+    "d2d4",
+    "g8f6",
+    "c2c4",
+    "e7e6",
+    "b1c3"
+   ],
+   "themes": [
+    "proofgame",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "Let's analyze the given position and find a sequence of moves from the starting position to the given position in **exactly 5 plies** (i.e., 5 half-moves: White, Black, White, Black, White, Black, White, Black, White, Black \u2014 but since side to move is Black, the last 5 plies include Black's move, so we are to find a game of 5 plies ending on Black's 3rd move, i.e., after 5 plies meaning: 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 \u2014 that\u2019s 3 plies, but we need 5 plies total).\n\nWait: In chess notation, a \"ply\" is a single move by one player. So 5 plies = 5 half-moves = White moves 3 times, Black moves 2 times? No: if side to move is Black after 5 plies, that means White has moved 3 times, Black 2 times? Let's check:\n\n- Ply 1: White\n- Ply 2: Black\n- Ply 3: White\n- Ply 4: Black\n- Ply 5: White\n\nBut the position says \"side to move: Black\", so it must be after Black's move. Therefore, the 5 plies must end with Black's move. So:\n\n- Ply 1: White\n- Ply 2: Black\n- Ply 3: White\n- Ply 4: Black\n- Ply 5: White \u2192 No, that would make side to move Black after 5 plies? No.\n\nWait: After n plies, if n is even, side to move is White; if n is odd, side to move is Black.\n\nBut the problem says: \"stipulation: proof game in 5 plies\" and \"side to move: Black\". So 5 plies means 5 half-moves, ending with Black's move. So:\n\n- Move 1 (Ply 1): White\n- Move 2 (Ply 2): Black\n- Move 3 (Ply 3): White\n- Move 4 (Ply 4): Black\n- Move 5 (Ply 5): White \u2192 No, that would be 5 plies, but side to move would be Black only if it's after Black's move, i.e., after even number of plies.\n\nWait, standard: After 1. e4, it's Black's turn \u2192 1 ply completed, side to move Black.\n\nSo after n plies, if n is odd, side to move is Black? No:\n\n- Start: 0 plies, White to move.\n- After 1 ply (White move): Black to move \u2192 1 ply \u2192 side to move Black.\n- After 2 plies: White to move.\n- So after odd number of plies: Black to move.\n- After even: White.\n\nHere, side to move is Black \u2192 number of plies completed is odd \u2192 5 plies \u2192 correct.\n\nSo the position is after 5 half-moves: W, B, W, B, W \u2014 no, wait: 5 plies = 5 half-moves = 5 moves made. Since White starts, the sequence is:\n\n1. W B  \n2. W B  \n3. W \u2192 now 5 plies done, and it's Black's turn.\n\nYes: after 5 plies, 5 moves have been played (White made 3, Black 2), and now it's Black to move.\n\nBut the FEN says: \"1/2 3\" \u2014 the \"1/2 3\" means 3 full moves have been completed? No, in FEN, the last field is halfmove clock, and the one before is fullmove number.\n\nWait: FEN: rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3\n\n- \"1 3\" means: halfmove clock = 1, fullmove number = 3.\n\nSo 3 full moves have been completed \u2192 6 plies? But the stipulation says \"proof game in 5 plies\".\n\nContradiction?\n\nWait: In proof games, sometimes \"plies\" means half-moves, and \"moves\" means full moves.\n\nBut the problem says: \"proof game in 5 plies\".\n\nAnd the FEN has fullmove number 3, halfmove 1.\n\nAfter 3 full moves (6 plies), it would be White to move. But here it's Black to move after 3 full moves? No: after 3 full moves (1. e4 e5 2. Nf3 Nc6 3. d4 d5), it's White's turn. But here it's Black to move.\n\nSo perhaps the FEN's \"1 3\" is misleading? Or maybe the halfmove clock is 1, fullmove is 3, and side to move is Black \u2192 that would mean 3 full moves completed, and now Black to move \u2192 which is impossible, because after 3 full moves (6 plies), it should be White's turn.\n\nWait: 1 full move = White and Black each move once \u2192 2 plies.\n\nSo:\n- After 1 full move: 2 plies, Black to move.\n- After 2 full moves: 4 plies, White to move.\n- After 3 full moves: 6 plies, Black to move? No: after 3 full moves, it's White's turn.\n\nWait: no.\n\nStandard:\n- Move 1: White \u2192 Black (1 full move, 2 plies) \u2192 now Black to move.\n- Move 2: Black \u2192 White (2 full moves, 4 plies) \u2192 now White to move.\n- Move 3: White \u2192 Black (3 full moves, 6 plies) \u2192 now Black to move.\n\nAh! So after 3 full moves (6 plies), it is Black to move.\n\nBut the problem says \"proof game in 5 plies\", but the FEN suggests 6 plies (3 full moves).\n\nBut the FEN says: \"1 3\" \u2192 halfmove = 1, fullmove = 3.\n\nAnd side to move: Black.\n\nSo this matches: after 3 full moves (6 plies), it's Black to move? No! After 3 full moves, 6 plies, it should be White to move.\n\nWait, let's clarify:\n\n- Start: position 0, White to move.\n- After White moves: 1 ply, Black to move.\n- After Black moves: 2 plies, White to move.\n- So after 2n plies: White to move.\n- After 2n+1 plies: Black to move.\n\nSo after 5 plies (odd), Black to move \u2192 correct.\n\nBut 3 full moves = 6 plies \u2192 White to move.\n\nBut FEN says fullmove number = 3, and side to move = Black \u2192 that would imply 5 plies (since 3 full moves would be 6 plies if completed, but if it's Black's turn after 3 full moves, that's impossible).\n\nUnless the FEN's fullmove number is the number of the move to be played, not completed.\n\nIn standard FEN, the fullmove number is the number of the move to be played. So after 1. e4 e5, fullmove number is 2, and it's White's turn.\n\nSo in the given FEN: fullmove number = 3 \u2192 so the next move is the 3rd move by White.\n\nBut the FEN says side to move = Black \u2192 contradiction.\n\nWait: FEN: \"r n b q k b 1 r / p p p p 1 p p / 4 p n 2 / 8 / 2 P P 4 / 2 N 5 / P P 2 P P P / R 1 B Q K B N R b K Q k q - 1 3\"\n\nSo:\n- Board position: let's reconstruct.\n\nWhite pieces:\n- R a1, N b1, B c1, Q d1, K e1, B f1, N g1, R h1\n- P a2, b2, c4, d4, e2, f2, g2, h2\n\nBlack pieces:\n- R a8, N b8, B c8, Q d8, K e8, B f8, N g8, R h8\n- P a7, b7, c7, d7, e6, f7, g7, h7\n\nWait \u2014 Black has Nb8 and Nf6? In the FEN: ...4pn2... \u2014 that's on black's 3rd rank? Let's parse:\n\nFEN: rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/",
+   "detail": "10 plies do not reach the target in 5"
+  },
+  {
+   "id": "pg6_sicilian",
+   "kind": "proofgame",
+   "label": "proof game in 6 plies",
+   "n": 6,
+   "fen": "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "c7c5",
+    "g1f3",
+    "d7d6",
+    "d2d4",
+    "c5d4"
+   ],
+   "themes": [
+    "proofgame",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "Let's carefully construct a **proof game in 6 plies** (i.e., 6 half-moves, or 3 full moves) that leads to the given position.\n\n---\n\n### **Target FEN:**\n```\nrnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4\n```\n\nLet\u2019s decode the FEN:\n\n- **White to move**\n- **Ply count (half-moves):** 6 plies shown \u2192 0-ply is start, so after 6 plies we reach this position.\n- So the game must be: 6 half-moves \u2192 3 full moves (White, Black, White, Black, White, Black), then **White to move** in the diagram \u2192 so the 6th ply is Black\u2019s move? Wait \u2014 no.\n\nWait: In standard FEN notation, the move number is 4, and it's White's turn. But the **ply count** in proof games usually refers to the number of plies (half-moves) played from the start.\n\nBut here, the problem says: **\"proof game in 6 plies\"**, and the FEN has **\"0 4\"** \u2014 meaning 0 half-moves since last capture/pawn move, and move number 4.\n\nBut **6 plies = 6 half-moves = 3 full moves + 1 half-move** \u2192 but the FEN says it's White to move, and move number 4.\n\nWait \u2014 let's clarify:\n\n- Move number 4, White to move \u2192 means 3 full moves (6 plies) have been made, and now White is about to make the 7th half-move (but we stop at 6 plies total?).\n\nWait \u2014 that doesn't add up.\n\nActually, **the total number of plies (half-moves) played to reach the given position is 6**, and **the side to move is White**.\n\nSo:\n- Ply 1: White\n- Ply 2: Black\n- Ply 3: White\n- Ply 4: Black\n- Ply 5: White\n- Ply 6: Black\n\u2192 Then it would be White to move again.\n\nBut that would be 6 plies, ending on Black's move, then White to move \u2014 correct.\n\nBut the FEN says **move number 4** \u2014 that is, 3 full moves (6 plies) have been completed, and now it's White's turn (to make move 4). So yes \u2014 **6 plies have been played**, and now White moves.\n\nSo the **sequence must be 6 moves (plies)** from the starting position, ending in the given FEN, with **White to move next**.\n\nSo we need to find a sequence of 6 legal half-moves (alternating colors, starting with White) that results in the given board.\n\n---\n\n### **Compare start and target:**\n\n**Starting position:**\n```\nrnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\n```\n\n**Target:**\n```\nrnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4\n```\n\nLet\u2019s write both boards clearly:\n\n#### White perspective:\n\n**Rank 1 (back rank):** same: R N B Q K B N R  \nBut in target: R N B Q K B **N R**? Wait \u2014 no:\n\nWait: FEN: `RNBQKBNR` \u2014 so:\n- a1: R\n- b1: N\n- c1: B\n- d1: Q\n- e1: K\n- f1: B\n- g1: N\n- h1: R\n\nYes \u2014 same as start. So **no change on back rank**.\n\n**Rank 2 (White pawns):** `PP2PPPP` \u2192 so files:\n- a2: P\n- b2: P\n- c2: . (empty)\n- d2: . (empty)\n- e2: P\n- f2: P\n- g2: P\n- h2: P\n\nSo c2 and d2 are empty? But in start, both had pawns. So two pawns advanced.\n\n**Rank 3:** `3p4` \u2192 d3 is black pawn? No: wait, `3p4` means:\n- 3 empty squares, then a pawn, then 4 empty \u2192 so rank 3: a3,b3,c3, then d3 = p (black), then e3,f3,g3,h3 empty.\n\nWait \u2014 but in FEN, lowercase = black, uppercase = white.\n\nSo `3p4` \u2192 3 empty, **black pawn on d3**, then 4 empty \u2192 so d3 = black pawn.\n\nBut in the piece list, we see Black has a pawn on **d4**, not d3.\n\nWait \u2014 conflict.\n\nWait the piece list says:\n> Black: ... Pd4, Pd6 ...\n\nSo black pawns on d4 and d6.\n\nBut FEN says: `rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R`\n\nLet\u2019s parse FEN fully:\n\n1. `rnbqkbnr` \u2192 rank 8: black back rank \u2192 OK\n2. `pp2pppp` \u2192 rank 7: p on a7,b7; c7,d7,e7,f7,g7,h7 \u2192 but wait: `pp2pppp` = p,p,.,.,p,p,p,p \u2192 so c7 and d7 empty? No:\n\nWait: FEN per rank (from 8 to 1):\n\n- 8: r n b q k b n r \u2192 RNBQKBNR\n- 7: p p 2 p p p p p \u2192 so a7, b7, then two empty, then e7,f7,g7,h7? But that\u2019s 8: p,p,.,.,p,p,p,p \u2192 so files:\n  - a7: p\n  - b7: p\n  - c7: .\n  - d7: .\n  - e7: p\n  - f7: p\n  - g7: p\n  - h7: p\n\nWait \u2014 that\u2019s 8: `pp2pppp` = 8 characters: p,p,2,p,p,p,p,p? No:\n\nWait `pp2pppp` = p, p, 2, p, p, p, p, p? That\u2019s 8? No:\n\nWait: `pp2pppp` = p, p, '2', p, p, p, p, p \u2192 that\u2019s 8 characters? Let's count: p,p,2,p,p,p,p,p \u2192 8? Yes: 2+1+5=8? No: p,p = 2, 2 = 1, ppppp = 5 \u2192 total 8? 2+1+5=8 \u2014 yes.\n\nBut `2` means two empty squares. So c7 and d7 are empty.\n\nSo rank 7: a7=p, b7=p, c7=., d7=., e7=p, f7=p, g7=p, h7=p\n\nBut that\u2019s only 6 pawns? Should be 8. Wait, standard is 8 pawns on 7th rank.\n\nWait, no: standard starting 7th rank is all pawns: `pppppppp`.\n\nHere it's `pp2pppp` \u2192 p,p,2,p,p,p,p,p \u2192 that\u2019s 2 + 5 = 7 pawns? But 2 + (2 empties) + 5 = 8 squares \u2192 2+5=7 pawns? No: two empties, so pawns: 8 - 2 = 6 pawns? That can't be.\n\nWait: `pp2pppp` \u2192 break it:\n- p \u2192 a7 pawn\n- p \u2192 b7 pawn\n- 2 \u2192 c7 and d7 empty\n- p \u2192 e7 pawn\n- p \u2192 f7 pawn\n- p \u2192 g7 pawn\n- p \u2192 h7 pawn? Wait, that\u2019s 7 p's and 2 empties? No: 2 empties = 2 squares, so 6 pawns? But 2 + 2 + 4 = 8? Wait:\n\nWait: `pp2pppp` = 8 characters:\n1. p\n2. p\n3. 2 \u2192 means two empty squares \u2192 so c7 and d7 empty\n4. p\n5. p\n6. p\n7. p\n8. p\n\nSo pawns on: a7, b",
+   "detail": "3 plies do not reach the target in 6"
+  },
+  {
+   "id": "pg6_kia",
+   "kind": "proofgame",
+   "label": "proof game in 6 plies",
+   "n": 6,
+   "fen": "rnbqk2r/ppppppbp/5np1/8/8/5NP1/PPPPPPBP/RNBQK2R w KQkq - 2 4",
+   "goal": null,
+   "solution": [
+    "g1f3",
+    "g8f6",
+    "g2g3",
+    "g7g6",
+    "f1g2",
+    "f8g7"
+   ],
+   "themes": [
+    "proofgame",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "We are given a target position FEN:\n\n```\nrnbqk2r/ppppppbp/5np1/8/8/5NP1/PPPPPPBP/RNBQK2R w KQkq - 2 4\n```\n\nWe must reach this position from the standard starting position in **exactly 6 plies** (i.e., 6 half-moves, or 3 full moves by each side), with White to move.\n\nLet\u2019s first analyze the target position.\n\n---\n\n### Step 1: Decode the Target FEN\n\nFEN: `rnbqk2r/ppppppbp/5np1/8/8/5NP1/PPPPPPBP/RNBQK2R w KQkq - 2 4`\n\nBreak it down by rank:\n\n1. `rnbqk2r` \u2014 Black back rank: rook, knight, bishop, queen, king, bishop, **knight**, rook  \n   \u2192 So black\u2019s knights are on b8 and g8? Wait: `n` and `r` at end \u2192 positions:  \n   a8=R, b8=N, c8=B, d8=Q, e8=K, f8=B, g8=N, h8=R \u2192 Yes, both knights on b8 and g8.\n\n2. `ppppppbp` \u2014 Black pawns: all on 7th rank except f-pawn is on b7? Wait:  \n   p p p p p p b p \u2192 so a7, b7, c7, d7, e7, f7, h7 have pawns; g7 is empty? No:  \n   The 8th character is p \u2192 so h7 is p.  \n   So: a7-p, b7-p, c7-p, d7-p, e7-p, f7-p, g7=empty, h7-p \u2192 so g7 is empty.\n\n3. `5np1` \u2014 5 empty, then n, p, 1 \u2192 so on 6th rank: a6-e6 empty, f6=n, g6=p, h6=empty? Wait:  \n   `5np1` \u2192 5 empty squares, then n, then p, then 1 \u2192 so f6 = n (black knight), g6 = p (black pawn), h6 = empty.\n\n4. `8` \u2014 8th rank empty \u2192 row 5 is empty.\n\n5. `8` \u2014 row 4 empty.\n\n6. `5NP1` \u2014 5 empty, then N, then P, then 1 \u2192 so f3 = N (white knight), g3 = P (white pawn), h3 = empty.\n\n7. `PPPPPPBP` \u2014 White pawns: a2-p, b2-p, c2-p, d2-p, e2-p, f2-p, g2=empty? Wait:  \n   P P P P P P B P \u2192 so h2 is p, g2 is B (bishop)? Wait: 7th character is B \u2192 so g2 = B (white bishop), f2 = p, e2 = p, etc.\n\nWait: `PPPPPPBP` \u2192 8 characters:  \na2=P, b2=P, c2=P, d2=P, e2=P, f2=P, g2=B, h2=P\n\nSo g2 is a white bishop.\n\n8. `RNBQK2R` \u2014 White back rank: R, N, B, Q, K, B, **R**? Wait: `RNBQK2R` \u2192  \na1=R, b1=N, c1=B, d1=Q, e1=K, f1=B, g1=empty? No: `2R` means two empty, then R \u2192 so f1 and g1 empty, h1=R.\n\nWait: `RNBQK2R` \u2192  \n- R (a1)\n- N (b1)\n- B (c1)\n- Q (d1)\n- K (e1)\n- 2 \u2192 two empty files: f1, g1\n- R \u2192 h1\n\nSo yes: h1 = R.\n\nNow, let\u2019s list all pieces:\n\n#### White:\n- Back rank: Ra1, Nb1, Bc1, Qd1, Ke1, Bf1? No \u2014 f1 is empty. Wait: f1 and g1 are empty.\n- But we have: `RNBQK2R` \u2192 so Bc1, Qd1, Ke1, and then f1 and g1 empty, h1=R.\n- But in the target FEN, we have `5NP1` on 6th rank \u2192 f3=N, g3=P\n- And on 7th rank: `PPPPPPBP` \u2192 g2 = B (white bishop), h2 = P\n- So white has:\n  - Pawns: a2, b2, c2, d2, e2, f2, h2 \u2192 missing g2 (it's a bishop)\n  - Bishop: g2\n  - Knights: b1, g1? No \u2014 g1 is empty. Wait, where is the other knight?\n\nWait: White has only one knight listed? But in the back rank, we have Nb1, and then h1=R, so where is the other knight?\n\nWait: target position has on 6th rank: `5NP1` \u2192 f3=N (white), g3=P (white)\n\nAnd on 7th rank: `PPPPPPBP` \u2192 g2=B, h2=P\n\nSo white pieces:\n- King: e1\n- Queen: d1\n- Rooks: a1, h1\n- Bishops: c1, g2\n- Knights: b1, and f3? But f3 is a knight \u2014 but that's on 3rd rank.\n\nWait \u2014 is there a knight on g1? No, g1 is empty.\n\nSo white has only one knight on back rank (b1), and one knight on f3.\n\nBut in the starting position, white has two knights: b1 and g1.\n\nSo one knight must have moved.\n\nSimilarly, black has knights on b8 and g8 \u2014 both still on back rank.\n\nBlack pawns: all on 7th rank except g7 is empty \u2014 so no pawn moved from g7.\n\nWhite pawns: g2 is bishop, so g-pawn moved \u2014 likely to g3 or captured.\n\nBut g3 is a white pawn.\n\nSo g-pawn moved from g2 to g3? But that\u2019s only one square \u2014 possible.\n\nBut let\u2019s look at the FEN again:\n\nRank 6: `5NP1` \u2192 5 empty, then N (f6), P (g6), then 1 \u2192 so f6 = black knight, g6 = black pawn\n\nRank 7: `ppppppbp` \u2192 a7-p, b7-p, c7-p, d7-p, e7-p, f7-p, g7=empty, h7-p\n\nSo black has no pawn on g7 \u2014 so the g7 pawn is missing. That means the g7-pawn moved \u2014 but to where? It could have moved to g6 or g5.\n\nBut g6 is a black pawn \u2014 so possibly the g7-pawn moved to g6? But then g7 would be empty, which it is.\n\nBut then how did the black knight get to f6? And white knight to f3?\n\nAlso, white has a bishop on g2 \u2014 so the g2-pawn is missing, replaced by bishop \u2014 so the g-pawn was captured or moved, and bishop came out? But that would require a move like g2-Bg5 or something, but in 3 moves? Unlikely.\n\nWait \u2014 perhaps the g2 bishop was developed early.\n\nBut let\u2019s reconstruct the position.\n\n### Step 2: Compare to start\n\nStandard start:\n\n- White: pawns on 2nd, knights on b1/g1, bishops on c1/f1, queen d1, king e1, rooks a1/h1\n- Black: symmetric\n\nIn target:\n\n- White: pawns missing on g-file (g2 has bishop), so g2-pawn moved or captured. But g3 has a white pawn \u2014 so g-pawn moved to g3.\n- Also, white has a knight on f3 \u2014 so likely Ng3 or Nf3.\n- Black: pawns missing on g7 \u2014 so g7-pawn moved. g6 has black pawn \u2014 so possibly moved to g6.\n- Black has knight on f6 \u2014 so Nf6.\n- White has knight on f3 \u2014 so Nf3.\n- Also, white has bishop on g2 \u2014 so Bg2.\n\nSo possible moves:\n\n1. e4 e5\n2. Nf3 Nc6\n3. Bg2 g6\n4. O-O Bg7\n5. c4 Nf6\n6. Nc3 d5",
+   "detail": "8 plies do not reach the target in 6"
+  },
+  {
+   "id": "pg7_ruy",
+   "kind": "proofgame",
+   "label": "proof game in 7 plies",
+   "n": 7,
+   "fen": "r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "e7e5",
+    "g1f3",
+    "b8c6",
+    "f1b5",
+    "a7a6",
+    "b5a4"
+   ],
+   "themes": [
+    "proofgame",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "Given the target FEN:\n\n```\nr1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4\n```\n\nWe are to find a **proof game in exactly 7 plies** (i.e., 7 half-moves, so 3.5 full moves), starting from the standard chess starting position, reaching this position with **Black to move**.\n\nLet\u2019s analyze the target position carefully.\n\n---\n\n### Step 1: Parse the Target FEN\n\nFEN: `r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4`\n\nBreak it down:\n\n- **Rank 8**: r1bqkbnr \u2192 Rook, knight, bishop, **queen**, king, bishop, knight, rook  \n  \u2192 So Black\u2019s back rank is intact: Ra8, Nc8, Bf8, Qd8, Ke8, etc. Wait \u2014 but the FEN says `r1bqkbnr`, which implies:\n  - a8: R\n  - b8: N\n  - c8: B\n  - d8: Q\n  - e8: K\n  - f8: B\n  - g8: N\n  - h8: R\n\nBut in standard setup, it's `rnbqkbnr`. Here it's `r1bqkbnr` \u2014 so the **knight on b8 is missing**? No \u2014 wait: `r1bqkbnr` means:\n- a8: R\n- b8: 1 \u2192 empty\n- c8: B\n- d8: Q\n- e8: K\n- f8: B\n- g8: N\n- h8: R\n\nWait \u2014 that can\u2019t be right. Standard FEN for back rank is `rnbqkbnr`. Here it's `r1bqkbnr`, meaning:\n- a8: R\n- b8: empty\n- c8: B\n- d8: Q\n- e8: K\n- f8: B\n- g8: N\n- h8: R\n\nSo **Black is missing the knight on b8**? But in the piece list, we have:\n\n> Black: Ke8, Qd8, Ra8, Rh8, Bc8, Bf8, Nc6, Ng8, Pe5, Pa6, Pb7, Pc7, Pd7, Pf7, Pg7, Ph7\n\nSo Black has:\n- Two bishops: Bc8, Bf8\n- Knight on c6 and g8\n- No knight on b8 or f8? Wait \u2014 Ng8 is present, so g8 has a knight.\n\nBut in the FEN, the 7th character of first rank is `n` (from `kbnr`), so g8 is N, and c8 is B, but b8 is empty? That would mean **no knight on b8**.\n\nBut in the standard setup, b8 is a knight. So this position is **not symmetric**.\n\nSimilarly, look at White\u2019s second rank: `PPPP1PPP` \u2014 so d2 is empty? But the piece list says:\n\n> White: Ke1, Qd1, Ra1, Rh1, Bc1, Ba4, Nb1, Nf3, Pa2, Pb2, Pc2, Pd2, Pf2, Pg2, Ph2, Pe4\n\nWait \u2014 Pe4? That\u2019s a white pawn on e4.\n\nBut in the FEN: `B3P3` on rank 4 \u2192 so e4 is a white pawn.\n\nAlso, White\u2019s pawns: a2, b2, c2, d2, f2, g2, h2, and e4 \u2014 so d2 is **empty**? But the piece list says Pd2.\n\nContradiction?\n\nWait \u2014 piece list says:\n- White: Pa2, Pb2, Pc2, Pd2, Pf2, Pg2, Ph2, Pe4\n\nSo pawns on a2, b2, c2, d2, e4, f2, g2, h2 \u2014 that\u2019s 8 pawns.\n\nBut FEN: `PPPP1PPP` on rank 2 \u2192 that\u2019s 7 pawns and one empty (the `1` is a gap). Specifically:\n- P P P P 1 P P P \u2192 so d2 is empty.\n\nBut piece list says Pd2. So conflict.\n\nWait \u2014 perhaps the piece list is **not** the full set, but just listing the pieces present? Or maybe it's a mistake.\n\nBut let's trust the FEN, as it's the standard representation.\n\nSo from FEN:\n\n- **White pawns**: a2, b2, c2, d2? No \u2014 `PPPP1PPP` means:\n  - a2: P\n  - b2: P\n  - c2: P\n  - d2: P\n  - e2: empty (the `1`)\n  - f2: P\n  - g2: P\n  - h2: P\n\nSo **e2 is empty**, not d2.\n\nBut piece list says Pd2 \u2014 that must be a mistake. Probably it's Pe4 and pawns on a2-d2, f2-h2, so d2 **is** present.\n\nWait \u2014 `PPPP1PPP` \u2014 that\u2019s 8 characters: P P P P 1 P P P \u2192 so positions:\n- 1: P (a2)\n- 2: P (b2)\n- 3: P (c2)\n- 4: P (d2)\n- 5: 1 (e2 empty)\n- 6: P (f2)\n- 7: P (g2)\n- 8: P (h2)\n\nSo **d2 has a pawn**, e2 is empty.\n\nBut piece list says Pd2 \u2014 that matches. And Pe4 \u2014 so e4 has a white pawn.\n\nBut in FEN, rank 4 is `4p3` \u2014 wait no: FEN is `r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R`\n\nSo:\n- Rank 8: r1bqkbnr\n- Rank 7: 1ppp1ppp \u2192 so a7: empty? No: `1ppp1ppp` \u2192 1 empty, then pppp, then 1 empty, then pppp? No:\n\nWait: `1ppp1ppp` = 1 (empty), p, p, p, p, 1 (empty), p, p, p, p? No \u2014 that's 10 characters.\n\nNo: FEN ranks are 8 characters.\n\nSo:\n- Rank 8: `r1bqkbnr` \u2192 8 chars\n- Rank 7: `1ppp1ppp` \u2192 1 empty, then pppp, then 1 empty, then pppp? That\u2019s 1+4+1+4 = 10 \u2014 too many.\n\nWait \u2014 no: `1ppp1ppp` = 1 (empty), p, p, p, p, 1 (empty), p, p, p \u2192 that\u2019s 8 characters: positions 2,3,4,5,7,8? Wait:\n\nBreak: `1 p p p 1 p p p` \u2192 no, it's `1ppp1ppp` \u2192 so:\n- char 1: '1' \u2192 a7 empty\n- char 2: 'p' \u2192 b7 pawn\n- char 3: 'p' \u2192 c7 pawn\n- char 4: 'p' \u2192 d7 pawn\n- char 5: '1' \u2192 e7 empty\n- char 6: 'p' \u2192 f7 pawn\n- char 7: 'p' \u2192 g7 pawn\n- char 8: 'p' \u2192 h7 pawn\n\nSo Black pawns on b7, c7, d7, f7, g7, h7 \u2014 a7 and e7 empty.\n\nBut piece list says Pa6, Pb7, etc. \u2014 so a6 has pawn, not a7.\n\nSo Black pawns: a6, b7, c7, d7, e5, f7, g7, h7.\n\nFrom FEN rank 6: `p1n5` \u2192 p on a6, then 1 empty, then n on c6, then 5 empty \u2192 so a6: p, c6: n\n\nRank 5: `4p3` \u2192 p on e5\n\nSo Black pawns: a6, c6? No \u2014 c6 is knight, b7",
+   "detail": "2 plies do not reach the target in 7"
+  },
+  {
+   "id": "study_krk",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/4k3/8/8/4K3/7R w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KRvK",
+    "beginner"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "illegal"
+  },
+  {
+   "id": "study_kbnk",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/8/8/2k5/2N5/1KB5 w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KBNvK",
+    "bishopKnightMate",
+    "advanced"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "illegal"
+  },
+  {
+   "id": "study_krrk",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/4k3/8/8/8/R3K2R w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KRRvK",
+    "beginner"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "unconverted"
+  },
+  {
+   "id": "study_kqkr",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/3rk3/8/8/4K3/6Q1 w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KQvKR",
+    "advanced"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "illegal"
+  },
+  {
+   "id": "study_kpk_win",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/4P3/4K3/8/8/8/4k3/8 w - - 0 1",
+   "goal": "win",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KPvK",
+    "promotion",
+    "intermediate"
+   ],
+   "answer_shape": "play",
+   "solved": false,
+   "answer": "",
+   "detail": "illegal"
+  },
+  {
+   "id": "study_kpk_draw_rook",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "k7/8/K7/P7/8/8/8/8 w - - 0 1",
+   "goal": "draw",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KPvK",
+    "rookPawnDraw",
+    "intermediate"
+   ],
+   "answer_shape": "play",
+   "solved": true,
+   "answer": "",
+   "detail": "held_draw"
+  },
+  {
+   "id": "study_kpk_draw_opp",
+   "kind": "study",
+   "label": "study",
+   "n": 0,
+   "fen": "8/8/8/3k4/8/3PK3/8/8 w - - 0 1",
+   "goal": "draw",
+   "solution": [],
+   "themes": [
+    "study",
+    "endgame",
+    "KPvK",
+    "opposition",
+    "advanced"
+   ],
+   "answer_shape": "play",
+   "solved": true,
+   "answer": "",
+   "detail": "held_draw"
+  }
+ ]
+}

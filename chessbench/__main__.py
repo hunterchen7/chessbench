@@ -59,6 +59,7 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         otb_illegal_limit=args.otb_limit,
         explain=args.explain,
         temperature=args.temperature,
+        reasoning_effort=getattr(args, "reasoning", None),
     )
 
 
@@ -273,7 +274,7 @@ def _build_study_agent(args: argparse.Namespace, engine: "Engine | None", stack:
     return LLMGameAgent(_build_model(spec, args.model))
 
 
-def _build_model(spec: str, model_id: str | None) -> "Model":
+def _build_model(spec: str, model_id: str | None, *, reasoning_effort: str | None = None) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
 
     if spec == "anthropic":
@@ -281,7 +282,7 @@ def _build_model(spec: str, model_id: str | None) -> "Model":
     if spec == "openai":
         return OpenAIModel(model_id or "gpt-4.1")
     if spec == "openrouter":
-        return OpenRouterModel(model_id or "openai/gpt-4o-mini")
+        return OpenRouterModel(model_id or "openai/gpt-4o-mini", reasoning_effort=reasoning_effort)
     raise SystemExit(f"unknown model provider: {spec}")
 
 
@@ -396,7 +397,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         return 0
 
     print(f"running {entry.label} on suite {suite.name} [{condition.slug()}] ({len(suite.puzzles())} puzzles)...")
-    model = _build_model(entry.provider, entry.model_id)
+    model = _build_model(entry.provider, entry.model_id, reasoning_effort=condition.reasoning_effort)
     agent = LLMAgent(model)
     report, results = run_puzzles(agent, suite.puzzles(), condition, progress_every=args.progress)
     print(format_report(report))
@@ -559,6 +560,8 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--explain", action="store_true", help="invite an optional explanation with the move")
     p.add_argument("--temperature", type=float, default=1.0,
                    help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.")
+    p.add_argument("--reasoning", default=None, choices=["low", "medium", "high"],
+                   help="for reasoning models: how hard to think (adds a reasoning axis to the run)")
 
 
 def main(argv: list[str] | None = None) -> int:

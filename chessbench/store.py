@@ -50,7 +50,7 @@ def _condition_dict(c: Condition) -> dict[str, object]:
         "notation": c.notation.value, "prompt_style": c.prompt_style.value,
         "context_mode": c.context_mode.value, "explain": c.explain,
         "retry_attempts": c.retry_attempts, "otb_illegal_limit": c.otb_illegal_limit,
-        "temperature": c.temperature, "slug": c.slug(),
+        "temperature": c.temperature, "reasoning_effort": c.reasoning_effort, "slug": c.slug(),
     }
 
 

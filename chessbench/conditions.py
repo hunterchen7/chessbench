@@ -81,11 +81,13 @@ class Condition:
     explain: bool = False        # invite an optional natural-language explanation with the move
     temperature: float = 1.0     # models run at their native default temp; games self-diversify (no opening book needed)
     include_side_to_move: bool = True
+    reasoning_effort: str | None = None  # None | "low" | "medium" | "high" — how hard a reasoning model thinks
 
     def slug(self) -> str:
-        return "__".join(
+        base = "__".join(
             [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
         )
+        return f"{base}__reason-{self.reasoning_effort}" if self.reasoning_effort else base
 
     def game_slug(self) -> str:
         return self.slug() + "__" + self.context_mode.value

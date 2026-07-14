@@ -120,6 +120,10 @@ def extract_move(board: chess.Board, text: str) -> tuple[chess.Move | None, str 
     if not text:
         return None, None
 
+    # Reasoning models sometimes leak their chain-of-thought into the content inside
+    # <think>…</think>; drop it so the token scan doesn't grab a move it merely weighed.
+    text = re.sub(r"<think>.*?</think>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+
     # 1) Explicit answer markers win, if present and legal.
     for pat in (
         r"(?:final answer|final move|answer|move|play|best move)\s*[:=]\s*([^\s,.;]+)",

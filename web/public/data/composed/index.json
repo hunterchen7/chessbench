@@ -1,0 +1,23 @@
+{
+ "schema": "chessbench.composed_index.v1",
+ "runs": [
+  {
+   "file": "oracle.json",
+   "model": "oracle",
+   "solver": "oracle",
+   "solve_rate": 1.0
+  },
+  {
+   "file": "gpt-4o-mini.json",
+   "model": "openai/gpt-4o-mini",
+   "solver": "openrouter",
+   "solve_rate": 0.13333333333333333
+  },
+  {
+   "file": "ling-2.6-flash.json",
+   "model": "inclusionai/ling-2.6-flash",
+   "solver": "openrouter",
+   "solve_rate": 0.1
+  }
+ ]
+}

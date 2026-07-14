@@ -58,6 +58,7 @@ class _OpenAICompatModel:
         extra_headers: dict[str, str] | None = None,
         timeout: float = 120.0,
         max_retries: int = 4,
+        reasoning_effort: str | None = None,
     ) -> None:
         self.name = model
         self._model = model
@@ -67,6 +68,8 @@ class _OpenAICompatModel:
         self._extra_headers = extra_headers or {}
         self._timeout = timeout
         self._max_retries = max_retries
+        # None => no reasoning; "low"|"medium"|"high" => ask the model to think that hard.
+        self._reasoning_effort = reasoning_effort
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
@@ -94,8 +97,13 @@ class _OpenAICompatModel:
     def _complete(self, messages: list[object], temperature: float, max_tokens: int) -> str:
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
-        payload = {"model": self._model, "messages": messages,
-                   "temperature": temperature, "max_tokens": max_tokens}
+        payload: dict[str, object] = {"model": self._model, "messages": messages,
+                                      "temperature": temperature, "max_tokens": max_tokens}
+        if self._reasoning_effort is not None:
+            # Ask the provider to think at this effort. Give the completion headroom so
+            # the chain-of-thought + the final move aren't truncated.
+            payload["reasoning"] = {"effort": self._reasoning_effort}
+            payload["max_tokens"] = max(max_tokens, 8000)
         data = json.dumps(payload).encode("utf-8")
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json",
                    **self._extra_headers}
@@ -133,7 +141,8 @@ class OpenRouterModel(_OpenAICompatModel):
     """Any model routed through https://openrouter.ai (e.g. ``openai/gpt-4o-mini``,
     ``google/gemini-2.0-flash-001``). Reports USD cost per call."""
 
-    def __init__(self, model: str, *, api_key: str | None = None, timeout: float = 120.0) -> None:
+    def __init__(self, model: str, *, api_key: str | None = None, timeout: float = 120.0,
+                 reasoning_effort: str | None = None) -> None:
         super().__init__(
             model,
             base_url="https://openrouter.ai/api/v1",
@@ -144,6 +153,7 @@ class OpenRouterModel(_OpenAICompatModel):
                 "X-Title": "chessbench",
             },
             timeout=timeout,
+            reasoning_effort=reasoning_effort,
         )
 
 
