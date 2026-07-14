@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Trophy } from "lucide-react"
+import { ArrowLeft, Radio, Trophy } from "lucide-react"
 import { loadTournament, type Tournament, type TournamentGame } from "@/lib/data"
+import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
+
+function LiveBadge() {
+  return (
+    <Badge className="gap-1 bg-red-500/15 text-red-500">
+      <Radio className="size-3 animate-pulse" /> LIVE
+    </Badge>
+  )
+}
 
 function resultBadge(result: string) {
   const v = result === "1-0" || result === "0-1" ? "default" : "secondary"
@@ -23,13 +32,28 @@ export function TournamentDetail() {
 
   useEffect(() => {
     setT(null)
+    setErr(null)
     loadTournament(decoded).then(setT).catch((e) => setErr(String(e)))
   }, [decoded])
+
+  // While a tournament is streaming, poll for fresh games + the live board.
+  const isLive = t?.status === "live"
+  useEffect(() => {
+    if (!isLive) return
+    const id = setInterval(() => {
+      loadTournament(decoded).then(setT).catch(() => {})
+    }, 3000)
+    return () => clearInterval(id)
+  }, [isLive, decoded])
 
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
   if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
 
-  const standings = t.standings.slice().sort((a, b) => (b.rating ?? -1e9) - (a.rating ?? -1e9))
+  // Live standings have no Elo yet — order by score, then Elo when the final doc lands.
+  const standings = t.standings.slice().sort(
+    (a, b) => (b.rating ?? -1e9) - (a.rating ?? -1e9) || b.score - a.score,
+  )
+  const live = t.live_game
 
   return (
     <div className="space-y-8">
@@ -37,16 +61,39 @@ export function TournamentDetail() {
         <Link to="/games" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> Games
         </Link>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">{decoded.replace(/\.json$/, "")}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight">{decoded.replace(/\.json$/, "")}</h1>
+          {isLive && <LiveBadge />}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {t.standings.length} players · {t.games.length} games · condition{" "}
-          <span className="font-mono">{t.condition.slug}</span> · max {t.max_plies} plies
+          <span className="font-mono">{t.condition.slug}</span>
+          {isLive ? " · updating live" : ` · max ${t.max_plies} plies`}
         </p>
       </div>
 
+      {live && (
+        <Card className="border-red-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <LiveBadge /> Now playing
+              <span className="text-sm font-normal text-muted-foreground">
+                {short(live.white)} <span className="text-muted-foreground">vs</span> {short(live.black)} · move{" "}
+                {Math.ceil(live.plies / 2)}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Board fen={live.fen} orientation="white" id="live-board" maxWidth={360} />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Standings (Bradley–Terry game Elo)</CardTitle>
+          <CardTitle className="text-base">
+            {isLive ? "Standings (live — points so far)" : "Standings (Bradley–Terry game Elo)"}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

@@ -10,7 +10,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /** Ingestion requires a Bearer token matching the INGEST_TOKEN secret. */
-function authorized(env: Env, req: Request): boolean {
+export function authorized(env: Env, req: Request): boolean {
   if (!env.INGEST_TOKEN) return false // ingestion disabled until a token is configured
   const m = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i)
   return !!m && safeEqual(m[1], env.INGEST_TOKEN)

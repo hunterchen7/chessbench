@@ -1,5 +1,6 @@
 import type { Env } from "./types"
 import { error, json } from "./http"
+import { assembleLiveTournament, liveTournamentIndex } from "./games"
 
 /** GET /api/index — the run index the leaderboard reads (mirrors index.json). */
 export async function getIndex(env: Env): Promise<Response> {
@@ -108,24 +109,28 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
   return json({ position, answers })
 }
 
-/** GET /api/tournaments — light index of tournaments. */
+/** GET /api/tournaments — light index of final + live tournaments. */
 export async function getTournaments(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT tid, created, n_players, n_games, winner FROM tournaments ORDER BY created DESC`,
   ).all<{ tid: string; created: string; n_players: number; n_games: number; winner: string | null }>()
-  const tournaments = (results ?? []).map((t) => ({
+  const finals = (results ?? []).map((t) => ({
     file: t.tid,
     created: t.created,
+    status: "final",
     n_players: t.n_players,
     n_games: t.n_games,
     winner: t.winner,
   }))
-  return json({ schema: "chessbench.tournament_index.v1", tournaments })
+  const live = await liveTournamentIndex(env)
+  return json({ schema: "chessbench.tournament_index.v1", tournaments: [...live, ...finals] })
 }
 
-/** GET /api/tournaments/:id — the full tournament document. */
+/** GET /api/tournaments/:id — the final document, or a live view assembled from streamed games. */
 export async function getTournament(env: Env, id: string): Promise<Response> {
   const row = await env.DB.prepare(`SELECT doc_json FROM tournaments WHERE tid = ?`).bind(id).first<{ doc_json: string }>()
-  if (!row) return error(404, "tournament not found")
-  return json(JSON.parse(row.doc_json))
+  if (row) return json(JSON.parse(row.doc_json))
+  const live = await assembleLiveTournament(env, id)
+  if (live) return json(live)
+  return error(404, "tournament not found")
 }

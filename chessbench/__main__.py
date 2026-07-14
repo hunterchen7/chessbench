@@ -478,18 +478,42 @@ def cmd_tournament(args: argparse.Namespace) -> int:
             from .openings import opening_fens
 
             openings = opening_fens()
-        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine, openings=openings)
+
+        pusher = None
+        if args.stream:
+            import os
+            from datetime import datetime, timezone
+
+            from .stream import StreamPusher
+
+            base, token = os.environ.get("CHESSBENCH_API"), os.environ.get("CHESSBENCH_INGEST_TOKEN")
+            if not base or not token:
+                raise SystemExit("--stream needs CHESSBENCH_API and CHESSBENCH_INGEST_TOKEN in the env")
+            tid = args.tid or (Path(args.save).stem if args.save else "live")
+            pusher = StreamPusher(base, token, tid, condition_slug=condition.game_slug(),
+                                  players=[e.label for e in entries],
+                                  created=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+            print(f"streaming games live to {base} as tournament '{tid}'")
+
+        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine, openings=openings,
+                             on_game=pusher.on_game if pusher else None,
+                             on_move=pusher.on_move if pusher else None)
 
     print(format_tournament(result))
     if args.pgn_out:
         with open(args.pgn_out, "w", encoding="utf-8") as f:
             f.write(result.pgns())
         print(f"\nwrote {len(result.games)} game PGNs -> {args.pgn_out}")
-    if args.save:
-        from .store import TournamentRecord, save_tournament
+    if args.save or pusher:
+        from .store import TournamentRecord, json_safe, save_tournament
 
-        save_tournament(TournamentRecord(result, condition, args.max_plies, anchor=anchor), args.save)
-        print(f"saved tournament -> {args.save}")
+        record = TournamentRecord(result, condition, args.max_plies, anchor=anchor)
+        if args.save:
+            save_tournament(record, args.save)
+            print(f"saved tournament -> {args.save}")
+        if pusher:
+            pusher.push_final(json_safe(record.to_dict()))  # flip the live view to the final rated table
+            print("pushed final standings to the backend")
     return 0
 
 
@@ -596,6 +620,10 @@ def main(argv: list[str] | None = None) -> int:
     t.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
     t.add_argument("--pgn-out", default=None)
     t.add_argument("--save", default=None, help="save a tournament record JSON (for the web games viewer)")
+    t.add_argument("--stream", action="store_true",
+                   help="stream games live to the backend as they play (needs CHESSBENCH_API + "
+                        "CHESSBENCH_INGEST_TOKEN env); durable per-game, watchable per-move")
+    t.add_argument("--tid", default=None, help="tournament id for --stream (defaults to the --save basename)")
     t.add_argument("--eval-moves", dest="eval_moves", action="store_true",
                    help="Stockfish-evaluate each move (per-move centipawns / accuracy)")
     t.add_argument("--openings", default="none", choices=["book", "none"],

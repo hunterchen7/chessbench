@@ -3,6 +3,7 @@ import { error, json, preflight } from "./http"
 import { getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
 import { postIngestRun, postIngestTournament } from "./ingest"
+import { postIngestGame, postLiveBoard } from "./games"
 
 // chessbench backend: a JSON API under /api/* over Cloudflare D1, with the built
 // Vite SPA served from the same origin via the [assets] binding. Non-/api requests
@@ -36,6 +37,8 @@ export default {
         if (seg === "human/solve") return await postHumanSolve(env, req)
         if (seg === "ingest/run") return await postIngestRun(env, req)
         if (seg === "ingest/tournament") return await postIngestTournament(env, req, url)
+        if (seg === "ingest/game") return await postIngestGame(env, req, url)
+        if (seg === "live/board") return await postLiveBoard(env, req, url)
       }
       return error(404, `no route: ${req.method} /api/${seg}`)
     } catch (e) {

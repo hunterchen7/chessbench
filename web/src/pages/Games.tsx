@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Swords, Trophy } from "lucide-react"
+import { Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -18,7 +18,7 @@ export function Games() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tournaments.map((t) => (
           <Link key={t.file} to={`/games/${encodeURIComponent(t.file)}`}>
-            <Card className="h-full transition-colors hover:border-ring">
+            <Card className={`h-full transition-colors hover:border-ring ${t.status === "live" ? "border-red-500/40" : ""}`}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Swords className="size-4 text-muted-foreground" />
@@ -29,10 +29,17 @@ export function Games() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2 text-sm">
-                  <Trophy className="size-4 text-chart-4" />
-                  Winner: <span className="font-medium">{t.winner ?? "—"}</span>
-                </div>
+                {t.status === "live" ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Radio className="size-4 animate-pulse text-red-500" />
+                    <span className="font-medium text-red-500">Live now</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Trophy className="size-4 text-chart-4" />
+                    Winner: <span className="font-medium">{t.winner ?? "—"}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </Link>

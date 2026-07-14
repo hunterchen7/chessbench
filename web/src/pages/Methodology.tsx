@@ -80,6 +80,13 @@ export function Methodology() {
             result dramatically, so every run records exactly which mode it used.
           </p>
         </div>
+        <div className="rounded-md border border-chart-4/30 bg-chart-4/5 p-3 text-sm text-muted-foreground">
+          <span className="font-medium text-foreground">Finding:</span> more help isn't always better. A/B-testing
+          the coaching variants on a fixed model, the plain <span className="font-mono">Assisted</span> mode matched or
+          beat every <span className="font-mono">Coached</span> variant — heavy scaffolding distracted the model more
+          than it helped. So the headline leaderboard uses the assisted mode, and coaching is reported as its own axis
+          rather than assumed to be an upgrade.
+        </div>
         <div className="grid gap-4 lg:grid-cols-3">
           {MODES.map((m) => (
             <Card key={m.n} className="flex flex-col">

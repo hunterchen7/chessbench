@@ -113,8 +113,19 @@ export interface TournamentGame {
   moves: GameMove[]
 }
 
+export interface LiveGame {
+  white: string
+  black: string
+  idx: number
+  start_fen: string | null
+  fen: string
+  plies: number
+  moves: GameMove[]
+}
+
 export interface Tournament {
   schema: string
+  status?: "live" | "final"
   created: string
   condition: Condition
   max_plies: number
@@ -122,11 +133,13 @@ export interface Tournament {
   standings: Standing[]
   games: TournamentGame[]
   crosstable: { a: string; b: string; w: number; d: number; l: number }[]
+  live_game?: LiveGame | null
 }
 
 export interface TournamentIndexEntry {
   file: string
   created: string
+  status?: "live" | "final"
   n_players: number
   n_games: number
   winner: string | null

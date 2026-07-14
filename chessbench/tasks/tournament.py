@@ -8,14 +8,17 @@ table on an absolute scale; without one, ratings are centered on `anchor`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from itertools import combinations
+
+import chess
 
 from ..agents import Agent
 from ..conditions import Condition
 from ..core.engine import Engine
 from ..rating import RatingEstimate, tournament_elo
-from .games import GameConfig, GameRecord, play_game
+from .games import GameConfig, GameRecord, MoveRecord, play_game
 
 
 @dataclass
@@ -62,7 +65,12 @@ def round_robin(
     *,
     eval_engine: Engine | None = None,
     openings: list[str] | None = None,
+    on_game: Callable[[GameRecord, int], None] | None = None,
+    on_move: Callable[[str, str, str | None, int, chess.Board, list[MoveRecord]], None] | None = None,
 ) -> TournamentResult:
+    """`on_game(record, idx)` fires after each completed game; `on_move(white, black,
+    start_fen, idx, board, records)` fires after each half-move. Both are best-effort
+    hooks used to stream a tournament into a persistent store as it plays."""
     if len({e.label for e in entries}) != len(entries):
         raise ValueError("tournament entries must have distinct labels")
     config = config or GameConfig()
@@ -80,10 +88,18 @@ def round_robin(
         for g in range(games_per_pair):
             white, black = (a, b) if g % 2 == 0 else (b, a)
             start_fen = book[(g // 2) % len(book)]  # each opening played from both colors
+            idx = len(games)
+            mv = None
+            if on_move is not None:
+                def mv(board: chess.Board, recs: list[MoveRecord],
+                       _w=white.label, _b=black.label, _sf=start_fen, _i=idx) -> None:
+                    on_move(_w, _b, _sf, _i, board, recs)
             record = play_game(white.agent, black.agent, condition, config,
-                               eval_engine=eval_engine, start_fen=start_fen)
+                               eval_engine=eval_engine, start_fen=start_fen, on_move=mv)
             record.white, record.black = white.label, black.label  # use entry labels, not agent.name
             games.append(record)
+            if on_game is not None:
+                on_game(record, idx)
             ws = record.white_score
             results_for_elo.append((white.label, black.label, ws))
 

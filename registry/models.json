@@ -14,7 +14,7 @@
    "model_id": "deepseek/deepseek-v4-flash",
    "family": "",
    "notes": "",
-   "enabled": true
+   "enabled": false
   },
   {
    "label": "gpt-4o-mini",
@@ -78,7 +78,7 @@
    "model_id": "nvidia/nemotron-3-nano-30b-a3b",
    "family": "",
    "notes": "",
-   "enabled": true
+   "enabled": false
   },
   {
    "label": "nova-micro",
@@ -110,6 +110,46 @@
    "model_id": "bytedance-seed/seed-1.6-flash",
    "family": "",
    "notes": "",
+   "enabled": false
+  },
+  {
+   "label": "sonnet-5",
+   "provider": "openrouter",
+   "model_id": "anthropic/claude-sonnet-5",
+   "family": "anthropic",
+   "notes": "strong reference model (Claude Sonnet 5)",
+   "enabled": true
+  },
+  {
+   "label": "deepseek-v3.2",
+   "provider": "openrouter",
+   "model_id": "deepseek/deepseek-v3.2",
+   "family": "deepseek",
+   "notes": "newer Chinese, cheap + strong",
+   "enabled": true
+  },
+  {
+   "label": "glm-4.6",
+   "provider": "openrouter",
+   "model_id": "z-ai/glm-4.6",
+   "family": "zhipu",
+   "notes": "newer Chinese (Zhipu GLM)",
+   "enabled": true
+  },
+  {
+   "label": "qwen3-max",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen3-max",
+   "family": "qwen",
+   "notes": "newer Qwen flagship",
+   "enabled": true
+  },
+  {
+   "label": "kimi-k2",
+   "provider": "openrouter",
+   "model_id": "moonshotai/kimi-k2",
+   "family": "moonshot",
+   "notes": "newer Chinese (Moonshot Kimi)",
    "enabled": true
   }
  ]

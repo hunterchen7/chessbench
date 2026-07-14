@@ -13,6 +13,7 @@ expose `reset(color)`, called at the start of each game.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import chess
@@ -143,6 +144,7 @@ def _termination(board: chess.Board) -> str:
 def play_game(
     white, black, condition: Condition, config: GameConfig | None = None,
     *, eval_engine: Engine | None = None, start_fen: str | None = None,
+    on_move: Callable[[chess.Board, list[MoveRecord]], None] | None = None,
 ) -> GameRecord:
     config = config or GameConfig()
     board = chess.Board(start_fen) if start_fen else chess.Board()
@@ -195,6 +197,8 @@ def play_game(
         records.append(MoveRecord(board.ply(), color_str, san, move.uci(), first_legal, illegal, eval_cp))
         history_san.append(san)
         last_opp_san = san
+        if on_move is not None:
+            on_move(board, records)
 
     white_name = getattr(white, "name", "white")
     black_name = getattr(black, "name", "black")
