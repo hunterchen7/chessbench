@@ -66,3 +66,17 @@ def test_extract_move_and_explanation_bare_move_has_no_explanation():
     b = chess.Board()
     mv, tok, why = extract_move_and_explanation(b, "e4")
     assert mv == chess.Move.from_uci("e2e4") and why is None
+
+
+def test_parse_move_is_generous():
+    """Sloppy but unambiguous notations should still parse (Rd1 for Rd1+, markdown,
+    annotations, mixed-case UCI, stray spaces)."""
+    import chess
+
+    from chessbench.core.board import parse_move
+
+    b = chess.Board("3k4/8/8/8/8/8/8/R5K1 w - - 0 1")  # a1d1 is Rd1+
+    for text in ("Rd1", "Rd1+", "Rd1#", "Rd1!", "Rd1?!", "**Rd1**", "`Rd1`", "A1D1", "a1d1 ", "R d1", "Rd1."):
+        mv = parse_move(b, text)
+        assert mv is not None and mv.uci() == "a1d1", f"failed to parse {text!r}"
+    assert parse_move(b, "Qh8") is None  # still rejects illegal/nonsense

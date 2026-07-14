@@ -30,4 +30,5 @@ def test_missing_model_raises(tmp_path):
 def test_shipped_registry_loads():
     entries = load_registry()  # the committed registry/models.json
     labels = {e.label for e in entries}
-    assert "gpt-4o-mini" in labels
+    assert len(labels) == len(entries)  # labels are unique
+    assert any(e.provider == "openrouter" and e.model_id for e in entries)  # real, runnable models

@@ -68,9 +68,12 @@ def parse_move(board: chess.Board, text: str) -> chess.Move | None:
     """
     if not text:
         return None
-    token = text.strip().strip(".").strip()
+    # Be generous: strip surrounding markdown/punctuation and trailing annotations
+    # (check/mate/!/?), so "**Rd1!**", "Rd1+", and "Rd1" all reduce to one move.
+    token = text.strip().strip("*`\"'.").strip()
+    token = re.sub(r"[+#!?]+$", "", token).strip()
 
-    # UCI first: unambiguous given the board.
+    # UCI first: unambiguous given the board (upper/mixed case tolerated via lower()).
     try:
         mv = chess.Move.from_uci(token.lower())
         if mv in board.legal_moves:
@@ -78,8 +81,9 @@ def parse_move(board: chess.Board, text: str) -> chess.Move | None:
     except (ValueError, chess.InvalidMoveError):
         pass
 
-    # SAN: parse_san raises on illegal/ambiguous/unparseable moves.
-    for candidate in (token, token.replace("0", "O")):  # tolerate 0-0 castling
+    # SAN: parse_san raises on illegal/ambiguous/unparseable moves. Tolerate 0-0
+    # castling and a stray internal space ("R d1", "Q xd5").
+    for candidate in (token, token.replace("0", "O"), token.replace(" ", "")):
         try:
             return board.parse_san(candidate)
         except (ValueError, chess.InvalidMoveError, chess.IllegalMoveError, chess.AmbiguousMoveError):

@@ -125,10 +125,10 @@ class LLMAgent:
         ctx.last_raw_response = raw
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
-        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         if move is not None:
-            return token or move.uci()
+            return move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
 
 
@@ -158,10 +158,10 @@ class VisionAgent:
 
         raw = self._model.chat_image("\n".join(lines), render_board_png(board), temperature=cond.temperature)
         ctx.last_raw_response = raw
-        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         if move is not None:
-            return token or move.uci()
+            return move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
 
 
@@ -206,8 +206,8 @@ class LLMGameAgent:
         self._started = True
 
         ctx.last_raw_response = raw
-        move, token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
         ctx.last_explanation = explanation
         if move is not None:
-            return token or move.uci()
+            return move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
