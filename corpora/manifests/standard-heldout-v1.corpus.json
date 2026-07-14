@@ -1,0 +1,16 @@
+{
+ "schema": "chessbench.corpus_manifest.v1",
+ "name": "standard-heldout-v1",
+ "title": "Standard tactics \u2014 held-out v1",
+ "version": "1.0.0",
+ "track": "standard",
+ "visibility": "private",
+ "item_type": "puzzle",
+ "items": 300,
+ "content_hash": "sha256:06655b0e6f9498f2be23",
+ "validation": {
+  "valid": true,
+  "unique_ids": 300,
+  "unique_positions": 300
+ }
+}

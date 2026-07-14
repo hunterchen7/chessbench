@@ -78,6 +78,25 @@ class Corpus:
         blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:20]
 
+    def manifest(self) -> dict[str, object]:
+        """Return corpus metadata without membership or selection secrets."""
+        return {
+            "schema": "chessbench.corpus_manifest.v1",
+            "name": self.name,
+            "title": self.title,
+            "version": self.version,
+            "track": self.track,
+            "visibility": self.visibility,
+            "item_type": self.item_type,
+            "items": len(self.items),
+            "content_hash": self.content_hash or self.compute_hash(),
+            "validation": {
+                "valid": self.validation.get("valid"),
+                "unique_ids": self.validation.get("unique_ids"),
+                "unique_positions": self.validation.get("unique_positions"),
+            },
+        }
+
 
 def _position_key(board: chess.Board) -> str:
     """Position identity without move clocks, which do not change the task."""
@@ -269,6 +288,15 @@ def save_corpus(corpus: Corpus, path: str | Path) -> None:
         )
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(asdict(corpus), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def save_corpus_manifest(corpus: Corpus, path: str | Path) -> None:
+    """Write a safe manifest for either a public or held-out corpus."""
+    if not corpus.content_hash:
+        finalize_corpus(corpus)
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(corpus.manifest(), indent=1) + "\n", encoding="utf-8")
 
 
 def load_corpus(path: str | Path, *, validate: bool = True) -> Corpus:

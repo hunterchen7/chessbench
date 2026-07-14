@@ -12,6 +12,16 @@
    "content_hash": "sha256:6700995ce1b69ed6ff5a"
   },
   {
+   "name": "standard-lichess-v2",
+   "title": "Standard tactics \u2014 full Lichess v2",
+   "version": "1.0.0",
+   "track": "standard",
+   "visibility": "public",
+   "item_type": "puzzle",
+   "items": 300,
+   "content_hash": "sha256:42d4c1417c3f33d5296c"
+  },
+  {
    "name": "standard-public-v1",
    "title": "Standard tactics \u2014 public-v1",
    "version": "1.0.0",
@@ -30,6 +40,16 @@
    "item_type": "puzzle",
    "items": 100,
    "content_hash": "sha256:f0d48f423f4333f033d4"
+  },
+  {
+   "name": "woodpecker-masters-v1",
+   "title": "Woodpecker master-game lines \u2014 v1",
+   "version": "1.0.0",
+   "track": "woodpecker",
+   "visibility": "public",
+   "item_type": "puzzle",
+   "items": 125,
+   "content_hash": "sha256:c522008598842be3e832"
   },
   {
    "name": "woodpecker-public-v1",

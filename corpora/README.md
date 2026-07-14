@@ -11,6 +11,8 @@ every model is eventually evaluated on the matching frozen suite.
 | `public/woodpecker-seed-v1.json` | Woodpecker | 60 | Lichess CC0 local seed pool |
 | `public/standard-public-v1.json` | Standard | 240 | Lichess CC0, 2026-07-05 full dump |
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
+| `public/standard-lichess-v2.json` | Standard | 300 | Complete Lichess CC0 snapshot, stricter confidence gates |
+| `public/woodpecker-masters-v1.json` | Woodpecker | 125 | Complete Lichess CC0 snapshot, titled-player games only |
 | `public/esoteric-seed-v1.json` | Esoteric | 50 | Lichess CC0 + ChessBench original |
 
 These are development-quality seed corpora. The 500-row tactical fixture predates snapshot tracking, so its exact
@@ -42,7 +44,17 @@ meeting its quality/rating filters, and retained 250 stable-priority positions i
 The committed [source receipt](sources/lichess-puzzles-2026-07-05.json) records every parameter and the intermediate
 pool hash. `scripts/download_puzzles.py` gives bounded memory without first-row bias.
 
-Private held-out releases should use post-cutoff generated positions, stay outside Git, and keep only their
-manifest/hash public. Esoteric expansion should prioritize historically sourced problems with author, publication,
-year, stipulation, and explicit redistribution rights; unverifiable or ambiguously licensed collections do not enter
-the benchmark.
+The v2 curator works directly against the complete compressed snapshot. The checked-in
+`sources/lichess-analysis-2026-07-05.json` records all 6,057,356 rows and the actual candidate populations.
+`scripts/curate_lichess.py` produces four mutually disjoint releases: public and held-out Standard suites plus
+public and held-out titled-player Woodpecker suites. The latter require at least three solver moves, a source-game
+URL, and a `master`, `masterVsMaster`, or `superGM` tag.
+
+Held-out contents and their 256-bit selection seed stay outside Git. Only membership-free corpus/suite manifests are
+published from `corpora/manifests/`. A Lichess held-out split prevents benchmark-specific tuning but is only
+semi-private because its source pool is public; sealed certification suites should use post-cutoff generated or
+newly commissioned problems.
+
+Esoteric private-MVP imports may retain unreviewed source rights, but they must remain in ignored private storage and
+carry source IDs so they can be removed or replaced. Generated originals require both the native verifier and an
+independent Popeye certificate before admission.

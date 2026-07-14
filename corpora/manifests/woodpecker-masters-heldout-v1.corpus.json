@@ -1,0 +1,16 @@
+{
+ "schema": "chessbench.corpus_manifest.v1",
+ "name": "woodpecker-masters-heldout-v1",
+ "title": "Woodpecker master-game lines \u2014 held-out v1",
+ "version": "1.0.0",
+ "track": "woodpecker",
+ "visibility": "private",
+ "item_type": "puzzle",
+ "items": 125,
+ "content_hash": "sha256:e267ae24490d085f201b",
+ "validation": {
+  "valid": true,
+  "unique_ids": 125,
+  "unique_positions": 125
+ }
+}

@@ -61,6 +61,8 @@ def test_checked_in_corpora_are_valid_and_content_addressed():
         "woodpecker-seed-v1",
         "standard-public-v1",
         "woodpecker-public-v1",
+        "standard-lichess-v2",
+        "woodpecker-masters-v1",
         "esoteric-seed-v1",
     } <= set(corpora)
     assert all(corpus.validation["valid"] is True for corpus in corpora.values())
@@ -86,6 +88,29 @@ def test_public_v1_has_six_exact_rating_strata():
         assert corpus.selection["source_pool_sha256"] == (
             "c6f202da8b801cc091f4b4e070e9e2528883584b2db33a86f34cea081f0097ed"
         )
+
+
+def test_full_snapshot_releases_have_exact_strata_and_master_game_lines():
+    standard = load_corpus(CORPORA / "standard-lichess-v2.json")
+    woodpecker = load_corpus(CORPORA / "woodpecker-masters-v1.json")
+    assert len(standard.items) == 300
+    assert len(woodpecker.items) == 125
+    for lo in range(600, 3000, 400):
+        assert sum(lo <= puzzle.rating < lo + 400 for puzzle in standard.puzzles()) == 50
+    for lo in range(1000, 3000, 400):
+        band = [puzzle for puzzle in woodpecker.puzzles() if lo <= puzzle.rating < lo + 400]
+        assert len(band) == 25
+        assert all(puzzle.num_solver_plies() >= 3 for puzzle in band)
+        assert all({"master", "masterVsMaster", "superGM"} & set(puzzle.themes) for puzzle in band)
+        assert all(puzzle.game_url.startswith("https://lichess.org/") for puzzle in band)
+
+
+def test_private_manifests_do_not_reveal_membership_or_seed():
+    for path in (ROOT / "corpora" / "manifests").glob("*.json"):
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        assert isinstance(manifest["items"], int)
+        assert "seed" not in manifest
+        assert "selection" not in manifest
 
 
 def test_corpus_hash_detects_manual_edits(tmp_path):
