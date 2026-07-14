@@ -5,10 +5,11 @@
 1. Results are comparable only when suite, condition, model variant, and sampling configuration match.
 2. Public scoring is points: puzzles sum item credit; games use 1/0.5/0 match points.
 3. Models receive no external tools. Legality and grading happen outside the model boundary.
-4. No conversation state crosses a puzzle or game boundary.
-5. Every paid result becomes durable before the next item starts.
-6. Raw visible provider output is retained; hidden chain of thought is not inferred.
-7. The hosted data store is exportable as versioned JSON.
+4. Model-facing text is a neutral chess task and never mentions benchmarking, evaluation, experiments, leaderboards, or scoring.
+5. No conversation state crosses a puzzle or game boundary.
+6. Every paid result becomes durable before the next item starts.
+7. Raw visible provider output is retained; hidden chain of thought is not inferred.
+8. The hosted data store is exportable as versioned JSON.
 
 ## Protocol axes
 

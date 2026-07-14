@@ -121,7 +121,7 @@ class LLMAgent:
         self.name = model.name
         self._messages: list[Message] = []
         self._system = (
-            "Solve this chess puzzle across turns. Keep track of the line, but "
+            "You are solving one chess puzzle across several turns. Keep track of the line, but "
             "trust each newly supplied position as authoritative."
         )
 

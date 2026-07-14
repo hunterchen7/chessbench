@@ -224,7 +224,7 @@ def build_puzzle_prompt(
     """Assemble the full user prompt for a single-position puzzle move."""
     notation_name = "SAN (e.g. Nf3, exd5, O-O)" if cond.notation == Notation.SAN else "UCI (e.g. g1f3, e5d6)"
     lines = [
-        "You are a chess engine. Find the single best move for the side to move.",
+        "You are solving a chess puzzle. Choose the single best move for the side to move.",
         "",
         render_position(bd, cond),
     ]
@@ -276,7 +276,7 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
     """Constant per-game instructions (the system message)."""
     side = "White" if color == chess.WHITE else "Black"
     lines = [
-        f"You are a strong chess player playing a full game as {side}.",
+        f"You are playing a chess game as {side}.",
         f"On each of your turns, output a single legal move in {_notation_name(cond)}.",
     ]
     if cond.prompt_style == PromptStyle.COACHED:
