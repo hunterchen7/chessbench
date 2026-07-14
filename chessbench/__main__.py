@@ -109,9 +109,13 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         print(f"loaded {len(puzzles)} puzzles from {args.data}")
     print(f"condition: {condition.slug()} (temp={condition.temperature})\n")
 
+    # A saved run auto-checkpoints per puzzle, so a killed run resumes on re-run.
+    ckpt = args.save_run + ".ckpt.jsonl" if args.save_run else None
+
     with ExitStack() as stack:
         agent = _build_agent(args, stack)
-        report, results = run_puzzles(agent, puzzles, condition, log_path=args.log, progress_every=args.progress)
+        report, results = run_puzzles(agent, puzzles, condition, log_path=args.log,
+                                      progress_every=args.progress, resume_path=ckpt)
 
     print(format_report(report))
 
@@ -125,6 +129,8 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         )
         save_run(record, args.save_run)
         print(f"\nsaved run -> {args.save_run}")
+        if ckpt:
+            Path(ckpt).unlink(missing_ok=True)  # run complete -> drop the checkpoint
     return 0
 
 
@@ -399,7 +405,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     print(f"running {entry.label} on suite {suite.name} [{condition.slug()}] ({len(suite.puzzles())} puzzles)...")
     model = _build_model(entry.provider, entry.model_id, reasoning_effort=condition.reasoning_effort)
     agent = LLMAgent(model)
-    report, results = run_puzzles(agent, suite.puzzles(), condition, progress_every=args.progress)
+    ckpt = str(out) + ".ckpt.jsonl"  # per-puzzle checkpoint -> a killed run resumes on re-run
+    report, results = run_puzzles(agent, suite.puzzles(), condition, progress_every=args.progress, resume_path=ckpt)
     print(format_report(report))
     record = RunRecord(
         model=entry.model_id, provider=entry.provider, condition=condition, report=report,
@@ -408,6 +415,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         cost_usd=getattr(model, "total_cost", None),
     )
     save_run(record, out)
+    Path(ckpt).unlink(missing_ok=True)  # run complete -> drop the checkpoint
     print(f"\nsaved run -> {out}")
     return 0
 
