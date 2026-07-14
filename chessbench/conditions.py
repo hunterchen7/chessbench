@@ -226,7 +226,7 @@ def build_puzzle_prompt(
 ) -> str:
     """Assemble the full user prompt for a single-position puzzle move."""
     lines = [
-        "You are a chess engine. Find the single best move for the side to move.",
+        "You are solving a chess puzzle. Choose the single best move for the side to move.",
         "",
         render_position(bd, cond),
     ]
@@ -314,7 +314,7 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
     """Constant per-game instructions (the system message)."""
     side = "White" if color == chess.WHITE else "Black"
     lines = [
-        f"You are a strong chess player playing a full game as {side}.",
+        f"You are playing a chess game as {side}.",
         "On each of your turns, choose a single legal move.",
     ]
     if cond.prompt_style == PromptStyle.COACHED:

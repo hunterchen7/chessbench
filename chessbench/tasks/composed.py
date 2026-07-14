@@ -117,7 +117,7 @@ def build_composed_prompt(problem: ComposedProblem, condition: Condition) -> str
     notation = "SAN (e.g. Nf3, Qxe7, O-O)" if condition.notation == Notation.SAN else "UCI (e.g. g1f3, e7e5)"
     help_text = _STIPULATION_HELP[problem.kind].format(n=problem.n, plies=2 * problem.n, goal=problem.goal or "")
 
-    lines = [f"This is a composed chess problem. Stipulation: {problem.label}.", "", help_text, ""]
+    lines = [f"You are solving a composed chess problem. Stipulation: {problem.label}.", "", help_text, ""]
     if problem.kind == "proofgame":
         lines.append("Target position to reach:")
     lines.append(render_position(board, condition))

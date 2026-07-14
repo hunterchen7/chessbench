@@ -71,6 +71,7 @@ export function Methodology() {
           <CardHeader><CardTitle className="text-base">Model variants and no tools</CardTitle></CardHeader>
           <CardContent><Prose>
             <p>A base model at different reasoning efforts or exact reasoning-token budgets is treated as a distinct model variant. Output-token caps are part of that identity too.</p>
+            <p>The model sees a neutral chess task. Model-facing text never says benchmark, evaluation, experiment, leaderboard, or score.</p>
             <p>No engine, browser, code execution, retrieval, or provider tool is offered. Compatible providers receive <span className="font-mono text-foreground">tool_choice: none</span>, and a returned tool call invalidates the response.</p>
           </Prose></CardContent>
         </Card>

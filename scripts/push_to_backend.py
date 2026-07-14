@@ -24,6 +24,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+# Make `python3 scripts/push_to_backend.py` work without requiring an editable
+# package install first.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from chessbench.env import load_local_env
 
 RUN_SCHEMA = "chessbench.run.v1"
