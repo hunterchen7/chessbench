@@ -64,24 +64,38 @@ def run_puzzles(
         print(f"  [resume] {len(done)} puzzles already done; continuing")
     log_f = open(log_path, "w", encoding="utf-8") if log_path else None
     resume_f = open(resume_path, "a", encoding="utf-8") if resume_path else None
+    consecutive_errors = 0
     try:
         start = time.time()
         for i, p in enumerate(puzzles, 1):
             cached = p.id in done
+            errored = False
             if cached:
                 res = done[p.id]
             else:
                 try:
                     res = grade_puzzle(agent, p, condition)
+                    consecutive_errors = 0
                 except ModelError as exc:
                     errors += 1
+                    consecutive_errors += 1
+                    errored = True
                     res = _error_result(p)
                     if errors <= 3:
                         print(f"  [warn] model error on {p.id}: {exc}")
+                    # A run of errors means a persistent outage (e.g. the budget cap):
+                    # abort so we don't save a garbage run. Real progress is checkpointed,
+                    # so re-running resumes and RETRIES these puzzles (errors aren't saved).
+                    if consecutive_errors >= 6:
+                        raise RuntimeError(
+                            f"aborting after {consecutive_errors} consecutive model errors "
+                            f"(budget cap / outage?); progress checkpointed for resume"
+                        ) from exc
             results.append(res)
             if log_f:
                 log_f.write(json.dumps(asdict(res)) + "\n")
-            if resume_f and not cached:
+            # Only checkpoint genuine gradings — never transient errors, so a resume retries them.
+            if resume_f and not cached and not errored:
                 resume_f.write(json.dumps(asdict(res)) + "\n")
                 resume_f.flush()  # durable per-puzzle so a kill loses nothing
             if progress_every and i % progress_every == 0:
