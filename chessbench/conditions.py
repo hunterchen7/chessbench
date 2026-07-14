@@ -69,6 +69,19 @@ class ContextMode(str, Enum):
     HYBRID = "hybrid"      # growing conversation BUT re-inject authoritative board each turn.
 
 
+class PuzzleProtocol(str, Enum):
+    """How a tactical puzzle answer is elicited and graded.
+
+    ``MOVE_BY_MOVE`` mirrors normal online puzzle solving: ask for one solver
+    move, apply the forced reply, then ask again. ``FULL_LINE`` is the
+    Woodpecker-style recall/calculation condition: one request must contain the
+    complete variation, including the opponent's replies.
+    """
+
+    MOVE_BY_MOVE = "move_by_move"
+    FULL_LINE = "full_line"
+
+
 @dataclass(frozen=True)
 class Condition:
     legality: Legality = Legality.FREE_FORM
@@ -76,21 +89,58 @@ class Condition:
     notation: Notation = Notation.SAN
     prompt_style: PromptStyle = PromptStyle.MINIMAL
     context_mode: ContextMode = ContextMode.FRESH  # game-track axis
+    puzzle_protocol: PuzzleProtocol = PuzzleProtocol.MOVE_BY_MOVE
     retry_attempts: int = 3      # only used when legality == RETRY
     otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
     explain: bool = False        # invite an optional natural-language explanation with the move
     temperature: float = 1.0     # models run at their native default temp; games self-diversify (no opening book needed)
     include_side_to_move: bool = True
-    reasoning_effort: str | None = None  # None | "low" | "medium" | "high" — how hard a reasoning model thinks
+    reasoning_effort: str | None = None  # OpenRouter normalized effort, including minimal/max/xhigh/none
+    reasoning_max_tokens: int | None = None  # exact thinking-token budget; mutually exclusive with effort
+    max_output_tokens: int = 2048
+
+    def __post_init__(self) -> None:
+        if self.reasoning_effort is not None and self.reasoning_max_tokens is not None:
+            raise ValueError("reasoning_effort and reasoning_max_tokens are mutually exclusive")
+        if self.reasoning_max_tokens is not None and self.reasoning_max_tokens <= 0:
+            raise ValueError("reasoning_max_tokens must be positive")
+        if self.max_output_tokens <= 0:
+            raise ValueError("max_output_tokens must be positive")
 
     def slug(self) -> str:
         base = "__".join(
             [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
         )
-        return f"{base}__reason-{self.reasoning_effort}" if self.reasoning_effort else base
+        if self.puzzle_protocol == PuzzleProtocol.FULL_LINE:
+            base += "__full-line"
+        if self.reasoning_effort is not None:
+            base += f"__reason-{self.reasoning_effort}"
+        elif self.reasoning_max_tokens is not None:
+            base += f"__reason-{self.reasoning_max_tokens}t"
+        return base
 
     def game_slug(self) -> str:
         return self.slug() + "__" + self.context_mode.value
+
+    def to_dict(self) -> dict[str, object]:
+        """Canonical, JSON-safe condition manifest used in run identities."""
+        return {
+            "legality": self.legality.value,
+            "representation": self.representation.value,
+            "notation": self.notation.value,
+            "prompt_style": self.prompt_style.value,
+            "context_mode": self.context_mode.value,
+            "puzzle_protocol": self.puzzle_protocol.value,
+            "retry_attempts": self.retry_attempts,
+            "otb_illegal_limit": self.otb_illegal_limit,
+            "explain": self.explain,
+            "temperature": self.temperature,
+            "include_side_to_move": self.include_side_to_move,
+            "reasoning_effort": self.reasoning_effort,
+            "reasoning_max_tokens": self.reasoning_max_tokens,
+            "max_output_tokens": self.max_output_tokens,
+            "slug": self.slug(),
+        }
 
 
 # The scientific baseline condition (free-form, unaided) -- kept for the honest measurement.
@@ -99,20 +149,31 @@ HEADLINE = Condition()
 # --- Named "how much help" modes (presets over the axes) ---
 # 1: raw FEN + piece list; 2: + legal moves (SAN & UCI); 3: + coaching tips.
 # The DEFAULT for CLI runs is MODE 2 ("hand-holding": the legal moves are provided).
-MODES: dict[int, tuple[Legality, Representation, PromptStyle]] = {
-    1: (Legality.FREE_FORM, Representation.FEN_PIECES, PromptStyle.MINIMAL),
-    2: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.MINIMAL),
-    3: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED),
+MODES: dict[int, tuple[Legality, Representation, PromptStyle, PuzzleProtocol]] = {
+    1: (Legality.FREE_FORM, Representation.FEN_PIECES, PromptStyle.MINIMAL, PuzzleProtocol.MOVE_BY_MOVE),
+    2: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.MINIMAL, PuzzleProtocol.MOVE_BY_MOVE),
+    3: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED, PuzzleProtocol.MOVE_BY_MOVE),
+    4: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED, PuzzleProtocol.FULL_LINE),
 }
 DEFAULT_MODE = 2
-MODE_LABELS = {1: "raw", 2: "assisted (legal moves)", 3: "coached (legal moves + tips)"}
+MODE_LABELS = {
+    1: "raw",
+    2: "assisted (legal moves)",
+    3: "coached (legal moves + tips)",
+    4: "full line (Woodpecker)",
+}
 
 
 def mode_condition(mode: int) -> Condition:
     """The preset Condition for a named mode (games add history via the game
     prompt automatically). Use dataclasses.replace() to layer overrides."""
-    legality, representation, prompt_style = MODES[mode]
-    return Condition(legality=legality, representation=representation, prompt_style=prompt_style)
+    legality, representation, prompt_style, puzzle_protocol = MODES[mode]
+    return Condition(
+        legality=legality,
+        representation=representation,
+        prompt_style=prompt_style,
+        puzzle_protocol=puzzle_protocol,
+    )
 
 
 def render_position(bd: chess.Board, cond: Condition, history_san: list[str] | None = None) -> str:
@@ -158,12 +219,19 @@ def build_puzzle_prompt(bd: chess.Board, cond: Condition, illegal_feedback: str 
         lines += ["", _legal_line(bd, cond)]
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
-    lines += ["", f"Reply with your move in {notation_name}."]
+    if cond.puzzle_protocol == PuzzleProtocol.FULL_LINE:
+        lines += [
+            "",
+            "Calculate the complete solution now, including the opponent's forced replies.",
+            f"Reply with every move in order in {notation_name}, starting with `line:`.",
+        ]
+    else:
+        lines += ["", f"Reply with your move in {notation_name}."]
     if cond.prompt_style == PromptStyle.COT:
         lines += ["Think step by step, then give your final move as `answer: <move>`."]
     elif cond.explain:
         lines += ["Then, on a new line starting `why:`, add a brief explanation of your move."]
-    elif cond.prompt_style == PromptStyle.MINIMAL:
+    elif cond.prompt_style == PromptStyle.MINIMAL and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE:
         lines += ["Reply with ONLY the move, no explanation."]
     if illegal_feedback:
         lines += ["", f"Your previous answer was illegal: {illegal_feedback}. Choose a legal move."]

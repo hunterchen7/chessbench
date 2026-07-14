@@ -1,4 +1,4 @@
-"""Aggregate PuzzleResults into a leaderboard-ready report with error bars."""
+"""Aggregate puzzle results into a points-first benchmark report."""
 
 from __future__ import annotations
 
@@ -41,6 +41,15 @@ class PuzzleReport:
         return self.solved / self.n if self.n else 0.0
 
     @property
+    def points(self) -> float:
+        """Points earned; a complete puzzle is 1 and partial lines are fractional."""
+        return self.mean_score * self.n
+
+    @property
+    def max_points(self) -> int:
+        return self.n
+
+    @property
     def solve_ci(self) -> tuple[float, float]:
         return metrics.wilson_interval(self.solved, self.n)
 
@@ -80,30 +89,19 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     )
 
 
-def _format_elo(est: RatingEstimate) -> str:
-    if not est.bounded:
-        direction = "≥" if est.rating >= 2000 else "≤"
-        return f"puzzleElo:  {direction}{est.rating:.0f} (railed: solved {'all' if est.rating >= 2000 else 'none'})"
-    lo, hi = est.ci95()
-    return f"puzzleElo:  {est.rating:.0f}  (95% CI {lo:.0f}-{hi:.0f})  [MLE performance rating]"
-
-
 def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
     lo, hi = rep.solve_ci
-    ir = rep.implied_rating
     lines = [
         f"agent:      {rep.agent}",
         f"condition:  {rep.condition}",
         f"puzzles:    {rep.n}",
         f"solved:     {rep.solved}/{rep.n} = {rep.solve_rate:.1%}  (95% CI {lo:.1%}-{hi:.1%})",
-        f"meanScore:  {rep.mean_score:.1%} (partial credit for multi-move puzzles)",
-        _format_elo(rep.elo),
-        f"impliedElo: {ir:.0f} (rating-bucket 50% crossing)" if ir is not None else "impliedElo: n/a",
+        f"points:     {rep.points:.2f}/{rep.max_points} (partial credit for correct sequence plies)",
         f"legalMove%: {rep.first_move_legal_rate:.1%} first-attempt legal  "
         f"({rep.total_illegal_attempts} illegal attempts total)",
         f"failures:   {rep.failures_wrong} wrong-move, {rep.failures_illegal} illegal",
         "",
-        "rating-bucketed accuracy:",
+        "difficulty-bucketed accuracy:",
         "  bucket        n    solved   acc     95% CI",
     ]
     for b in rep.curve.buckets:

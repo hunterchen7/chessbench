@@ -45,13 +45,7 @@ class SuiteRef:
 
 
 def _condition_dict(c: Condition) -> dict[str, object]:
-    return {
-        "legality": c.legality.value, "representation": c.representation.value,
-        "notation": c.notation.value, "prompt_style": c.prompt_style.value,
-        "context_mode": c.context_mode.value, "explain": c.explain,
-        "retry_attempts": c.retry_attempts, "otb_illegal_limit": c.otb_illegal_limit,
-        "temperature": c.temperature, "reasoning_effort": c.reasoning_effort, "slug": c.slug(),
-    }
+    return c.to_dict()
 
 
 @dataclass
@@ -64,6 +58,8 @@ class RunRecord:
     puzzles: dict[str, Puzzle] = field(default_factory=dict)  # id -> Puzzle, to embed board+solution
     suite: SuiteRef | None = None
     cost_usd: float | None = None
+    run_id: str | None = None
+    model_variant: dict[str, object] | None = None
     created: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
 
     def to_dict(self) -> dict[str, object]:
@@ -83,19 +79,18 @@ class RunRecord:
             item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
             items.append(item)
         rep = self.report
-        lo, hi = rep.elo.ci95()
-        # JSON has no Infinity: emit null for the CI of a railed (unbounded) estimate.
-        ci = [round(lo, 1) if math.isfinite(lo) else None, round(hi, 1) if math.isfinite(hi) else None]
+        kind = "woodpecker" if self.condition.puzzle_protocol.value == "full_line" else "puzzle"
         return {
-            "schema": SCHEMA, "kind": "puzzle", "created": self.created,
+            "schema": SCHEMA, "run_id": self.run_id, "kind": kind, "created": self.created,
             "model": self.model, "provider": self.provider,
+            "model_variant": self.model_variant,
             "suite": asdict(self.suite) if self.suite else None,
             "condition": _condition_dict(self.condition),
             "summary": {
                 "n": rep.n, "solved": rep.solved, "solve_rate": rep.solve_rate,
                 "mean_score": rep.mean_score, "first_move_legal_rate": rep.first_move_legal_rate,
-                "puzzle_elo": round(rep.elo.rating, 1), "puzzle_elo_ci": ci,
-                "puzzle_elo_bounded": rep.elo.bounded, "cost_usd": self.cost_usd,
+                "points": round(rep.points, 4), "max_points": rep.max_points,
+                "cost_usd": self.cost_usd,
             },
             "themes": [{"theme": t.theme, "n": t.total, "accuracy": t.accuracy} for t in rep.themes],
             "items": items,

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
@@ -53,13 +54,17 @@ def run_puzzles(
     log_path: str | Path | None = None,
     progress_every: int = 0,
     resume_path: str | Path | None = None,
+    completed: dict[str, PuzzleResult] | None = None,
+    on_result: Callable[[int, Puzzle, PuzzleResult], None] | None = None,
 ) -> tuple[PuzzleReport, list[PuzzleResult]]:
     """Grade every puzzle and aggregate a report. If `resume_path` is given, it's a
     per-puzzle checkpoint appended as each puzzle finishes (flushed): already-graded
     puzzles are loaded and skipped, so a run killed mid-way resumes where it left off."""
     results: list[PuzzleResult] = []
     errors = 0
-    done = _load_checkpoint(resume_path) if resume_path else {}
+    done = dict(completed or {})
+    if resume_path:
+        done.update(_load_checkpoint(resume_path))
     if done:
         print(f"  [resume] {len(done)} puzzles already done; continuing")
     log_f = open(log_path, "w", encoding="utf-8") if log_path else None
@@ -69,7 +74,6 @@ def run_puzzles(
         start = time.time()
         for i, p in enumerate(puzzles, 1):
             cached = p.id in done
-            errored = False
             if cached:
                 res = done[p.id]
             else:
@@ -79,8 +83,6 @@ def run_puzzles(
                 except ModelError as exc:
                     errors += 1
                     consecutive_errors += 1
-                    errored = True
-                    res = _error_result(p)
                     if errors <= 3:
                         print(f"  [warn] model error on {p.id}: {exc}")
                     # A run of errors means a persistent outage (e.g. the budget cap):
@@ -91,18 +93,23 @@ def run_puzzles(
                             f"aborting after {consecutive_errors} consecutive model errors "
                             f"(budget cap / outage?); progress checkpointed for resume"
                         ) from exc
+                    continue
             results.append(res)
             if log_f:
                 log_f.write(json.dumps(asdict(res)) + "\n")
             # Only checkpoint genuine gradings — never transient errors, so a resume retries them.
-            if resume_f and not cached and not errored:
+            if resume_f and not cached:
                 resume_f.write(json.dumps(asdict(res)) + "\n")
                 resume_f.flush()  # durable per-puzzle so a kill loses nothing
+            if on_result and not cached:
+                on_result(i - 1, p, res)
             if progress_every and i % progress_every == 0:
                 rate = sum(r.solved for r in results) / len(results)
                 print(f"  [{i}/{len(puzzles)}] solve-rate {rate:.1%} ({time.time() - start:.1f}s)")
         if errors:
-            print(f"  [warn] {errors}/{len(puzzles)} puzzles hit a model error (counted as failed)")
+            raise RuntimeError(
+                f"{errors}/{len(puzzles)} provider calls failed; successful items are persisted and missing items will retry"
+            )
     finally:
         if log_f:
             log_f.close()

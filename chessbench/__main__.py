@@ -60,6 +60,8 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         explain=args.explain,
         temperature=args.temperature,
         reasoning_effort=getattr(args, "reasoning", None),
+        reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
+        max_output_tokens=getattr(args, "max_output_tokens", 2048),
     )
 
 
@@ -85,7 +87,11 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
     if args.agent == "openrouter":
         from .models import OpenRouterModel
 
-        return LLMAgent(OpenRouterModel(args.model or "openai/gpt-4o-mini"))
+        return LLMAgent(OpenRouterModel(
+            args.model or "openai/gpt-4o-mini",
+            reasoning_effort=getattr(args, "reasoning", None),
+            reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
+        ))
     if args.agent == "openrouter-vision":
         from .agents import VisionAgent
         from .models import OpenRouterModel
@@ -132,6 +138,12 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         if ckpt:
             Path(ckpt).unlink(missing_ok=True)  # run complete -> drop the checkpoint
     return 0
+
+
+def cmd_woodpecker(args: argparse.Namespace) -> int:
+    """Run the one-shot full-variation puzzle track."""
+    args.mode = 4
+    return cmd_puzzles(args)
 
 
 def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, stack: ExitStack) -> Agent:
@@ -280,7 +292,13 @@ def _build_study_agent(args: argparse.Namespace, engine: "Engine | None", stack:
     return LLMGameAgent(_build_model(spec, args.model))
 
 
-def _build_model(spec: str, model_id: str | None, *, reasoning_effort: str | None = None) -> "Model":
+def _build_model(
+    spec: str,
+    model_id: str | None,
+    *,
+    reasoning_effort: str | None = None,
+    reasoning_max_tokens: int | None = None,
+) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
 
     if spec == "anthropic":
@@ -288,7 +306,11 @@ def _build_model(spec: str, model_id: str | None, *, reasoning_effort: str | Non
     if spec == "openai":
         return OpenAIModel(model_id or "gpt-4.1")
     if spec == "openrouter":
-        return OpenRouterModel(model_id or "openai/gpt-4o-mini", reasoning_effort=reasoning_effort)
+        return OpenRouterModel(
+            model_id or "openai/gpt-4o-mini",
+            reasoning_effort=reasoning_effort,
+            reasoning_max_tokens=reasoning_max_tokens,
+        )
     raise SystemExit(f"unknown model provider: {spec}")
 
 
@@ -320,8 +342,7 @@ def _elo_cell(est) -> str:
 
 
 def cmd_leaderboard(args: argparse.Namespace) -> int:
-    """Puzzle-Elo leaderboard on ONE frozen suite. With --legalities it becomes a
-    matrix of Elo per setting ("elo using the different settings")."""
+    """Points leaderboard on one frozen suite, optionally swept by condition."""
     from .agents import LLMAgent, RandomAgent, StockfishAgent
     from .core.engine import EngineConfig, find_stockfish
     from .suite import load_suite
@@ -338,7 +359,7 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
     print(f"settings: legality={legalities}, {args.representation}/{args.notation}/{args.prompt_style}\n")
 
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
-    # rows[name] = {legality: RatingEstimate, "_solved": solve_rate under first legality}
+    # rows[name] = {legality: PuzzleReport, ...}
     rows: dict[str, dict[str, object]] = {}
     with ExitStack() as stack:
         agents: list[Agent] = []
@@ -353,21 +374,24 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
             for legality in legalities:
                 print(f"  running {agent.name} [{legality}] ...")
                 report, _ = run_puzzles(agent, puzzles, condition_for(legality))
-                rows[agent.name][legality] = report.elo
+                rows[agent.name][legality] = report
                 if legality == legalities[0]:
                     rows[agent.name]["_solved"] = report.solve_rate
                     rows[agent.name]["_legal"] = report.first_move_legal_rate
 
-    order = sorted(rows, key=lambda name: getattr(rows[name][legalities[0]], "rating", 0.0), reverse=True)
+    order = sorted(rows, key=lambda name: getattr(rows[name][legalities[0]], "points", 0.0), reverse=True)
     header = f"{'model':<38} " + " ".join(f"{lg:>12}" for lg in legalities) + f" {'solved':>7} {'legal':>7}"
     print("\n" + header)
     print("-" * len(header))
     for name in order:
-        cells = " ".join(f"{_elo_cell(rows[name][lg]):>12}" for lg in legalities)
+        cells = " ".join(
+            f"{getattr(rows[name][lg], 'points', 0.0):>5.1f}/{getattr(rows[name][lg], 'max_points', 0):<5}"
+            for lg in legalities
+        )
         solved = rows[name].get("_solved", 0.0)
         legal = rows[name].get("_legal", 0.0)
         print(f"{name:<38} {cells} {solved:>6.1%} {legal:>6.1%}")  # type: ignore[str-format]
-    print("\npuzzle-Elo = MLE performance rating (rating±half-95%-CI); ≥/≤ = solved all/none")
+    print("\npoints = sum of per-puzzle credit; a full solve is 1 point and correct line prefixes earn partial credit")
     return 0
 
 
@@ -389,34 +413,96 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     """Enroll+run: build a registry model, run a suite, save a run record. Skips
     the model×suite×condition cell if its run file already exists (incremental)."""
     from .agents import LLMAgent
+    from .database import BenchmarkStore, RunSpec
     from .registry import get_model
     from .suite import load_suite
+    from .variants import ModelVariant, ReasoningConfig
 
     entry = get_model(args.model)
     suite = load_suite(args.suite)
     condition = _base_condition(args)
+    variant = ModelVariant(
+        base_key=entry.label,
+        display_name=entry.label,
+        provider=entry.provider,
+        model_id=entry.model_id,
+        reasoning=ReasoningConfig(
+            effort=condition.reasoning_effort,
+            max_tokens=condition.reasoning_max_tokens,
+        ),
+        max_output_tokens=condition.max_output_tokens,
+    )
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{entry.label}__{condition.slug()}.json"
-    if out.exists() and not args.force:
-        print(f"skip (exists): {out}  — use --force to recompute")
+    out = out_dir / f"{variant.key}__{condition.slug()}.json"
+
+    puzzles = suite.puzzles()
+    track = "woodpecker" if condition.puzzle_protocol.value == "full_line" else "puzzle"
+    spec = RunSpec(
+        track,
+        variant,
+        condition,
+        len(puzzles),
+        suite_name=suite.name,
+        suite_version=suite.version,
+        suite_hash=suite.content_hash,
+        suite_visibility=suite.visibility,
+    )
+    store = BenchmarkStore(args.db)
+    handle = store.start_run(spec, force=args.force)
+    if handle.status == "completed" and not args.force:
+        print(f"skip (completed): {variant.label} × {suite.name} × {condition.slug()}")
+        store.close()
         return 0
 
-    print(f"running {entry.label} on suite {suite.name} [{condition.slug()}] ({len(suite.puzzles())} puzzles)...")
-    model = _build_model(entry.provider, entry.model_id, reasoning_effort=condition.reasoning_effort)
+    print(
+        f"running {variant.label} on {track} suite {suite.name} "
+        f"[{condition.slug()}] ({len(puzzles)} puzzles, {handle.completed_items} already durable)..."
+    )
+    model = _build_model(
+        entry.provider,
+        entry.model_id,
+        reasoning_effort=condition.reasoning_effort,
+        reasoning_max_tokens=condition.reasoning_max_tokens,
+    )
     agent = LLMAgent(model)
-    ckpt = str(out) + ".ckpt.jsonl"  # per-puzzle checkpoint -> a killed run resumes on re-run
-    report, results = run_puzzles(agent, suite.puzzles(), condition, progress_every=args.progress, resume_path=ckpt)
+    completed = store.load_puzzle_results(handle.run_id)
+    prior_cost = float(getattr(model, "total_cost", 0.0))
+
+    def persist(seq: int, puzzle, result) -> None:
+        nonlocal prior_cost
+        total_cost = float(getattr(model, "total_cost", prior_cost))
+        item_cost = max(0.0, total_cost - prior_cost)
+        prior_cost = total_cost
+        store.save_puzzle_result(handle.run_id, seq, puzzle, result, cost_usd=item_cost)
+
+    try:
+        report, results = run_puzzles(
+            agent,
+            puzzles,
+            condition,
+            progress_every=args.progress,
+            completed=completed,
+            on_result=persist,
+        )
+    except BaseException as exc:
+        store.mark_partial(handle.run_id, str(exc))
+        store.close()
+        raise
+    cost = float(getattr(model, "total_cost", 0.0))
+    store.finalize_puzzle_run(handle.run_id, report, cost_usd=cost)
+    store.close()
     print(format_report(report))
     record = RunRecord(
         model=entry.model_id, provider=entry.provider, condition=condition, report=report,
-        results=results, puzzles={p.id: p for p in suite.puzzles()},
+        results=results, puzzles={p.id: p for p in puzzles},
         suite=SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash),
-        cost_usd=getattr(model, "total_cost", None),
+        cost_usd=cost,
+        run_id=handle.run_id,
+        model_variant=variant.to_dict(),
     )
     save_run(record, out)
-    Path(ckpt).unlink(missing_ok=True)  # run complete -> drop the checkpoint
-    print(f"\nsaved run -> {out}")
+    print(f"\ncompleted {handle.run_id}; wrote JSON export -> {out}")
     return 0
 
 
@@ -429,8 +515,8 @@ def cmd_category_leaderboard(args: argparse.Namespace) -> int:
         print(f"no run records in {args.runs_dir}")
         return 0
     board = category_leaderboard(runs, min_n=args.min_n, dim=args.dim)
-    print(f"per-category leaderboard from {len(runs)} run(s)"
-          + (f", dimension '{args.dim}'" if args.dim else "") + "  (* = unbounded Elo)")
+    print(f"per-category points from {len(runs)} run(s)"
+          + (f", dimension '{args.dim}'" if args.dim else ""))
     print(format_category_leaderboard(board))
     return 0
 
@@ -547,15 +633,17 @@ def cmd_tournament(args: argparse.Namespace) -> int:
             save_tournament(record, args.save)
             print(f"saved tournament -> {args.save}")
         if pusher:
-            pusher.push_final(json_safe(record.to_dict()))  # flip the live view to the final rated table
+            final_doc = json_safe(record.to_dict())
+            assert isinstance(final_doc, dict)
+            pusher.push_final(final_doc)  # flip the live view to the final points table
             print("pushed final standings to the backend")
     return 0
 
 
 def _add_condition_args(p: argparse.ArgumentParser) -> None:
     # Mode presets (override the individual axes below). Default run = MODE 2.
-    p.add_argument("--mode", type=int, default=None, choices=[1, 2, 3],
-                   help="1=raw fen+pieces, 2=+legal moves (default), 3=+coaching tips")
+    p.add_argument("--mode", type=int, default=None, choices=[1, 2, 3, 4],
+                   help="1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line")
     # Individual axes default to MODE 2 (hand-holding: legal moves in SAN & UCI).
     p.add_argument("--legality", default="legal_list", choices=[e.value for e in Legality])
     p.add_argument("--representation", default="fen_pieces", choices=[e.value for e in Representation])
@@ -568,8 +656,13 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--explain", action="store_true", help="invite an optional explanation with the move")
     p.add_argument("--temperature", type=float, default=1.0,
                    help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.")
-    p.add_argument("--reasoning", default=None, choices=["low", "medium", "high"],
+    p.add_argument("--reasoning", default=None,
+                   choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
                    help="for reasoning models: how hard to think (adds a reasoning axis to the run)")
+    p.add_argument("--reasoning-tokens", dest="reasoning_tokens", type=int, default=None,
+                   help="exact thinking-token budget; cannot be combined with --reasoning")
+    p.add_argument("--max-output-tokens", dest="max_output_tokens", type=int, default=2048,
+                   help="maximum output tokens, tracked as part of the model variant")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -633,19 +726,19 @@ def main(argv: list[str] | None = None) -> int:
     sb.add_argument("--out", required=True)
     sb.set_defaults(func=cmd_suite_build)
 
-    lb = sub.add_parser("leaderboard", help="puzzle-Elo of several models on the SAME suite")
+    lb = sub.add_parser("leaderboard", help="points for several models on the SAME suite")
     lb.add_argument("--suite", required=True)
     lb.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
     lb.add_argument("--models", required=True, help="comma-separated model ids")
     lb.add_argument("--legalities", default=None,
-                    help="comma-separated legality settings to sweep (Elo per setting); defaults to --legality")
+                    help="comma-separated legality settings to sweep (points per setting); defaults to --legality")
     lb.add_argument("--include-baselines", dest="include_baselines", action="store_true",
                     help="also run random + stockfish for reference")
     lb.add_argument("--sf-nodes", type=int, default=200_000)
     _add_condition_args(lb)
     lb.set_defaults(func=cmd_leaderboard)
 
-    t = sub.add_parser("tournament", help="round-robin among LLMs -> game-Elo")
+    t = sub.add_parser("tournament", help="round-robin among LLMs -> match points")
     t.add_argument("--models", default="", help="comma-separated model ids (empty = baselines only)")
     t.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
     t.add_argument("--games", type=int, default=2, help="games per pair (colors alternate)")
@@ -716,12 +809,31 @@ def main(argv: list[str] | None = None) -> int:
     rmp.add_argument("--model", required=True, help="registry label (see `chessbench models`)")
     rmp.add_argument("--suite", required=True)
     rmp.add_argument("--out-dir", dest="out_dir", default="webapp/data/runs")
+    rmp.add_argument("--db", default="runs/chessbench.db",
+                     help="durable local outbox/database (syncs to Cloudflare separately)")
     rmp.add_argument("--force", action="store_true", help="recompute even if the run file exists")
     rmp.add_argument("--progress", type=int, default=10)
     _add_condition_args(rmp)
     rmp.set_defaults(func=cmd_run_model)
 
+    wp = sub.add_parser("woodpecker", help="run puzzles as one-shot complete variations")
+    wp.add_argument("--agent", default="openrouter",
+                    choices=["anthropic", "openai", "openrouter"])
+    wp.add_argument("--model", default=None, help="model id for the LLM agent")
+    wp.add_argument("--data", default=str(DEFAULT_DATA))
+    wp.add_argument("--suite", default=None, help="run a frozen suite instead of --data")
+    wp.add_argument("--limit", type=int, default=None)
+    wp.add_argument("--seed", type=int, default=0)
+    wp.add_argument("--nodes", type=int, default=200_000)
+    _add_condition_args(wp)
+    wp.add_argument("--log", default=None)
+    wp.add_argument("--save-run", dest="save_run", default=None)
+    wp.add_argument("--progress", type=int, default=0)
+    wp.set_defaults(func=cmd_woodpecker)
+
     args = parser.parse_args(argv)
+    if getattr(args, "reasoning", None) is not None and getattr(args, "reasoning_tokens", None) is not None:
+        parser.error("--reasoning and --reasoning-tokens are mutually exclusive")
     return args.func(args)
 
 

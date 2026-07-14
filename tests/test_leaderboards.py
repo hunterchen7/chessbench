@@ -9,7 +9,7 @@ def _run(model, slug, items):
 
 
 def _item(rating, solved, tier, motifs):
-    return {"rating": rating, "solved": solved,
+    return {"rating": rating, "solved": solved, "score": 1.0 if solved else 0.0,
             "categories": {"tier": [tier], "motif": motifs}}
 
 
@@ -21,7 +21,7 @@ def test_category_leaderboard_ranks_within_categories():
     assert "tier:intermediate" in board and "motif:fork" in board
     fork = board["motif:fork"]
     assert [r.model for r in fork][0].startswith("strong")     # stronger ranks first
-    assert fork[0].elo > fork[1].elo
+    assert fork[0].points > fork[1].points
 
 
 def test_min_n_filters_thin_categories():

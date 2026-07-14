@@ -32,10 +32,12 @@ class Usage(TypedDict, total=False):
     completion_tokens: int
     total_tokens: int
     cost: float  # OpenRouter includes USD cost; OpenAI does not
+    completion_tokens_details: dict[str, int]
 
 
-class _Choice(TypedDict):
-    message: Message
+class _Choice(TypedDict, total=False):
+    message: dict[str, object]
+    finish_reason: str
 
 
 class _Response(TypedDict, total=False):
@@ -59,6 +61,7 @@ class _OpenAICompatModel:
         timeout: float = 120.0,
         max_retries: int = 4,
         reasoning_effort: str | None = None,
+        reasoning_max_tokens: int | None = None,
     ) -> None:
         self.name = model
         self._model = model
@@ -68,8 +71,10 @@ class _OpenAICompatModel:
         self._extra_headers = extra_headers or {}
         self._timeout = timeout
         self._max_retries = max_retries
-        # None => no reasoning; "low"|"medium"|"high" => ask the model to think that hard.
+        if reasoning_effort is not None and reasoning_max_tokens is not None:
+            raise ValueError("reasoning_effort and reasoning_max_tokens are mutually exclusive")
         self._reasoning_effort = reasoning_effort
+        self._reasoning_max_tokens = reasoning_max_tokens
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
@@ -97,13 +102,20 @@ class _OpenAICompatModel:
     def _complete(self, messages: list[object], temperature: float, max_tokens: int) -> str:
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
-        payload: dict[str, object] = {"model": self._model, "messages": messages,
-                                      "temperature": temperature, "max_tokens": max_tokens}
+        payload: dict[str, object] = {
+            "model": self._model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            # The benchmark never offers or executes tools.  Explicitly disabling
+            # tool choice also protects against provider/router defaults changing.
+            "tool_choice": "none",
+        }
         if self._reasoning_effort is not None:
-            # Ask the provider to think at this effort. Give the completion headroom so
-            # the chain-of-thought + the final move aren't truncated.
-            payload["reasoning"] = {"effort": self._reasoning_effort}
-            payload["max_tokens"] = max(max_tokens, 8000)
+            payload["reasoning"] = {"effort": self._reasoning_effort, "exclude": True}
+        elif self._reasoning_max_tokens is not None:
+            payload["reasoning"] = {"max_tokens": self._reasoning_max_tokens, "exclude": True}
+            payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
         data = json.dumps(payload).encode("utf-8")
         headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json",
                    **self._extra_headers}
@@ -114,12 +126,17 @@ class _OpenAICompatModel:
         choices = parsed.get("choices")
         if not choices:
             raise ModelError(f"{self._model}: no choices in response: {body[:200]}")
+        choice = choices[0]
+        message = choice.get("message", {})
+        if choice.get("finish_reason") == "tool_calls" or message.get("tool_calls"):
+            raise ModelError(f"{self._model}: provider returned a forbidden tool call")
         usage = parsed.get("usage")
         if usage is not None:
             self.last_usage = usage
             self.last_cost = float(usage.get("cost", 0.0))
             self.total_cost += self.last_cost
-        return choices[0]["message"]["content"] or ""
+        content = message.get("content")
+        return content if isinstance(content, str) else ""
 
     def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
         return self._complete(list(messages), temperature, max_tokens)
@@ -142,7 +159,7 @@ class OpenRouterModel(_OpenAICompatModel):
     ``google/gemini-2.0-flash-001``). Reports USD cost per call."""
 
     def __init__(self, model: str, *, api_key: str | None = None, timeout: float = 120.0,
-                 reasoning_effort: str | None = None) -> None:
+                 reasoning_effort: str | None = None, reasoning_max_tokens: int | None = None) -> None:
         super().__init__(
             model,
             base_url="https://openrouter.ai/api/v1",
@@ -154,6 +171,7 @@ class OpenRouterModel(_OpenAICompatModel):
             },
             timeout=timeout,
             reasoning_effort=reasoning_effort,
+            reasoning_max_tokens=reasoning_max_tokens,
         )
 
 

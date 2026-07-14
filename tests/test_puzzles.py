@@ -7,7 +7,7 @@ Puzzle: Black (setup) shuffles a distant queen, then White has Ra8#.
 import chess
 
 from chessbench.agents import TurnContext
-from chessbench.conditions import HEADLINE, Condition, Legality
+from chessbench.conditions import HEADLINE, Condition, Legality, mode_condition
 from chessbench.tasks.puzzles import Puzzle, grade_puzzle
 
 # FEN is BEFORE the opponent's setup move; moves[0] is that setup move.
@@ -32,6 +32,11 @@ class FixedAgent:
         r = self._replies[min(self._i, len(self._replies) - 1)]
         self._i += 1
         return r
+
+
+class FixedLineAgent(FixedAgent):
+    def solve_line(self, board: chess.Board, ctx: TurnContext) -> str:
+        return self.choose(board, ctx)
 
 
 def test_setup_move_applied_and_solver_is_white():
@@ -136,3 +141,17 @@ def test_alternate_solution_accepted():
     )
     res = grade_puzzle(FixedAgent("e7e5", "g8f6"), puzzle, HEADLINE)
     assert res.solved and res.score == 1.0
+
+
+def test_full_line_protocol_grades_one_request():
+    res = grade_puzzle(FixedLineAgent("line: e5 Nf3 Nc6"), TWO_MOVE, mode_condition(4))
+    assert res.solved
+    assert res.moves_played == ["e7e5", "g1f3", "b8c6"]
+    assert res.plies_correct == 2
+
+
+def test_full_line_protocol_gives_prefix_partial_credit():
+    res = grade_puzzle(FixedLineAgent("line: e5 Nf3 a6"), TWO_MOVE, mode_condition(4))
+    assert not res.solved
+    assert res.failure_reason == "wrong_move"
+    assert res.score == 0.5

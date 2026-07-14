@@ -2,7 +2,7 @@
 rankings (how does each model do at forks, at mates, at each difficulty tier?).
 
 Reads the run-record JSONs the web app already consumes, buckets every graded
-item by its category dimensions, and computes a solve rate + MLE puzzle-Elo per
+item by its category dimensions, and computes points + solve rate per
 model within each category.
 """
 
@@ -12,7 +12,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .rating import puzzle_elo
 from .store import SCHEMA, load_run
 
 
@@ -22,8 +21,8 @@ class CatRow:
     n: int
     solved: int
     solve_rate: float
-    elo: float
-    bounded: bool
+    points: float
+    max_points: int
 
 
 def load_runs(directory: str | Path) -> list[dict[str, object]]:
@@ -41,7 +40,7 @@ def load_runs(directory: str | Path) -> list[dict[str, object]]:
 def category_leaderboard(
     runs: list[dict[str, object]], *, min_n: int = 3, dim: str | None = None
 ) -> dict[str, list[CatRow]]:
-    """category ("dim:value") -> models ranked by puzzle-Elo within that category."""
+    """category ("dim:value") -> models ranked by points within that category."""
     buckets: dict[str, dict[str, list[tuple[float, bool]]]] = defaultdict(lambda: defaultdict(list))
     for run in runs:
         cond = run.get("condition")
@@ -56,7 +55,7 @@ def category_leaderboard(
                 if dim and d != dim:
                     continue
                 for v in values:
-                    buckets[f"{d}:{v}"][key].append((float(it["rating"]), bool(it["solved"])))
+                    buckets[f"{d}:{v}"][key].append((float(it.get("score", 0.0)), bool(it["solved"])))
 
     out: dict[str, list[CatRow]] = {}
     for category, models in buckets.items():
@@ -65,10 +64,10 @@ def category_leaderboard(
             if len(pairs) < min_n:
                 continue
             solved = sum(1 for _, s in pairs if s)
-            est = puzzle_elo(pairs)
-            rows.append(CatRow(key, len(pairs), solved, solved / len(pairs), est.rating, est.bounded))
+            points = sum(score for score, _ in pairs)
+            rows.append(CatRow(key, len(pairs), solved, solved / len(pairs), points, len(pairs)))
         if rows:
-            out[category] = sorted(rows, key=lambda r: r.elo, reverse=True)
+            out[category] = sorted(rows, key=lambda r: (r.points, r.solve_rate), reverse=True)
     return out
 
 
@@ -77,6 +76,8 @@ def format_category_leaderboard(board: dict[str, list[CatRow]]) -> str:
     for category in sorted(board):
         lines.append(f"\n[{category}]")
         for r in board[category]:
-            elo = f"{r.elo:.0f}" + ("" if r.bounded else "*")
-            lines.append(f"  {r.model:<48} {r.solve_rate:>6.1%} solved   elo {elo:>7}   (n={r.n})")
+            lines.append(
+                f"  {r.model:<48} {r.points:>6.2f}/{r.max_points:<4} points  "
+                f"{r.solve_rate:>6.1%} solved"
+            )
     return "\n".join(lines) if lines else "(no categories with enough data)"

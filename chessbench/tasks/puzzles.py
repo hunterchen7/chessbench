@@ -26,7 +26,7 @@ from typing import Iterator
 import chess
 
 from ..agents import Agent, TurnContext
-from ..conditions import Condition, Legality
+from ..conditions import Condition, Legality, PuzzleProtocol
 from ..core import board as board_utils
 from ..types import PuzzleFailure
 
@@ -151,6 +151,9 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
     line's final ply). Every move is validated with python-chess -- legality is
     never decided by a lenient string match.
     """
+    if condition.puzzle_protocol == PuzzleProtocol.FULL_LINE:
+        return _grade_full_line(agent, puzzle, condition)
+
     board = chess.Board(puzzle.fen)
     board.push(chess.Move.from_uci(puzzle.moves[0]))
 
@@ -229,6 +232,61 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             board.push(reply)
             active = [i for i in active if len(lines[i]) > pos + 1 and lines[i][pos + 1] == reply_uci]
         k += 1
+
+
+def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleResult:
+    """Grade a Woodpecker-style one-shot answer containing the full variation.
+
+    The expected line includes both the solver's moves and the forced replies.
+    Partial credit counts correct solver plies in the longest matching prefix,
+    exactly as the move-by-move protocol does.
+    """
+    solve_line = getattr(agent, "solve_line", None)
+    if not callable(solve_line):
+        raise TypeError("full-line puzzle protocol requires an agent with solve_line()")
+
+    board = chess.Board(puzzle.fen)
+    board.push(chess.Move.from_uci(puzzle.moves[0]))
+    ctx = TurnContext(condition=condition)
+    raw = str(solve_line(board.copy(), ctx))
+    moves = board_utils.extract_move_sequence(board, raw)
+    played = [m.uci() for m in moves]
+    lines = puzzle.solution_lines()
+    n_solver = puzzle.num_solver_plies() or 1
+
+    best_prefix = 0
+    solved = False
+    for line in lines:
+        prefix = 0
+        for actual, expected in zip(played, line):
+            if actual != expected:
+                break
+            prefix += 1
+        best_prefix = max(best_prefix, prefix)
+        if len(played) >= len(line) and played[: len(line)] == line:
+            solved = True
+
+    plies_correct = sum(1 for i in range(best_prefix) if i % 2 == 0)
+    first_move_legal = bool(moves)
+    failure: PuzzleFailure | None = None if solved else ("wrong_move" if moves else "illegal")
+    answer_move = played[0] if played else raw.strip().split("\n")[0][:40]
+    return PuzzleResult(
+        puzzle_id=puzzle.id,
+        rating=puzzle.rating,
+        themes=puzzle.themes,
+        solved=solved,
+        score=1.0 if solved else plies_correct / n_solver,
+        first_move_legal=first_move_legal,
+        all_moves_legal=bool(moves),
+        illegal_attempts=0 if moves else 1,
+        failure_reason=failure,
+        solver_plies=n_solver,
+        plies_correct=plies_correct,
+        moves_played=played,
+        answer_move=answer_move,
+        answer_explanation=ctx.last_explanation,
+        answer_raw=(ctx.last_raw_response or raw)[:2000],
+    )
 
 
 def iter_grades(agent: Agent, puzzles: list[Puzzle], condition: Condition) -> Iterator[PuzzleResult]:

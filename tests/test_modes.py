@@ -1,9 +1,9 @@
-"""The 3 help modes: 1 raw, 2 +legal moves (SAN & UCI), 3 +coaching tips."""
+"""The 4 puzzle protocols, from raw position through a full-line answer."""
 
 import chess
 
 from chessbench.conditions import (
-    DEFAULT_MODE, Legality, PromptStyle, build_puzzle_prompt, mode_condition,
+    DEFAULT_MODE, Legality, PromptStyle, PuzzleProtocol, build_puzzle_prompt, mode_condition,
 )
 
 B = chess.Board()
@@ -26,6 +26,14 @@ def test_mode3_adds_coaching_tips():
     p = build_puzzle_prompt(B, mode_condition(3))
     assert "Legal moves" in p
     assert "checklist" in p.lower() and "check" in p.lower()
+
+
+def test_mode4_requests_the_complete_woodpecker_line():
+    p = build_puzzle_prompt(B, mode_condition(4))
+    assert "complete solution" in p.lower()
+    assert "forced replies" in p.lower()
+    assert "line:" in p
+    assert mode_condition(4).puzzle_protocol == PuzzleProtocol.FULL_LINE
 
 
 def test_mode_presets_and_default():

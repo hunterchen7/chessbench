@@ -120,7 +120,9 @@ class LLMAgent:
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         cond = ctx.condition
         prompt = conditions.build_puzzle_prompt(board, cond, ctx.illegal_feedback)
-        raw = self._model.generate(prompt, temperature=cond.temperature)
+        raw = self._model.generate(
+            prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+        )
         ctx.last_prompt = prompt
         ctx.last_raw_response = raw
         # Extract a legal move if we can; else return the raw text so the grader
@@ -130,6 +132,19 @@ class LLMAgent:
         if move is not None:
             return move.uci()  # commit to the extracted move as canonical UCI
         return raw.strip().split("\n")[0][:40]
+
+    def solve_line(self, board: chess.Board, ctx: TurnContext) -> str:
+        """Answer a tactical puzzle in one request with the full variation."""
+        cond = ctx.condition
+        prompt = conditions.build_puzzle_prompt(board, cond, ctx.illegal_feedback)
+        raw = self._model.generate(
+            prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+        )
+        ctx.last_prompt = prompt
+        ctx.last_raw_response = raw
+        _move, _token, explanation = board_utils.extract_move_and_explanation(board, raw)
+        ctx.last_explanation = explanation
+        return raw
 
 
 class VisionAgent:
@@ -196,12 +211,16 @@ class LLMGameAgent:
         system_msg: Message = {"role": "system", "content": self._system}
         user_msg: Message = {"role": "user", "content": user}
         if cond.context_mode == conditions.ContextMode.FRESH:
-            raw = self._model.chat([system_msg, user_msg], temperature=cond.temperature)
+            raw = self._model.chat(
+                [system_msg, user_msg], temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            )
         else:  # GROWING / HYBRID: persist the conversation across turns
             if not self._messages:
                 self._messages.append(system_msg)
             self._messages.append(user_msg)
-            raw = self._model.chat(self._messages, temperature=cond.temperature)
+            raw = self._model.chat(
+                self._messages, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            )
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
 
