@@ -3,53 +3,74 @@ import { Link } from "react-router-dom"
 import { Trophy, User, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
 import type { Run } from "@/lib/data"
-import { eloText, modeLabel, pct } from "@/lib/format"
+import { eloText, MODES, modeInfo, pct } from "@/lib/format"
 import { humanSummary } from "@/lib/human"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const displayName = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
 
-function bestRun(runs: Run[]): Run {
-  return runs.slice().sort((a, b) => b.summary.n - a.summary.n || b.summary.puzzle_elo - a.summary.puzzle_elo)[0]
+function ModeBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
+        active ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  )
 }
+
+type ModeMap = Partial<Record<1 | 2 | 3, Run>>
 
 export function Leaderboard() {
   const { runs, puzzleIndex, tournaments, apiBase } = useData()
-  const [mode, setMode] = useState("best")
+  // "compare" = the 3-mode matrix; "1"/"2"/"3" = a single mode ranked.
+  const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
   const [humans, setHumans] = useState<HumanRow[]>([])
 
   useEffect(() => {
     if (apiBase) fetchHumanLeaderboard(apiBase).then(setHumans)
   }, [apiBase])
 
-  const conditions = useMemo(
-    () => Array.from(new Set(runs.map((r) => r.condition.slug))).sort(),
-    [runs],
-  )
-
-  const rows = useMemo(() => {
-    const byModel = new Map<string, Run[]>()
+  // Group public-suite runs by model and by help mode (Raw / Assisted / Coached).
+  const byModelMode = useMemo(() => {
+    const m = new Map<string, ModeMap>()
     for (const r of runs) {
-      if (mode !== "best" && r.condition.slug !== mode) continue
-      const arr = byModel.get(r.model) ?? []
-      arr.push(r)
-      byModel.set(r.model, arr)
+      if (r.suite && r.suite.name !== "tactical-public-v1") continue // matrix compares one suite
+      const mi = modeInfo(r.condition)
+      if (!mi) continue
+      const rec = m.get(r.model) ?? {}
+      const cur = rec[mi.n]
+      if (!cur || r.summary.n > cur.summary.n) rec[mi.n] = r
+      m.set(r.model, rec)
     }
-    return Array.from(byModel.entries())
-      .map(([model, rs]) => ({ model, run: bestRun(rs), count: rs.length }))
+    return m
+  }, [runs])
+
+  // Models ordered by their Assisted (mode 2) Elo, falling back to any mode.
+  const modelRows = useMemo(() => {
+    const arr = Array.from(byModelMode.entries()).map(([model, modes]) => {
+      const anchor = modes[2] ?? modes[3] ?? modes[1]
+      return { model, modes, anchorElo: anchor?.summary.puzzle_elo ?? -1 }
+    })
+    arr.sort((a, b) => b.anchorElo - a.anchorElo)
+    return arr
+  }, [byModelMode])
+
+  const singleRows = useMemo(() => {
+    if (view === "compare") return []
+    const n = Number(view) as 1 | 2 | 3
+    return modelRows
+      .filter((r) => r.modes[n])
+      .map((r) => ({ model: r.model, run: r.modes[n]! }))
       .sort((a, b) => b.run.summary.puzzle_elo - a.run.summary.puzzle_elo)
-  }, [runs, mode])
+  }, [modelRows, view])
 
   const human = humanSummary(puzzleIndex)
 
@@ -70,44 +91,48 @@ export function Leaderboard() {
         </TabsList>
 
         <TabsContent value="puzzle" className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {rows.length} models · {puzzleIndex.size} unique puzzles
+              {modelRows.length} models · {puzzleIndex.size} unique puzzles · public suite
             </p>
-            <Select value={mode} onValueChange={setMode}>
-              <SelectTrigger className="w-[280px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="best">Best run per model</SelectItem>
-                {conditions.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap gap-1">
+              <ModeBtn active={view === "compare"} onClick={() => setView("compare")}>
+                Compare modes
+              </ModeBtn>
+              {MODES.map((m) => (
+                <ModeBtn key={m.n} active={view === String(m.n)} onClick={() => setView(String(m.n) as "1" | "2" | "3")}>
+                  {m.n}. {m.name}
+                </ModeBtn>
+              ))}
+            </div>
           </div>
+          {view !== "compare" && (
+            <p className="-mt-2 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">
+                Mode {view}: {MODES[Number(view) - 1].name}
+              </span>{" "}
+              — {MODES[Number(view) - 1].blurb}
+            </p>
+          )}
 
           <Card>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12 text-center">#</TableHead>
-                    <TableHead>Model</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead className="text-right">Puzzle Elo</TableHead>
-                    <TableHead className="text-right">Solve rate</TableHead>
-                    <TableHead className="text-right">Legal 1st</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, i) => {
-                    const e = eloText(row.run.summary)
-                    return (
-                      <TableRow key={row.model} className="cursor-pointer">
+              {view === "compare" ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead>Model</TableHead>
+                      {MODES.map((m) => (
+                        <TableHead key={m.n} className="text-right">
+                          {m.n}. {m.name}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {modelRows.map((row, i) => (
+                      <TableRow key={row.model}>
                         <TableCell className="text-center font-mono text-muted-foreground">
                           {i === 0 ? <Trophy className="mx-auto size-4 text-chart-4" /> : i + 1}
                         </TableCell>
@@ -115,53 +140,89 @@ export function Leaderboard() {
                           <Link to={`/model/${encodeURIComponent(row.model)}`} className="font-medium hover:underline">
                             {displayName(row.model)}
                           </Link>
-                          {row.count > 1 && (
-                            <span className="ml-2 text-xs text-muted-foreground">{row.count} runs</span>
-                          )}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-1">
-                            <Badge variant="secondary">{modeLabel(row.run.condition)}</Badge>
-                            {row.run.condition.reasoning_effort && (
-                              <Badge className="bg-chart-4/15 text-chart-4">🧠 {row.run.condition.reasoning_effort}</Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold tabular-nums">
-                          {e.value}
-                          {e.ci && <span className="ml-1 text-xs font-normal text-muted-foreground">{e.ci}</span>}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(row.run.summary.solve_rate)}</TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {pct(row.run.summary.first_move_legal_rate)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
-                          {row.run.summary.cost_usd != null ? `$${row.run.summary.cost_usd.toFixed(3)}` : "—"}
+                        {MODES.map((m) => {
+                          const run = row.modes[m.n]
+                          return (
+                            <TableCell key={m.n} className="text-right">
+                              {run ? (
+                                <>
+                                  <span className="font-mono font-semibold tabular-nums">{eloText(run.summary).value}</span>
+                                  <div className="text-xs text-muted-foreground">{pct(run.summary.solve_rate)}</div>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-center">#</TableHead>
+                      <TableHead>Model</TableHead>
+                      <TableHead className="text-right">Puzzle Elo</TableHead>
+                      <TableHead className="text-right">Solve rate</TableHead>
+                      <TableHead className="text-right">Legal 1st</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {singleRows.map((row, i) => {
+                      const e = eloText(row.run.summary)
+                      return (
+                        <TableRow key={row.model}>
+                          <TableCell className="text-center font-mono text-muted-foreground">
+                            {i === 0 ? <Trophy className="mx-auto size-4 text-chart-4" /> : i + 1}
+                          </TableCell>
+                          <TableCell>
+                            <Link to={`/model/${encodeURIComponent(row.model)}`} className="font-medium hover:underline">
+                              {displayName(row.model)}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold tabular-nums">
+                            {e.value}
+                            {e.ci && <span className="ml-1 text-xs font-normal text-muted-foreground">{e.ci}</span>}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">{pct(row.run.summary.solve_rate)}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            {pct(row.run.summary.first_move_legal_rate)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            {row.run.summary.cost_usd != null ? `$${row.run.summary.cost_usd.toFixed(3)}` : "—"}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                    {singleRows.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                          No models have been run in this mode yet.
                         </TableCell>
                       </TableRow>
-                    )
-                  })}
-                  {human.n > 0 && human.elo && (
-                    <TableRow className="bg-secondary/40">
-                      <TableCell className="text-center">
-                        <User className="mx-auto size-4 text-chart-2" />
-                      </TableCell>
-                      <TableCell className="font-medium">You (human)</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">solved in browser</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono font-semibold">
-                        {human.elo.bounded ? human.elo.rating.toFixed(0) : `≥${human.elo.rating.toFixed(0)}`}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {pct(human.solved / human.n)}
-                      </TableCell>
-                      <TableCell className="text-right text-muted-foreground">—</TableCell>
-                      <TableCell className="text-right text-muted-foreground">—</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    )}
+                    {human.n > 0 && human.elo && (
+                      <TableRow className="bg-secondary/40">
+                        <TableCell className="text-center">
+                          <User className="mx-auto size-4 text-chart-2" />
+                        </TableCell>
+                        <TableCell className="font-medium">You (human)</TableCell>
+                        <TableCell className="text-right font-mono font-semibold">
+                          {human.elo.bounded ? human.elo.rating.toFixed(0) : `≥${human.elo.rating.toFixed(0)}`}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{pct(human.solved / human.n)}</TableCell>
+                        <TableCell className="text-right text-muted-foreground">—</TableCell>
+                        <TableCell className="text-right text-muted-foreground">—</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
           <p className="text-xs text-muted-foreground">

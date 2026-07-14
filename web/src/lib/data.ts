@@ -141,6 +141,7 @@ export interface TournamentIndexEntry {
   file: string
   created: string
   status?: "live" | "final"
+  condition_slug?: string | null
   n_players: number
   n_games: number
   winner: string | null

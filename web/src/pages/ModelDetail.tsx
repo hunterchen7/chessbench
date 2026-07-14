@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, Check, ChevronDown, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { eloText, pct, TIER_ORDER } from "@/lib/format"
+import { eloText, MODES, modeInfo, pct, TIER_ORDER } from "@/lib/format"
 import { uciToSan } from "@/lib/chess"
 import { EloChart, type EloPoint } from "@/components/EloChart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -67,6 +67,13 @@ export function ModelDetail() {
     return { tier, n: items.length, solved }
   }).filter((t) => t.n > 0)
 
+  // This model across the 3 help modes (public suite), if run in more than one.
+  const modeRuns = MODES.map((m) => ({
+    mode: m,
+    run: mine.find((r) => r.suite?.name !== "reasoning-mini-v1" && modeInfo(r.condition)?.n === m.n),
+  }))
+  const hasModeComparison = modeRuns.filter((x) => x.run).length > 1
+
   return (
     <div className="space-y-8">
       <div>
@@ -108,6 +115,45 @@ export function ModelDetail() {
         <Stat label="Mean score" value={pct(run.summary.mean_score)} sub="partial credit" />
         <Stat label="Legal 1st move" value={pct(run.summary.first_move_legal_rate)} sub="first-attempt legal" />
       </div>
+
+      {hasModeComparison && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Across the 3 help modes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mode</TableHead>
+                  <TableHead className="text-right">Puzzle Elo</TableHead>
+                  <TableHead className="text-right">Solve rate</TableHead>
+                  <TableHead className="text-right">Legal 1st</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {modeRuns.map(({ mode, run: r }) => (
+                  <TableRow key={mode.n} className={r === run ? "bg-secondary/40" : undefined}>
+                    <TableCell>
+                      <span className="font-medium">
+                        {mode.n}. {mode.name}
+                      </span>{" "}
+                      <span className="text-xs text-muted-foreground">{mode.blurb}</span>
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-semibold tabular-nums">
+                      {r ? eloText(r.summary).value : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{r ? pct(r.summary.solve_rate) : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {r ? pct(r.summary.first_move_legal_rate) : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

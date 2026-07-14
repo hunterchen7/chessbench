@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom"
 import { Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
+import { modeFromSlug } from "@/lib/format"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function Games() {
@@ -24,8 +26,13 @@ export function Games() {
                   <Swords className="size-4 text-muted-foreground" />
                   {t.file.replace(/\.json$/, "")}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="flex items-center gap-2">
                   {t.n_players} players · {t.n_games} games
+                  {modeFromSlug(t.condition_slug) && (
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {modeFromSlug(t.condition_slug)!.n}. {modeFromSlug(t.condition_slug)!.name}
+                    </Badge>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -140,17 +140,18 @@ export async function assembleLiveTournament(env: Env, tid: string): Promise<unk
 /** Live tournaments that do not yet have a final doc (for the index). */
 export async function liveTournamentIndex(env: Env): Promise<Array<Record<string, unknown>>> {
   const { results } = await env.DB.prepare(
-    `SELECT lt.tid AS tid, lt.created AS created, lt.status AS status,
+    `SELECT lt.tid AS tid, lt.created AS created, lt.status AS status, lt.condition_slug AS condition_slug,
             (SELECT COUNT(*) FROM games g WHERE g.tid = lt.tid) AS n_games,
             lt.players_json AS players_json
        FROM live_tournaments lt
        WHERE lt.tid NOT IN (SELECT tid FROM tournaments)
        ORDER BY lt.created DESC`,
-  ).all<{ tid: string; created: string; status: string; n_games: number; players_json: string | null }>()
+  ).all<{ tid: string; created: string; status: string; condition_slug: string | null; n_games: number; players_json: string | null }>()
   return (results ?? []).map((t) => ({
     file: t.tid,
     created: t.created,
     status: t.status,
+    condition_slug: t.condition_slug,
     n_players: t.players_json ? (safeParse<string[]>(t.players_json, []).length) : 0,
     n_games: t.n_games,
     winner: null,

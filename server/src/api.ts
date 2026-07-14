@@ -112,12 +112,13 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
 /** GET /api/tournaments — light index of final + live tournaments. */
 export async function getTournaments(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT tid, created, n_players, n_games, winner FROM tournaments ORDER BY created DESC`,
-  ).all<{ tid: string; created: string; n_players: number; n_games: number; winner: string | null }>()
+    `SELECT tid, created, condition_slug, n_players, n_games, winner FROM tournaments ORDER BY created DESC`,
+  ).all<{ tid: string; created: string; condition_slug: string | null; n_players: number; n_games: number; winner: string | null }>()
   const finals = (results ?? []).map((t) => ({
     file: t.tid,
     created: t.created,
     status: "final",
+    condition_slug: t.condition_slug,
     n_players: t.n_players,
     n_games: t.n_games,
     winner: t.winner,
