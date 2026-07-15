@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   Clock3,
   Code2,
+  Cpu,
   LockKeyhole,
   MessageSquareText,
   RotateCcw,
@@ -22,9 +23,12 @@ import type {
   TournamentGame,
 } from "@/lib/data"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ReasoningDisclosure } from "@/components/ai-elements/Reasoning"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import { participantKind } from "@/lib/participants"
 
 type VariantCollection = ModelVariant[] | Record<string, ModelVariant> | undefined
 
@@ -159,8 +163,9 @@ const AttemptExchange = memo(function AttemptExchange({
         </Badge>
       </div>
 
-      {revealPrompt ? (
-        <div className="space-y-2">
+      <Collapsible open={revealPrompt}>
+        <CollapsibleContent>
+        <div className="space-y-2 pb-0.5">
           {attempt.system_prompt ? (
             <div className="rounded-xl border border-border/60 bg-background/70 p-2.5">
               <div className="mb-1.5 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -180,15 +185,18 @@ const AttemptExchange = memo(function AttemptExchange({
             </pre>
           </div>
         </div>
-      ) : null}
+        </CollapsibleContent>
+      </Collapsible>
 
       {rationale ? (
-        <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.06] p-2.5">
-          <div className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-violet-700 dark:text-violet-300">
-            <Sparkles className="size-3" /> Visible rationale
+        <ReasoningDisclosure label="Visible model rationale">
+          <div className="rounded-xl border border-violet-500/15 bg-violet-500/[0.06] p-2.5">
+            <div className="mb-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-violet-700 dark:text-violet-300">
+              <Sparkles className="size-3" /> Model-authored and visible
+            </div>
+            <p className="text-[11px] leading-relaxed text-foreground/80">{rationale}</p>
           </div>
-          <p className="text-[11px] leading-relaxed text-foreground/80">{rationale}</p>
-        </div>
+        </ReasoningDisclosure>
       ) : null}
 
       <div className="rounded-xl bg-foreground/[0.035] p-2.5 dark:bg-foreground/[0.055]">
@@ -334,6 +342,7 @@ const ConversationLane = memo(function ConversationLane({
     return active
   }, [moves, cursor])
   const usage = useMemo(() => totalUsage(moves), [moves])
+  const kind = participantKind(`${label} ${variant.model_id}`, variant.provider)
 
   useEffect(() => {
     if (activeIndex < 0) {
@@ -357,7 +366,7 @@ const ConversationLane = memo(function ConversationLane({
       >
         <div className="flex items-start justify-between gap-3">
           <div className={cn("min-w-0", color === "black" && "[&_div]:text-white [&_span]:border-white/15 [&_span]:text-white/75")}>
-            <ModelIdentity variant={variant} compact />
+            {kind === "model" ? <ModelIdentity variant={variant} compact /> : <div><div className="flex items-center gap-2 font-medium"><Cpu className="size-4" /> {variant.display_name}</div><Badge variant="outline" className="mt-1 text-[9px] uppercase">{kind === "engine" ? "engine reference" : "reference baseline"}</Badge></div>}
           </div>
           <Badge
             variant="outline"

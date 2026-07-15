@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, BrainCircuit, Eye, Radio, Sparkles, Trophy } from "lucide-react"
 import { loadTournament, type Tournament } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
 import { GameExportActions } from "@/components/GameExportActions"
+import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
@@ -43,11 +45,16 @@ export function TournamentDetail() {
   const decoded = decodeURIComponent(file)
   const [t, setT] = useState<Tournament | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [standingSort, setStandingSort] = useState<{ key: "player" | "record" | "points" | "forfeits"; direction: SortDirection }>({ key: "points", direction: "desc" })
+  const [gameSort, setGameSort] = useState<{ key: "white" | "black" | "result" | "termination" | "plies"; direction: SortDirection }>({ key: "plies", direction: "desc" })
+  const [gameQuery, setGameQuery] = useState("")
 
   useEffect(() => {
+    let active = true
     setT(null)
     setErr(null)
-    loadTournament(decoded).then(setT).catch((e) => setErr(String(e)))
+    loadTournament(decoded).then((value) => { if (active) setT(value) }).catch((e) => { if (active) setErr(String(e)) })
+    return () => { active = false }
   }, [decoded])
 
   // While a tournament is streaming, poll for fresh games + the live board.
@@ -61,6 +68,34 @@ export function TournamentDetail() {
     }, 1200)
     return () => clearInterval(id)
   }, [isLive, decoded])
+
+  const standings = useMemo(() => (t?.standings ?? []).toSorted((a, b) => {
+    const multiplier = standingSort.direction === "asc" ? 1 : -1
+    let comparison = 0
+    if (standingSort.key === "player") comparison = a.label.localeCompare(b.label)
+    else if (standingSort.key === "record") comparison = (a.wins - a.losses) - (b.wins - b.losses)
+    else if (standingSort.key === "forfeits") comparison = a.illegal_forfeits - b.illegal_forfeits
+    else comparison = a.score - b.score
+    return comparison * multiplier || b.wins - a.wins
+  }), [t, standingSort.key, standingSort.direction])
+
+  const games = useMemo(() => {
+    const needle = gameQuery.trim().toLowerCase()
+    const values = (t?.games ?? []).map((game, originalIndex) => ({ game, originalIndex })).filter(({ game }) => !needle || `${game.white} ${game.black} ${game.result} ${game.termination}`.toLowerCase().includes(needle))
+    const multiplier = gameSort.direction === "asc" ? 1 : -1
+    return values.toSorted((a, b) => {
+      let comparison = 0
+      if (gameSort.key === "white") comparison = a.game.white.localeCompare(b.game.white)
+      else if (gameSort.key === "black") comparison = a.game.black.localeCompare(b.game.black)
+      else if (gameSort.key === "result") comparison = a.game.result.localeCompare(b.game.result)
+      else if (gameSort.key === "termination") comparison = a.game.termination.localeCompare(b.game.termination)
+      else comparison = a.game.plies - b.game.plies
+      return comparison * multiplier || a.originalIndex - b.originalIndex
+    })
+  }, [t, gameQuery, gameSort.key, gameSort.direction])
+
+  const toggleStandingSort = (key: typeof standingSort.key, direction: SortDirection = "desc") => setStandingSort((current) => ({ key, direction: current.key === key ? current.direction === "asc" ? "desc" : "asc" : direction }))
+  const toggleGameSort = (key: typeof gameSort.key, direction: SortDirection = "asc") => setGameSort((current) => ({ key, direction: current.key === key ? current.direction === "asc" ? "desc" : "asc" : direction }))
 
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
   if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
@@ -89,7 +124,6 @@ export function TournamentDetail() {
     )
   }
 
-  const standings = t.standings.slice().sort((a, b) => b.score - a.score || b.wins - a.wins)
   const live = t.live_game
 
   return (
@@ -144,10 +178,10 @@ export function TournamentDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12 text-center">#</TableHead>
-                <TableHead>Player</TableHead>
-                <TableHead className="text-right">W–D–L</TableHead>
-                <TableHead className="text-right">Points</TableHead>
-                <TableHead className="text-right">Forfeits</TableHead>
+                <SortableTableHead label="Player" active={standingSort.key === "player"} direction={standingSort.direction} onSort={() => toggleStandingSort("player", "asc")} />
+                <SortableTableHead label="W–D–L" active={standingSort.key === "record"} direction={standingSort.direction} align="right" onSort={() => toggleStandingSort("record")} />
+                <SortableTableHead label="Points" active={standingSort.key === "points"} direction={standingSort.direction} align="right" onSort={() => toggleStandingSort("points")} />
+                <SortableTableHead label="Forfeits" active={standingSort.key === "forfeits"} direction={standingSort.direction} align="right" onSort={() => toggleStandingSort("forfeits", "asc")} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -174,23 +208,24 @@ export function TournamentDetail() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Games</CardTitle>
+        <CardHeader className="flex-row items-center justify-between gap-4">
+          <CardTitle className="text-base">Games <span className="font-normal text-muted-foreground">· open any row for the complete replay and conversations</span></CardTitle>
+          <Input value={gameQuery} onChange={(event) => setGameQuery(event.target.value)} placeholder="Filter player or result…" className="w-56" />
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>White</TableHead>
-                <TableHead>Black</TableHead>
-                <TableHead className="text-center">Result</TableHead>
-                <TableHead>Termination</TableHead>
-                <TableHead className="text-right">Plies</TableHead>
+                <SortableTableHead label="White" active={gameSort.key === "white"} direction={gameSort.direction} onSort={() => toggleGameSort("white")} />
+                <SortableTableHead label="Black" active={gameSort.key === "black"} direction={gameSort.direction} onSort={() => toggleGameSort("black")} />
+                <SortableTableHead label="Result" active={gameSort.key === "result"} direction={gameSort.direction} align="center" onSort={() => toggleGameSort("result")} />
+                <SortableTableHead label="Termination" active={gameSort.key === "termination"} direction={gameSort.direction} onSort={() => toggleGameSort("termination")} />
+                <SortableTableHead label="Plies" active={gameSort.key === "plies"} direction={gameSort.direction} align="right" onSort={() => toggleGameSort("plies", "desc")} />
                 <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {t.games.map((g, i) => (
+              {games.map(({ game: g, originalIndex: i }) => (
                 <TableRow key={i} className="group">
                   <TableCell className="font-medium">{short(g.white)}</TableCell>
                   <TableCell className="font-medium">{short(g.black)}</TableCell>
@@ -208,6 +243,7 @@ export function TournamentDetail() {
                   </TableCell>
                 </TableRow>
               ))}
+              {games.length === 0 && <TableRow><TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">No games match that filter.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>

@@ -441,7 +441,10 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
       map.set(item.puzzle_id, entry)
     }
     return [...map.values()]
-  })()
+  })().catch((error) => {
+    puzzleCache = null
+    throw error
+  })
   return puzzleCache
 }
 

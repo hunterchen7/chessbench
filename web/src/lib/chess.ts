@@ -24,3 +24,27 @@ export function uciLineToSan(fen: string, line: string[]): string[] {
   }
   return out
 }
+
+/** Convert solver-only moves by replaying the authoritative opponent reply between them. */
+export function solverMovesToSan(fen: string, solverMoves: string[], referenceLine: string[]): string[] {
+  const game = new Chess(fen)
+  const output: string[] = []
+  for (let index = 0; index < solverMoves.length; index += 1) {
+    const move = solverMoves[index]
+    try {
+      output.push(game.move({ from: move.slice(0, 2), to: move.slice(2, 4), promotion: move.slice(4) || undefined }).san)
+    } catch {
+      output.push(move)
+      break
+    }
+    const reply = referenceLine[index * 2 + 1]
+    if (index < solverMoves.length - 1 && reply) {
+      try {
+        game.move({ from: reply.slice(0, 2), to: reply.slice(2, 4), promotion: reply.slice(4) || undefined })
+      } catch {
+        break
+      }
+    }
+  }
+  return output
+}

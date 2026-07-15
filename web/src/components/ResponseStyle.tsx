@@ -6,6 +6,7 @@ import {
   type ResponseStyleKey,
 } from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 export function ResponseStyleBadge({
@@ -43,26 +44,26 @@ export function ResponseStyleToggle({
   className?: string
 }) {
   return (
-    <div className={cn("flex rounded-lg border bg-background p-0.5 shadow-xs", className)} role="group" aria-label="Response style">
+    <Tabs value={value} onValueChange={(next) => onChange(next as ResponseStyleKey)} className={className} aria-label="Response style">
+      <TabsList className="h-8 border bg-background p-0.5 shadow-xs">
       {RESPONSE_STYLES.map((style) => {
         const Icon = style.key === "move_only" ? TextCursorInput : Braces
         const selected = value === style.key
         return (
-          <button
+          <TabsTrigger
             key={style.key}
-            type="button"
-            aria-pressed={selected}
+            value={style.key}
             title={style.description}
-            onClick={() => onChange(style.key)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              selected ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+              "h-6 px-2.5 text-xs",
+              selected && "bg-foreground text-background dark:bg-foreground dark:text-background",
             )}
           >
             <Icon className="size-3" /> {style.shortLabel}
-          </button>
+          </TabsTrigger>
         )
       })}
-    </div>
+      </TabsList>
+    </Tabs>
   )
 }

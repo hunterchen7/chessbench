@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import type { CSSProperties } from "react"
 import { Chess } from "chess.js"
 import {
@@ -9,6 +9,9 @@ import {
   Flag,
   ListTree,
   MessageSquareText,
+  Pause,
+  Play,
+  RefreshCcw,
   ShieldCheck,
   SkipBack,
   SkipForward,
@@ -114,11 +117,39 @@ export function GameReplay({
 }) {
   const frames = useMemo(() => buildFrames(game), [game])
   const [cursor, setCursor] = useState(frames.length - 1)
+  const [orientation, setOrientation] = useState<"white" | "black">("white")
+  const [playing, setPlaying] = useState(false)
   const clamp = (next: number) => Math.max(0, Math.min(frames.length - 1, next))
   const currentMove = cursor > 0 ? game.moves[cursor - 1] : null
   const currentFrame = frames[cursor]
   const squareStyles = useMemo(() => lastMoveStyles(currentFrame.uci), [currentFrame.uci])
   const progress = frames.length > 1 ? (cursor / (frames.length - 1)) * 100 : 0
+
+  useEffect(() => {
+    if (!playing) return
+    if (cursor >= frames.length - 1) {
+      setPlaying(false)
+      return
+    }
+    const timer = window.setTimeout(() => setCursor((value) => Math.min(value + 1, frames.length - 1)), 800)
+    return () => window.clearTimeout(timer)
+  }, [playing, cursor, frames.length])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest("input, textarea, select, button, a, summary, [contenteditable=true]")) return
+      if (event.key === "ArrowLeft") setCursor((value) => Math.max(0, value - 1))
+      else if (event.key === "ArrowRight") setCursor((value) => Math.min(frames.length - 1, value + 1))
+      else if (event.key === "Home") setCursor(0)
+      else if (event.key === "End") setCursor(frames.length - 1)
+      else return
+      event.preventDefault()
+      setPlaying(false)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [frames.length])
 
   return (
     <div className="space-y-5">
@@ -160,7 +191,7 @@ export function GameReplay({
           <div className="rounded-2xl border bg-card p-3 shadow-sm sm:p-4">
             <Board
               fen={currentFrame.fen}
-              orientation="white"
+              orientation={orientation}
               squareStyles={squareStyles}
               id="game-replay-board"
               maxWidth={420}
@@ -185,7 +216,15 @@ export function GameReplay({
               <Button variant="outline" size="icon-sm" onClick={() => setCursor(frames.length - 1)} disabled={cursor === frames.length - 1} aria-label="Final position">
                 <SkipForward className="size-4" />
               </Button>
+              <Button variant={playing ? "secondary" : "outline"} size="icon-sm" onClick={() => { if (cursor === frames.length - 1) setCursor(0); setPlaying((value) => !value) }} aria-label={playing ? "Pause replay" : "Play replay"}>
+                {playing ? <Pause className="size-4" /> : <Play className="size-4" />}
+              </Button>
+              <Button variant="outline" size="icon-sm" onClick={() => setOrientation((value) => value === "white" ? "black" : "white")} aria-label="Flip board">
+                <RefreshCcw className="size-4" />
+              </Button>
             </div>
+
+            <div className="sr-only" aria-live="polite">{cursor === 0 ? "Initial position" : `${currentMove?.color} played ${currentMove?.san ?? currentMove?.uci ?? "forfeit"}, record ${cursor} of ${frames.length - 1}`}</div>
 
             <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
               <div className="h-full rounded-full bg-primary transition-[width] duration-200" style={{ width: `${progress}%` }} />
@@ -195,7 +234,7 @@ export function GameReplay({
           <div className="rounded-2xl border bg-card p-3 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-3 px-1">
               <span className="text-xs font-semibold">Move timeline</span>
-              <span className="text-[10px] text-muted-foreground">select to jump</span>
+              <span className="text-[10px] text-muted-foreground">select or use ← →</span>
             </div>
             <div className="scrollbar-none max-h-52 overflow-y-auto rounded-xl bg-muted/30 p-2">
               <div className="grid grid-cols-[auto_1fr_1fr] items-baseline gap-x-2 gap-y-0.5 text-sm">

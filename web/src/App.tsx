@@ -13,6 +13,7 @@ const TournamentDetail = lazy(() => import("@/pages/TournamentDetail").then((m) 
 const Esoteric = lazy(() => import("@/pages/Esoteric").then((m) => ({ default: m.Esoteric })))
 const EsotericDetail = lazy(() => import("@/pages/EsotericDetail").then((m) => ({ default: m.EsotericDetail })))
 const Methodology = lazy(() => import("@/pages/Methodology").then((m) => ({ default: m.Methodology })))
+const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })))
 
 const Loading = () => <div className="py-20 text-center text-sm text-muted-foreground">Loading view…</div>
 
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="esoteric" element={<Esoteric />} />
               <Route path="esoteric/:id" element={<EsotericDetail />} />
               <Route path="methodology" element={<Methodology />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         </Suspense>

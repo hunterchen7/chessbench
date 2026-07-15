@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, Scale
 import { useData } from "@/lib/useData"
 import { loadRun, type Run } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
-import { uciLineToSan, uciToSan } from "@/lib/chess"
+import { solverMovesToSan, uciLineToSan, uciToSan } from "@/lib/chess"
 import { puzzlePerformanceRating } from "@/lib/puzzleRating"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -27,14 +27,19 @@ export function ModelDetail() {
   const activeId = selected || mine[0]?.run_id || ""
   const meta = mine.find((run) => run.run_id === activeId) ?? mine[0]
   const [run, setRun] = useState<Run | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
   const [filter, setFilter] = useState<"all" | "solved" | "failed">("all")
   const [openPuzzle, setOpenPuzzle] = useState<string | null>(null)
+  const metaFile = meta?.file
 
   useEffect(() => {
-    if (!meta) return
+    if (!metaFile) return
+    let active = true
     setRun(null)
-    void loadRun(meta.file).then(setRun)
-  }, [meta])
+    setRunError(null)
+    void loadRun(metaFile).then((value) => { if (active) setRun(value) }).catch((reason) => { if (active) setRunError(String(reason)) })
+    return () => { active = false }
+  }, [metaFile])
 
   if (!meta) return <div><p>No published runs for {key}.</p><Link to="/" className="text-sm underline">Back to overview</Link></div>
   const displayRun = run ?? ({ ...meta, schema: "", themes: [], items: [] } as Run)
@@ -95,6 +100,7 @@ export function ModelDetail() {
     <section className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-7">
       <div>
         <Link to="/" className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Overview</Link>
+        <h1 className="sr-only">{variant.display_name} benchmark configuration</h1>
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output budgets are part of this participant’s identity.</p>
       </div>
@@ -103,6 +109,8 @@ export function ModelDetail() {
         <ExportButton model={variant.key} responseStyle={activeResponseStyle.key} />
       </div>
     </section>
+
+    {runError && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><span className="font-medium text-destructive">Detailed run data could not be loaded.</span> <span className="text-muted-foreground">{runError}</span></div>}
 
     <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
@@ -124,7 +132,8 @@ export function ModelDetail() {
       <Card><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
         <CardContent className="max-h-[640px] overflow-auto p-0"><Table><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><TableHead>Puzzle</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">Points</TableHead><TableHead>Model answer</TableHead><TableHead>Correct line</TableHead><TableHead>Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
           const open = openPuzzle === item.puzzle_id
-          const answer = displayRun.track === "woodpecker" ? uciLineToSan(item.fen, item.moves_played ?? []).join(" ") : uciToSan(item.fen, item.answer_move) ?? item.answer_move
+          const storedMoves = item.moves_played?.length ? item.moves_played : item.answer_move ? [item.answer_move] : []
+          const answer = displayRun.track === "woodpecker" ? uciLineToSan(item.fen, storedMoves).join(" ") : solverMovesToSan(item.fen, storedMoves, item.solution ?? []).join(" ") || uciToSan(item.fen, item.answer_move) || item.answer_move
           const correctLine = uciLineToSan(item.fen, item.solution ?? []).join(" ") || item.solution?.join(" ")
           const rationale = item.answer_rationale ?? item.answer_explanation
           const outcome = item.solved ? "solved" : item.score > 0 ? "partial" : item.failure_reason?.replaceAll("_", " ") ?? "incorrect"

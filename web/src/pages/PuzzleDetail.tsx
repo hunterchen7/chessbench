@@ -5,7 +5,7 @@ import { ArrowLeft, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } 
 import { useData } from "@/lib/useData"
 import { loadPuzzle, type PuzzleEntry } from "@/lib/data"
 import { pct, responseStyleInfo } from "@/lib/format"
-import { uciLineToSan, uciToSan } from "@/lib/chess"
+import { solverMovesToSan, uciLineToSan, uciToSan } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
@@ -21,7 +21,15 @@ export function PuzzleDetail() {
   const { id = "" } = useParams()
   const { apiBase } = useData()
   const [entry, setEntry] = useState<PuzzleEntry | null | undefined>(undefined)
-  useEffect(() => { setEntry(undefined); void loadPuzzle(id).then(setEntry) }, [id])
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    setEntry(undefined)
+    setError(null)
+    void loadPuzzle(id).then((value) => { if (active) setEntry(value) }).catch((reason) => { if (active) setError(String(reason)) })
+    return () => { active = false }
+  }, [id])
+  if (error) return <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6"><p className="font-medium text-destructive">Failed to load puzzle {id}</p><p className="text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button></div>
   if (entry === undefined) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle…</div>
   if (entry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
   return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} />
@@ -202,6 +210,8 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                 .toSorted((a, b) => Number(b.item.solved) - Number(a.item.solved))
                 .map((a, i) => {
                   const san = uciToSan(startFen, a.item.answer_move)
+                  const storedMoves = a.item.moves_played?.length ? a.item.moves_played : a.item.answer_move ? [a.item.answer_move] : []
+                  const playedSequence = solverMovesToSan(startFen, storedMoves, solution)
                   const partial = !a.item.solved && a.item.score > 0
                   const requiredSolverMoves = a.item.solver_plies ?? Math.ceil(solution.length / 2)
                   const correctSolverMoves = a.item.plies_correct ?? Math.round(a.item.score * requiredSolverMoves)
@@ -224,8 +234,8 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                           <X className="size-4 shrink-0 text-destructive/70" />
                         )}
                         <span className="font-medium">{model}</span>
-                        <span className="font-mono text-sm text-muted-foreground">
-                          {san ?? a.item.answer_move ? `first move ${san ?? a.item.answer_move}` : "no parsed move"}
+                        <span className="min-w-0 truncate font-mono text-sm text-muted-foreground" title={playedSequence.join(" ")}>
+                          {playedSequence.length ? playedSequence.map((move, moveIndex) => <span key={`${move}-${moveIndex}`} className={moveIndex < correctSolverMoves ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600 dark:text-rose-300"}>{moveIndex ? "  " : ""}{move}</span>) : "no parsed move"}
                         </span>
                         <Badge variant="outline" className="ml-auto text-xs font-normal">
                           {a.condition.split("__")[0]}
@@ -240,7 +250,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                       </button>
                       {open && hasAudit && <div className="space-y-3 border-t p-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                         <div className="grid gap-2 rounded-md border bg-muted/20 p-2 text-xs sm:grid-cols-2">
-                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model result</div><span className="font-mono">{san ?? a.item.answer_move ?? "—"}</span><div className="mt-1 text-muted-foreground">{a.item.solved ? "Complete line solved" : partial ? `First move was correct; later continuation failed · ${a.item.score.toFixed(2)}/1 point` : `Incorrect at solver move ${correctSolverMoves + 1}`}</div></div>
+                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model sequence</div><span className="font-mono">{playedSequence.join("  ") || san || a.item.answer_move || "—"}</span><div className="mt-1 text-muted-foreground">{a.item.solved ? "Complete line solved" : partial ? `${correctSolverMoves} correct solver move${correctSolverMoves === 1 ? "" : "s"}; ${storedMoves.length > correctSolverMoves ? `diverged on ${playedSequence[correctSolverMoves] ?? storedMoves[correctSolverMoves]}` : "the later failed move was not retained by this legacy run"} · ${a.item.score.toFixed(2)}/1 point` : `Incorrect at solver move ${correctSolverMoves + 1}`}</div></div>
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Correct line</div><span className="font-mono">{solutionSan.join(" ") || solution.join(" ") || "—"}</span></div>
                         </div>
                         {a.item.turns?.map((turn, turnIndex) => <details key={`${turn.solver_ply}-${turnIndex}`} className="rounded-md border bg-muted/20" open={turnIndex === 0}>

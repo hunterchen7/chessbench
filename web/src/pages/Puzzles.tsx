@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
@@ -8,6 +8,7 @@ import { SortableTableHead, type SortDirection } from "@/components/SortableTabl
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   Select,
@@ -38,7 +39,12 @@ function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): nu
 
 export function Puzzles() {
   const [entries, setEntries] = useState<PuzzleEntry[] | null>(null)
-  useEffect(() => { void loadPuzzleIndex().then(setEntries) }, [])
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(() => {
+    setError(null)
+    void loadPuzzleIndex().then(setEntries).catch((reason) => setError(String(reason)))
+  }, [])
+  useEffect(load, [load])
   const [tier, setTier] = useState("all")
   const [q, setQ] = useState("")
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "rating", direction: "asc" })
@@ -82,7 +88,8 @@ export function Puzzles() {
     direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "models" ? "desc" : "asc",
   }))
 
-  if (!entries) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle index…</div>
+  if (error) return <div className="mx-auto max-w-md rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center"><div className="font-medium text-destructive">Could not load the puzzle index</div><p className="mt-1 text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" className="mt-4" onClick={load}>Try again</Button></div>
+  if (!entries) return <div className="space-y-3 py-20" aria-label="Loading puzzle index"><div className="mx-auto h-5 w-40 animate-pulse rounded bg-muted" /><div className="mx-auto h-48 max-w-4xl animate-pulse rounded-xl bg-muted/60" /></div>
 
   return (
     <div className="space-y-6">
@@ -190,6 +197,7 @@ export function Puzzles() {
                   </TableRow>
                 )
               })}
+              {rows.length === 0 && <TableRow><TableCell colSpan={6} className="py-16 text-center"><div className="font-medium">No puzzles match those filters</div><Button variant="ghost" size="sm" className="mt-2" onClick={() => { setQ(""); setTier("all"); setMine("all") }}>Clear filters</Button></TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>

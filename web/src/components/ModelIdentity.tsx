@@ -1,6 +1,7 @@
-import { BrainCircuit } from "lucide-react"
+import { BrainCircuit, Cpu } from "lucide-react"
 import type { ModelVariant } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
+import { participantKind } from "@/lib/participants"
 
 export function reasoningLabel(variant: ModelVariant): string {
   const { effort, max_tokens: tokens } = variant.reasoning ?? {}
@@ -11,6 +12,7 @@ export function reasoningLabel(variant: ModelVariant): string {
 }
 
 export function ModelIdentity({ variant, compact = false }: { variant: ModelVariant; compact?: boolean }) {
+  const kind = participantKind(`${variant.key} ${variant.model_id} ${variant.display_name}`, variant.provider)
   return (
     <div className="min-w-0">
       <div className="truncate font-medium">{variant.display_name}</div>
@@ -18,10 +20,10 @@ export function ModelIdentity({ variant, compact = false }: { variant: ModelVari
         <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">
           {variant.provider}
         </Badge>
-        <Badge className="h-5 gap-1 bg-violet-500/10 px-1.5 text-[10px] font-normal text-violet-700 dark:text-violet-300">
+        {kind === "model" ? <Badge className="h-5 gap-1 bg-violet-500/10 px-1.5 text-[10px] font-normal text-violet-700 dark:text-violet-300">
           <BrainCircuit className="size-3" /> {reasoningLabel(variant)}
-        </Badge>
-        {!compact && (
+        </Badge> : <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px] font-normal"><Cpu className="size-3" /> {kind === "engine" ? "engine reference" : "reference baseline"}</Badge>}
+        {!compact && kind === "model" && (
           <span className="text-[10px] tabular-nums text-muted-foreground">{variant.max_output_tokens.toLocaleString()} out</span>
         )}
       </div>

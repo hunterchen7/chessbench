@@ -9,12 +9,16 @@ import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type Mode = 1 | 2 | 3
 type ModeMap = Partial<Record<Mode, RunIndexEntry>>
+type SortKey = "model" | "points" | "solved" | "legal" | "cost" | `mode-${Mode}`
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -41,6 +45,7 @@ export function Leaderboard() {
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
   const [suite, setSuite] = useState("")
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "mode-2", direction: "desc" })
   const activeSuite = suite || suites[0] || ""
 
   useEffect(() => {
@@ -65,26 +70,48 @@ export function Leaderboard() {
   const rows = useMemo(() => Array.from(byVariant.entries()).map(([key, modes]) => {
     const anchor = modes[2] ?? modes[3] ?? modes[1]!
     return { key, modes, anchor }
-  }).filter((row) => row.anchor).sort((a, b) => b.anchor.summary.points - a.anchor.summary.points), [byVariant])
+  }).filter((row) => row.anchor), [byVariant])
+
+  const compareRows = useMemo(() => rows.toSorted((a, b) => {
+    const multiplier = sort.direction === "asc" ? 1 : -1
+    if (sort.key === "model") return a.anchor.model_variant.display_name.localeCompare(b.anchor.model_variant.display_name) * multiplier
+    const mode = sort.key.startsWith("mode-") ? Number(sort.key.slice(5)) as Mode : 2
+    return ((a.modes[mode]?.summary.points ?? -1) - (b.modes[mode]?.summary.points ?? -1)) * multiplier
+  }), [rows, sort.key, sort.direction])
 
   const single = useMemo(() => {
     if (view === "compare") return []
     const mode = Number(view) as Mode
-    return rows.flatMap((row) => row.modes[mode] ? [row.modes[mode]!] : [])
-      .sort((a, b) => b.summary.points - a.summary.points || b.summary.solve_rate - a.summary.solve_rate)
-  }, [rows, view])
+    const values = rows.flatMap((row) => row.modes[mode] ? [row.modes[mode]!] : [])
+    const multiplier = sort.direction === "asc" ? 1 : -1
+    return values.toSorted((a, b) => {
+      let comparison = 0
+      if (sort.key === "model") comparison = a.model_variant.display_name.localeCompare(b.model_variant.display_name)
+      else if (sort.key === "solved") comparison = a.summary.solve_rate - b.summary.solve_rate
+      else if (sort.key === "legal") comparison = a.summary.first_move_legal_rate - b.summary.first_move_legal_rate
+      else if (sort.key === "cost") comparison = (a.summary.cost_usd ?? Number.POSITIVE_INFINITY) - (b.summary.cost_usd ?? Number.POSITIVE_INFINITY)
+      else comparison = a.summary.points - b.summary.points
+      return comparison * multiplier || b.summary.points - a.summary.points
+    })
+  }, [rows, view, sort.key, sort.direction])
 
-  const baseModels = new Set(runs.map((run) => run.model_variant.base_key)).size
-  const completed = runs.filter((run) => run.status === "completed").length
-  const active = runs.filter((run) => run.status === "running" || run.status === "partial")
-  const cost = runs.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
+  const toggleSort = (key: SortKey, defaultDirection: SortDirection = "desc") => setSort((current) => ({
+    key,
+    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : defaultDirection,
+  }))
+
+  const modelRuns = runs.filter((run) => isModelVariant(run.model_variant))
+  const baseModels = new Set(modelRuns.map((run) => run.model_variant.base_key)).size
+  const completed = modelRuns.filter((run) => run.status === "completed").length
+  const active = modelRuns.filter((run) => run.status === "running" || run.status === "partial")
+  const cost = modelRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
 
   return (
     <div className="space-y-10">
       <section className="grid gap-8 border-b border-border/70 pb-8 xl:grid-cols-[1fr_520px] xl:items-end">
         <div>
           <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
-            <span className="size-1.5 rounded-full bg-emerald-500" /> Live benchmark corpus
+            <span className="size-1.5 rounded-full bg-emerald-500" /> {apiBase ? "Cloudflare live dataset" : "Static benchmark snapshot"}
           </div>
           <h1 className="max-w-4xl text-4xl font-semibold leading-[1.05] tracking-[-0.045em] sm:text-6xl">
             How well do language models actually <span className="text-muted-foreground">understand chess?</span>
@@ -141,12 +168,9 @@ export function Leaderboard() {
             <p className="mt-1 text-sm text-muted-foreground">Compare board-information modes within one response style; switch styles for the orthogonal output ablation.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
+            {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
             <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
-            <div className="flex rounded-md border bg-background p-0.5">
-              <button onClick={() => setView("compare")} className={`rounded px-2.5 py-1 text-xs ${view === "compare" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Compare</button>
-              {MODES.map((mode) => <button key={mode.n} onClick={() => setView(String(mode.n) as typeof view)} className={`rounded px-2.5 py-1 text-xs ${view === String(mode.n) ? "bg-foreground text-background" : "text-muted-foreground"}`}>{mode.n}. {mode.name}</button>)}
-            </div>
+            <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}><TabsList className="h-8 border bg-background p-0.5"><TabsTrigger value="compare" className="h-6 text-xs">Compare</TabsTrigger>{MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} className="h-6 text-xs">{mode.n}. {mode.name}</TabsTrigger>)}</TabsList></Tabs>
             <ExportButton track="puzzle" responseStyle={responseStyle} />
           </div>
         </div>
@@ -155,11 +179,11 @@ export function Leaderboard() {
           <CardContent className="p-0">
             <Table>
               <TableHeader><TableRow>
-                <TableHead className="w-12 text-center">#</TableHead><TableHead>Model variant</TableHead>
-                {view === "compare" ? MODES.map((mode) => <TableHead key={mode.n} className="text-right">{mode.name}</TableHead>) : <><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead></>}
+                <TableHead className="w-12 text-center">#</TableHead><SortableTableHead label="Model configuration" active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model", "asc")} />
+                {view === "compare" ? MODES.map((mode) => <SortableTableHead key={mode.n} label={mode.name} active={sort.key === `mode-${mode.n}`} direction={sort.direction} align="right" onSort={() => toggleSort(`mode-${mode.n}`)} />) : <><SortableTableHead label="Points" active={sort.key === "points"} direction={sort.direction} align="right" onSort={() => toggleSort("points")} /><SortableTableHead label="Full solves" active={sort.key === "solved"} direction={sort.direction} align="right" onSort={() => toggleSort("solved")} /><SortableTableHead label="Legal first" active={sort.key === "legal"} direction={sort.direction} align="right" onSort={() => toggleSort("legal")} /><SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost", "asc")} /></>}
               </TableRow></TableHeader>
               <TableBody>
-                {(view === "compare" ? rows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
+                {(view === "compare" ? compareRows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
                   const run = row.anchor
                   return <TableRow key={row.key} className="group">
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{index === 0 ? <Trophy className="mx-auto size-4 text-amber-500" /> : index + 1}</TableCell>
@@ -170,7 +194,7 @@ export function Leaderboard() {
                     }) : <><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
                   </TableRow>
                 })}
-                {(view === "compare" ? rows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 7} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
+                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 7} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>

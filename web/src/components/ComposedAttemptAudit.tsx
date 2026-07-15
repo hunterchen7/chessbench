@@ -1,9 +1,10 @@
-import { BrainCircuit, Check, ChevronDown, CircleDollarSign, FileText, MessageSquareText, X } from "lucide-react"
+import { BrainCircuit, Check, CircleDollarSign, FileText, MessageSquareText, X } from "lucide-react"
 import { composedTurnUsage, type ComposedAnswer, type ComposedTurn } from "@/lib/composed"
 import { responseStyleInfo } from "@/lib/format"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Badge } from "@/components/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 const short = (model: string) => model.includes("/") ? model.split("/").at(-1)! : model
 const integer = (value: number) => value.toLocaleString()
@@ -42,8 +43,9 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
   const rationale = turn.rationale ?? turn.explanation
   const metadata = formatMetadata(turn.response_format)
   const formatError = turn.response_format_error ?? answer.response_format_error
-  return <details className="conversation-turn group overflow-hidden rounded-xl border bg-muted/[0.18]" open={index === 0}>
-    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+  return <Accordion type="single" collapsible defaultValue={index === 0 ? `turn-${index}` : undefined}>
+    <AccordionItem value={`turn-${index}`} className="conversation-turn overflow-hidden rounded-xl border bg-muted/[0.18]">
+    <AccordionTrigger className="flex-wrap px-3 py-2.5 hover:no-underline">
       <span className="text-xs font-semibold">Turn {index + 1}</span>
       {turn.parsed_move && <Badge variant="secondary" className="font-mono">{turn.parsed_move}</Badge>}
       <FormatBadge turn={turn} answer={answer} />
@@ -53,9 +55,8 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
         <span>{integer(usage.reasoningTokens)} reasoning</span>
         <span>{dollars(usage.costUsd)}</span>
       </span>
-      <ChevronDown className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
-    </summary>
-    <div className="space-y-4 border-t p-3">
+    </AccordionTrigger>
+    <AccordionContent className="space-y-4 border-t p-3 pb-3">
       {turn.system_prompt && <AuditBlock label="Exact system prompt">{turn.system_prompt}</AuditBlock>}
       <AuditBlock label="Exact turn prompt">{turn.prompt ?? "Prompt was not retained by this artifact."}</AuditBlock>
       {rationale && <section>
@@ -71,8 +72,9 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
         <span className="flex items-center gap-1"><CircleDollarSign className="size-3" /> {dollars(usage.costUsd)} provider cost</span>
       </div>
       {formatError && <p className="rounded-md bg-destructive/8 px-3 py-2 text-[11px] text-destructive">{formatError}</p>}
-    </div>
-  </details>
+    </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 }
 
 export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
@@ -86,8 +88,9 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
     return sum
   }, { prompt: 0, completion: 0, reasoning: 0, cost: 0 })
 
-  return <details className="group overflow-hidden rounded-xl border bg-card">
-    <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+  return <Accordion type="single" collapsible className="overflow-hidden rounded-xl border bg-card">
+    <AccordionItem value="attempt">
+    <AccordionTrigger className="items-center gap-3 px-3 py-3 hover:no-underline">
       {answer.solved
         ? <Check className="size-4 shrink-0 text-emerald-600" />
         : <X className="size-4 shrink-0 text-rose-500" />}
@@ -101,9 +104,8 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
         {answer.status && answer.status !== "completed" && <Badge variant="outline">{answer.status}</Badge>}
         <Badge variant={answer.solved ? "secondary" : "outline"}>{answer.solved ? "solved" : "not solved"}</Badge>
       </div>
-      <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-    </summary>
-    <div className="space-y-4 border-t bg-muted/[0.08] p-3 sm:p-4">
+    </AccordionTrigger>
+    <AccordionContent className="space-y-4 border-t bg-muted/[0.08] p-3 pb-3 sm:p-4 sm:pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2 sm:hidden"><ResponseStyleBadge condition={answer.condition} compact /><Badge variant={answer.solved ? "secondary" : "outline"}>{answer.solved ? "solved" : "not solved"}</Badge></div>
@@ -123,6 +125,7 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
             <AuditBlock label="Recorded raw answer" accent>{answer.answer || "—"}</AuditBlock>
             <div className="flex flex-wrap gap-2"><Badge variant="outline">{style.protocol}</Badge>{answer.response_format_valid != null && <Badge variant={answer.response_format_valid ? "secondary" : "destructive"}>{answer.response_format_valid ? (style.key === "move_only" ? "parseable text" : "valid JSON") : "format recovered"}</Badge>}</div>
           </div>}
-    </div>
-  </details>
+    </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 }
