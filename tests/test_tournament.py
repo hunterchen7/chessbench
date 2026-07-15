@@ -48,6 +48,7 @@ def test_tournament_record_export(tmp_path):
     rec = TournamentRecord(result, HEADLINE, 20)
     d = rec.to_dict()
     assert d["schema"] == "chessbench.tournament.v1"
+    assert d["status"] == "final"
     assert {s["label"] for s in d["standings"]} == {"rand", "first"}
     assert d["games"] and all(
         g["white"] in ("rand", "first") for g in d["games"]
@@ -57,6 +58,14 @@ def test_tournament_record_export(tmp_path):
     assert "Infinity" not in path.read_text()
     idx = list_tournaments(tmp_path)
     assert len(idx) == 1 and idx[0]["n_games"] == 2
+    assert idx[0]["status"] == "final"
+    assert idx[0]["condition_slug"] == HEADLINE.slug()
+    expected_winner = (
+        None
+        if result.standings[0].score == result.standings[1].score
+        else result.standings[0].label
+    )
+    assert idx[0]["winner"] == expected_winner
 
 
 def test_openings_diversify_start_positions():

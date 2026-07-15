@@ -261,6 +261,7 @@ class TournamentRecord:
         ]
         return {
             "schema": TOURNAMENT_SCHEMA,
+            "status": "final",
             "created": self.created,
             "condition": _condition_dict(self.condition),
             "max_plies": self.max_plies,
@@ -288,13 +289,24 @@ def list_tournaments(directory: str | Path) -> list[dict[str, object]]:
             continue
         standings = t.get("standings")
         games = t.get("games")
-        top = (
-            standings[0]["label"] if isinstance(standings, list) and standings else None
-        )
+        top = None
+        if isinstance(standings, list) and standings:
+            first = standings[0]
+            second = standings[1] if len(standings) > 1 else None
+            if isinstance(first, dict) and (
+                not isinstance(second, dict)
+                or first.get("score") != second.get("score")
+            ):
+                top = first.get("label")
+        condition = t.get("condition")
         out.append(
             {
                 "file": p.name,
                 "created": t.get("created"),
+                "status": t.get("status") or "final",
+                "condition_slug": condition.get("slug")
+                if isinstance(condition, dict)
+                else None,
                 "n_players": len(standings) if isinstance(standings, list) else 0,
                 "n_games": len(games) if isinstance(games, list) else 0,
                 "winner": top,
