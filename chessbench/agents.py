@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Protocol, cast
 
 import chess
 import chess.engine
@@ -140,6 +140,14 @@ class LLMAgent:
 
     def reset_puzzle(self) -> None:
         self._messages = []
+
+    def puzzle_conversation(self) -> list[Message]:
+        """Return a detached snapshot suitable for a durable puzzle checkpoint."""
+        return [cast(Message, dict(message)) for message in self._messages]
+
+    def restore_puzzle(self, messages: list[Message]) -> None:
+        """Restore exactly one puzzle's chat without sharing mutable state."""
+        self._messages = [cast(Message, dict(message)) for message in messages]
 
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         cond = ctx.condition

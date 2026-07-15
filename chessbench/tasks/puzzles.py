@@ -21,14 +21,14 @@ import csv
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterator
+from typing import Callable, Iterator, cast
 
 import chess
 
 from ..agents import Agent, TurnContext
 from ..conditions import Condition, Legality, PuzzleProtocol
 from ..core import board as board_utils
-from ..types import PuzzleFailure
+from ..types import Message, PuzzleFailure
 
 
 @dataclass
@@ -89,6 +89,34 @@ class PuzzleResult:
     turns: list[dict[str, object]] = field(default_factory=list)
     answer_response_format_valid: bool | None = None
     answer_response_format_error: str | None = None
+
+
+@dataclass
+class PuzzleCheckpoint:
+    """Durable state for an interactive, move-by-move puzzle.
+
+    A terminal result is checkpointed before it is returned to the runner. This
+    lets a restart finish the item without repeating its final paid request.
+    Full-line/Woodpecker puzzles intentionally remain item-durable because they
+    make a single request.
+    """
+
+    puzzle_id: str
+    board_fen: str
+    solver_ply: int
+    active_lines: list[int]
+    history_san: list[str]
+    moves_played: list[str]
+    plies_correct: int
+    illegal_attempts: int
+    first_move_legal: bool | None
+    all_moves_legal: bool
+    answer: dict[str, object]
+    turns: list[dict[str, object]]
+    attempts_used: int
+    illegal_feedback: str | None
+    conversation: list[Message]
+    terminal_result: PuzzleResult | None = None
 
 
 def _turn_record(
@@ -181,7 +209,14 @@ def _is_mate_after(board: chess.Board, move: chess.Move) -> bool:
         board.pop()
 
 
-def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleResult:
+def grade_puzzle(
+    agent: Agent,
+    puzzle: Puzzle,
+    condition: Condition,
+    *,
+    checkpoint: PuzzleCheckpoint | None = None,
+    on_checkpoint: Callable[[PuzzleCheckpoint], None] | None = None,
+) -> PuzzleResult:
     """Play the puzzle out ply by ply against the set of acceptable lines.
 
     At each solver ply we track which lines remain consistent with the moves so
@@ -192,30 +227,59 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
     if condition.puzzle_protocol == PuzzleProtocol.FULL_LINE:
         return _grade_full_line(agent, puzzle, condition)
 
-    board = chess.Board(puzzle.fen)
-    board.push(chess.Move.from_uci(puzzle.moves[0]))
+    if checkpoint is not None and checkpoint.puzzle_id != puzzle.id:
+        raise ValueError(
+            f"checkpoint for {checkpoint.puzzle_id!r} cannot resume {puzzle.id!r}"
+        )
+
+    lines = puzzle.solution_lines()
+    n_solver = puzzle.num_solver_plies() or 1
     reset = getattr(agent, "reset_puzzle", None)
     if callable(reset):
         reset()
 
-    lines = puzzle.solution_lines()
-    n_solver = puzzle.num_solver_plies() or 1
-    active: list[int] = list(range(len(lines)))
-
-    history_san: list[str] = []
-    moves_played: list[str] = []
-    plies_correct = 0
-    illegal_attempts = 0
-    first_move_legal: bool | None = None
-    all_moves_legal = True
-    answer: dict[str, object | None] = {
-        "move": None,
-        "explanation": None,
-        "raw": None,
-        "response_format_valid": None,
-        "response_format_error": None,
-    }
-    turns: list[dict[str, object]] = []
+    if checkpoint is None:
+        board = chess.Board(puzzle.fen)
+        board.push(chess.Move.from_uci(puzzle.moves[0]))
+        active: list[int] = list(range(len(lines)))
+        history_san: list[str] = []
+        moves_played: list[str] = []
+        plies_correct = 0
+        illegal_attempts = 0
+        first_move_legal: bool | None = None
+        all_moves_legal = True
+        answer: dict[str, object] = {
+            "move": None,
+            "explanation": None,
+            "raw": None,
+            "response_format_valid": None,
+            "response_format_error": None,
+        }
+        turns: list[dict[str, object]] = []
+        k = 0
+        attempts_used = 0
+        feedback: str | None = None
+    else:
+        board = chess.Board(checkpoint.board_fen)
+        active = list(checkpoint.active_lines)
+        if any(index < 0 or index >= len(lines) for index in active):
+            raise ValueError(f"checkpoint for {puzzle.id!r} has invalid active lines")
+        history_san = list(checkpoint.history_san)
+        moves_played = list(checkpoint.moves_played)
+        plies_correct = checkpoint.plies_correct
+        illegal_attempts = checkpoint.illegal_attempts
+        first_move_legal = checkpoint.first_move_legal
+        all_moves_legal = checkpoint.all_moves_legal
+        answer = dict(checkpoint.answer)
+        turns = [dict(turn) for turn in checkpoint.turns]
+        k = checkpoint.solver_ply
+        attempts_used = checkpoint.attempts_used
+        feedback = checkpoint.illegal_feedback
+        restore = getattr(agent, "restore_puzzle", None)
+        if callable(restore):
+            restore([dict(message) for message in checkpoint.conversation])
+        if checkpoint.terminal_result is not None:
+            return checkpoint.terminal_result
 
     def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
         return PuzzleResult(
@@ -249,18 +313,48 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             ),
         )
 
-    k = 0  # solver-ply index (0-based)
+    def conversation_snapshot() -> list[Message]:
+        snapshot = getattr(agent, "puzzle_conversation", None)
+        if not callable(snapshot):
+            return []
+        return [cast(Message, dict(message)) for message in snapshot()]
+
+    def persist(current_result: PuzzleResult | None = None) -> None:
+        if on_checkpoint is None:
+            return
+        on_checkpoint(
+            PuzzleCheckpoint(
+                puzzle_id=puzzle.id,
+                board_fen=board.fen(en_passant="fen"),
+                solver_ply=k,
+                active_lines=list(active),
+                history_san=list(history_san),
+                moves_played=list(moves_played),
+                plies_correct=plies_correct,
+                illegal_attempts=illegal_attempts,
+                first_move_legal=first_move_legal,
+                all_moves_legal=all_moves_legal,
+                answer=dict(answer),
+                turns=[dict(turn) for turn in turns],
+                attempts_used=attempts_used,
+                illegal_feedback=feedback,
+                conversation=conversation_snapshot(),
+                terminal_result=current_result,
+            )
+        )
+
     while True:
         pos = 2 * k
         if not any(len(lines[i]) > pos for i in active):
-            return result(True, None)  # every viable line is complete
+            final = result(True, None)  # every viable line is complete
+            persist(final)
+            return final
 
         max_tries = (
             condition.retry_attempts + 1 if condition.legality == Legality.RETRY else 1
         )
         chosen: chess.Move | None = None
-        feedback: str | None = None
-        for _ in range(max_tries):
+        while attempts_used < max_tries:
             ctx = TurnContext(
                 condition=condition,
                 history_san=list(history_san),
@@ -269,6 +363,7 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             raw = agent.choose(board, ctx)
             move = board_utils.parse_move(board, raw)
             turns.append(_turn_record(k, ctx, move))
+            attempts_used += 1
             if (
                 k == 0 and answer["raw"] is None
             ):  # capture the model's first answer for auditing/UI
@@ -285,9 +380,16 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             illegal_attempts += 1
             all_moves_legal = False
             feedback = f"'{raw}' is not a legal move"
+            if attempts_used >= max_tries:
+                final = result(False, "illegal")
+                persist(final)
+                return final
+            persist()
 
         if chosen is None:
-            return result(False, "illegal")
+            final = result(False, "illegal")
+            persist(final)
+            return final
 
         uci = chosen.uci()
         viable = [i for i in active if len(lines[i]) > pos and lines[i][pos] == uci]
@@ -298,7 +400,9 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
         moves_played.append(uci)
         history_san.append(board.san(chosen))
         if not viable:
-            return result(False, "wrong_move")
+            final = result(False, "wrong_move")
+            persist(final)
+            return final
 
         plies_correct += 1
         active = viable
@@ -317,6 +421,14 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
                 if len(lines[i]) > pos + 1 and lines[i][pos + 1] == reply_uci
             ]
         k += 1
+        attempts_used = 0
+        feedback = None
+        if not any(len(lines[i]) > 2 * k for i in active):
+            final = result(True, None)
+            persist(final)
+            return final
+        # This commit is the resume boundary before the next provider request.
+        persist()
 
 
 def _grade_full_line(

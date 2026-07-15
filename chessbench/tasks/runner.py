@@ -8,22 +8,31 @@ import json
 import time
 from collections.abc import Callable
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
 
 from ..agents import Agent
 from ..conditions import Condition
 from ..models import ModelError
 from ..report import PuzzleReport, build_report
-from .puzzles import Puzzle, PuzzleResult, grade_puzzle
+from .puzzles import Puzzle, PuzzleCheckpoint, PuzzleResult, grade_puzzle
 
 
 def _error_result(puzzle: Puzzle) -> PuzzleResult:
     """Record a provider failure as an unsolved/illegal puzzle so one flaky call
     doesn't abort a long run."""
     return PuzzleResult(
-        puzzle_id=puzzle.id, rating=puzzle.rating, themes=puzzle.themes, solved=False, score=0.0,
-        first_move_legal=False, all_moves_legal=False, illegal_attempts=0,
-        failure_reason="illegal", solver_plies=puzzle.num_solver_plies(), plies_correct=0,
+        puzzle_id=puzzle.id,
+        rating=puzzle.rating,
+        themes=puzzle.themes,
+        solved=False,
+        score=0.0,
+        first_move_legal=False,
+        all_moves_legal=False,
+        illegal_attempts=0,
+        failure_reason="illegal",
+        solver_plies=puzzle.num_solver_plies(),
+        plies_correct=0,
     )
 
 
@@ -55,6 +64,8 @@ def run_puzzles(
     progress_every: int = 0,
     resume_path: str | Path | None = None,
     completed: dict[str, PuzzleResult] | None = None,
+    checkpoints: dict[str, PuzzleCheckpoint] | None = None,
+    on_checkpoint: Callable[[int, Puzzle, PuzzleCheckpoint], None] | None = None,
     on_result: Callable[[int, Puzzle, PuzzleResult], None] | None = None,
 ) -> tuple[PuzzleReport, list[PuzzleResult]]:
     """Grade every puzzle and aggregate a report. If `resume_path` is given, it's a
@@ -78,7 +89,18 @@ def run_puzzles(
                 res = done[p.id]
             else:
                 try:
-                    res = grade_puzzle(agent, p, condition)
+                    checkpoint_hook = (
+                        partial(on_checkpoint, i - 1, p)
+                        if on_checkpoint is not None
+                        else None
+                    )
+                    res = grade_puzzle(
+                        agent,
+                        p,
+                        condition,
+                        checkpoint=(checkpoints or {}).get(p.id),
+                        on_checkpoint=checkpoint_hook,
+                    )
                     consecutive_errors = 0
                 except ModelError as exc:
                     errors += 1
@@ -105,7 +127,9 @@ def run_puzzles(
                 on_result(i - 1, p, res)
             if progress_every and i % progress_every == 0:
                 rate = sum(r.solved for r in results) / len(results)
-                print(f"  [{i}/{len(puzzles)}] solve-rate {rate:.1%} ({time.time() - start:.1f}s)")
+                print(
+                    f"  [{i}/{len(puzzles)}] solve-rate {rate:.1%} ({time.time() - start:.1f}s)"
+                )
         if errors:
             raise RuntimeError(
                 f"{errors}/{len(puzzles)} provider calls failed; successful items are persisted and missing items will retry"

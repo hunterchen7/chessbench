@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Iterator
 
 from .conditions import Condition
 from .report import PuzzleReport
-from .tasks.puzzles import Puzzle, PuzzleResult
+from .tasks.puzzles import Puzzle, PuzzleCheckpoint, PuzzleResult
 from .variants import ModelVariant
 
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .tasks.games import GameRecord, MoveRecord
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 DEFAULT_DB = Path("runs/chessbench.db")
 
 
@@ -127,6 +127,17 @@ CREATE TABLE IF NOT EXISTS puzzle_attempt (
 );
 CREATE INDEX IF NOT EXISTS idx_puzzle_cross_run ON puzzle_attempt(puzzle_id, run_id);
 
+CREATE TABLE IF NOT EXISTS puzzle_checkpoint (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL,
+  puzzle_id TEXT NOT NULL,
+  state_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id, puzzle_id),
+  UNIQUE (run_id, sequence)
+);
+
 CREATE TABLE IF NOT EXISTS benchmark_item (
   run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
   sequence INTEGER NOT NULL,
@@ -223,6 +234,19 @@ CREATE TABLE IF NOT EXISTS benchmark_item (
 CREATE INDEX IF NOT EXISTS idx_benchmark_item_cross_run ON benchmark_item(item_id, run_id);
 """
 
+_PUZZLE_CHECKPOINT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS puzzle_checkpoint (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL,
+  puzzle_id TEXT NOT NULL,
+  state_json TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (run_id, puzzle_id),
+  UNIQUE (run_id, sequence)
+);
+"""
+
 
 class BenchmarkStore:
     def __init__(self, path: str | Path = DEFAULT_DB) -> None:
@@ -258,6 +282,8 @@ class BenchmarkStore:
                 self._db.executescript(_SYNC_SCHEMA)
             if version < 3:
                 self._db.executescript(_GENERIC_ITEM_SCHEMA)
+            if version < 4:
+                self._db.executescript(_PUZZLE_CHECKPOINT_SCHEMA)
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @contextmanager
@@ -361,6 +387,64 @@ class BenchmarkStore:
             for row in rows
         }
 
+    def load_puzzle_checkpoints(self, run_id: str) -> dict[str, PuzzleCheckpoint]:
+        """Load incomplete and terminal pre-item puzzle checkpoints."""
+        rows = self._db.execute(
+            "SELECT puzzle_id, state_json FROM puzzle_checkpoint WHERE run_id=? ORDER BY sequence",
+            (run_id,),
+        ).fetchall()
+        checkpoints: dict[str, PuzzleCheckpoint] = {}
+        for row in rows:
+            state = json.loads(row["state_json"])
+            terminal = state.get("terminal_result")
+            if isinstance(terminal, dict):
+                state["terminal_result"] = PuzzleResult(**terminal)
+            checkpoints[row["puzzle_id"]] = PuzzleCheckpoint(**state)
+        return checkpoints
+
+    def save_puzzle_checkpoint(
+        self,
+        run_id: str,
+        sequence: int,
+        puzzle_id: str,
+        checkpoint: PuzzleCheckpoint,
+    ) -> bool:
+        """Durably replace one puzzle's state without charging run totals."""
+        if checkpoint.puzzle_id != puzzle_id:
+            raise ValueError(
+                f"checkpoint for {checkpoint.puzzle_id!r} cannot be saved as {puzzle_id!r}"
+            )
+        now = _now()
+        with self._transaction():
+            completed = self._db.execute(
+                "SELECT 1 FROM puzzle_attempt WHERE run_id=? AND puzzle_id=?",
+                (run_id, puzzle_id),
+            ).fetchone()
+            if completed is not None:
+                self._db.execute(
+                    "DELETE FROM puzzle_checkpoint WHERE run_id=? AND puzzle_id=?",
+                    (run_id, puzzle_id),
+                )
+                return False
+            self._db.execute(
+                """INSERT INTO puzzle_checkpoint
+                   (run_id, sequence, puzzle_id, state_json, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(run_id, puzzle_id) DO UPDATE SET
+                     sequence=excluded.sequence,
+                     state_json=excluded.state_json,
+                     updated_at=excluded.updated_at""",
+                (
+                    run_id,
+                    sequence,
+                    puzzle_id,
+                    _canonical(asdict(checkpoint)),
+                    now,
+                    now,
+                ),
+            )
+            return True
+
     def save_puzzle_result(
         self,
         run_id: str,
@@ -413,6 +497,12 @@ class BenchmarkStore:
                     ),
                 )
                 self._event(run_id, "item_completed", puzzle.id, now)
+            # The completed item and checkpoint removal share one transaction.
+            # This also cleans a stale checkpoint after an idempotent re-save.
+            self._db.execute(
+                "DELETE FROM puzzle_checkpoint WHERE run_id=? AND puzzle_id=?",
+                (run_id, puzzle.id),
+            )
             return inserted
 
     def load_benchmark_items(self, run_id: str) -> dict[str, dict[str, object]]:

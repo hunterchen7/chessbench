@@ -113,6 +113,10 @@ def _turn_usage_totals(
                 turn_reasoning = details.get("reasoning_tokens")
             elif "reasoning_tokens" in usage:
                 turn_reasoning = usage.get("reasoning_tokens")
+        else:
+            # Puzzle turns store their normalized audit fields at the top level.
+            prompt += _usage_int(turn.get("prompt_tokens", 0))
+            completion += _usage_int(turn.get("completion_tokens", 0))
         if turn_reasoning is None:
             turn_reasoning = turn.get("reasoning_tokens", 0)
         reasoning += _usage_int(turn_reasoning)
@@ -811,19 +815,11 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     )
     agent = LLMAgent(model)
     completed = store.load_puzzle_results(handle.run_id)
-    prior_cost = float(getattr(model, "total_cost", 0.0))
+    checkpoints = store.load_puzzle_checkpoints(handle.run_id)
 
     def persist(seq: int, puzzle, result) -> None:
-        nonlocal prior_cost
-        total_cost = float(getattr(model, "total_cost", prior_cost))
-        item_cost = max(0.0, total_cost - prior_cost)
-        prior_cost = total_cost
-        prompt_tokens = sum(int(turn.get("prompt_tokens", 0)) for turn in result.turns)
-        completion_tokens = sum(
-            int(turn.get("completion_tokens", 0)) for turn in result.turns
-        )
-        reasoning_tokens = sum(
-            int(turn.get("reasoning_tokens", 0)) for turn in result.turns
+        prompt_tokens, completion_tokens, reasoning_tokens, item_cost = (
+            _turn_usage_totals(result.turns)
         )
         store.save_puzzle_result(
             handle.run_id,
@@ -835,6 +831,9 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             completion_tokens=completion_tokens,
             reasoning_tokens=reasoning_tokens,
         )
+
+    def persist_checkpoint(seq: int, puzzle, state) -> None:
+        store.save_puzzle_checkpoint(handle.run_id, seq, puzzle.id, state)
 
     def export_snapshot(
         results: list[PuzzleResult],
@@ -885,6 +884,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             condition,
             progress_every=args.progress,
             completed=completed,
+            checkpoints=checkpoints,
+            on_checkpoint=persist_checkpoint,
             on_result=persist,
         )
     except BaseException as exc:
