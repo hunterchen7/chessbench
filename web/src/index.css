@@ -122,6 +122,10 @@
     content-visibility: auto;
     contain-intrinsic-size: 0 260px;
   }
+  .historical-candidate-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 180px;
+  }
 }
 
 @keyframes accordion-down {

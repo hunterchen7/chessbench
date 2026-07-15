@@ -196,8 +196,16 @@ export interface HistoricalCandidateBank {
   items: HistoricalCandidate[]
 }
 
-export async function loadHistoricalCandidates(): Promise<HistoricalCandidateBank> {
-  return fetchJSON<HistoricalCandidateBank>(`${DATA}corpora/historical.json`)
+let historicalCandidatesRequest: Promise<HistoricalCandidateBank> | null = null
+
+export function loadHistoricalCandidates(): Promise<HistoricalCandidateBank> {
+  if (!historicalCandidatesRequest) {
+    historicalCandidatesRequest = fetchJSON<HistoricalCandidateBank>(`${DATA}corpora/historical.json`).catch((error) => {
+      historicalCandidatesRequest = null
+      throw error
+    })
+  }
+  return historicalCandidatesRequest
 }
 
 export interface Standing {

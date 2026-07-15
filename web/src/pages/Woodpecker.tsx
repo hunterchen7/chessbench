@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Activity, ArrowUpRight, BookOpen, CheckCircle2, ExternalLink, History, Repeat2, Sigma } from "lucide-react"
+import { Activity, ArrowRight, ArrowUpRight, BookOpen, CheckCircle2, ExternalLink, History, Repeat2, Sigma } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadHistoricalCandidates, loadPublicCorpus, type HistoricalCandidateBank, type PublicCorpus, type PuzzlePosition } from "@/lib/data"
 import { pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
@@ -120,6 +120,7 @@ export function Woodpecker() {
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{historical?.candidate_count ?? "…"} candidates</Badge>
             {historical && (["easy", "medium", "hard"] as const).map((band) => <Badge key={band} variant="secondary" className="capitalize">{historical.difficulty[band]} {band}</Badge>)}
+            <Link to="/woodpecker/history" className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium text-violet-700 transition-colors hover:bg-violet-500/10 dark:text-violet-300">Browse all <ArrowRight className="size-3" /></Link>
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -134,6 +135,9 @@ export function Woodpecker() {
               </CardContent>
             </Card>
           ))}
+        </div>
+        <div className="flex justify-center pt-2">
+          <Link to="/woodpecker/history" className="inline-flex items-center gap-1.5 rounded-md border bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent">Open the historical candidate bank <ArrowRight className="size-4" /></Link>
         </div>
       </section>
 

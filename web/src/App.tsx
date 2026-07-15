@@ -10,6 +10,7 @@ const PuzzleBrowser = lazy(() => import("@/pages/Puzzles").then((m) => ({ defaul
 const PuzzleStart = lazy(() => import("@/pages/PuzzleStart").then((m) => ({ default: m.PuzzleStart })))
 const PuzzleDetail = lazy(() => import("@/pages/PuzzleDetail").then((m) => ({ default: m.PuzzleDetail })))
 const Woodpecker = lazy(() => import("@/pages/Woodpecker").then((m) => ({ default: m.Woodpecker })))
+const HistoricalCandidates = lazy(() => import("@/pages/HistoricalCandidates").then((m) => ({ default: m.HistoricalCandidates })))
 const Games = lazy(() => import("@/pages/Games").then((m) => ({ default: m.Games })))
 const TournamentDetail = lazy(() => import("@/pages/TournamentDetail").then((m) => ({ default: m.TournamentDetail })))
 const Esoteric = lazy(() => import("@/pages/Esoteric").then((m) => ({ default: m.Esoteric })))
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="puzzles/play" element={<PuzzleStart />} />
               <Route path="puzzles/:id" element={<PuzzleDetail />} />
               <Route path="woodpecker" element={<Woodpecker />} />
+              <Route path="woodpecker/history" element={<HistoricalCandidates />} />
               <Route path="games" element={<Games />} />
               <Route path="games/:file" element={<TournamentDetail />} />
               <Route path="games/:file/:game" element={<TournamentDetail />} />
