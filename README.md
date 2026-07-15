@@ -182,6 +182,11 @@ python3 -m chessbench run-model --model my-model --suite suites/headline.json --
 For the full Standard 3 × 2 matrix, repeat that pair under Modes 1, 2, and 3. The complete condition slug records
 `plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
 
+The frozen Luna/Haiku low-reasoning public campaign contains 20 durable cells
+and 4,300 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
+exact matrix, dry-run validation, and resumable launcher are documented in
+[`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
+
 Play and optionally stream a points tournament:
 
 ```bash
