@@ -83,7 +83,13 @@ def main() -> int:
         run_ids = (
             [args.run]
             if args.run
-            else [str(row["run_id"]) for row in store.list_runs()]
+            else [
+                str(row["run_id"])
+                for row in store.list_runs()
+                # Final tournaments use their dedicated document endpoint;
+                # benchmark_runs_v2 intentionally accepts item-based tracks only.
+                if row["track"] != "tournament"
+            ]
         )
         for run_id in run_ids:
             print(f"sync {run_id}")
