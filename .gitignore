@@ -13,6 +13,7 @@ data/lichess_pool*.csv.meta.json
 data/*.zst
 data/private/
 data/arthurit/
+data/sources/historical/
 data/*.cbh
 data/*.cbg
 data/*.cba
