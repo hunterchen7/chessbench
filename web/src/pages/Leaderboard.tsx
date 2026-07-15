@@ -37,7 +37,7 @@ export function Leaderboard() {
   const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
   const [humans, setHumans] = useState<HumanRow[]>([])
-  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle"), [runs])
+  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed"), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
   const [suite, setSuite] = useState("")
   const activeSuite = suite || suites[0] || ""

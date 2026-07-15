@@ -96,6 +96,8 @@ def test_run_record_export_is_self_contained_and_valid(tmp_path):
     assert run["summary"]["n"] == 2
     assert run["summary"]["points"] == 1.0
     assert run["summary"]["max_points"] == 2
+    assert run["status"] == "completed"
+    assert run["progress"] == {"completed": 2, "total": 2}
     items = run["items"]
     assert len(items) == 2
     assert items[0]["rating"] == 1200  # ordered easy -> hard

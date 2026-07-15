@@ -41,7 +41,9 @@ if TYPE_CHECKING:
     from .agents import Agent
     from .core.engine import Engine
     from .models import Model
+    from .report import PuzzleReport
     from .tasks.composed import ComposedSolver
+    from .tasks.puzzles import PuzzleResult
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
 DEFAULT_COMPOSED = (
@@ -774,6 +776,48 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             reasoning_tokens=reasoning_tokens,
         )
 
+    def export_snapshot(
+        results: list[PuzzleResult],
+        report: PuzzleReport,
+        row: dict[str, object],
+    ) -> None:
+        total_cost = _usage_float(row.get("cost_usd"))
+        record = RunRecord(
+            model=entry.model_id,
+            provider=entry.provider,
+            condition=condition,
+            report=report,
+            results=results,
+            puzzles={p.id: p for p in puzzles},
+            suite=SuiteRef(
+                suite.name,
+                suite.version,
+                suite.visibility,
+                suite.content_hash,
+            ),
+            cost_usd=total_cost,
+            run_id=handle.run_id,
+            model_variant=variant.to_dict(),
+            created=str(row.get("created_at") or ""),
+            status=str(row.get("status") or "partial"),
+            progress={
+                "completed": _usage_int(row.get("completed_items")),
+                "total": _usage_int(row.get("total_items")) or len(puzzles),
+            },
+            usage={
+                "cost_usd": total_cost,
+                "prompt_tokens": _usage_int(row.get("prompt_tokens")),
+                "completion_tokens": _usage_int(row.get("completion_tokens")),
+                "reasoning_tokens": _usage_int(row.get("reasoning_tokens")),
+            },
+            error=str(row["error"]) if row.get("error") else None,
+            updated_at=str(row.get("updated_at") or ""),
+            completed_at=(
+                str(row["completed_at"]) if row.get("completed_at") else None
+            ),
+        )
+        save_run(record, out)
+
     try:
         report, results = run_puzzles(
             agent,
@@ -785,25 +829,39 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         )
     except BaseException as exc:
         store.mark_partial(handle.run_id, str(exc))
-        store.close()
+        try:
+            durable = store.load_puzzle_results(handle.run_id)
+            durable_results = [
+                durable[puzzle.id] for puzzle in puzzles if puzzle.id in durable
+            ]
+            from .report import build_report
+
+            partial_report = build_report(
+                entry.model_id, condition.slug(), durable_results
+            )
+            export_snapshot(
+                durable_results, partial_report, store.run_row(handle.run_id)
+            )
+            print(
+                f"\npartial {handle.run_id}; wrote resumable JSON export -> {out}",
+                file=sys.stderr,
+            )
+        except Exception as export_exc:
+            print(
+                f"[warn] failed to export partial run {handle.run_id}: {export_exc}",
+                file=sys.stderr,
+            )
+        finally:
+            store.close()
         raise
-    cost = float(getattr(model, "total_cost", 0.0))
-    store.finalize_puzzle_run(handle.run_id, report, cost_usd=cost)
+    # Each item already incremented the durable aggregate exactly once. Do not
+    # replace it with this process's model.total_cost: a resumed process only
+    # knows about its newly-issued calls.
+    store.finalize_puzzle_run(handle.run_id, report)
+    row = store.run_row(handle.run_id)
+    export_snapshot(results, report, row)
     store.close()
     print(format_report(report))
-    record = RunRecord(
-        model=entry.model_id,
-        provider=entry.provider,
-        condition=condition,
-        report=report,
-        results=results,
-        puzzles={p.id: p for p in puzzles},
-        suite=SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash),
-        cost_usd=cost,
-        run_id=handle.run_id,
-        model_variant=variant.to_dict(),
-    )
-    save_run(record, out)
     print(f"\ncompleted {handle.run_id}; wrote JSON export -> {out}")
     return 0
 
@@ -1203,7 +1261,7 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         "--move-only",
         dest="explain",
         action="store_false",
-        help="legacy output ablation: request only a move, without JSON or rationale",
+        help="request only a move, without JSON or rationale (paired response-style ablation)",
     )
     p.add_argument(
         "--response-protocol",

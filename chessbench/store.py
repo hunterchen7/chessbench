@@ -63,6 +63,12 @@ class RunRecord:
     created: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
     )
+    status: str = "completed"
+    progress: dict[str, int] | None = None
+    usage: dict[str, int | float] | None = None
+    error: str | None = None
+    updated_at: str | None = None
+    completed_at: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         items = []
@@ -98,13 +104,20 @@ class RunRecord:
         return {
             "schema": SCHEMA,
             "run_id": self.run_id,
+            "track": kind,
             "kind": kind,
+            "status": self.status,
             "created": self.created,
+            "updated_at": self.updated_at,
+            "completed_at": self.completed_at,
             "model": self.model,
             "provider": self.provider,
             "model_variant": self.model_variant,
             "suite": asdict(self.suite) if self.suite else None,
             "condition": _condition_dict(self.condition),
+            "progress": self.progress or {"completed": rep.n, "total": rep.n},
+            "usage": self.usage,
+            "error": self.error,
             "summary": {
                 "n": rep.n,
                 "solved": rep.solved,

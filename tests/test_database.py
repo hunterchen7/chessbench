@@ -292,6 +292,36 @@ def test_running_game_upserts_attempts_then_completes_and_charges_once(tmp_path)
         assert row["cost_usd"] == pytest.approx(0.03)
 
 
+def test_resumed_puzzle_finalize_keeps_cost_from_every_process(tmp_path):
+    puzzles = [
+        Puzzle(
+            puzzle_id,
+            "6k1/8/8/8/8/8/8/6K1 w - - 0 1",
+            ["g1f2", "g8f7"],
+            1200,
+        )
+        for puzzle_id in ("p1", "p2")
+    ]
+    results = [_result("p1"), _result("p2", solved=False)]
+    with BenchmarkStore(tmp_path / "resume-cost.db") as store:
+        run = store.start_run(_spec())
+        assert store.save_puzzle_result(
+            run.run_id, 0, puzzles[0], results[0], cost_usd=0.1
+        )
+        store.mark_partial(run.run_id, "interrupted")
+        resumed = store.start_run(_spec())
+        assert resumed.run_id == run.run_id and resumed.resumed
+        assert store.save_puzzle_result(
+            run.run_id, 1, puzzles[1], results[1], cost_usd=0.2
+        )
+        store.finalize_puzzle_run(
+            run.run_id, build_report("m", mode_condition(2).slug(), results)
+        )
+        row = store.run_row(run.run_id)
+        assert row["status"] == "completed"
+        assert row["cost_usd"] == pytest.approx(0.3)
+
+
 def test_v2_database_migrates_generic_item_table(tmp_path):
     path = tmp_path / "migrate.db"
     with BenchmarkStore(path):
