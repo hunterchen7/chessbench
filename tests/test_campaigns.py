@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from collections import Counter
 
-from chessbench.campaigns import PUBLIC_MODELS, public_low_reasoning_campaign
+import io
+import json
+
+import pytest
+
+from chessbench.campaigns import (
+    PUBLIC_MODELS,
+    openrouter_credit_remaining,
+    public_low_reasoning_campaign,
+)
 
 
 def test_public_campaign_is_complete_and_unique() -> None:
@@ -63,3 +72,43 @@ def test_esoteric_campaign_uses_registry_identity_and_distinct_exports() -> None
         assert cell.response_style.replace("_", "-") in output
 
     assert len(outputs) == len(cells)
+
+
+def test_openrouter_credit_preflight_parses_limited_and_unlimited_keys(monkeypatch) -> None:
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    responses = iter(
+        [
+            {"data": {"limit_remaining": 12.5}},
+            {"data": {"limit_remaining": None}},
+        ]
+    )
+
+    def fake_open(_request, *, timeout):
+        assert timeout == 15.0
+        return Response(json.dumps(next(responses)).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_open)
+    assert openrouter_credit_remaining("secret") == 12.5
+    assert openrouter_credit_remaining("secret") is None
+
+
+def test_openrouter_credit_preflight_fails_closed_on_bad_shape(monkeypatch) -> None:
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda *_args, **_kwargs: Response(b'{"data":{}}'),
+    )
+    with pytest.raises(RuntimeError, match="limit_remaining"):
+        openrouter_credit_remaining("secret")

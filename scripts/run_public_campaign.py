@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 from chessbench.campaigns import (  # noqa: E402
     PUBLIC_MODELS,
     CampaignCell,
+    openrouter_credit_remaining,
     public_low_reasoning_campaign,
 )
 from chessbench.env import load_local_env  # noqa: E402
@@ -81,6 +82,17 @@ def main() -> int:
         action="store_true",
         help="drain durable results to the configured Cloudflare API before exit",
     )
+    parser.add_argument(
+        "--minimum-credits",
+        type=float,
+        default=1.0,
+        help="refuse to start below this OpenRouter key balance (default: $1)",
+    )
+    parser.add_argument(
+        "--skip-credit-check",
+        action="store_true",
+        help="skip the read-only OpenRouter key-balance preflight",
+    )
     args = parser.parse_args()
 
     requested_models = tuple(_csv(args.models))
@@ -116,6 +128,33 @@ def main() -> int:
         for cell, command in zip(cells, commands):
             print(f"{cell.key}\n  {shlex.join(command)}")
         return 0
+
+    if args.minimum_credits < 0:
+        parser.error("--minimum-credits cannot be negative")
+    if not args.skip_credit_check:
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            print(
+                "OPENROUTER_API_KEY is missing; no campaign state was created",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            remaining = openrouter_credit_remaining(api_key)
+        except RuntimeError as exc:
+            print(f"{exc}; no campaign state was created", file=sys.stderr)
+            return 2
+        if remaining is None:
+            print("OpenRouter key limit: unlimited")
+        else:
+            print(f"OpenRouter key limit remaining: ${remaining:.2f}")
+            if remaining < args.minimum_credits:
+                print(
+                    f"need at least ${args.minimum_credits:.2f} to start; "
+                    "no campaign state was created",
+                    file=sys.stderr,
+                )
+                return 2
 
     env = os.environ.copy()
     failures: list[str] = []

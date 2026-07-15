@@ -31,6 +31,13 @@ Run or resume the complete campaign and publish durable progress to Cloudflare:
 python3 scripts/run_public_campaign.py --sync
 ```
 
+Before creating a new run row, the launcher checks the current OpenRouter key
+and refuses to start below $1 remaining. This avoids empty 0/N partial cells;
+use `--minimum-credits` to raise the floor. Smoke-derived extrapolation puts the
+complete campaign near $40, so funding roughly $45 leaves a reasonable margin.
+`--skip-credit-check` is available for an intentionally unlimited or proxied
+credential whose balance endpoint is unavailable.
+
 Every underlying cell has its own SQLite natural key. Repeating the command
 skips completed cells and resumes partial cells from their first missing item.
 The script stops on the first provider failure by default, rebuilds all static

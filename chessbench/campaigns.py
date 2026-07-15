@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import re
 import sys
+import json
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Sequence
@@ -29,6 +32,36 @@ PUBLIC_SUITES: dict[Track, tuple[str, int]] = {
     "woodpecker": ("suites/public/woodpecker-masters-v1.json", 125),
     "esoteric": ("suites/public/esoteric-seed-v1.json", 50),
 }
+
+
+def openrouter_credit_remaining(api_key: str, *, timeout: float = 15.0) -> float | None:
+    """Return this key's remaining USD limit, or ``None`` when unlimited.
+
+    OpenRouter documents ``GET /api/v1/key`` as the authenticated credit-limit
+    preflight. Keeping it outside the paid runner prevents an underfunded
+    campaign from creating an empty durable cell before its first HTTP 402.
+    """
+    request = urllib.request.Request(
+        "https://openrouter.ai/api/v1/key",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "chessbench-campaign/1",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.load(response)
+    except (urllib.error.URLError, OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"OpenRouter credit preflight failed: {exc}") from exc
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict) or "limit_remaining" not in data:
+        raise RuntimeError("OpenRouter credit preflight returned no limit_remaining field")
+    value = data["limit_remaining"]
+    if value is None:
+        return None
+    if not isinstance(value, (int, float)) or value < 0:
+        raise RuntimeError("OpenRouter credit preflight returned an invalid balance")
+    return float(value)
 
 
 def _slug(value: str) -> str:
