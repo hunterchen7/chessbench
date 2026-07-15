@@ -1,0 +1,10 @@
+{
+ "schema": "chessbench.suite_manifest.v1",
+ "name": "esoteric-yacpdb-mvp-v1",
+ "version": "1.0.0",
+ "visibility": "private",
+ "kind": "composed",
+ "source": "corpus:esoteric-yacpdb-mvp-v1@sha256:0f81872ba279bb177b95",
+ "items": 400,
+ "content_hash": "sha256:f0015eebd7e2ab05"
+}
