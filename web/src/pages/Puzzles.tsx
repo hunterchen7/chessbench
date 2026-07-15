@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
-import { pct, TIER_ORDER } from "@/lib/format"
+import { TIER_ORDER } from "@/lib/format"
 import { humanStore } from "@/lib/human"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
+import { PuzzleNav } from "@/components/PuzzleNav"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -18,18 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-function solveStats(entry: PuzzleEntry) {
-  if (entry.aggregate) {
-    const { solved, total } = entry.aggregate
-    return { solved, total, rate: total ? solved / total : 0 }
-  }
-  const answers = entry.answers
-  const solved = answers.filter((a) => a.item.solved).length
-  return { solved, total: answers.length, rate: answers.length ? solved / answers.length : 0 }
-}
-
 const TIERS = ["all", "beginner", "novice", "intermediate", "advanced", "expert", "master"]
-type SortKey = "puzzle" | "rating" | "tier" | "models" | "you"
+type SortKey = "puzzle" | "rating" | "tier" | "plays" | "popularity" | "you"
 
 function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): number {
   const record = store[entry.position.puzzle_id]
@@ -37,7 +28,7 @@ function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): nu
   return record.solved ? 2 : 1
 }
 
-export function Puzzles() {
+export function PuzzleBrowser() {
   const [entries, setEntries] = useState<PuzzleEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(() => {
@@ -77,7 +68,8 @@ export function Puzzles() {
         const aTier = a.position.categories.tier?.[0] ?? ""
         const bTier = b.position.categories.tier?.[0] ?? ""
         comparison = TIER_ORDER.indexOf(aTier) - TIER_ORDER.indexOf(bTier)
-      } else if (sort.key === "models") comparison = solveStats(a).rate - solveStats(b).rate
+      } else if (sort.key === "plays") comparison = (a.position.plays ?? 0) - (b.position.plays ?? 0)
+      else if (sort.key === "popularity") comparison = (a.position.popularity ?? 0) - (b.position.popularity ?? 0)
       else comparison = userState(a, store) - userState(b, store)
       return comparison * multiplier || a.position.rating - b.position.rating || a.position.puzzle_id.localeCompare(b.position.puzzle_id)
     })
@@ -85,7 +77,7 @@ export function Puzzles() {
 
   const toggleSort = (key: SortKey) => setSort((current) => ({
     key,
-    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "models" ? "desc" : "asc",
+    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : ["plays", "popularity"].includes(key) ? "desc" : "asc",
   }))
 
   if (error) return <div className="mx-auto max-w-md rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center"><div className="font-medium text-destructive">Could not load the puzzle index</div><p className="mt-1 text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" className="mt-4" onClick={load}>Try again</Button></div>
@@ -93,12 +85,12 @@ export function Puzzles() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Puzzles</h1>
-        <p className="mt-1 text-muted-foreground">
-          Browse the tactical suite from beginner to master. Open any puzzle to solve it yourself and see how each
-          model answered.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Puzzle browser</h1>
+          <p className="mt-1 text-muted-foreground">Inspect the canonical task bank by rating and theme, or open any position in the trainer.</p>
+        </div>
+        <PuzzleNav count={entries.length} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -140,15 +132,16 @@ export function Puzzles() {
               <TableRow>
                 <SortableTableHead label="Puzzle" active={sort.key === "puzzle"} direction={sort.direction} onSort={() => toggleSort("puzzle")} />
                 <SortableTableHead label="Rating" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} />
+                <TableHead className="text-right">RD</TableHead>
                 <SortableTableHead label="Tier" active={sort.key === "tier"} direction={sort.direction} onSort={() => toggleSort("tier")} />
                 <TableHead>Themes</TableHead>
-                <SortableTableHead label="Run solves" active={sort.key === "models"} direction={sort.direction} align="right" onSort={() => toggleSort("models")} />
+                <SortableTableHead label="Lichess plays" active={sort.key === "plays"} direction={sort.direction} align="right" onSort={() => toggleSort("plays")} />
+                <SortableTableHead label="Popularity" active={sort.key === "popularity"} direction={sort.direction} align="right" onSort={() => toggleSort("popularity")} />
                 <SortableTableHead label="You" active={sort.key === "you"} direction={sort.direction} align="center" onSort={() => toggleSort("you")} />
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.slice(0, limit).map((e) => {
-                const s = solveStats(e)
                 const done = store[e.position.puzzle_id]
                 return (
                   <TableRow key={e.position.puzzle_id}>
@@ -161,6 +154,7 @@ export function Puzzles() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">{e.position.rating}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">±{e.position.rating_deviation ?? "—"}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="capitalize">
                         {e.position.categories.tier?.[0] ?? "—"}
@@ -175,16 +169,8 @@ export function Puzzles() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-                          <div className="h-full bg-chart-2" style={{ width: `${s.rate * 100}%` }} />
-                        </div>
-                        <span className="w-16 text-right tabular-nums text-muted-foreground">
-                          {s.solved}/{s.total} · {pct(s.rate)}
-                        </span>
-                      </div>
-                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{(e.position.plays ?? 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{e.position.popularity ?? "—"}</TableCell>
                     <TableCell className="text-center">
                       <Link
                         to={`/puzzles/${e.position.puzzle_id}`}
@@ -197,7 +183,7 @@ export function Puzzles() {
                   </TableRow>
                 )
               })}
-              {rows.length === 0 && <TableRow><TableCell colSpan={6} className="py-16 text-center"><div className="font-medium">No puzzles match those filters</div><Button variant="ghost" size="sm" className="mt-2" onClick={() => { setQ(""); setTier("all"); setMine("all") }}>Clear filters</Button></TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={8} className="py-16 text-center"><div className="font-medium">No puzzles match those filters</div><Button variant="ghost" size="sm" className="mt-2" onClick={() => { setQ(""); setTier("all"); setMine("all") }}>Clear filters</Button></TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>

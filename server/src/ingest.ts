@@ -1,17 +1,34 @@
-import type { Env, RunDoc, RunFinishDoc, RunItemDoc, RunStartDoc, TournamentDoc } from "./types"
+import type { CorpusDoc, Env, RunFinishDoc, RunItemDoc, RunStartDoc, SuiteDoc, TournamentDoc } from "./types"
 import { authorized } from "./auth"
-import { finishRun, ingestRun, ingestTournament, startRun, upsertRunItem } from "./db"
+import { finishRun, ingestTournament, registerCorpus, registerSuite, startRun, upsertRunItem } from "./db"
 import { error, json } from "./http"
 
-/** POST /api/ingest/run — body is a run document from store.py. */
-export async function postIngestRun(env: Env, req: Request): Promise<Response> {
+/** Register an immutable browsing corpus independently from model results. */
+export async function postRegisterCorpus(env: Env, req: Request): Promise<Response> {
   if (!authorized(env, req)) return error(401, "unauthorized")
-  const doc = (await req.json().catch(() => null)) as RunDoc | null
-  if (!doc || typeof doc.model !== "string" || !doc.condition?.slug || !Array.isArray(doc.items)) {
-    return error(400, "invalid run document")
+  const doc = (await req.json().catch(() => null)) as CorpusDoc | null
+  if (
+    !doc || doc.schema !== "chessbench.public_corpus.v1" || !doc.name || !doc.content_hash ||
+    !["standard", "woodpecker", "esoteric"].includes(doc.track) ||
+    !["public", "private"].includes(doc.visibility) || !Array.isArray(doc.items)
+  ) {
+    return error(400, "invalid corpus document")
   }
-  const res = await ingestRun(env, doc)
-  return json({ ok: true, ...res })
+  return json({ ok: true, ...(await registerCorpus(env, doc)) })
+}
+
+/** Register an exact runnable suite before paid work begins. */
+export async function postRegisterSuite(env: Env, req: Request): Promise<Response> {
+  if (!authorized(env, req)) return error(401, "unauthorized")
+  const doc = (await req.json().catch(() => null)) as SuiteDoc | null
+  if (
+    !doc || !doc.name || !doc.version || !doc.content_hash ||
+    !["public", "private"].includes(doc.visibility) ||
+    !["puzzle", "composed"].includes(doc.kind) || !Array.isArray(doc.items)
+  ) {
+    return error(400, "invalid suite document")
+  }
+  return json({ ok: true, ...(await registerSuite(env, doc)) })
 }
 
 /** POST /api/ingest/run/start — establish or resume a durable run manifest. */

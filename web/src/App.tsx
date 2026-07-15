@@ -5,7 +5,9 @@ import { Layout } from "@/components/Layout"
 
 const Leaderboard = lazy(() => import("@/pages/Leaderboard").then((m) => ({ default: m.Leaderboard })))
 const ModelDetail = lazy(() => import("@/pages/ModelDetail").then((m) => ({ default: m.ModelDetail })))
-const Puzzles = lazy(() => import("@/pages/Puzzles").then((m) => ({ default: m.Puzzles })))
+const PuzzleLeaderboard = lazy(() => import("@/pages/PuzzleLeaderboard").then((m) => ({ default: m.PuzzleLeaderboard })))
+const PuzzleBrowser = lazy(() => import("@/pages/Puzzles").then((m) => ({ default: m.PuzzleBrowser })))
+const PuzzleStart = lazy(() => import("@/pages/PuzzleStart").then((m) => ({ default: m.PuzzleStart })))
 const PuzzleDetail = lazy(() => import("@/pages/PuzzleDetail").then((m) => ({ default: m.PuzzleDetail })))
 const Woodpecker = lazy(() => import("@/pages/Woodpecker").then((m) => ({ default: m.Woodpecker })))
 const Games = lazy(() => import("@/pages/Games").then((m) => ({ default: m.Games })))
@@ -26,7 +28,9 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Leaderboard />} />
               <Route path="model/:model" element={<ModelDetail />} />
-              <Route path="puzzles" element={<Puzzles />} />
+              <Route path="puzzles" element={<PuzzleLeaderboard />} />
+              <Route path="puzzles/browse" element={<PuzzleBrowser />} />
+              <Route path="puzzles/play" element={<PuzzleStart />} />
               <Route path="puzzles/:id" element={<PuzzleDetail />} />
               <Route path="woodpecker" element={<Woodpecker />} />
               <Route path="games" element={<Games />} />

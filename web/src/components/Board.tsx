@@ -1,5 +1,5 @@
 import { Chessboard } from "react-chessboard"
-import type { CSSProperties } from "react"
+import { useEffect, useMemo, useState, type CSSProperties } from "react"
 
 export interface BoardProps {
   fen: string
@@ -16,6 +16,16 @@ const LIGHT = { backgroundColor: "#e9edcc" }
 const DARK = { backgroundColor: "#6f8f57" }
 
 export function Board({ fen, orientation = "white", onPieceDrop, squareStyles, id = "board", maxWidth = 480 }: BoardProps) {
+  const [selected, setSelected] = useState<string | null>(null)
+  useEffect(() => setSelected(null), [fen])
+  const styles = useMemo(() => selected ? {
+    ...squareStyles,
+    [selected]: {
+      ...squareStyles?.[selected],
+      boxShadow: "inset 0 0 0 4px color-mix(in srgb, #facc15 72%, transparent)",
+    },
+  } : squareStyles, [selected, squareStyles])
+
   return (
     <div style={{ maxWidth, width: "100%" }} className="mx-auto">
       <Chessboard
@@ -26,12 +36,21 @@ export function Board({ fen, orientation = "white", onPieceDrop, squareStyles, i
           allowDragging: !!onPieceDrop,
           darkSquareStyle: DARK,
           lightSquareStyle: LIGHT,
-          squareStyles,
+          squareStyles: styles,
           animationDurationInMs: 200,
           onPieceDrop: onPieceDrop
             ? ({ sourceSquare, targetSquare }) =>
-                targetSquare ? onPieceDrop(sourceSquare, targetSquare) : false
+                targetSquare ? (setSelected(null), onPieceDrop(sourceSquare, targetSquare)) : false
             : undefined,
+          onSquareClick: onPieceDrop ? ({ piece, square }) => {
+            if (!selected) {
+              if (piece) setSelected(square)
+              return
+            }
+            if (selected === square) return setSelected(null)
+            if (onPieceDrop(selected, square)) return setSelected(null)
+            setSelected(piece ? square : null)
+          } : undefined,
         }}
       />
     </div>

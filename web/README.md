@@ -5,33 +5,30 @@ benchmark. It reads the JSON the Python CLI produces and renders it as an intera
 
 ## Pages
 
-- **Leaderboard** — models ranked by puzzle Elo (MLE fit to Lichess-rated puzzles), with a
-  filter for the best run per model or a specific ablation condition. A second tab lists
-  tournaments ranked by Bradley–Terry game Elo. If you solve puzzles in the browser, your own
-  Elo appears as a row.
-- **Model detail** — headline stats, the sequential puzzle-Elo trajectory (recharts), and
-  accuracy broken down by tier and by theme, per condition.
-- **Puzzles** — browse the tactical suite from beginner to master; sort by rating or by how
-  hard each puzzle was for the models.
-- **Puzzle detail** — solve the position yourself on a drag-and-drop board (react-chessboard +
-  chess.js validate the line), then expand how every model answered, including its written
-  explanation and failure reason.
+- **Overview** — points-first summary across all four tracks.
+- **Puzzle leaderboard** — models ranked by points with a secondary Elo-scale performance
+  estimate, confidence interval, solve rate, legality, exact model budget, and cost.
+- **Puzzle trainer** — a board-first Lichess-inspired Ready → Retry → Solved/Reveal flow.
+  Answers remain hidden until review; click-to-move and drag-to-move are both supported.
+- **Puzzle browser** — the separate canonical task catalog, sortable by source rating,
+  deviation, tier, Lichess plays, and popularity.
+- **Model detail** — per-condition points, rating, usage, cost, and item-level audit.
 - **Games / tournament detail** — standings, and a move-by-move replay of every game with a
   board, jump-to-move list, illegal-attempt / forfeit highlighting, and evals.
 
 ## Data
 
-The app fetches from `public/data/`:
+The app fetches from the Worker API in production and falls back to `public/data/` offline:
 
+- `corpora/*.json` — immutable, result-free public Standard, Woodpecker, and Esoteric banks.
 - `index.json` — run index; each entry points to a file in `runs/`.
 - `runs/*.json` — one puzzle run (model × condition) with per-puzzle items.
 - `tournaments/index.json` + `tournaments/*.json` — game tournaments.
 
-Regenerate and refresh it from the repo root:
+Regenerate the result-free corpus bundle from the canonical releases:
 
 ```bash
-python -m chessbench export                 # rebuilds webapp/data/index.json
-cp -R ../webapp/data/* public/data/         # sync into the Vite app
+python3 scripts/build_public_corpus_bundle.py
 ```
 
 ## Develop

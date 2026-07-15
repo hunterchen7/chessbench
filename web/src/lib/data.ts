@@ -37,11 +37,24 @@ export interface Categories {
   length?: string[]
 }
 
-export interface PuzzleItem {
+export interface PuzzlePosition {
   puzzle_id: string
   rating: number
+  rating_deviation?: number
+  popularity?: number
+  plays?: number
   themes: string[]
   categories: Categories
+  fen: string
+  setup_san?: string
+  solver_is_white: boolean
+  solution: string[]
+  solution_first: string | null
+  game_url?: string
+  source?: string
+}
+
+export interface PuzzleItem extends PuzzlePosition {
   solved: boolean
   score: number
   first_move_legal: boolean
@@ -52,12 +65,6 @@ export interface PuzzleItem {
   answer_raw: string | null
   answer_response_format_valid?: boolean | null
   answer_response_format_error?: string | null
-  fen: string
-  setup_san?: string
-  solver_is_white: boolean
-  solution: string[]
-  solution_first: string | null
-  game_url?: string
   moves_played?: string[]
   solver_plies?: number
   plies_correct?: number
@@ -141,9 +148,23 @@ export interface PuzzleAnswer {
 }
 
 export interface PuzzleEntry {
-  position: PuzzleItem
+  position: PuzzlePosition
   answers: PuzzleAnswer[]
   aggregate?: { solved: number; total: number }
+}
+
+export interface PublicCorpus<T> {
+  schema: "chessbench.public_corpus.v1"
+  name: string
+  title: string
+  version: string
+  track: "standard" | "woodpecker" | "esoteric"
+  visibility: "public"
+  description: string
+  content_hash: string
+  sources: Array<Record<string, unknown>>
+  validation: Record<string, unknown>
+  items: T[]
 }
 
 export interface Standing {
@@ -413,6 +434,11 @@ export async function loadRun(file: string): Promise<Run> {
 }
 
 let puzzleCache: Promise<PuzzleEntry[]> | null = null
+async function loadStaticPuzzleCorpus(): Promise<PuzzleEntry[]> {
+  const corpus = await fetchJSON<PublicCorpus<PuzzlePosition>>(`${DATA}corpora/standard.json`)
+  return corpus.items.map((position) => ({ position, answers: [], aggregate: { solved: 0, total: 0 } }))
+}
+
 export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
   if (puzzleCache) return puzzleCache
   puzzleCache = (async () => {
@@ -422,22 +448,28 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
       return doc.puzzles.map((p) => ({
         position: {
           puzzle_id: String(p.puzzle_id), rating: Number(p.rating), themes: (p.themes as string[]) ?? [],
-          categories: (p.categories as Categories) ?? {}, solved: false, score: 0,
-          first_move_legal: false, failure_reason: null, answer_move: null,
-          answer_explanation: null, answer_raw: null, fen: String(p.fen ?? ""),
-          solver_is_white: Boolean(p.solver_is_white), solution: [], solution_first: null,
+          categories: (p.categories as Categories) ?? {}, fen: String(p.fen ?? ""),
+          solver_is_white: Boolean(p.solver_is_white), solution: (p.solution as string[]) ?? [],
+          solution_first: (p.solution_first as string | null | undefined) ?? null,
+          rating_deviation: p.rating_deviation == null ? undefined : Number(p.rating_deviation),
+          popularity: p.popularity == null ? undefined : Number(p.popularity),
+          plays: p.plays == null ? undefined : Number(p.plays),
           setup_san: p.setup_san as string | undefined, game_url: p.game_url as string | undefined,
         },
         answers: [],
         aggregate: { solved: Number(p.solved ?? 0), total: Number(p.total ?? 0) },
       }))
     }
-    const runs = await loadIndex(null)
+    const [positions, runs] = await Promise.all([loadStaticPuzzleCorpus(), loadIndex(null)])
     const full = await Promise.all(runs.filter((run) => run.track === "puzzle" && isModelVariant(run.model_variant)).map((run) => loadRun(run.file)))
-    const map = new Map<string, PuzzleEntry>()
+    const map = new Map(positions.map((entry) => [entry.position.puzzle_id, entry]))
     for (const run of full) for (const item of run.items) {
       const entry = map.get(item.puzzle_id) ?? { position: item, answers: [] }
       entry.answers.push({ model: run.model, condition: run.condition.slug, item })
+      entry.aggregate = {
+        solved: (entry.aggregate?.solved ?? 0) + Number(item.solved),
+        total: (entry.aggregate?.total ?? 0) + 1,
+      }
       map.set(item.puzzle_id, entry)
     }
     return [...map.values()]

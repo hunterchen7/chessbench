@@ -14,20 +14,25 @@ Read (public, permissive CORS):
 | GET | `/api/health` | liveness |
 | GET | `/api/index` | run index (mirrors `index.json`) |
 | GET | `/api/runs/:id` | public run document; private-suite items are sealed |
+| GET | `/api/corpora/:track` | active result-free public corpus (`standard`, `woodpecker`, `esoteric`) |
 | GET | `/api/puzzles` | position bank + per-puzzle model solve stats |
 | GET | `/api/puzzles/:id` | one position + how every model answered |
 | GET | `/api/tournaments` | tournament index |
 | GET | `/api/tournaments/:id` | full tournament document |
 | GET | `/api/export` | filtered versioned JSON; private-suite items are sealed |
-| GET | `/api/human/summary?uid=` | one solver's count + Elo |
-| GET | `/api/human/leaderboard` | top human solvers by Elo |
+| GET | `/api/human/summary?uid=` | one solver's points and accuracy |
+| GET | `/api/human/leaderboard` | top human solvers by points |
 | POST | `/api/human/solve` | record a solve `{uid, puzzle_id, solved, handle?}` |
 
 Ingest (Bearer `INGEST_TOKEN`):
 
 | Method | Path | Body |
 | --- | --- | --- |
-| POST | `/api/ingest/run` | a run document from `store.py` |
+| POST | `/api/ingest/corpus` | a result-free public/private corpus bundle |
+| POST | `/api/ingest/suite` | an exact frozen runnable suite |
+| POST | `/api/ingest/run/start` | immutable run manifest; validates suite hash and item count |
+| POST | `/api/ingest/run/item` | one idempotent paid result + full audit payload |
+| POST | `/api/ingest/run/finish` | terminal run state and derived rating |
 | POST | `/api/ingest/tournament?id=<stem>` | a tournament document |
 
 The same owner token may be used with `?include_private=1` on a run-detail or export request. Without both the
@@ -57,12 +62,14 @@ wrangler deploy
 
 ## Loading data
 
-From the repo root, after a benchmark run:
+From the repo root, register corpora/suites once, then drain the durable local outbox after or during a run:
 
 ```bash
 export CHESSBENCH_API=https://chessbench.<subdomain>.workers.dev
 export CHESSBENCH_INGEST_TOKEN=<the INGEST_TOKEN>
-python scripts/push_to_backend.py
+python3 scripts/build_public_corpus_bundle.py
+python3 scripts/sync_registry.py
+python3 scripts/sync_cloudflare.py --db runs/chessbench.db
 ```
 
 ## Local dev

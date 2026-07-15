@@ -33,6 +33,10 @@ interface RunRow {
   prompt_tokens: number
   completion_tokens: number
   reasoning_tokens: number
+  puzzle_rating: number | null
+  puzzle_rating_stderr: number | null
+  puzzle_rating_n: number
+  puzzle_rating_bounded: number
   error: string | null
   created_at: string
   updated_at: string
@@ -84,6 +88,16 @@ function publicRun(row: RunRow) {
       points: row.points,
       max_points: row.max_points,
       cost_usd: row.cost_usd,
+      puzzle_performance_rating: row.puzzle_rating == null ? null : {
+        rating: row.puzzle_rating,
+        stderr: row.puzzle_rating_stderr,
+        ci95: row.puzzle_rating_stderr == null ? null : [
+          row.puzzle_rating - 1.96 * row.puzzle_rating_stderr,
+          row.puzzle_rating + 1.96 * row.puzzle_rating_stderr,
+        ],
+        n: row.puzzle_rating_n,
+        bounded: Boolean(row.puzzle_rating_bounded),
+      },
     },
     usage: {
       prompt_tokens: row.prompt_tokens,
@@ -148,29 +162,72 @@ export async function getRun(env: Env, id: string, req: Request): Promise<Respon
   })
 }
 
-/** GET /api/puzzles — the position bank with per-puzzle model solve stats. */
+interface CorpusItemRow {
+  payload_json: string
+  solved?: number
+  total?: number
+}
+
+/** GET /api/corpora/:track — result-free task definitions for public releases. */
+export async function getCorpus(env: Env, track: string): Promise<Response> {
+  if (!["standard", "woodpecker", "esoteric"].includes(track)) return error(404, "unknown corpus track")
+  const release = await env.DB.prepare(
+    `SELECT * FROM corpus_releases WHERE track=? AND visibility='public' AND active=1`,
+  ).bind(track).first<Record<string, unknown>>()
+  if (!release) return error(404, "corpus not registered")
+  const { results } = await env.DB.prepare(
+    `SELECT payload_json FROM corpus_items WHERE content_hash=? ORDER BY sequence`,
+  ).bind(release.content_hash).all<CorpusItemRow>()
+  const metadata = JSON.parse(String(release.metadata_json ?? "{}")) as Record<string, unknown>
+  return json({
+    schema: "chessbench.public_corpus.v1",
+    name: release.name,
+    title: release.title,
+    version: release.version,
+    track: release.track,
+    visibility: release.visibility,
+    description: release.description,
+    content_hash: release.content_hash,
+    sources: metadata.sources ?? [],
+    validation: metadata.validation ?? {},
+    items: (results ?? []).map((row) => JSON.parse(row.payload_json)),
+  })
+}
+
+/** GET /api/puzzles — immutable positions plus optional model solve aggregates. */
 export async function getPuzzles(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT i.item_id AS puzzle_id, MAX(i.payload_json) AS payload_json,
-            COUNT(*) AS total, COALESCE(SUM(i.solved), 0) AS solved
-       FROM benchmark_items_v2 i
-       JOIN benchmark_runs_v2 r USING(run_id)
-       JOIN model_variants_v2 v USING(variant_key)
-      WHERE r.track='puzzle' AND COALESCE(r.suite_visibility, 'public') <> 'private'
-        AND LOWER(v.provider) NOT IN ('stockfish', 'engine', 'baseline', 'oracle', 'random')
-        AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
-      GROUP BY i.item_id
-      ORDER BY CAST(json_extract(MAX(i.payload_json), '$.rating') AS INTEGER), i.item_id`,
-  ).all<{ puzzle_id: string; payload_json: string; total: number; solved: number }>()
+    `WITH model_stats AS (
+       SELECT i.item_id, COUNT(*) AS total, COALESCE(SUM(i.solved), 0) AS solved
+         FROM benchmark_items_v2 i
+         JOIN benchmark_runs_v2 r USING(run_id)
+         JOIN model_variants_v2 v USING(variant_key)
+        WHERE r.track='puzzle' AND COALESCE(r.suite_visibility, 'public') <> 'private'
+          AND LOWER(v.provider) NOT IN ('stockfish', 'engine', 'baseline', 'oracle', 'random')
+          AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
+        GROUP BY i.item_id
+     )
+     SELECT c.payload_json, COALESCE(s.total, 0) AS total, COALESCE(s.solved, 0) AS solved
+       FROM corpus_items c
+       JOIN corpus_releases r USING(content_hash)
+       LEFT JOIN model_stats s ON s.item_id=c.item_id
+      WHERE r.track='standard' AND r.visibility='public' AND r.active=1
+      ORDER BY CAST(json_extract(c.payload_json, '$.rating') AS INTEGER), c.item_id`,
+  ).all<CorpusItemRow>()
   const puzzles = (results ?? []).map((r) => {
     const p = JSON.parse(r.payload_json) as Record<string, unknown>
-    return { ...p, puzzle_id: r.puzzle_id, solved: r.solved, total: r.total }
+    return { ...p, solved: r.solved ?? 0, total: r.total ?? 0 }
   })
   return json({ puzzles })
 }
 
 /** GET /api/puzzles/:id — a position plus how every model answered it. */
 export async function getPuzzle(env: Env, id: string): Promise<Response> {
+  const corpusItem = await env.DB.prepare(
+    `SELECT c.payload_json FROM corpus_items c JOIN corpus_releases r USING(content_hash)
+      WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
+  ).bind(id).first<{ payload_json: string }>()
+  if (!corpusItem) return error(404, "puzzle not found")
   const { results } = await env.DB.prepare(
     `SELECT i.run_id, r.variant_key AS model, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json
@@ -186,9 +243,8 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
     first_move_legal: number; failure_reason: string | null; payload_json: string
   }>()
   const rows = results ?? []
-  if (!rows.length) return error(404, "puzzle not found")
   const payloads = rows.map((row) => JSON.parse(row.payload_json) as Record<string, unknown>)
-  const position = { ...payloads[0], puzzle_id: id }
+  const position = JSON.parse(corpusItem.payload_json) as Record<string, unknown>
   const answers = rows.map((a, index) => ({
     ...payloads[index], run_id: a.run_id, model: a.model, condition: a.condition_slug,
     solved: !!a.solved, score: a.points, first_move_legal: !!a.first_move_legal,

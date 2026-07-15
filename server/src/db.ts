@@ -1,10 +1,10 @@
 import type {
+  CorpusDoc,
   Env,
-  ModelVariantDoc,
-  RunDoc,
   RunFinishDoc,
   RunItemDoc,
   RunStartDoc,
+  SuiteDoc,
   TournamentDoc,
 } from "./types"
 
@@ -15,33 +15,90 @@ async function batchChunked(env: Env, stmts: D1PreparedStatement[], size = 40): 
   for (let i = 0; i < stmts.length; i += size) await env.DB.batch(stmts.slice(i, i + size))
 }
 
-export function runId(doc: RunDoc): string {
-  if (doc.run_id) return doc.run_id
-  const variant = doc.model_variant?.key ?? doc.model
-  return `${variant}__${doc.condition?.slug ?? "unknown"}__${doc.suite?.name ?? "nosuite"}`
+const SUITE_TRACKS = new Set(["puzzle", "woodpecker", "esoteric"])
+
+export async function registerSuite(env: Env, doc: SuiteDoc): Promise<{ content_hash: string; items: number }> {
+  const stamp = now()
+  const track = doc.track ?? (doc.kind === "composed" ? "esoteric" : "puzzle")
+  const idKey = doc.kind === "composed" ? "id" : "id"
+  const items = doc.items.map((item, sequence) => {
+    const id = String(item[idKey] ?? item.puzzle_id ?? "").trim()
+    if (!id) throw new Error(`suite item ${sequence} is missing id`)
+    return { id, sequence, item }
+  })
+  if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error("duplicate suite item id")
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO benchmark_suites
+       (content_hash, name, version, track, visibility, source, item_count, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(content_hash) DO UPDATE SET
+         name=excluded.name, version=excluded.version, track=excluded.track,
+         visibility=excluded.visibility, source=excluded.source,
+         item_count=excluded.item_count, updated_at=excluded.updated_at`,
+    ).bind(doc.content_hash, doc.name, doc.version, track, doc.visibility, doc.source ?? "", items.length, stamp, stamp),
+    env.DB.prepare(`DELETE FROM benchmark_suite_items WHERE content_hash=?`).bind(doc.content_hash),
+  ])
+  await batchChunked(env, items.map(({ id, sequence, item }) => env.DB.prepare(
+    `INSERT INTO benchmark_suite_items (content_hash, item_id, sequence, payload_json) VALUES (?, ?, ?, ?)`,
+  ).bind(doc.content_hash, id, sequence, JSON.stringify(item))))
+  return { content_hash: doc.content_hash, items: items.length }
 }
 
-function legacyVariant(doc: RunDoc): ModelVariantDoc {
-  return doc.model_variant ?? {
-    key: `${doc.model.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}--legacy`,
-    base_key: doc.model,
-    display_name: doc.model.includes("/") ? doc.model.split("/").at(-1)! : doc.model,
-    provider: doc.provider ?? "unknown",
-    model_id: doc.model,
-    reasoning: {
-      effort: typeof doc.condition?.reasoning_effort === "string" ? doc.condition.reasoning_effort : null,
-      max_tokens:
-        typeof doc.condition?.reasoning_max_tokens === "number" ? doc.condition.reasoning_max_tokens : null,
-      exclude: true,
-    },
-    max_output_tokens:
-      typeof doc.condition?.max_output_tokens === "number" ? doc.condition.max_output_tokens : 2048,
+export async function registerCorpus(env: Env, doc: CorpusDoc): Promise<{ content_hash: string; items: number }> {
+  const stamp = now()
+  const metadata = {
+    schema: doc.schema,
+    sources: doc.sources ?? [],
+    validation: doc.validation ?? {},
   }
+  const idKey = doc.track === "esoteric" ? "id" : "puzzle_id"
+  const items = doc.items.map((item, sequence) => {
+    const id = String(item[idKey] ?? "").trim()
+    if (!id) throw new Error(`corpus item ${sequence} is missing ${idKey}`)
+    return { id, sequence, item }
+  })
+  if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error("duplicate corpus item id")
+
+  await env.DB.batch([
+    env.DB.prepare(`UPDATE corpus_releases SET active=0, updated_at=? WHERE track=?`).bind(stamp, doc.track),
+    env.DB.prepare(
+      `INSERT INTO corpus_releases
+       (content_hash, name, title, version, track, visibility, description, item_count,
+        metadata_json, active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+       ON CONFLICT(content_hash) DO UPDATE SET
+         name=excluded.name, title=excluded.title, version=excluded.version,
+         track=excluded.track, visibility=excluded.visibility, description=excluded.description,
+         item_count=excluded.item_count, metadata_json=excluded.metadata_json,
+         active=1, updated_at=excluded.updated_at`,
+    ).bind(
+      doc.content_hash, doc.name, doc.title, doc.version, doc.track, doc.visibility,
+      doc.description ?? "", items.length, JSON.stringify(metadata), stamp, stamp,
+    ),
+    env.DB.prepare(`DELETE FROM corpus_items WHERE content_hash=?`).bind(doc.content_hash),
+  ])
+  await batchChunked(env, items.map(({ id, sequence, item }) => env.DB.prepare(
+    `INSERT INTO corpus_items (content_hash, item_id, sequence, payload_json) VALUES (?, ?, ?, ?)`,
+  ).bind(doc.content_hash, id, sequence, JSON.stringify(item))))
+  return { content_hash: doc.content_hash, items: items.length }
 }
 
 export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: string; completed_items: number }> {
   const stamp = doc.created_at ?? now()
   const v = doc.model_variant
+  if (doc.suite?.content_hash && SUITE_TRACKS.has(doc.track)) {
+    const suite = await env.DB.prepare(
+      `SELECT track, item_count FROM benchmark_suites WHERE content_hash=?`,
+    ).bind(doc.suite.content_hash).first<{ track: string; item_count: number }>()
+    if (!suite) throw new Error(`suite ${doc.suite.content_hash} is not registered`)
+    if (suite.track !== doc.track) {
+      throw new Error(`suite track ${suite.track} cannot start a ${doc.track} run`)
+    }
+    if (suite.item_count !== doc.total_items) {
+      throw new Error(`suite has ${suite.item_count} items, run declared ${doc.total_items}`)
+    }
+  }
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO model_variants_v2
@@ -114,6 +171,44 @@ const refreshAggregate = (env: Env, runId: string, stamp: string) =>
        updated_at=? WHERE run_id=?`,
   ).bind(runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, stamp, runId)
 
+interface PuzzleRatingEstimate {
+  rating: number
+  stderr: number | null
+  n: number
+  bounded: boolean
+}
+
+async function estimatePuzzleRating(env: Env, runId: string): Promise<PuzzleRatingEstimate | null> {
+  const { results } = await env.DB.prepare(
+    `SELECT item_rating AS rating, solved FROM benchmark_items_v2
+      WHERE run_id=? AND item_rating IS NOT NULL`,
+  ).bind(runId).all<{ rating: number; solved: number }>()
+  const items = results ?? []
+  const n = items.length
+  if (!n) return null
+  const wins = items.reduce((sum, item) => sum + Number(Boolean(item.solved)), 0)
+  if (wins === 0) return { rating: 0, stderr: null, n, bounded: false }
+  if (wins === n) return { rating: 4000, stderr: null, n, bounded: false }
+  const expected = (rating: number, puzzle: number) => 1 / (1 + 10 ** ((puzzle - rating) / 400))
+  const gradient = (rating: number) => items.reduce(
+    (sum, item) => sum + Number(Boolean(item.solved)) - expected(rating, item.rating), 0,
+  )
+  let low = 0
+  let high = 4000
+  for (let i = 0; i < 200 && high - low >= 0.0001; i += 1) {
+    const middle = (low + high) / 2
+    if (gradient(middle) > 0) low = middle
+    else high = middle
+  }
+  const rating = (low + high) / 2
+  const derivative = Math.log(10) / 400
+  const information = items.reduce((sum, item) => {
+    const score = expected(rating, item.rating)
+    return sum + derivative ** 2 * score * (1 - score)
+  }, 0)
+  return { rating, stderr: information > 0 ? 1 / Math.sqrt(information) : null, n, bounded: true }
+}
+
 export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_id: string; item_id: string }> {
   const stamp = now()
   const run = await env.DB.prepare(`SELECT run_id FROM benchmark_runs_v2 WHERE run_id=?`)
@@ -123,14 +218,15 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
     env.DB.prepare(
       `INSERT INTO benchmark_items_v2
        (run_id, item_id, sequence, points, max_points, solved, first_move_legal, response_format_valid,
-        failure_reason, latency_ms, cost_usd, prompt_tokens, completion_tokens,
+        failure_reason, latency_ms, item_rating, item_rating_deviation, cost_usd, prompt_tokens, completion_tokens,
         reasoning_tokens, payload_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(run_id, item_id) DO UPDATE SET
          sequence=excluded.sequence, points=excluded.points, max_points=excluded.max_points,
          solved=excluded.solved, first_move_legal=excluded.first_move_legal,
          response_format_valid=excluded.response_format_valid,
          failure_reason=excluded.failure_reason, latency_ms=excluded.latency_ms,
+         item_rating=excluded.item_rating, item_rating_deviation=excluded.item_rating_deviation,
          cost_usd=excluded.cost_usd, prompt_tokens=excluded.prompt_tokens,
          completion_tokens=excluded.completion_tokens, reasoning_tokens=excluded.reasoning_tokens,
          payload_json=excluded.payload_json, updated_at=excluded.updated_at`,
@@ -145,6 +241,8 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.response_format_valid == null ? null : item.response_format_valid ? 1 : 0,
       item.failure_reason ?? null,
       item.latency_ms ?? null,
+      typeof item.payload.rating === "number" ? item.payload.rating : null,
+      typeof item.payload.rating_deviation === "number" ? item.payload.rating_deviation : null,
       item.cost_usd ?? 0,
       item.prompt_tokens ?? 0,
       item.completion_tokens ?? 0,
@@ -175,110 +273,22 @@ export async function finishRun(
     throw new Error(`cannot complete ${doc.run_id}: ${row.completed_items}/${row.total_items} items present`)
   }
   const stamp = now()
+  const estimate = await estimatePuzzleRating(env, doc.run_id)
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE benchmark_runs_v2 SET status=?, error=?, updated_at=?,
+       puzzle_rating=?, puzzle_rating_stderr=?, puzzle_rating_n=?, puzzle_rating_bounded=?,
        completed_at=CASE WHEN ?='completed' THEN ? ELSE completed_at END WHERE run_id=?`,
-    ).bind(requested, doc.error?.slice(0, 2000) ?? null, stamp, requested, stamp, doc.run_id),
+    ).bind(
+      requested, doc.error?.slice(0, 2000) ?? null, stamp,
+      estimate?.rating ?? null, estimate?.stderr ?? null, estimate?.n ?? 0, estimate?.bounded ? 1 : 0,
+      requested, stamp, doc.run_id,
+    ),
     env.DB.prepare(
       `INSERT INTO benchmark_events_v2 (run_id, kind, detail, created_at) VALUES (?, ?, ?, ?)`,
     ).bind(doc.run_id, `run_${requested}`, doc.error?.slice(0, 500) ?? null, stamp),
   ])
   return { run_id: doc.run_id, status: requested, ...row }
-}
-
-/** Compatibility ingest for a completed v1/v2 run JSON export. */
-export async function ingestRun(env: Env, doc: RunDoc): Promise<{ run_id: string; items: number }> {
-  const id = runId(doc)
-  const variant = legacyVariant(doc)
-  const track = doc.kind === "woodpecker" ? "woodpecker" : "puzzle"
-  await startRun(env, {
-    run_id: id,
-    track,
-    model_variant: variant,
-    condition: doc.condition,
-    suite: doc.suite
-      ? {
-          name: doc.suite.name,
-          version: (doc.suite as Record<string, unknown>).version as string | undefined,
-          content_hash: (doc.suite as Record<string, unknown>).content_hash as string | undefined,
-          visibility: (doc.suite as Record<string, unknown>).visibility as string | undefined,
-        }
-      : null,
-    total_items: doc.items.length,
-    created_at: doc.created,
-  })
-
-  const slug = doc.condition?.slug ?? "unknown"
-  const legacy: D1PreparedStatement[] = []
-  for (const [sequence, it] of doc.items.entries()) {
-    await upsertRunItem(env, {
-      run_id: id,
-      item_id: it.puzzle_id,
-      sequence,
-      points: it.score ?? (it.solved ? 1 : 0),
-      max_points: 1,
-      solved: it.solved,
-      first_move_legal: it.first_move_legal,
-      response_format_valid: it.answer_response_format_valid,
-      failure_reason: it.failure_reason,
-      payload: it as unknown as Record<string, unknown>,
-    })
-    if (it.fen) {
-      legacy.push(
-        env.DB.prepare(
-          `INSERT INTO puzzles
-           (puzzle_id, rating, fen, setup_san, solver_is_white, solution_json, solution_first,
-            themes_json, categories_json, game_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT(puzzle_id) DO UPDATE SET
-             rating=excluded.rating, fen=excluded.fen, setup_san=excluded.setup_san,
-             solver_is_white=excluded.solver_is_white, solution_json=excluded.solution_json,
-             solution_first=excluded.solution_first, themes_json=excluded.themes_json,
-             categories_json=excluded.categories_json, game_url=excluded.game_url`,
-        ).bind(
-          it.puzzle_id,
-          it.rating ?? null,
-          it.fen,
-          it.setup_san ?? null,
-          it.solver_is_white ? 1 : 0,
-          JSON.stringify(it.solution ?? []),
-          it.solution_first ?? null,
-          JSON.stringify(it.themes ?? []),
-          JSON.stringify(it.categories ?? {}),
-          it.game_url ?? null,
-        ),
-      )
-    }
-    legacy.push(
-      env.DB.prepare(
-        `INSERT INTO run_answers
-         (run_id, puzzle_id, model, condition_slug, solved, score, first_move_legal,
-          failure_reason, answer_move, answer_explanation, seq_elo)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(run_id, puzzle_id) DO UPDATE SET
-           model=excluded.model, condition_slug=excluded.condition_slug, solved=excluded.solved,
-           score=excluded.score, first_move_legal=excluded.first_move_legal,
-           failure_reason=excluded.failure_reason, answer_move=excluded.answer_move,
-           answer_explanation=excluded.answer_explanation, seq_elo=excluded.seq_elo`,
-      ).bind(
-        id,
-        it.puzzle_id,
-        variant.key,
-        slug,
-        it.solved ? 1 : 0,
-        it.score ?? 0,
-        it.first_move_legal ? 1 : 0,
-        it.failure_reason ?? null,
-        it.answer_move ?? null,
-        it.answer_explanation ?? null,
-        typeof it.seq_elo === "number" ? it.seq_elo : null,
-      ),
-    )
-  }
-  await batchChunked(env, legacy)
-  await finishRun(env, { run_id: id, status: "completed" })
-  return { run_id: id, items: doc.items.length }
 }
 
 export async function ingestTournament(env: Env, doc: TournamentDoc, tid: string): Promise<{ tid: string }> {

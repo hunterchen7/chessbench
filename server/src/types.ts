@@ -8,6 +8,32 @@ export interface Env {
 }
 
 export type BenchmarkTrack = "puzzle" | "woodpecker" | "esoteric" | "game"
+export type CorpusTrack = "standard" | "woodpecker" | "esoteric"
+
+export interface CorpusDoc {
+  schema: "chessbench.public_corpus.v1"
+  name: string
+  title: string
+  version: string
+  track: CorpusTrack
+  visibility: "public" | "private"
+  description?: string
+  content_hash: string
+  sources?: unknown[]
+  validation?: Record<string, unknown>
+  items: Array<Record<string, unknown>>
+}
+
+export interface SuiteDoc {
+  name: string
+  version: string
+  visibility: "public" | "private"
+  kind: "puzzle" | "composed"
+  track?: "puzzle" | "woodpecker" | "esoteric"
+  source?: string
+  content_hash: string
+  items: Array<Record<string, unknown>>
+}
 
 export interface ModelVariantDoc {
   key: string
@@ -57,46 +83,7 @@ export interface RunFinishDoc {
   run_id: string
   status?: "completed" | "partial" | "failed"
   error?: string | null
-}
-
-/** The per-puzzle item shape emitted by chessbench/store.py (RunRecord.to_dict). */
-export interface RunItem {
-  puzzle_id: string
-  rating: number
-  themes: string[]
-  categories: Record<string, string[]>
-  solved: boolean
-  score: number
-  first_move_legal: boolean
-  failure_reason: string | null
-  answer_move: string | null
-  answer_rationale?: string | null
-  answer_explanation: string | null
-  answer_raw: string | null
-  answer_response_format_valid?: boolean | null
-  answer_response_format_error?: string | null
-  seq_elo?: number
-  fen?: string
-  setup_san?: string
-  solver_is_white?: boolean
-  solution?: string[]
-  solution_first?: string | null
-  game_url?: string
-}
-
-export interface RunDoc {
-  schema: string
-  kind: string
-  created: string
-  model: string
-  provider: string
-  run_id?: string | null
-  model_variant?: ModelVariantDoc | null
-  suite: { name: string } | null
-  condition: { slug: string; temperature?: number } & Record<string, unknown>
-  summary: Record<string, unknown>
-  themes: unknown[]
-  items: RunItem[]
+  summary?: Record<string, unknown> | null
 }
 
 export interface TournamentDoc {

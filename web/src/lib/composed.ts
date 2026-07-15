@@ -5,6 +5,7 @@ import type { Condition, ModelVariant, RunIndexEntry, RunStatus } from "./data"
 import { resolveApiBase } from "./data"
 
 const STATIC_DATA = import.meta.env.BASE_URL + "data/composed/"
+const STATIC_CORPUS = import.meta.env.BASE_URL + "data/corpora/esoteric.json"
 
 export type Stipulation =
   | "directmate" | "selfmate" | "reflexmate" | "helpmate"
@@ -225,9 +226,13 @@ function normalizeRun(value: unknown, manifest?: RunIndexEntry): ComposedRun {
   }
 }
 
-function composeData(runs: ComposedRun[], source: ComposedData["source"]): ComposedData {
+function composeData(runs: ComposedRun[], source: ComposedData["source"], corpus: ComposedProblem[] = []): ComposedData {
   const problems = new Map<string, ComposedEntry>()
   const order: string[] = []
+  for (const problem of corpus) {
+    problems.set(problem.id, { problem, answers: [] })
+    order.push(problem.id)
+  }
   for (const run of runs) {
     for (const item of run.items) {
       let entry = problems.get(item.id)
@@ -270,11 +275,17 @@ function composeData(runs: ComposedRun[], source: ComposedData["source"]): Compo
 }
 
 async function loadStaticComposed(): Promise<ComposedData> {
+  let corpus: ComposedProblem[] = []
+  try {
+    corpus = (await fetchJSON<{ items: ComposedProblem[] }>(STATIC_CORPUS)).items ?? []
+  } catch {
+    // An empty corpus still yields a valid no-data state.
+  }
   let index: { runs: { file: string }[] }
   try {
     index = await fetchJSON<{ runs: { file: string }[] }>(`${STATIC_DATA}index.json`)
   } catch {
-    return composeData([], "static")
+    return composeData([], "static", corpus)
   }
   const loaded = await Promise.all(index.runs.map(async ({ file }) => {
     try {
@@ -283,16 +294,17 @@ async function loadStaticComposed(): Promise<ComposedData> {
       return null
     }
   }))
-  return composeData(loaded.filter((run): run is ComposedRun => run !== null), "static")
+  return composeData(loaded.filter((run): run is ComposedRun => run !== null), "static", corpus)
 }
 
 async function loadApiComposed(base: string, manifests?: RunIndexEntry[]): Promise<ComposedData | null> {
+  const corpus = (await fetchJSON<{ items?: ComposedProblem[] }>(`${base}/corpora/esoteric`)).items ?? []
   let candidates = manifests?.filter((run) => run.track === "esoteric")
   if (!candidates) {
     const index = await fetchJSON<{ runs?: RunIndexEntry[] }>(`${base}/index`)
     candidates = (index.runs ?? []).filter((run) => run.track === "esoteric")
   }
-  if (candidates.length === 0) return null
+  if (candidates.length === 0) return composeData([], "api", corpus)
   const loaded = await Promise.all(candidates.map(async (manifest) => {
     try {
       const doc = await fetchJSON<unknown>(`${base}/runs/${encodeURIComponent(manifest.run_id)}`)
@@ -302,7 +314,7 @@ async function loadApiComposed(base: string, manifests?: RunIndexEntry[]): Promi
     }
   }))
   const runs = loaded.filter((run): run is ComposedRun => run !== null)
-  return runs.length ? composeData(runs, "api") : null
+  return composeData(runs, "api", corpus)
 }
 
 export async function loadComposed(options: LoadComposedOptions = {}): Promise<ComposedData> {

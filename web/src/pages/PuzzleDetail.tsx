@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Chess } from "chess.js"
-import { ArrowLeft, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadPuzzle, type PuzzleEntry } from "@/lib/data"
+import { loadPuzzle, loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
 import { pct, responseStyleInfo } from "@/lib/format"
 import { solverMovesToSan, uciLineToSan, uciToSan } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-type Status = "playing" | "solved" | "failed"
+type Status = "playing" | "solved" | "revealed"
 const EMPTY_SOLUTION: string[] = []
 
 export function PuzzleDetail() {
@@ -52,7 +52,20 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
   const [status, setStatus] = useState<Status>("playing")
   const [ply, setPly] = useState(0)
   const [reveal, setReveal] = useState(false)
+  const [mistake, setMistake] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
+  const [nextId, setNextId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void loadPuzzleIndex().then((entries) => {
+      if (!active) return
+      const index = entries.findIndex((candidate) => candidate.position.puzzle_id === id)
+      const next = entries[(index + 1 + entries.length) % entries.length]
+      setNextId(next?.position.puzzle_id ?? null)
+    })
+    return () => { active = false }
+  }, [id])
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
@@ -66,6 +79,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
     setStatus("playing")
     setPly(0)
     setReveal(false)
+    setMistake(false)
   }
 
   function onPieceDrop(from: string, to: string): boolean {
@@ -83,7 +97,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
     const uci = move.from + move.to + (move.promotion || "")
     if (uci !== expected) {
       g.undo()
-      setStatus("failed")
+      setMistake(true)
       recordSolve(false, uci, "incorrect")
       return false
     }
@@ -100,6 +114,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
     }
     setFen(g.fen())
     setPly(idx)
+    setMistake(false)
     if (idx >= solution.length) {
       setStatus("solved")
       setReveal(true)
@@ -110,7 +125,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   function giveUp() {
     if (status !== "solved") recordSolve(false, null, "revealed")
-    setStatus("failed")
+    setStatus("revealed")
     setReveal(true)
   }
 
@@ -118,84 +133,51 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   return (
     <div className="space-y-6">
-      <Link to="/puzzles" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Puzzles
+      <Link to="/puzzles/browse" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" /> Puzzle browser
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,480px)_1fr]">
-        {/* Board + controls */}
-        <div className="space-y-4">
-          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} />
-
-          <div aria-live="polite">
-          {status === "solved" && (
-            <div className="flex items-center gap-2 rounded-md border border-chart-2/40 bg-chart-2/10 px-3 py-2 text-sm">
-              <Check className="size-4 text-chart-2" /> Solved — nicely done.
-            </div>
-          )}
-          {status === "failed" && !reveal && (
-            <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              <X className="size-4 text-destructive" /> Not the move. Reset to try again or reveal the line.
-            </div>
-          )}
-          {status === "playing" && (
-            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2 text-sm">
-              <span className="inline-flex items-center gap-2"><Play className="size-3.5 text-emerald-600" /> {orientation === "white" ? "White" : "Black"} to move · drag a piece to play.</span>
-              <span className="font-mono text-xs text-muted-foreground">move {Math.floor(ply / 2) + 1}/{Math.max(1, solverMoves)}</span>
-            </div>
-          )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={reset}>
-              <RotateCcw className="size-4" /> {status === "failed" ? "Try again" : "Reset"}
-            </Button>
-            <Button variant="outline" size="sm" onClick={giveUp}>
-              <Lightbulb className="size-4" /> Show solution
-            </Button>
-            {playedSan.length > 0 && (
-              <span className="font-mono text-sm text-muted-foreground">{playedSan.join("  ")}</span>
-            )}
-          </div>
-
-          {reveal && (
-            <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Correct line</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                <p className="font-mono text-sm">{solutionSan.join("  ") || solution.join(" ")}</p>
-                {solutionSan.length > 0 && <p className="font-mono text-[11px] text-muted-foreground">UCI · {solution.join(" ")}</p>}
-              </CardContent>
-            </Card>
-          )}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
+        <div className="overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
+          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth={620} />
         </div>
 
-        {/* Meta + model answers */}
-        <div className="space-y-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-mono text-2xl font-bold">Play puzzle {p.puzzle_id}</h1>
-              <Badge variant="secondary">Rating {p.rating}</Badge>
-              <Badge variant="outline" className="capitalize">
-                {p.categories.tier?.[0] ?? "—"}
-              </Badge>
-              {p.game_url && (
-                <a href={p.game_url} target="_blank" className="text-xs text-muted-foreground underline">
-                  source game
-                </a>
-              )}
+        <Card className="overflow-hidden border-border/70 lg:min-h-[420px]">
+          <CardContent className="flex min-h-[420px] flex-col p-0">
+            <div className="border-b p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
+                <span className="font-mono text-xs text-muted-foreground">{Math.floor(ply / 2) + 1}/{Math.max(1, solverMoves)}</span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {p.themes.map((t) => (
-                <Badge key={t} variant="outline" className="text-xs font-normal">
-                  {t}
-                </Badge>
-              ))}
-            </div>
-          </div>
 
-          <Card>
+            <div className="flex flex-1 flex-col justify-center p-5" aria-live="polite">
+              {status === "playing" && !mistake && <div className="flex items-center gap-4"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Play className="size-6 fill-current" /></div><div><div className="text-xl font-semibold">Your turn</div><div className="text-sm text-muted-foreground">Find the best move for {orientation}.</div></div></div>}
+              {status === "playing" && mistake && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-200"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"><X className="size-7" /></div><div><div className="text-xl font-semibold">Not the move</div><div className="text-sm text-muted-foreground">Try something else, or reveal the solution.</div></div></div>}
+              {status === "solved" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"><Check className="size-7" /></div><div><div className="text-xl font-semibold">Puzzle complete</div><div className="text-sm text-muted-foreground">You found the full line.</div></div></div>}
+              {status === "revealed" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300"><Lightbulb className="size-7" /></div><div><div className="text-xl font-semibold">Solution revealed</div><div className="text-sm text-muted-foreground">Review the idea, then try the next one.</div></div></div>}
+
+              {playedSan.length > 0 && <div className="mt-5 rounded-lg border bg-muted/20 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Moves played</div><div className="mt-1 font-mono text-sm">{playedSan.join("  ")}</div></div>}
+
+              {reveal && <div className="mt-5 space-y-4 border-t pt-5 animate-in fade-in-0 slide-in-from-top-1 duration-300">
+                <div><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Correct line</div><p className="mt-1 font-mono text-sm font-medium">{solutionSan.join("  ") || solution.join(" ")}</p><p className="mt-1 font-mono text-[11px] text-muted-foreground">UCI · {solution.join(" ")}</p></div>
+                <div className="flex flex-wrap items-center gap-1.5"><Badge variant="secondary">Rating {p.rating}</Badge><Badge variant="outline" className="capitalize">{p.categories.tier?.[0] ?? "—"}</Badge>{p.themes.slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="text-xs font-normal">{theme}</Badge>)}</div>
+                {p.game_url && <a href={p.game_url} target="_blank" rel="noreferrer" className="inline-flex text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">View source game</a>}
+              </div>}
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-t bg-muted/15 p-4">
+              <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset</Button>
+              {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
+              {reveal && nextId && <Button asChild size="sm" className="ml-auto"><Link to={`/puzzles/${nextId}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {reveal ? (
+          <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
             <CardHeader>
               <CardTitle className="text-base">
                 How the models answered
@@ -250,7 +232,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                       </button>
                       {open && hasAudit && <div className="space-y-3 border-t p-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
                         <div className="grid gap-2 rounded-md border bg-muted/20 p-2 text-xs sm:grid-cols-2">
-                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model sequence</div><span className="font-mono">{playedSequence.join("  ") || san || a.item.answer_move || "—"}</span><div className="mt-1 text-muted-foreground">{a.item.solved ? "Complete line solved" : partial ? `${correctSolverMoves} correct solver move${correctSolverMoves === 1 ? "" : "s"}; ${storedMoves.length > correctSolverMoves ? `diverged on ${playedSequence[correctSolverMoves] ?? storedMoves[correctSolverMoves]}` : "the later failed move was not retained by this legacy run"} · ${a.item.score.toFixed(2)}/1 point` : `Incorrect at solver move ${correctSolverMoves + 1}`}</div></div>
+                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model sequence</div><span className="font-mono">{playedSequence.join("  ") || san || a.item.answer_move || "—"}</span><div className="mt-1 text-muted-foreground">{a.item.solved ? "Complete line solved" : partial ? `${correctSolverMoves} correct solver move${correctSolverMoves === 1 ? "" : "s"}; ${storedMoves.length > correctSolverMoves ? `diverged on ${playedSequence[correctSolverMoves] ?? storedMoves[correctSolverMoves]}` : "no later parsed move was persisted"} · ${a.item.score.toFixed(2)}/1 point` : `Incorrect at solver move ${correctSolverMoves + 1}`}</div></div>
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Correct line</div><span className="font-mono">{solutionSan.join(" ") || solution.join(" ") || "—"}</span></div>
                         </div>
                         {a.item.turns?.map((turn, turnIndex) => <details key={`${turn.solver_ply}-${turnIndex}`} className="rounded-md border bg-muted/20" open={turnIndex === 0}>
@@ -280,8 +262,14 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+      ) : (
+        <Card className="border-dashed bg-card/40">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary"><Lightbulb className="size-4 text-muted-foreground" /></div>
+            <div><div className="font-medium">Model attempts stay hidden while you solve</div><div className="text-sm text-muted-foreground">Complete the puzzle or view the solution to inspect every model line and transcript without spoilers.</div></div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

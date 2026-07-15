@@ -1066,7 +1066,7 @@ class BenchmarkStore:
 
     def run_finish_document(self, run_id: str) -> dict[str, object]:
         row = self._db.execute(
-            "SELECT status, error FROM benchmark_run WHERE run_id=?", (run_id,)
+            "SELECT status, error, summary_json FROM benchmark_run WHERE run_id=?", (run_id,)
         ).fetchone()
         if row is None:
             raise KeyError(run_id)
@@ -1078,4 +1078,9 @@ class BenchmarkStore:
             if status == "failed"
             else "partial"
         )
-        return {"run_id": run_id, "status": remote_status, "error": row["error"]}
+        return {
+            "run_id": run_id,
+            "status": remote_status,
+            "error": row["error"],
+            "summary": json.loads(row["summary_json"]) if row["summary_json"] else None,
+        }

@@ -1,0 +1,29 @@
+{
+ "schema": "chessbench.public_corpus_index.v1",
+ "corpora": [
+  {
+   "track": "standard",
+   "file": "standard.json",
+   "name": "standard-public-v1",
+   "title": "Standard tactics \u2014 public-v1",
+   "items": 240,
+   "content_hash": "sha256:16f9f90ec25f16440b86"
+  },
+  {
+   "track": "woodpecker",
+   "file": "woodpecker.json",
+   "name": "woodpecker-public-v1",
+   "title": "Woodpecker full lines \u2014 public-v1",
+   "items": 120,
+   "content_hash": "sha256:ababdbdcc2b42b75dd00"
+  },
+  {
+   "track": "esoteric",
+   "file": "esoteric.json",
+   "name": "esoteric-seed-v1",
+   "title": "Esoteric stipulations \u2014 seed v1",
+   "items": 50,
+   "content_hash": "sha256:6700995ce1b69ed6ff5a"
+  }
+ ]
+}

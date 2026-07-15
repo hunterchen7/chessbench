@@ -96,9 +96,10 @@ python3 -m chessbench puzzles --suite suites/public/woodpecker-public-v1.json --
 python3 -m chessbench composed --suite suites/public/esoteric-seed-v1.json
 ```
 
-After saving static run JSON, rebuild the dashboard discovery indexes:
+The dashboard corpus is built independently from result files, so resetting runs never deletes the tasks:
 
 ```bash
+python3 scripts/build_public_corpus_bundle.py
 python3 -m chessbench export \
   --runs-dir web/public/data/runs \
   --out web/public/data/index.json
@@ -209,12 +210,13 @@ model calls.
 
 ## Cloudflare sync and deployment
 
-Set `CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token as the Worker's `INGEST_TOKEN` secret. Then:
+Set `CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token as the Worker's `INGEST_TOKEN` secret. Register exact corpora/suites before syncing results:
 
 ```bash
-python3 scripts/sync_cloudflare.py --db runs/chessbench.db
 pnpm --dir server migrate:remote
 pnpm --dir server deploy
+python3 scripts/sync_registry.py
+python3 scripts/sync_cloudflare.py --db runs/chessbench.db
 ```
 
 During credential migration the Worker may also accept `INGEST_TOKEN_V2`; this lets a new local outbox client sync

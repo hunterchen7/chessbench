@@ -120,7 +120,7 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
       {answer.turns.length > 0
         ? <div className="space-y-2">{answer.turns.map((turn, index) => <TurnAudit key={index} turn={turn} answer={answer} index={index} />)}</div>
         : <div className="space-y-3 rounded-xl border border-dashed p-3">
-            <p className="text-[11px] text-muted-foreground">This legacy artifact predates turn-level prompt capture. Its recorded answer remains available below.</p>
+            <p className="text-[11px] text-muted-foreground">No turn envelopes were recorded for this answer; the persisted visible answer remains available below.</p>
             {answer.answer_rationale && <section><div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-700 dark:text-violet-300">Visible rationale</div><p className="rounded-lg bg-violet-500/[0.035] p-3 text-xs leading-relaxed">{answer.answer_rationale}</p></section>}
             <AuditBlock label="Recorded raw answer" accent>{answer.answer || "—"}</AuditBlock>
             <div className="flex flex-wrap gap-2"><Badge variant="outline">{style.protocol}</Badge>{answer.response_format_valid != null && <Badge variant={answer.response_format_valid ? "secondary" : "destructive"}>{answer.response_format_valid ? (style.key === "move_only" ? "parseable text" : "valid JSON") : "format recovered"}</Badge>}</div>
