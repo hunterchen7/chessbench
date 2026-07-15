@@ -15,11 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from chessbench.database import BenchmarkStore
-from chessbench.env import load_local_env
+from chessbench.database import BenchmarkStore  # noqa: E402
+from chessbench.env import load_local_env  # noqa: E402
 
 
-def post(api: str, token: str, path: str, document: dict[str, object]) -> dict[str, object]:
+def post(
+    api: str, token: str, path: str, document: dict[str, object]
+) -> dict[str, object]:
     request = urllib.request.Request(
         f"{api.rstrip('/')}/api/{path}",
         data=json.dumps(document).encode(),
@@ -34,14 +36,21 @@ def post(api: str, token: str, path: str, document: dict[str, object]) -> dict[s
         return json.load(response)
 
 
-def sync_run(store: BenchmarkStore, api: str, token: str, run_id: str) -> tuple[int, int]:
+def sync_run(
+    store: BenchmarkStore, api: str, token: str, run_id: str
+) -> tuple[int, int]:
     post(api, token, "ingest/run/start", store.run_start_document(run_id))
     sent = 0
     failed = 0
     for item in store.unsynced_item_documents(run_id):
         try:
             post(api, token, "ingest/run/item", item)
-        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            json.JSONDecodeError,
+        ) as exc:
             print(f"  {run_id}/{item['item_id']}: {type(exc).__name__}: {exc}")
             failed += 1
             continue
@@ -54,18 +63,28 @@ def sync_run(store: BenchmarkStore, api: str, token: str, run_id: str) -> tuple[
 
 def main() -> int:
     load_local_env()
-    parser = argparse.ArgumentParser(description="Sync durable benchmark results to Cloudflare D1")
+    parser = argparse.ArgumentParser(
+        description="Sync durable benchmark results to Cloudflare D1"
+    )
     parser.add_argument("--db", default="runs/chessbench.db")
     parser.add_argument("--api", default=os.environ.get("CHESSBENCH_API"))
     parser.add_argument("--token", default=os.environ.get("CHESSBENCH_INGEST_TOKEN"))
-    parser.add_argument("--run", default=None, help="sync one run id (default: every local run)")
+    parser.add_argument(
+        "--run", default=None, help="sync one run id (default: every local run)"
+    )
     args = parser.parse_args()
     if not args.api or not args.token:
-        parser.error("set CHESSBENCH_API and CHESSBENCH_INGEST_TOKEN (or pass --api/--token)")
+        parser.error(
+            "set CHESSBENCH_API and CHESSBENCH_INGEST_TOKEN (or pass --api/--token)"
+        )
 
     sent = failed = 0
     with BenchmarkStore(args.db) as store:
-        run_ids = [args.run] if args.run else [str(row["run_id"]) for row in store.list_runs()]
+        run_ids = (
+            [args.run]
+            if args.run
+            else [str(row["run_id"]) for row in store.list_runs()]
+        )
         for run_id in run_ids:
             print(f"sync {run_id}")
             s, f = sync_run(store, args.api, args.token, run_id)

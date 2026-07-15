@@ -14,6 +14,7 @@ Usage:
 Idempotent: re-pushing a run replaces its rows. Safe to run repeatedly (e.g. after
 each benchmark completes).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from chessbench.env import load_local_env
+from chessbench.env import load_local_env  # noqa: E402
 
 RUN_SCHEMA = "chessbench.run.v1"
 TOURNAMENT_SCHEMA = "chessbench.tournament.v1"
@@ -39,7 +40,9 @@ TOURNAMENT_SCHEMA = "chessbench.tournament.v1"
 def _post(url: str, token: str, payload: dict) -> dict:
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
-        url, data=body, method="POST",
+        url,
+        data=body,
+        method="POST",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {token}",
@@ -66,8 +69,16 @@ def push_runs(api: str, token: str, runs_dir: Path) -> int:
             print(f"  run  {res.get('run_id')}  ({res.get('items')} items)")
             n += 1
         except urllib.error.HTTPError as e:
-            print(f"  FAIL {path.name}: HTTP {e.code} {e.read().decode()[:200]}", file=sys.stderr)
-        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as e:
+            print(
+                f"  FAIL {path.name}: HTTP {e.code} {e.read().decode()[:200]}",
+                file=sys.stderr,
+            )
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            json.JSONDecodeError,
+        ) as e:
             print(f"  FAIL {path.name}: {type(e).__name__}: {e}", file=sys.stderr)
     return n
 
@@ -90,17 +101,33 @@ def push_tournaments(api: str, token: str, tdir: Path) -> int:
             print(f"  game {res.get('tid')}")
             n += 1
         except urllib.error.HTTPError as e:
-            print(f"  FAIL {path.name}: HTTP {e.code} {e.read().decode()[:200]}", file=sys.stderr)
-        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError) as e:
+            print(
+                f"  FAIL {path.name}: HTTP {e.code} {e.read().decode()[:200]}",
+                file=sys.stderr,
+            )
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            json.JSONDecodeError,
+        ) as e:
             print(f"  FAIL {path.name}: {type(e).__name__}: {e}", file=sys.stderr)
     return n
 
 
 def main(argv: list[str] | None = None) -> int:
     load_local_env()
-    ap = argparse.ArgumentParser(description="Push runs/tournaments to the chessbench backend.")
-    ap.add_argument("--api", default=os.environ.get("CHESSBENCH_API"), help="backend base URL")
-    ap.add_argument("--token", default=os.environ.get("CHESSBENCH_INGEST_TOKEN"), help="ingest bearer token")
+    ap = argparse.ArgumentParser(
+        description="Push runs/tournaments to the chessbench backend."
+    )
+    ap.add_argument(
+        "--api", default=os.environ.get("CHESSBENCH_API"), help="backend base URL"
+    )
+    ap.add_argument(
+        "--token",
+        default=os.environ.get("CHESSBENCH_INGEST_TOKEN"),
+        help="ingest bearer token",
+    )
     ap.add_argument("--runs-dir", default="web/public/data/runs")
     ap.add_argument("--tournaments-dir", default="web/public/data/tournaments")
     args = ap.parse_args(argv)
@@ -109,8 +136,16 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("set --api/--token or CHESSBENCH_API/CHESSBENCH_INGEST_TOKEN")
 
     api = args.api.rstrip("/")
-    runs = push_runs(api, args.token, Path(args.runs_dir)) if Path(args.runs_dir).is_dir() else 0
-    games = push_tournaments(api, args.token, Path(args.tournaments_dir)) if Path(args.tournaments_dir).is_dir() else 0
+    runs = (
+        push_runs(api, args.token, Path(args.runs_dir))
+        if Path(args.runs_dir).is_dir()
+        else 0
+    )
+    games = (
+        push_tournaments(api, args.token, Path(args.tournaments_dir))
+        if Path(args.tournaments_dir).is_dir()
+        else 0
+    )
     print(f"pushed {runs} run(s), {games} tournament(s) -> {api}")
     return 0
 

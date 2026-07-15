@@ -4,7 +4,7 @@ and that the context-mode axis actually changes the per-turn prompt.
 
 import chess
 
-from chessbench.agents import FirstLegalAgent, GameTurnContext, RandomAgent
+from chessbench.agents import FirstLegalAgent, GameTurnContext
 from chessbench.conditions import (
     Condition,
     ContextMode,
@@ -53,12 +53,14 @@ def test_fools_mate_checkmate():
 def test_illegal_move_forfeits_free_form():
     g = play_game(BadAgent(), FirstLegalAgent(), Condition(legality=Legality.FREE_FORM))
     assert g.termination == "illegal_forfeit"
-    assert g.result == "0-1"          # White (BadAgent) forfeits
+    assert g.result == "0-1"  # White (BadAgent) forfeits
     assert g.records[-1].forfeited
 
 
 def test_move_cap_is_a_draw():
-    g = play_game(FirstLegalAgent(), FirstLegalAgent(), Condition(), GameConfig(max_plies=6))
+    g = play_game(
+        FirstLegalAgent(), FirstLegalAgent(), Condition(), GameConfig(max_plies=6)
+    )
     assert g.termination == "move_cap"
     assert g.result == "1/2-1/2"
     assert g.plies == 6
@@ -76,14 +78,18 @@ def test_request_move_retry_recovers():
 def test_request_move_free_form_no_retry():
     board = chess.Board()
     agent = FixedGameAgent("banana", "e4")
-    move, illegal, first_legal, raw = _request_move(agent, board, Condition(legality=Legality.FREE_FORM), [], None)
+    move, illegal, first_legal, raw = _request_move(
+        agent, board, Condition(legality=Legality.FREE_FORM), [], None
+    )
     assert move is None and illegal == 1
 
 
 def test_otb_first_illegal_is_recoverable():
     # OTB: the 1st illegal is a penalty, not a loss -- retract and play a legal move.
     cond = Condition(legality=Legality.OTB, otb_illegal_limit=2)
-    move, illegal, first_legal, _ = _request_move(FixedGameAgent("banana", "e4"), chess.Board(), cond, [], None)
+    move, illegal, first_legal, _ = _request_move(
+        FixedGameAgent("banana", "e4"), chess.Board(), cond, [], None
+    )
     assert move == chess.Move.from_uci("e2e4")
     assert illegal == 1 and first_legal is False
 
@@ -96,26 +102,32 @@ def test_otb_second_illegal_forfeits():
 
 def test_otb_prior_penalty_makes_next_illegal_fatal():
     cond = Condition(legality=Legality.OTB, otb_illegal_limit=2)
-    move, illegal, *_ = _request_move(BadAgent(), chess.Board(), cond, [], None, prior_illegal=1)
+    move, illegal, *_ = _request_move(
+        BadAgent(), chess.Board(), cond, [], None, prior_illegal=1
+    )
     assert move is None and illegal == 1  # already had 1 penalty -> next illegal loses
 
 
 def test_accuracy_by_color():
     from chessbench.tasks.games import MoveRecord, accuracy_by_color
 
-    flat = [MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=10),
-            MoveRecord(2, "black", "a6", "a7a6", True, 0, eval_cp=-10),
-            MoveRecord(3, "white", "b3", "b2b3", True, 0, eval_cp=10)]
+    flat = [
+        MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=10),
+        MoveRecord(2, "black", "a6", "a7a6", True, 0, eval_cp=-10),
+        MoveRecord(3, "white", "b3", "b2b3", True, 0, eval_cp=10),
+    ]
     w, b = accuracy_by_color(flat)
-    assert w is not None and w > 80 and b is not None      # flat evals -> high accuracy
+    assert w is not None and w > 80 and b is not None  # flat evals -> high accuracy
 
     # eval_cp is the opponent's POV after the move; +600 means White handed Black a
     # winning position -> a White blunder.
     blunder = [MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=600)]
     wb, _ = accuracy_by_color(blunder)
-    assert wb is not None and wb < w                        # a big drop scores much lower
+    assert wb is not None and wb < w  # a big drop scores much lower
 
-    assert accuracy_by_color([MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=None)]) == (None, None)
+    assert accuracy_by_color(
+        [MoveRecord(1, "white", "a3", "a2a3", True, 0, eval_cp=None)]
+    ) == (None, None)
 
 
 def test_pgn_roundtrips():
@@ -127,10 +139,13 @@ def test_pgn_roundtrips():
 def test_elo_math():
     assert MatchResult("a", "b", a_wins=5, b_wins=5, draws=0).a_score == 0.5
     ed = MatchResult("a", "b", draws=10).elo_diff()
-    assert ed is not None and abs(ed) < 1e-6                            # all draws -> ~0 Elo
-    assert MatchResult("a", "b", a_wins=10).elo_diff() is None          # shutout -> undefined
+    assert ed is not None and abs(ed) < 1e-6  # all draws -> ~0 Elo
+    assert MatchResult("a", "b", a_wins=10).elo_diff() is None  # shutout -> undefined
     # a 75% scorer is ~+191 Elo above its opponent
-    assert abs(MatchResult("a", "b", a_wins=15, draws=0, b_wins=5).elo_diff() - 190.8) < 1.0
+    assert (
+        abs(MatchResult("a", "b", a_wins=15, draws=0, b_wins=5).elo_diff() - 190.8)
+        < 1.0
+    )
 
 
 # --- context-mode axis actually changes the prompt ---
@@ -142,15 +157,22 @@ def test_context_modes_differ():
     cond_fresh = Condition(context_mode=ContextMode.FRESH)
     cond_grow = Condition(context_mode=ContextMode.GROWING)
     cond_hybrid = Condition(context_mode=ContextMode.HYBRID)
-    kw = dict(history_san=["e4"], last_opponent_move_san="e4", illegal_feedback=None, is_first=False)
+    kw = dict(
+        history_san=["e4"],
+        last_opponent_move_san="e4",
+        illegal_feedback=None,
+        is_first=False,
+    )
 
     fresh = build_game_turn(board, cond_fresh, **kw)
     grow = build_game_turn(board, cond_grow, **kw)
     hybrid = build_game_turn(board, cond_hybrid, **kw)
 
-    assert "FEN:" in fresh                     # fresh injects the authoritative board
-    assert "I played e4" in grow and "FEN:" not in grow   # growing is terse, no board
-    assert "I played e4" in hybrid and "FEN:" in hybrid   # hybrid: terse + re-injected board
+    assert "FEN:" in fresh  # fresh injects the authoritative board
+    assert "I played e4" in grow and "FEN:" not in grow  # growing is terse, no board
+    assert (
+        "I played e4" in hybrid and "FEN:" in hybrid
+    )  # hybrid: terse + re-injected board
 
 
 def test_coached_and_piece_list_render():
@@ -158,7 +180,11 @@ def test_coached_and_piece_list_render():
     assert "not a mandatory sequence" in sys.lower()
     assert '"move":"e2e4"' in sys and '"rationale"' in sys
     turn = build_game_turn(
-        chess.Board(), Condition(representation=Representation.PIECE_LIST),
-        history_san=[], last_opponent_move_san=None, illegal_feedback=None, is_first=True,
+        chess.Board(),
+        Condition(representation=Representation.PIECE_LIST),
+        history_san=[],
+        last_opponent_move_san=None,
+        illegal_feedback=None,
+        is_first=True,
     )
     assert "White: K" in turn and "Black: K" in turn

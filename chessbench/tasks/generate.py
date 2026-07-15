@@ -67,7 +67,12 @@ def random_positions(
 
 
 def _find_tactic(
-    engine: Engine, board: chess.Board, *, min_gap_cp: int, max_solver_plies: int, min_advantage_cp: int
+    engine: Engine,
+    board: chess.Board,
+    *,
+    min_gap_cp: int,
+    max_solver_plies: int,
+    min_advantage_cp: int,
 ) -> list[str] | None:
     """Return the forced solver line (post-setup UCI moves) or None.
 
@@ -75,7 +80,6 @@ def _find_tactic(
     while the solver's move stays uniquely best by `min_gap_cp`.
     """
     work = board.copy()
-    solver = work.turn
     line: list[str] = []
 
     for ply in range(max_solver_plies):
@@ -104,20 +108,26 @@ def _find_tactic(
     return line if line else None
 
 
-def _alternate_first_moves(engine: Engine, board: chess.Board, best_uci: str, margin_cp: int) -> list[str]:
+def _alternate_first_moves(
+    engine: Engine, board: chess.Board, best_uci: str, margin_cp: int
+) -> list[str]:
     """First moves engine-equivalent to the best (within `margin_cp`)."""
     tops = engine.top_moves(board, n=4)
     if not tops:
         return []
     best_cp = tops[0][1]
-    return [m.uci() for m, cp in tops if m.uci() != best_uci and best_cp - cp <= margin_cp]
+    return [
+        m.uci() for m, cp in tops if m.uci() != best_uci and best_cp - cp <= margin_cp
+    ]
 
 
 def _themes(board_after_setup: chess.Board, line: list[str]) -> list[str]:
     """Coarse auto-themes for a generated puzzle."""
     n_solver = len(range(0, len(line), 2))
     themes = ["generated"]
-    themes.append("oneMove" if n_solver == 1 else ("short" if n_solver == 2 else "long"))
+    themes.append(
+        "oneMove" if n_solver == 1 else ("short" if n_solver == 2 else "long")
+    )
     end = board_after_setup.copy()
     for uci in line:
         end.push(chess.Move.from_uci(uci))
@@ -154,7 +164,10 @@ def generate_puzzles(
         if after.is_game_over():
             continue
         line = _find_tactic(
-            engine, after, min_gap_cp=min_gap_cp, max_solver_plies=max_solver_plies,
+            engine,
+            after,
+            min_gap_cp=min_gap_cp,
+            max_solver_plies=max_solver_plies,
             min_advantage_cp=min_advantage_cp,
         )
         if not line:
@@ -177,7 +190,11 @@ def generate_puzzles(
 
 
 def curate_lichess(
-    puzzles: list[Puzzle], *, max_rating_deviation: int = 90, min_plays: int = 1000, min_popularity: int = 90
+    puzzles: list[Puzzle],
+    *,
+    max_rating_deviation: int = 90,
+    min_plays: int = 1000,
+    min_popularity: int = 90,
 ) -> list[Puzzle]:
     """Keep only well-calibrated, well-tested, well-liked puzzles.
 

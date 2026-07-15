@@ -52,20 +52,28 @@ class RunRecord:
     condition: Condition
     report: PuzzleReport
     results: list[PuzzleResult]
-    puzzles: dict[str, Puzzle] = field(default_factory=dict)  # id -> Puzzle, to embed board+solution
+    puzzles: dict[str, Puzzle] = field(
+        default_factory=dict
+    )  # id -> Puzzle, to embed board+solution
     suite: SuiteRef | None = None
     cost_usd: float | None = None
     run_id: str | None = None
     model_variant: dict[str, object] | None = None
-    created: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    created: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds")
+    )
 
     def to_dict(self) -> dict[str, object]:
         items = []
         for r in self.results:
             item: dict[str, object] = {
-                "puzzle_id": r.puzzle_id, "rating": r.rating, "themes": r.themes,
+                "puzzle_id": r.puzzle_id,
+                "rating": r.rating,
+                "themes": r.themes,
                 "categories": categorize_puzzle(r.themes, r.rating),
-                "solved": r.solved, "score": r.score, "first_move_legal": r.first_move_legal,
+                "solved": r.solved,
+                "score": r.score,
+                "first_move_legal": r.first_move_legal,
                 "failure_reason": r.failure_reason,
                 "answer_move": r.answer_move,
                 "answer_rationale": r.answer_explanation,
@@ -73,27 +81,44 @@ class RunRecord:
                 "answer_response_format_valid": r.answer_response_format_valid,
                 "answer_response_format_error": r.answer_response_format_error,
                 "answer_raw": r.answer_raw,
-                "moves_played": r.moves_played, "solver_plies": r.solver_plies,
-                "plies_correct": r.plies_correct, "turns": r.turns,
+                "moves_played": r.moves_played,
+                "solver_plies": r.solver_plies,
+                "plies_correct": r.plies_correct,
+                "turns": r.turns,
             }
             item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
             items.append(item)
         rep = self.report
-        kind = "woodpecker" if self.condition.puzzle_protocol.value == "full_line" else "puzzle"
+        kind = (
+            "woodpecker"
+            if self.condition.puzzle_protocol.value == "full_line"
+            else "puzzle"
+        )
         return {
-            "schema": SCHEMA, "run_id": self.run_id, "kind": kind, "created": self.created,
-            "model": self.model, "provider": self.provider,
+            "schema": SCHEMA,
+            "run_id": self.run_id,
+            "kind": kind,
+            "created": self.created,
+            "model": self.model,
+            "provider": self.provider,
             "model_variant": self.model_variant,
             "suite": asdict(self.suite) if self.suite else None,
             "condition": _condition_dict(self.condition),
             "summary": {
-                "n": rep.n, "solved": rep.solved, "solve_rate": rep.solve_rate,
-                "mean_score": rep.mean_score, "first_move_legal_rate": rep.first_move_legal_rate,
+                "n": rep.n,
+                "solved": rep.solved,
+                "solve_rate": rep.solve_rate,
+                "mean_score": rep.mean_score,
+                "first_move_legal_rate": rep.first_move_legal_rate,
                 "response_format_valid_rate": rep.response_format_valid_rate,
-                "points": round(rep.points, 4), "max_points": rep.max_points,
+                "points": round(rep.points, 4),
+                "max_points": rep.max_points,
                 "cost_usd": self.cost_usd,
             },
-            "themes": [{"theme": t.theme, "n": t.total, "accuracy": t.accuracy} for t in rep.themes],
+            "themes": [
+                {"theme": t.theme, "n": t.total, "accuracy": t.accuracy}
+                for t in rep.themes
+            ],
             "items": items,
         }
 
@@ -108,10 +133,10 @@ def _position_fields(puzzle: Puzzle | None) -> dict[str, object]:
     setup_san = board.san(setup)
     board.push(setup)
     return {
-        "fen": board.fen(),                       # position the solver faces
+        "fen": board.fen(),  # position the solver faces
         "setup_san": setup_san,
         "solver_is_white": board.turn == chess.WHITE,
-        "solution": puzzle.moves[1:],             # solver + forced replies (UCI)
+        "solution": puzzle.moves[1:],  # solver + forced replies (UCI)
         "solution_first": puzzle.moves[1] if len(puzzle.moves) > 1 else None,
         "game_url": puzzle.game_url,
     }
@@ -161,39 +186,74 @@ class TournamentRecord:
         for g in self.result.games:
             wacc, bacc = accuracy_by_color(g.records)
             if wacc is not None:
-                acc_sum[g.white] += wacc; acc_n[g.white] += 1
+                acc_sum[g.white] += wacc
+                acc_n[g.white] += 1
             if bacc is not None:
-                acc_sum[g.black] += bacc; acc_n[g.black] += 1
+                acc_sum[g.black] += bacc
+                acc_n[g.black] += 1
 
         standings = []
         for s in self.result.standings:
-            standings.append({
-                "label": s.label, "wins": s.wins, "draws": s.draws, "losses": s.losses,
-                "games": s.games, "score": s.score, "illegal_forfeits": s.illegal_forfeits,
-                "accuracy": round(acc_sum[s.label] / acc_n[s.label], 1) if acc_n[s.label] else None,
-            })
+            standings.append(
+                {
+                    "label": s.label,
+                    "wins": s.wins,
+                    "draws": s.draws,
+                    "losses": s.losses,
+                    "games": s.games,
+                    "score": s.score,
+                    "illegal_forfeits": s.illegal_forfeits,
+                    "accuracy": round(acc_sum[s.label] / acc_n[s.label], 1)
+                    if acc_n[s.label]
+                    else None,
+                }
+            )
         games = []
         for g in self.result.games:
-            games.append({
-                "white": g.white, "black": g.black, "result": g.result,
-                "termination": g.termination, "plies": g.plies, "pgn": g.pgn,
-                "start_fen": g.start_fen,
-                "moves": [{
-                    "ply": m.ply, "color": m.color, "san": m.san, "uci": m.uci,
-                    "eval_cp": m.eval_cp, "forfeited": m.forfeited,
-                    "attempts": [asdict(attempt) for attempt in m.attempts],
-                    "prompt_tokens": sum(a.prompt_tokens for a in m.attempts),
-                    "completion_tokens": sum(a.completion_tokens for a in m.attempts),
-                    "reasoning_tokens": sum(a.reasoning_tokens for a in m.attempts),
-                    "cost_usd": sum(a.cost_usd for a in m.attempts),
-                } for m in g.records],
-            })
-        crosstable = [{"a": a, "b": b, "w": w, "d": d, "l": ll}
-                      for (a, b), (w, d, ll) in self.result.crosstable.items()]
+            games.append(
+                {
+                    "white": g.white,
+                    "black": g.black,
+                    "result": g.result,
+                    "termination": g.termination,
+                    "plies": g.plies,
+                    "pgn": g.pgn,
+                    "start_fen": g.start_fen,
+                    "moves": [
+                        {
+                            "ply": m.ply,
+                            "color": m.color,
+                            "san": m.san,
+                            "uci": m.uci,
+                            "eval_cp": m.eval_cp,
+                            "forfeited": m.forfeited,
+                            "attempts": [asdict(attempt) for attempt in m.attempts],
+                            "prompt_tokens": sum(a.prompt_tokens for a in m.attempts),
+                            "completion_tokens": sum(
+                                a.completion_tokens for a in m.attempts
+                            ),
+                            "reasoning_tokens": sum(
+                                a.reasoning_tokens for a in m.attempts
+                            ),
+                            "cost_usd": sum(a.cost_usd for a in m.attempts),
+                        }
+                        for m in g.records
+                    ],
+                }
+            )
+        crosstable = [
+            {"a": a, "b": b, "w": w, "d": d, "l": ll}
+            for (a, b), (w, d, ll) in self.result.crosstable.items()
+        ]
         return {
-            "schema": TOURNAMENT_SCHEMA, "created": self.created,
-            "condition": _condition_dict(self.condition), "max_plies": self.max_plies,
-            "anchor": self.anchor, "standings": standings, "games": games, "crosstable": crosstable,
+            "schema": TOURNAMENT_SCHEMA,
+            "created": self.created,
+            "condition": _condition_dict(self.condition),
+            "max_plies": self.max_plies,
+            "anchor": self.anchor,
+            "standings": standings,
+            "games": games,
+            "crosstable": crosstable,
         }
 
 
@@ -214,11 +274,18 @@ def list_tournaments(directory: str | Path) -> list[dict[str, object]]:
             continue
         standings = t.get("standings")
         games = t.get("games")
-        top = standings[0]["label"] if isinstance(standings, list) and standings else None
-        out.append({"file": p.name, "created": t.get("created"),
-                    "n_players": len(standings) if isinstance(standings, list) else 0,
-                    "n_games": len(games) if isinstance(games, list) else 0,
-                    "winner": top})
+        top = (
+            standings[0]["label"] if isinstance(standings, list) and standings else None
+        )
+        out.append(
+            {
+                "file": p.name,
+                "created": t.get("created"),
+                "n_players": len(standings) if isinstance(standings, list) else 0,
+                "n_games": len(games) if isinstance(games, list) else 0,
+                "winner": top,
+            }
+        )
     return out
 
 
@@ -234,11 +301,15 @@ def list_runs(directory: str | Path) -> list[dict[str, object]]:
             continue
         cond = run.get("condition")
         suite = run.get("suite")
-        out.append({
-            "file": p.name, "model": run.get("model"), "created": run.get("created"),
-            "kind": run.get("kind"),
-            "condition": cond.get("slug") if isinstance(cond, dict) else None,
-            "suite": suite.get("name") if isinstance(suite, dict) else None,
-            "summary": run.get("summary", {}),
-        })
+        out.append(
+            {
+                "file": p.name,
+                "model": run.get("model"),
+                "created": run.get("created"),
+                "kind": run.get("kind"),
+                "condition": cond.get("slug") if isinstance(cond, dict) else None,
+                "suite": suite.get("name") if isinstance(suite, dict) else None,
+                "summary": run.get("summary", {}),
+            }
+        )
     return out
