@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
@@ -15,7 +16,7 @@ export function Methodology() {
   return (
     <div className="space-y-10">
       <header className="max-w-4xl">
-        <Badge variant="outline">Protocol v2</Badge>
+        <Badge variant="outline">Protocol v3</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
@@ -31,6 +32,32 @@ export function Methodology() {
             <CardContent><div className="mb-3 font-mono text-xs text-foreground">{tag}</div><p className="text-sm leading-relaxed text-muted-foreground">{description}</p></CardContent>
           </Card>)}
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="max-w-3xl">
+          <h2 className="text-xl font-semibold">Response style is a separate axis</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            Modes 1–3 only change board information. Each mode can independently request a bare move or structured JSON with a visible rationale, producing a six-cell Standard matrix without renumbering the modes.
+          </p>
+        </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="hidden grid-cols-[180px_1fr_1fr] border-b bg-muted/35 text-xs font-semibold sm:grid">
+              <div className="p-3 text-muted-foreground">Board information</div>
+              <div className="border-l p-3"><ResponseStyleBadge condition="plain-text-v1" /></div>
+              <div className="border-l p-3"><ResponseStyleBadge condition="json-rationale" /></div>
+            </div>
+            {HELP.map(([n, name]) => (
+              <div key={n} className="grid border-b last:border-b-0 sm:grid-cols-[180px_1fr_1fr]">
+                <div className="bg-muted/20 p-3"><div className="text-xs font-semibold">Mode {n} · {name}</div><div className="mt-1 text-[11px] text-muted-foreground">information axis</div></div>
+                <div className="border-t p-3 sm:border-l sm:border-t-0"><div className="sm:hidden"><ResponseStyleBadge condition="plain-text-v1" compact /></div><div className="mt-1 font-mono text-xs">plain_text_v1</div><p className="mt-1 text-xs text-muted-foreground">Move or line only; no explanation requested.</p></div>
+                <div className="border-t p-3 sm:border-l sm:border-t-0"><div className="sm:hidden"><ResponseStyleBadge condition="json-rationale" compact /></div><div className="mt-1 font-mono text-xs">json_rationale</div><p className="mt-1 text-xs text-muted-foreground">Structured move plus concise visible rationale.</p></div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <p className="text-xs text-muted-foreground">Comparisons hold suite, model variant, mode, context, and sampling constant; only response style changes.</p>
       </section>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -79,8 +106,8 @@ export function Methodology() {
         <Card>
           <CardHeader><CardTitle className="text-base">Audit logs and durable progress</CardTitle></CardHeader>
           <CardContent><Prose>
-            <p>Every information mode requests the same JSON response: a UCI move plus a concise model rationale. Woodpecker requests a UCI move array plus rationale. Move scoring is independent from format compliance, so a recoverable move can score even when the JSON is malformed.</p>
-            <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, model rationale, JSON-format validity, legality, provider token counts, reasoning-token count, and cost. The rationale is not presented as faithful hidden chain of thought; provider-hidden reasoning is neither requested for publication nor reconstructed.</p>
+            <p><span className="font-mono text-foreground">move_only</span> uses <span className="font-mono text-foreground">plain_text_v1</span>; <span className="font-mono text-foreground">json_rationale</span> requests a structured UCI move plus concise visible rationale. Move scoring remains independent from format compliance.</p>
+            <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, response protocol, format validity, legality, provider token counts, reasoning-token count, and cost. A rationale is stored only when requested and returned. It is not presented as faithful hidden chain of thought; provider-hidden reasoning is neither requested for publication nor reconstructed.</p>
             <p>Each completed item is committed locally to SQLite and queued for idempotent Cloudflare D1 ingestion. A run can resume after interruption or exhausted credits without replaying completed items. Filtered data can be exported as JSON from the dashboard.</p>
           </Prose></CardContent>
         </Card>

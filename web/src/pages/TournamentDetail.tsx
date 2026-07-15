@@ -4,6 +4,7 @@ import { ArrowLeft, BrainCircuit, Eye, Radio, Sparkles, Trophy } from "lucide-re
 import { loadTournament, type Tournament, type TournamentGame } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -99,6 +100,7 @@ export function TournamentDetail() {
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Badge variant="outline"><Sparkles className="size-3" /> {modeLabel(t)}</Badge>
+          <ResponseStyleBadge condition={t.condition} />
           <Badge variant="outline"><BrainCircuit className="size-3" /> {reasoningLabel(t)}</Badge>
           <Badge variant="outline">{t.condition.context_mode ?? "game"} context</Badge>
           <ExportButton track="game" />

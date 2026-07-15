@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import type { Condition, ModelVariant, TournamentGame } from "@/lib/data"
 import { Board } from "@/components/Board"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -147,6 +148,7 @@ export function GameReplay({
 
         <div className="flex flex-wrap items-center justify-center gap-1.5 border-t bg-muted/25 px-4 py-2.5">
           <Badge variant="outline" className="bg-background/70"><Sparkles className="size-3" /> {modeLabel(condition)}</Badge>
+          <ResponseStyleBadge condition={condition} compact />
           <Badge variant="outline" className="bg-background/70"><ListTree className="size-3" /> {condition?.context_mode ? `${condition.context_mode} context` : "game context"}</Badge>
           <Badge variant="outline" className="bg-background/70"><BrainCircuit className="size-3" /> {reasoningLabel(condition)}</Badge>
           <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/[0.06] text-emerald-700 dark:text-emerald-300"><ShieldCheck className="size-3" /> isolated chats</Badge>

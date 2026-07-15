@@ -4,11 +4,12 @@ import { Chess } from "chess.js"
 import { ArrowLeft, Check, ChevronDown, Lightbulb, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadPuzzle, type PuzzleEntry } from "@/lib/data"
-import { pct } from "@/lib/format"
+import { pct, responseStyleInfo } from "@/lib/format"
 import { uciLineToSan, uciToSan } from "@/lib/chess"
 import { humanRecord } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -199,6 +200,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                   const open = expanded === i
                   const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
+                  const responseStyle = responseStyleInfo(a.condition)
                   return (
                     <div key={i} className="rounded-md border">
                       <button
@@ -218,6 +220,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                         <Badge variant="outline" className="ml-auto text-xs font-normal">
                           {a.condition.split("__")[0]}
                         </Badge>
+                        <ResponseStyleBadge condition={a.condition} compact />
                         {!a.item.solved && a.item.failure_reason && (
                           <Badge variant="secondary" className="text-xs font-normal">
                             {a.item.failure_reason}
@@ -236,7 +239,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                             {(turn.rationale || turn.explanation) && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-background p-2 leading-relaxed">{turn.rationale ?? turn.explanation}</p></div>}
                             <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.raw_response ?? "—"}</pre></div>
                             <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
-                              {turn.response_format_valid != null && <Badge variant={turn.response_format_valid ? "secondary" : "destructive"}>{turn.response_format_valid ? "valid JSON" : "format recovered"}</Badge>}
+                              {turn.response_format_valid != null && <Badge variant={turn.response_format_valid ? "secondary" : "destructive"}>{turn.response_format_valid ? (responseStyle.key === "move_only" ? "parseable text" : "valid JSON") : "format recovered"}</Badge>}
                               <span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span><span>${turn.cost_usd.toFixed(5)}</span>
                             </div>
                             {turn.response_format_error && <p className="text-[11px] text-destructive">{turn.response_format_error}</p>}

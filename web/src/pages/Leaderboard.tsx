@@ -3,9 +3,10 @@ import { Link } from "react-router-dom"
 import { Activity, ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
 import type { RunIndexEntry } from "@/lib/data"
-import { MODES, modeInfo, pct, pointsText } from "@/lib/format"
+import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,6 +35,7 @@ const TRACKS = [
 export function Leaderboard() {
   const { runs, tournaments, apiBase } = useData()
   const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
+  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
   const [humans, setHumans] = useState<HumanRow[]>([])
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle"), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
@@ -48,6 +50,7 @@ export function Leaderboard() {
     const grouped = new Map<string, ModeMap>()
     for (const run of standard) {
       if (activeSuite && run.suite?.name !== activeSuite) continue
+      if (responseStyleInfo(run.condition).key !== responseStyle) continue
       const mode = modeInfo(run.condition)
       if (!mode) continue
       const record = grouped.get(run.model_variant.key) ?? {}
@@ -56,7 +59,7 @@ export function Leaderboard() {
       grouped.set(run.model_variant.key, record)
     }
     return grouped
-  }, [standard, activeSuite])
+  }, [standard, activeSuite, responseStyle])
 
   const rows = useMemo(() => Array.from(byVariant.entries()).map(([key, modes]) => {
     const anchor = modes[2] ?? modes[3] ?? modes[1]!
@@ -123,7 +126,7 @@ export function Leaderboard() {
               return <div key={run.run_id} className="rounded-lg border bg-background/70 p-3">
                 <div className="flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{run.model_variant.display_name}</span><Badge variant="outline">{run.status}</Badge></div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-amber-500" style={{ width: `${ratio * 100}%` }} /></div>
-                <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground"><span>{run.track}</span><span>{run.progress.completed}/{run.progress.total}</span></div>
+                <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><ResponseStyleBadge condition={run.condition} compact /><span>{run.progress.completed}/{run.progress.total}</span></div>
               </div>
             })}
           </div>
@@ -134,10 +137,11 @@ export function Leaderboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle points</h2></div>
-            <p className="mt-1 text-sm text-muted-foreground">One point per complete puzzle; correct prefixes receive fractional credit.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Compare board-information modes within one response style; switch styles for the orthogonal output ablation.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
+            <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
             <div className="flex rounded-md border bg-background p-0.5">
               <button onClick={() => setView("compare")} className={`rounded px-2.5 py-1 text-xs ${view === "compare" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Compare</button>
               {MODES.map((mode) => <button key={mode.n} onClick={() => setView(String(mode.n) as typeof view)} className={`rounded px-2.5 py-1 text-xs ${view === String(mode.n) ? "bg-foreground text-background" : "text-muted-foreground"}`}>{mode.n}. {mode.name}</button>)}
@@ -165,6 +169,7 @@ export function Leaderboard() {
                     }) : <><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
                   </TableRow>
                 })}
+                {(view === "compare" ? rows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 7} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>

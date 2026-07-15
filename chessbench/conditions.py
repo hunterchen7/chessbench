@@ -300,25 +300,20 @@ def build_puzzle_prompt(
             lines += ["", _json_line_instruction()]
         else:
             lines += [
-                f"Reply with every move in order in {_notation_name(cond)}, starting with `line:`."
+                f"Reply with every move in order in {_notation_name(cond)}, starting with `line:`. "
+                "Include no explanation or other text."
             ]
     else:
         lines += [
             "",
             _json_move_instruction()
             if cond.explain
-            else f"Reply with your move in {_notation_name(cond)}.",
+            else f"Reply with ONLY your move in {_notation_name(cond)}, no explanation or other text.",
         ]
     if cond.prompt_style == PromptStyle.COT:
         lines += [
             "Think through the position carefully before producing the requested JSON."
         ]
-    elif (
-        not cond.explain
-        and cond.prompt_style == PromptStyle.MINIMAL
-        and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE
-    ):
-        lines += ["Reply with ONLY the move, no explanation."]
     if illegal_feedback:
         lines += [
             "",
@@ -405,8 +400,10 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
         ]
     if cond.explain:
         lines += ["", _json_move_instruction()]
-    elif cond.prompt_style in (PromptStyle.MINIMAL, PromptStyle.FEW_SHOT):
-        lines += ["Reply with ONLY your move, no commentary."]
+    else:
+        lines += [
+            f"Reply with ONLY your move in {_notation_name(cond)}, no explanation or other text."
+        ]
     return "\n".join(lines)
 
 

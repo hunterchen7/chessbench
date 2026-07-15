@@ -16,19 +16,29 @@ There is no public Elo score. Puzzle difficulty ratings remain metadata for stra
 
 ## Evaluation protocol
 
-The three standard information prompts are:
+The three standard board-information prompts are:
 
 1. **Raw** — FEN and piece locations.
 2. **Assisted** — Raw plus every legal move in SAN and UCI.
 3. **Coached** — Assisted plus fixed, non-prescriptive chess calculation considerations.
 
-All three modes use the same response contract, so the only experimental change is the information supplied:
+Response style is a separate axis. It never changes the Mode 1–3 numbering:
+
+| | Move only | JSON + rationale |
+| --- | --- | --- |
+| Mode 1 — Raw | `plain_text_v1` | structured move + visible rationale |
+| Mode 2 — Assisted | `plain_text_v1` | structured move + visible rationale |
+| Mode 3 — Coached | `plain_text_v1` | structured move + visible rationale |
+
+The `move_only` ablation uses `explain=false` and requests only a plain-text move. The `json_rationale` style uses
+`explain=true` and the current structured contract:
 
 ```json
 {"move":"e2e4","rationale":"A concise explanation of why the move is best."}
 ```
 
-Woodpecker uses the corresponding `{"moves":[...],"rationale":"..."}` shape. Moves are scored independently
+Woodpecker uses the corresponding `{"moves":[...],"rationale":"..."}` shape under `json_rationale`, or a tagged
+move line with no explanation under `move_only`. Moves are scored independently
 from the rationale. A recoverable move in malformed JSON still receives its chess score while the response is
 recorded as a format failure.
 
@@ -162,14 +172,26 @@ python3 -m chessbench run-model --model my-model --suite suites/headline.json --
 
 Mode 4 is written to the Woodpecker track. `--reasoning` and `--reasoning-tokens` are mutually exclusive.
 
+Run a paired response-style ablation without changing the information mode:
+
+```bash
+python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2 --rationale
+```
+
+For the full Standard 3 × 2 matrix, repeat that pair under Modes 1, 2, and 3. The complete condition slug records
+`plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
+
 Play and optionally stream a points tournament:
 
 ```bash
 python3 -m chessbench tournament \
   --models provider/model-a,provider/model-b \
   --provider openrouter --games 4 --context-mode hybrid \
-  --legality retry --save runs/tournaments/example.json
+  --mode 2 --move-only --save runs/tournaments/example-move-only.json
 ```
+
+Use the same command with `--rationale` for the paired JSON + rationale game condition.
 
 ## Cloudflare sync and deployment
 

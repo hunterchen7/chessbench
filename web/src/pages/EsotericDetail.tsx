@@ -6,6 +6,7 @@ import { loadComposed, STIPULATION_BLURB, STIPULATION_LABEL, type ComposedData }
 import { uciLineToSan } from "@/lib/chess"
 import { pct } from "@/lib/format"
 import { Board } from "@/components/Board"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -114,6 +115,7 @@ export function EsotericDetail() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{short(a.model)}</span>
+                      <ResponseStyleBadge condition={a.condition} compact />
                       {a.answer && <span className="font-mono text-sm text-muted-foreground">{a.answer}</span>}
                     </div>
                     {a.detail && <p className="mt-0.5 text-xs text-muted-foreground">{a.detail}</p>}

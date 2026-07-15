@@ -8,7 +8,8 @@ import {
   type ComposedData,
   type Stipulation,
 } from "@/lib/composed"
-import { pct } from "@/lib/format"
+import { pct, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -18,6 +19,7 @@ const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
 export function Esoteric() {
   const [data, setData] = useState<ComposedData | null>(null)
   const [kind, setKind] = useState<Stipulation | "all">("all")
+  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
 
   useEffect(() => {
     loadComposed().then(setData)
@@ -27,9 +29,10 @@ export function Esoteric() {
     if (!data) return []
     return data.runs
       .filter((r) => r.solver !== "oracle")
-      .map((r) => ({ model: r.model, solved: r.summary.solved, n: r.summary.n, rate: r.summary.solve_rate }))
+      .filter((r) => responseStyleInfo(r.condition).key === responseStyle)
+      .map((r) => ({ model: r.model, condition: r.condition, solved: r.summary.solved, n: r.summary.n, rate: r.summary.solve_rate }))
       .sort((a, b) => b.rate - a.rate)
-  }, [data])
+  }, [data, responseStyle])
 
   const kinds = useMemo(() => {
     if (!data) return [] as Stipulation[]
@@ -52,19 +55,20 @@ export function Esoteric() {
       </div>
     )
 
-  const nonOracle = (e: (typeof rows)[number]) => e.answers.filter((a) => a.solver !== "oracle")
+  const nonOracle = (e: (typeof rows)[number]) => e.answers.filter((a) => a.solver !== "oracle" && responseStyleInfo(a.condition).key === responseStyle)
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div><h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
           <Sparkles className="size-6 text-chart-4" /> Esoteric
         </h1>
         <p className="mt-1 max-w-3xl text-muted-foreground">
           Composed chess problems — the genres you never see in a normal game: selfmates, helpmates, reflexmates,
           series-movers, proof games, and endgame studies. Each is solver-validated, so a perfect answer exists; the
           question is whether a model can find it.
-        </p>
+        </p></div>
+        <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
       </div>
 
       {/* Solver leaderboard */}
@@ -86,7 +90,7 @@ export function Esoteric() {
               {models.map((m, i) => (
                 <TableRow key={m.model}>
                   <TableCell className="text-center font-mono text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell className="font-medium">{short(m.model)}</TableCell>
+                  <TableCell><div className="font-medium">{short(m.model)}</div><div className="mt-1"><ResponseStyleBadge condition={m.condition} compact /></div></TableCell>
                   <TableCell className="text-right tabular-nums">
                     {m.solved}/{m.n}
                   </TableCell>

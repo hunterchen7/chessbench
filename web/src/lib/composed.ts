@@ -1,5 +1,7 @@
 // Loader for the esoteric / composed-problem track (selfmate, helpmate, studies,
 // series-movers, proof games, …). Served as static JSON — one run file per solver.
+import type { Condition } from "./data"
+
 const DATA = import.meta.env.BASE_URL + "data/composed/"
 
 export type Stipulation =
@@ -26,6 +28,7 @@ export interface ComposedRun {
   created: string
   model: string
   solver: string
+  condition?: Condition | string
   summary: { n: number; solved: number; solve_rate: number; by_kind: Record<string, { solved: number; n: number }> }
   items: ComposedItem[]
 }
@@ -48,6 +51,7 @@ export interface ComposedAnswer {
   solved: boolean
   answer: string
   detail: string
+  condition?: Condition | string
 }
 
 export interface ComposedEntry {
@@ -96,14 +100,14 @@ export async function loadComposed(): Promise<ComposedData> {
   } catch {
     return { runs: [], problems: new Map(), order: [] }
   }
-  const runs: ComposedRun[] = []
-  for (const meta of index.runs) {
+  const loaded = await Promise.all(index.runs.map(async (meta) => {
     try {
-      runs.push(await getJSON<ComposedRun>(meta.file))
+      return await getJSON<ComposedRun>(meta.file)
     } catch {
-      /* skip a missing run */
+      return null
     }
-  }
+  }))
+  const runs = loaded.filter((run): run is ComposedRun => run !== null)
   const problems = new Map<string, ComposedEntry>()
   const order: string[] = []
   for (const run of runs) {
@@ -120,7 +124,7 @@ export async function loadComposed(): Promise<ComposedData> {
         problems.set(it.id, entry)
         order.push(it.id)
       }
-      entry.answers.push({ model: run.model, solver: run.solver, solved: it.solved, answer: it.answer, detail: it.detail })
+      entry.answers.push({ model: run.model, solver: run.solver, solved: it.solved, answer: it.answer, detail: it.detail, condition: run.condition })
     }
   }
   return { runs, problems, order }

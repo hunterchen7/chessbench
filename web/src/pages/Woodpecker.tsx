@@ -2,8 +2,9 @@ import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Activity, ArrowUpRight, CheckCircle2, Sigma } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { pct, pointsText } from "@/lib/format"
+import { pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,9 +15,11 @@ export function Woodpecker() {
   const all = useMemo(() => runs.filter((run) => run.track === "woodpecker"), [runs])
   const suites = useMemo(() => Array.from(new Set(all.map((run) => run.suite?.name).filter(Boolean))) as string[], [all])
   const [suite, setSuite] = useState("")
+  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
   const activeSuite = suite || suites[0] || ""
-  const rows = useMemo(() => all.filter((run) => !activeSuite || run.suite?.name === activeSuite)
-    .sort((a, b) => b.summary.points - a.summary.points || b.summary.solve_rate - a.summary.solve_rate), [all, activeSuite])
+  const rows = useMemo(() => all
+    .filter((run) => (!activeSuite || run.suite?.name === activeSuite) && responseStyleInfo(run.condition).key === responseStyle)
+    .sort((a, b) => b.summary.points - a.summary.points || b.summary.solve_rate - a.summary.solve_rate), [all, activeSuite, responseStyle])
   const totalPoints = rows.reduce((sum, run) => sum + run.summary.points, 0)
   const totalSolved = rows.reduce((sum, run) => sum + run.summary.solved, 0)
 
@@ -33,6 +36,7 @@ export function Woodpecker() {
         </div>
         <div className="flex flex-wrap gap-2">
           {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
+          <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
           <ExportButton track="woodpecker" />
         </div>
       </section>
@@ -51,7 +55,7 @@ export function Woodpecker() {
               {rows.map((run, index) => <TableRow key={run.run_id}>
                 <TableCell className="text-center font-mono text-xs text-muted-foreground">{index + 1}</TableCell>
                 <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`} className="group flex items-center gap-2"><ModelIdentity variant={run.model_variant} /><ArrowUpRight className="size-3.5 opacity-0 group-hover:opacity-100" /></Link></TableCell>
-                <TableCell><div className="flex flex-wrap gap-1"><Badge variant="secondary">one shot</Badge><Badge variant="outline">full variation</Badge>{run.condition.prompt_style === "coached" && <Badge variant="outline">coached</Badge>}</div></TableCell>
+                <TableCell><div className="flex flex-wrap gap-1"><Badge variant="secondary">one shot</Badge><Badge variant="outline">full variation</Badge><ResponseStyleBadge condition={run.condition} compact />{run.condition.prompt_style === "coached" && <Badge variant="outline">coached</Badge>}</div></TableCell>
                 <TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell>
                 <TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}<div className="text-[11px] text-muted-foreground">{pct(run.summary.solve_rate)}</div></TableCell>
                 <TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell>

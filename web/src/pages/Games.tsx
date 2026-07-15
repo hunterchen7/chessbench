@@ -1,13 +1,20 @@
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { modeFromSlug } from "@/lib/format"
+import { modeFromSlug, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { Badge } from "@/components/ui/badge"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function Games() {
   const { tournaments } = useData()
+  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
+  const visible = useMemo(
+    () => tournaments.filter((tournament) => responseStyleInfo(tournament.condition_slug).key === responseStyle),
+    [tournaments, responseStyle],
+  )
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -18,11 +25,11 @@ export function Games() {
             The canonical setup keeps one chat per game and re-sends the authoritative position every turn.
           </p>
         </div>
-        <ExportButton track="game" />
+        <div className="flex flex-wrap items-center gap-2"><ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} /><ExportButton track="game" /></div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tournaments.map((t) => (
+        {visible.map((t) => (
           <Link key={t.file} to={`/games/${encodeURIComponent(t.file)}`}>
             <Card className={`h-full transition-colors hover:border-ring ${t.status === "live" ? "border-red-500/40" : ""}`}>
               <CardHeader>
@@ -37,6 +44,7 @@ export function Games() {
                       {modeFromSlug(t.condition_slug)!.n}. {modeFromSlug(t.condition_slug)!.name}
                     </Badge>
                   )}
+                  <ResponseStyleBadge condition={t.condition_slug} compact />
                   {t.condition_slug?.includes("hybrid") && <Badge variant="secondary" className="text-xs font-normal">stateful hybrid</Badge>}
                 </CardDescription>
               </CardHeader>
@@ -56,7 +64,7 @@ export function Games() {
             </Card>
           </Link>
         ))}
-        {tournaments.length === 0 && <p className="text-sm text-muted-foreground">No tournaments recorded yet.</p>}
+        {visible.length === 0 && <p className="text-sm text-muted-foreground">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} tournaments recorded yet.</p>}
       </div>
     </div>
   )

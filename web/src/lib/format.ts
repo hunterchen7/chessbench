@@ -15,6 +15,43 @@ const CONDITION_LABEL: Record<string, string> = {
 }
 export const modeLabel = (c: Condition) => CONDITION_LABEL[c.legality] ?? c.slug
 
+export type ResponseStyleKey = "json_rationale" | "move_only"
+
+export interface ResponseStyleInfo {
+  key: ResponseStyleKey
+  label: string
+  shortLabel: string
+  protocol: string
+  description: string
+}
+
+export const RESPONSE_STYLES: readonly ResponseStyleInfo[] = [
+  {
+    key: "json_rationale",
+    label: "JSON + rationale",
+    shortLabel: "JSON + why",
+    protocol: "json_rationale",
+    description: "A structured move and a concise, visible model-authored rationale.",
+  },
+  {
+    key: "move_only",
+    label: "Move only",
+    shortLabel: "Move only",
+    protocol: "plain_text_v1",
+    description: "Only the move or line in plain text; no rationale is requested.",
+  },
+] as const
+
+export function responseStyleInfo(condition: Condition | string | null | undefined): ResponseStyleInfo {
+  const isMoveOnly = typeof condition === "string"
+    ? (() => {
+        const parts = condition.split("__")
+        return parts.includes("plain-text-v1") || !parts.includes("json-rationale")
+      })()
+    : condition?.explain === false || condition?.response_protocol === "plain_text_v1"
+  return RESPONSE_STYLES[isMoveOnly ? 1 : 0]
+}
+
 // The 3 named "help" modes (the headline ablation). Reasoning runs and other
 // axis combos return null (they're shown separately, not in the mode matrix).
 export interface ModeInfo {

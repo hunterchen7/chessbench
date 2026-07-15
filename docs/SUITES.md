@@ -10,7 +10,7 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v2.json` | Public | 300 | `sha256:5fe06f759d825898` | Move-by-move; run modes 1, 2, and 3 separately |
+| Standard | `suites/public/standard-lichess-v2.json` | Public | 300 | `sha256:5fe06f759d825898` | Move-by-move; Modes 1–3 × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 300 | `sha256:0ea544ac7405f5dc` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 125 | `sha256:26c709626e0f4ebd` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 125 | `sha256:5e7e03190877182b` | Mode 4; sealed certification run |
@@ -30,6 +30,20 @@ Every Standard suite is evaluated under three independent prompt conditions:
 1. **Mode 1 — Raw:** FEN, explicit piece locations, and side to move. Illegal output fails the puzzle.
 2. **Mode 2 — Assisted:** Mode 1 plus every legal move in SAN and UCI.
 3. **Mode 3 — Coached:** Mode 2 plus the fixed calculation-advice block.
+
+Response style is an orthogonal axis; it does **not** create Modes 4–6. The canonical Standard comparison is the
+following 3 × 2 matrix, holding the suite, model variant, context policy, and all other settings constant:
+
+| Board-information mode | `move_only` | `json_rationale` |
+| --- | --- | --- |
+| Mode 1 — Raw | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
+| Mode 2 — Assisted | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
+| Mode 3 — Coached | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
+
+`move_only` asks only for a move (or a tagged line where applicable) in plain text. `json_rationale` is the existing
+structured contract. Chess points are graded from the parsed move independently of response-format compliance.
+The complete condition slug includes `plain-text-v1` or `json-rationale` plus the exact structured protocol, so
+the dashboard and database never silently pool the two styles.
 
 The canonical puzzle context policy is `hybrid`: one conversation within a puzzle, with the authoritative position
 and played line re-sent each turn. `fresh` is an explicit ablation, not another suite.
@@ -72,6 +86,24 @@ Games are a track, but not currently a frozen suite JSON. A game experiment is f
 condition, seed, games per pairing, maximum plies, and opening policy. The built-in optional opening book contains
 10 starting positions and colors alternate. The canonical context policy is `hybrid`; legality policy is recorded
 as `free_form`, `retry`, `legal_list`, or `otb`. Scoring is 1 point for a win, 0.5 for a draw, and 0 for a loss.
+Response style is recorded separately from the Mode 1–3 board-information preset, enabling the same 3 × 2 game
+ablation without changing mode numbers.
+
+### Canonical response-style commands
+
+Run one frozen Standard suite through the complete six-cell matrix:
+
+```bash
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 1 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 1 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 2 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 2 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --rationale
+```
+
+The same axis applies to games; for example, compare otherwise identical Mode 2 matches with `--move-only` and
+`--rationale`. The latter is the default, but the explicit flag is preferred in published experiment scripts.
 
 ## Supported previous releases
 
@@ -117,7 +149,7 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v1` | Modes 1, 2, and 3 as independent runs | 36 puzzle attempts |
+| Standard | `standard-smoke-v1` | Modes 1, 2, and 3; `json_rationale` first pass | 36 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 10 full-line attempts |
 | Esoteric | `esoteric-smoke-v1` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, and 3 | 2 games per mode, colors alternating |
@@ -131,6 +163,9 @@ position and public move history but never the other player's raw response or ra
 For this match matrix, Mode 1 uses `free_form`, so one illegal move forfeits; Modes 2 and 3 provide the legal-move
 list. The separate `retry` and `otb` legality policies remain explicit game ablations and are not silently mixed into
 these six games.
+
+After that compatibility pass, repeat Standard Modes 1–3 with `--move-only` to fill the other three cells before
+reporting response-style effects. Treat this as a paired ablation, never as three additional information modes.
 
 As a durability check, interrupt and resume at least one suite run and verify that already-persisted item IDs are
 skipped in canonical suite order. Only after every smoke cell passes should the same two variants continue through

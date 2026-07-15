@@ -1,9 +1,17 @@
 """The 4 puzzle protocols, from raw position through a full-line answer."""
 
+from dataclasses import replace
+
 import chess
 
 from chessbench.conditions import (
-    DEFAULT_MODE, Legality, PromptStyle, PuzzleProtocol, build_puzzle_prompt, mode_condition,
+    DEFAULT_MODE,
+    Legality,
+    PromptStyle,
+    PuzzleProtocol,
+    build_puzzle_prompt,
+    game_system_prompt,
+    mode_condition,
 )
 
 B = chess.Board()
@@ -36,6 +44,24 @@ def test_mode4_requests_the_complete_woodpecker_line():
     assert "forced replies" in p.lower()
     assert '"moves"' in p and '"rationale"' in p
     assert mode_condition(4).puzzle_protocol == PuzzleProtocol.FULL_LINE
+
+
+def test_move_only_is_explicit_for_minimal_coached_and_full_line_prompts():
+    for mode in (1, 2, 3):
+        condition = replace(mode_condition(mode), explain=False)
+        puzzle = build_puzzle_prompt(B, condition)
+        system = game_system_prompt(condition, chess.WHITE)
+        for prompt in (puzzle, system):
+            assert "ONLY your move" in prompt
+            assert "no explanation or other text" in prompt
+            assert '"rationale"' not in prompt
+
+    woodpecker = build_puzzle_prompt(
+        B, replace(mode_condition(4), explain=False)
+    )
+    assert "starting with `line:`" in woodpecker
+    assert "no explanation or other text" in woodpecker
+    assert '"rationale"' not in woodpecker
 
 
 def test_mode_presets_and_default():

@@ -8,6 +8,7 @@ export interface Condition {
   context_mode?: string
   puzzle_protocol?: "move_by_move" | "full_line"
   explain?: boolean
+  response_protocol?: "plain_text_v1" | "prompt_json_v1" | "json_schema_v1" | string
   reasoning_effort?: string | null
   reasoning_max_tokens?: number | null
   max_output_tokens?: number
@@ -259,6 +260,13 @@ export async function resolveApiBase(): Promise<string | null> {
 
 function conditionFromSlug(slug: string): Condition {
   const parts = slug.split("__")
+  const jsonRationale = parts.includes("json-rationale")
+  const moveOnly = parts.includes("plain-text-v1") || !jsonRationale
+  const responseProtocol = moveOnly
+    ? "plain_text_v1"
+    : parts.includes("prompt-json-v1")
+      ? "prompt_json_v1"
+      : "json_schema_v1"
   const effort = parts.find((part) => part.startsWith("reason-"))?.slice(7) ?? null
   const puzzleContext = parts.find((part) => part.startsWith("pctx-"))?.slice(5)
   const gameContext = parts.find((part) => ["fresh", "growing", "hybrid"].includes(part))
@@ -267,7 +275,8 @@ function conditionFromSlug(slug: string): Condition {
     representation: parts[1] ?? "fen_pieces",
     notation: parts[2] ?? "uci",
     prompt_style: parts[3] ?? "minimal",
-    explain: parts.includes("json-rationale"),
+    explain: jsonRationale,
+    response_protocol: responseProtocol,
     puzzle_protocol: parts.includes("full-line") ? "full_line" : "move_by_move",
     context_mode: puzzleContext ?? gameContext,
     reasoning_effort: effort?.endsWith("t") ? null : effort,
