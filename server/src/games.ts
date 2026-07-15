@@ -4,6 +4,8 @@
 // doc still lands via POST /api/ingest/tournament once the run completes.
 import type { Env } from "./types"
 import { authorized } from "./auth"
+import { orderedGameAttempts } from "./game_turn_logs"
+import type { GameMovePayload } from "./game_turn_logs"
 import { error, json } from "./http"
 
 interface GamePayload {
@@ -15,24 +17,7 @@ interface GamePayload {
   plies?: number
   pgn?: string
   start_fen?: string | null
-  moves?: Array<{
-    ply?: number
-    color?: string
-    attempts?: Array<{
-      system_prompt?: string | null
-      prompt?: string | null
-      raw_response?: string
-      parsed_move?: string | null
-      legal?: boolean
-      explanation?: string | null
-      response_format_valid?: boolean | null
-      response_format_error?: string | null
-      prompt_tokens?: number
-      completion_tokens?: number
-      reasoning_tokens?: number
-      cost_usd?: number
-    }>
-  }>
+  moves?: GameMovePayload[]
 }
 
 interface IngestGameBody {
@@ -81,24 +66,23 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
     env.DB.prepare(`DELETE FROM game_turn_logs_v2 WHERE game_id = ?`).bind(gameId),
   ]
   const logStatements: D1PreparedStatement[] = []
-  for (const move of g.moves ?? []) {
-    for (const [attemptIndex, attempt] of (move.attempts ?? []).entries()) {
-      logStatements.push(env.DB.prepare(
-        `INSERT INTO game_turn_logs_v2
-         (game_id, ply, attempt, color, system_prompt, prompt, raw_response, parsed_move, legal, explanation,
-          response_format_valid, response_format_error, prompt_tokens, completion_tokens, reasoning_tokens,
-          cost_usd, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(
-        gameId, move.ply ?? 0, attemptIndex, move.color ?? "unknown", attempt.system_prompt ?? null, attempt.prompt ?? null,
-        attempt.raw_response ?? "", attempt.parsed_move ?? null, attempt.legal ? 1 : 0,
-        attempt.explanation ?? null,
-        attempt.response_format_valid == null ? null : attempt.response_format_valid ? 1 : 0,
-        attempt.response_format_error ?? null,
-        attempt.prompt_tokens ?? 0, attempt.completion_tokens ?? 0,
-        attempt.reasoning_tokens ?? 0, attempt.cost_usd ?? 0, now(),
-      ))
-    }
+  for (const turn of orderedGameAttempts(g.moves ?? [])) {
+    const attempt = turn.payload
+    logStatements.push(env.DB.prepare(
+      `INSERT INTO game_turn_logs_v2
+       (game_id, turn_ordinal, ply, attempt, color, system_prompt, prompt, raw_response, parsed_move, legal,
+        explanation, response_format_valid, response_format_error, prompt_tokens, completion_tokens,
+        reasoning_tokens, cost_usd, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(
+      gameId, turn.turnOrdinal, turn.ply, turn.attempt, turn.color,
+      attempt.system_prompt ?? null, attempt.prompt ?? null, attempt.raw_response ?? "",
+      attempt.parsed_move ?? null, attempt.legal ? 1 : 0, attempt.explanation ?? null,
+      attempt.response_format_valid == null ? null : attempt.response_format_valid ? 1 : 0,
+      attempt.response_format_error ?? null, attempt.prompt_tokens ?? 0,
+      attempt.completion_tokens ?? 0, attempt.reasoning_tokens ?? 0,
+      attempt.cost_usd ?? 0, now(),
+    ))
   }
   await env.DB.batch(headerStatements)
   // D1 batch sizes are finite; long games can contain hundreds of turns and
