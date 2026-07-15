@@ -22,6 +22,12 @@ from .conditions import Condition
 from .core import board as board_utils
 from .core.engine import Engine, EngineConfig
 from .models import Model, VisionModel
+from .models.base import (
+    chat_with_response_format,
+    generate_with_response_format,
+    image_with_response_format,
+)
+from .response_protocols import response_format_for
 from .types import Message
 
 
@@ -45,6 +51,7 @@ class MoveContext:
     last_explanation: str | None = None
     last_response_format_valid: bool | None = None
     last_response_format_error: str | None = None
+    last_response_format: dict[str, object] | None = None
     last_usage: dict[str, object] | None = None
     last_cost: float = 0.0
 
@@ -88,11 +95,15 @@ class StockfishAgent:
     """Strong oracle baseline. Used to confirm grading accepts correct solutions
     (a well-set-up puzzle track should show near-100% solve rate here)."""
 
-    def __init__(self, engine: Engine | None = None, config: EngineConfig | None = None):
+    def __init__(
+        self, engine: Engine | None = None, config: EngineConfig | None = None
+    ):
         self._engine = engine
         self._own = engine is None
         self._config = config or EngineConfig(nodes=200_000)
-        self.name = f"stockfish@{self._config.nodes}n" if self._config.nodes else "stockfish"
+        self.name = (
+            f"stockfish@{self._config.nodes}n" if self._config.nodes else "stockfish"
+        )
 
     def __enter__(self):
         if self._own:
@@ -135,21 +146,33 @@ class LLMAgent:
         prompt = conditions.build_puzzle_prompt(
             board, cond, ctx.illegal_feedback, history_san=ctx.history_san
         )
+        response_format = response_format_for(
+            cond.response_protocol, "move", explain=cond.explain
+        )
         if cond.context_mode == conditions.ContextMode.FRESH:
-            raw = self._model.generate(
-                prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            raw, applied_format = generate_with_response_format(
+                self._model,
+                prompt,
+                response_format=response_format,
+                temperature=cond.temperature,
+                max_tokens=cond.max_output_tokens,
             )
         else:
             if not self._messages:
                 self._messages.append({"role": "system", "content": self._system})
                 ctx.last_system_prompt = self._system
             self._messages.append({"role": "user", "content": prompt})
-            raw = self._model.chat(
-                self._messages, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            raw, applied_format = chat_with_response_format(
+                self._model,
+                self._messages,
+                response_format=response_format,
+                temperature=cond.temperature,
+                max_tokens=cond.max_output_tokens,
             )
             self._messages.append({"role": "assistant", "content": raw})
         ctx.last_prompt = prompt
         ctx.last_raw_response = raw
+        ctx.last_response_format = applied_format
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
@@ -169,11 +192,19 @@ class LLMAgent:
         cond = ctx.condition
         self.reset_puzzle()
         prompt = conditions.build_puzzle_prompt(board, cond, ctx.illegal_feedback)
-        raw = self._model.generate(
-            prompt, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+        response_format = response_format_for(
+            cond.response_protocol, "line", explain=cond.explain
+        )
+        raw, applied_format = generate_with_response_format(
+            self._model,
+            prompt,
+            response_format=response_format,
+            temperature=cond.temperature,
+            max_tokens=cond.max_output_tokens,
         )
         ctx.last_prompt = prompt
         ctx.last_raw_response = raw
+        ctx.last_response_format = applied_format
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
@@ -199,18 +230,33 @@ class VisionAgent:
 
         cond = ctx.condition
         side = "White" if board.turn == chess.WHITE else "Black"
-        lines = [f"This image shows a chess position. {side} is to move. Find the best move."]
+        lines = [
+            f"This image shows a chess position. {side} is to move. Find the best move."
+        ]
         if cond.legality == conditions.Legality.LEGAL_LIST:
             lines.append(conditions._legal_line(board, cond))
         if cond.explain:
             lines.append(conditions._json_move_instruction())
         else:
-            lines.append(f"Reply with ONLY the move in {conditions._notation_name(cond)}.")
+            lines.append(
+                f"Reply with ONLY the move in {conditions._notation_name(cond)}."
+            )
         if ctx.illegal_feedback:
             lines.append(f"Your previous answer was illegal: {ctx.illegal_feedback}.")
 
-        raw = self._model.chat_image("\n".join(lines), render_board_png(board), temperature=cond.temperature)
+        response_format = response_format_for(
+            cond.response_protocol, "move", explain=cond.explain
+        )
+        raw, applied_format = image_with_response_format(
+            self._model,
+            "\n".join(lines),
+            render_board_png(board),
+            response_format=response_format,
+            temperature=cond.temperature,
+            max_tokens=cond.max_output_tokens,
+        )
         ctx.last_raw_response = raw
+        ctx.last_response_format = applied_format
         parsed = board_utils.parse_model_move_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:
@@ -243,7 +289,8 @@ class LLMGameAgent:
         cond = ctx.condition
         is_first = not self._started
         user = conditions.build_game_turn(
-            board, cond,
+            board,
+            cond,
             history_san=ctx.history_san,
             last_opponent_move_san=ctx.last_opponent_move_san,
             illegal_feedback=ctx.illegal_feedback,
@@ -251,16 +298,27 @@ class LLMGameAgent:
         )
         system_msg: Message = {"role": "system", "content": self._system}
         user_msg: Message = {"role": "user", "content": user}
+        response_format = response_format_for(
+            cond.response_protocol, "move", explain=cond.explain
+        )
         if cond.context_mode == conditions.ContextMode.FRESH:
-            raw = self._model.chat(
-                [system_msg, user_msg], temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            raw, applied_format = chat_with_response_format(
+                self._model,
+                [system_msg, user_msg],
+                response_format=response_format,
+                temperature=cond.temperature,
+                max_tokens=cond.max_output_tokens,
             )
         else:  # GROWING / HYBRID: persist the conversation across turns
             if not self._messages:
                 self._messages.append(system_msg)
             self._messages.append(user_msg)
-            raw = self._model.chat(
-                self._messages, temperature=cond.temperature, max_tokens=cond.max_output_tokens
+            raw, applied_format = chat_with_response_format(
+                self._model,
+                self._messages,
+                response_format=response_format,
+                temperature=cond.temperature,
+                max_tokens=cond.max_output_tokens,
             )
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
@@ -269,6 +327,7 @@ class LLMGameAgent:
             ctx.last_system_prompt = self._system
         ctx.last_prompt = user
         ctx.last_raw_response = raw
+        ctx.last_response_format = applied_format
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))

@@ -73,8 +73,8 @@ class PuzzleResult:
     puzzle_id: str
     rating: int
     themes: list[str]
-    solved: bool                   # completed a full acceptable line
-    score: float                   # partial credit in [0, 1]
+    solved: bool  # completed a full acceptable line
+    score: float  # partial credit in [0, 1]
     first_move_legal: bool
     all_moves_legal: bool
     illegal_attempts: int
@@ -91,11 +91,17 @@ class PuzzleResult:
     answer_response_format_error: str | None = None
 
 
-def _turn_record(k: int, ctx: TurnContext, parsed_move: chess.Move | None) -> dict[str, object]:
+def _turn_record(
+    k: int, ctx: TurnContext, parsed_move: chess.Move | None
+) -> dict[str, object]:
     usage = ctx.last_usage or {}
     details = usage.get("completion_tokens_details")
-    reasoning_value = details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
-    reasoning_tokens = int(reasoning_value) if isinstance(reasoning_value, (int, float, str)) else 0
+    reasoning_value = (
+        details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
+    )
+    reasoning_tokens = (
+        int(reasoning_value) if isinstance(reasoning_value, (int, float, str)) else 0
+    )
     prompt_value = usage.get("prompt_tokens", 0)
     completion_value = usage.get("completion_tokens", 0)
     return {
@@ -108,8 +114,13 @@ def _turn_record(k: int, ctx: TurnContext, parsed_move: chess.Move | None) -> di
         "explanation": ctx.last_explanation,
         "response_format_valid": ctx.last_response_format_valid,
         "response_format_error": ctx.last_response_format_error,
-        "prompt_tokens": int(prompt_value) if isinstance(prompt_value, (int, float, str)) else 0,
-        "completion_tokens": int(completion_value) if isinstance(completion_value, (int, float, str)) else 0,
+        "response_format": ctx.last_response_format,
+        "prompt_tokens": int(prompt_value)
+        if isinstance(prompt_value, (int, float, str))
+        else 0,
+        "completion_tokens": int(completion_value)
+        if isinstance(completion_value, (int, float, str))
+        else 0,
         "reasoning_tokens": reasoning_tokens,
         "cost_usd": ctx.last_cost,
     }
@@ -208,20 +219,33 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
 
     def result(solved: bool, reason: PuzzleFailure | None) -> PuzzleResult:
         return PuzzleResult(
-            puzzle_id=puzzle.id, rating=puzzle.rating, themes=puzzle.themes,
-            solved=solved, score=1.0 if solved else plies_correct / n_solver,
-            first_move_legal=bool(first_move_legal), all_moves_legal=all_moves_legal,
-            illegal_attempts=illegal_attempts, failure_reason=reason,
-            solver_plies=n_solver, plies_correct=plies_correct, moves_played=moves_played,
+            puzzle_id=puzzle.id,
+            rating=puzzle.rating,
+            themes=puzzle.themes,
+            solved=solved,
+            score=1.0 if solved else plies_correct / n_solver,
+            first_move_legal=bool(first_move_legal),
+            all_moves_legal=all_moves_legal,
+            illegal_attempts=illegal_attempts,
+            failure_reason=reason,
+            solver_plies=n_solver,
+            plies_correct=plies_correct,
+            moves_played=moves_played,
             answer_move=answer["move"] if isinstance(answer["move"], str) else None,
-            answer_explanation=answer["explanation"] if isinstance(answer["explanation"], str) else None,
+            answer_explanation=answer["explanation"]
+            if isinstance(answer["explanation"], str)
+            else None,
             answer_raw=answer["raw"] if isinstance(answer["raw"], str) else None,
             turns=turns,
             answer_response_format_valid=(
-                answer["response_format_valid"] if isinstance(answer["response_format_valid"], bool) else None
+                answer["response_format_valid"]
+                if isinstance(answer["response_format_valid"], bool)
+                else None
             ),
             answer_response_format_error=(
-                answer["response_format_error"] if isinstance(answer["response_format_error"], str) else None
+                answer["response_format_error"]
+                if isinstance(answer["response_format_error"], str)
+                else None
             ),
         )
 
@@ -231,15 +255,23 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
         if not any(len(lines[i]) > pos for i in active):
             return result(True, None)  # every viable line is complete
 
-        max_tries = condition.retry_attempts + 1 if condition.legality == Legality.RETRY else 1
+        max_tries = (
+            condition.retry_attempts + 1 if condition.legality == Legality.RETRY else 1
+        )
         chosen: chess.Move | None = None
         feedback: str | None = None
         for _ in range(max_tries):
-            ctx = TurnContext(condition=condition, history_san=list(history_san), illegal_feedback=feedback)
+            ctx = TurnContext(
+                condition=condition,
+                history_san=list(history_san),
+                illegal_feedback=feedback,
+            )
             raw = agent.choose(board, ctx)
             move = board_utils.parse_move(board, raw)
             turns.append(_turn_record(k, ctx, move))
-            if k == 0 and answer["raw"] is None:  # capture the model's first answer for auditing/UI
+            if (
+                k == 0 and answer["raw"] is None
+            ):  # capture the model's first answer for auditing/UI
                 answer["move"] = move.uci() if move else raw[:40]
                 answer["explanation"] = ctx.last_explanation
                 answer["raw"] = (ctx.last_raw_response or raw)[:2000]
@@ -279,11 +311,17 @@ def grade_puzzle(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleRe
             reply = chess.Move.from_uci(reply_uci)
             history_san.append(board.san(reply))
             board.push(reply)
-            active = [i for i in active if len(lines[i]) > pos + 1 and lines[i][pos + 1] == reply_uci]
+            active = [
+                i
+                for i in active
+                if len(lines[i]) > pos + 1 and lines[i][pos + 1] == reply_uci
+            ]
         k += 1
 
 
-def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> PuzzleResult:
+def _grade_full_line(
+    agent: Agent, puzzle: Puzzle, condition: Condition
+) -> PuzzleResult:
     """Grade a Woodpecker-style one-shot answer containing the full variation.
 
     The expected line includes both the solver's moves and the forced replies.
@@ -318,7 +356,9 @@ def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> Puzz
 
     plies_correct = sum(1 for i in range(best_prefix) if i % 2 == 0)
     first_move_legal = bool(moves)
-    failure: PuzzleFailure | None = None if solved else ("wrong_move" if moves else "illegal")
+    failure: PuzzleFailure | None = (
+        None if solved else ("wrong_move" if moves else "illegal")
+    )
     answer_move = played[0] if played else raw.strip().split("\n")[0][:40]
     return PuzzleResult(
         puzzle_id=puzzle.id,
@@ -342,6 +382,8 @@ def _grade_full_line(agent: Agent, puzzle: Puzzle, condition: Condition) -> Puzz
     )
 
 
-def iter_grades(agent: Agent, puzzles: list[Puzzle], condition: Condition) -> Iterator[PuzzleResult]:
+def iter_grades(
+    agent: Agent, puzzles: list[Puzzle], condition: Condition
+) -> Iterator[PuzzleResult]:
     for p in puzzles:
         yield grade_puzzle(agent, p, condition)

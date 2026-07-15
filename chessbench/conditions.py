@@ -17,6 +17,7 @@ from enum import Enum
 import chess
 
 from .core import board as board_utils
+from .response_protocols import ResponseProtocol
 
 
 class Legality(str, Enum):
@@ -42,31 +43,33 @@ class Legality(str, Enum):
 
 class Representation(str, Enum):
     FEN = "fen"
-    FEN_ASCII = "fen_ascii"     # FEN + ASCII grid (hedge vs FEN tokenization)
+    FEN_ASCII = "fen_ascii"  # FEN + ASCII grid (hedge vs FEN tokenization)
     FEN_UNICODE = "fen_unicode"
-    PIECE_LIST = "piece_list"   # explicit "White: Ke1, Qd1, ...; Black: ..." listing
-    FEN_PIECES = "fen_pieces"   # FEN + the piece list together (the modes' default)
-    PGN = "pgn"                 # move history as PGN/SAN (for games w/ history)
+    PIECE_LIST = "piece_list"  # explicit "White: Ke1, Qd1, ...; Black: ..." listing
+    FEN_PIECES = "fen_pieces"  # FEN + the piece list together (the modes' default)
+    PGN = "pgn"  # move history as PGN/SAN (for games w/ history)
 
 
 class Notation(str, Enum):
-    SAN = "san"                 # model-facing default (dominant in pretraining)
+    SAN = "san"  # model-facing default (dominant in pretraining)
     UCI = "uci"
 
 
 class PromptStyle(str, Enum):
-    MINIMAL = "minimal"         # headline: instructions + position, nothing else
-    COT = "cot"                 # ask for reasoning then a tagged answer
-    FEW_SHOT = "few_shot"       # prepend worked examples (deltas reported, not baked in)
-    COACHED = "coached"         # explicit "how to think about the position" checklist
+    MINIMAL = "minimal"  # headline: instructions + position, nothing else
+    COT = "cot"  # ask for reasoning then a tagged answer
+    FEW_SHOT = "few_shot"  # prepend worked examples (deltas reported, not baked in)
+    COACHED = "coached"  # explicit "how to think about the position" checklist
 
 
 class ContextMode(str, Enum):
     """Game-track only: what the model carries between moves of a single game."""
 
-    FRESH = "fresh"        # self-contained prompt each turn: board + FULL history. Default.
-    GROWING = "growing"    # one conversation; append "opponent played X, your move".
-    HYBRID = "hybrid"      # growing conversation BUT re-inject authoritative board each turn.
+    FRESH = "fresh"  # self-contained prompt each turn: board + FULL history. Default.
+    GROWING = "growing"  # one conversation; append "opponent played X, your move".
+    HYBRID = (
+        "hybrid"  # growing conversation BUT re-inject authoritative board each turn.
+    )
 
 
 class PuzzleProtocol(str, Enum):
@@ -88,22 +91,31 @@ class Condition:
     representation: Representation = Representation.FEN_ASCII
     notation: Notation = Notation.UCI
     prompt_style: PromptStyle = PromptStyle.MINIMAL
-    context_mode: ContextMode = ContextMode.HYBRID  # stateful chat + authoritative board each turn
+    context_mode: ContextMode = (
+        ContextMode.HYBRID
+    )  # stateful chat + authoritative board each turn
     puzzle_protocol: PuzzleProtocol = PuzzleProtocol.MOVE_BY_MOVE
-    retry_attempts: int = 3      # only used when legality == RETRY
-    otb_illegal_limit: int = 2   # only used when legality == OTB (Nth illegal forfeits)
+    retry_attempts: int = 3  # only used when legality == RETRY
+    otb_illegal_limit: int = 2  # only used when legality == OTB (Nth illegal forfeits)
     # The canonical benchmark response is structured JSON with a visible rationale.
     # ``False`` remains available as a legacy/output-protocol ablation.
     explain: bool = True
-    temperature: float = 1.0     # models run at their native default temp; games self-diversify (no opening book needed)
+    response_protocol: ResponseProtocol = ResponseProtocol.JSON_SCHEMA_V1
+    temperature: float = 1.0  # models run at their native default temp; games self-diversify (no opening book needed)
     include_side_to_move: bool = True
-    reasoning_effort: str | None = None  # OpenRouter normalized effort, including minimal/max/xhigh/none
-    reasoning_max_tokens: int | None = None  # exact thinking-token budget; mutually exclusive with effort
+    reasoning_effort: str | None = (
+        None  # OpenRouter normalized effort, including minimal/max/xhigh/none
+    )
+    reasoning_max_tokens: int | None = (
+        None  # exact thinking-token budget; mutually exclusive with effort
+    )
     max_output_tokens: int = 2048
 
     def __post_init__(self) -> None:
         if self.reasoning_effort is not None and self.reasoning_max_tokens is not None:
-            raise ValueError("reasoning_effort and reasoning_max_tokens are mutually exclusive")
+            raise ValueError(
+                "reasoning_effort and reasoning_max_tokens are mutually exclusive"
+            )
         if self.reasoning_max_tokens is not None and self.reasoning_max_tokens <= 0:
             raise ValueError("reasoning_max_tokens must be positive")
         if self.max_output_tokens <= 0:
@@ -118,9 +130,17 @@ class Condition:
         return self._reasoning_slug(base)
 
     def _base_slug(self) -> str:
-        parts = [self.legality.value, self.representation.value, self.notation.value, self.prompt_style.value]
+        parts = [
+            self.legality.value,
+            self.representation.value,
+            self.notation.value,
+            self.prompt_style.value,
+        ]
         if self.explain:
             parts.append("json-rationale")
+            parts.append(self.response_protocol.value.replace("_", "-"))
+        else:
+            parts.append("plain-text-v1")
         return "__".join(parts)
 
     def _reasoning_slug(self, base: str) -> str:
@@ -145,6 +165,9 @@ class Condition:
             "retry_attempts": self.retry_attempts,
             "otb_illegal_limit": self.otb_illegal_limit,
             "explain": self.explain,
+            "response_protocol": (
+                self.response_protocol.value if self.explain else "plain_text_v1"
+            ),
             "temperature": self.temperature,
             "include_side_to_move": self.include_side_to_move,
             "reasoning_effort": self.reasoning_effort,
@@ -161,10 +184,30 @@ HEADLINE = Condition()
 # 1: raw FEN + piece list; 2: + legal moves (SAN & UCI); 3: + coaching tips.
 # The DEFAULT for CLI runs is MODE 2 ("hand-holding": the legal moves are provided).
 MODES: dict[int, tuple[Legality, Representation, PromptStyle, PuzzleProtocol]] = {
-    1: (Legality.FREE_FORM, Representation.FEN_PIECES, PromptStyle.MINIMAL, PuzzleProtocol.MOVE_BY_MOVE),
-    2: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.MINIMAL, PuzzleProtocol.MOVE_BY_MOVE),
-    3: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED, PuzzleProtocol.MOVE_BY_MOVE),
-    4: (Legality.LEGAL_LIST, Representation.FEN_PIECES, PromptStyle.COACHED, PuzzleProtocol.FULL_LINE),
+    1: (
+        Legality.FREE_FORM,
+        Representation.FEN_PIECES,
+        PromptStyle.MINIMAL,
+        PuzzleProtocol.MOVE_BY_MOVE,
+    ),
+    2: (
+        Legality.LEGAL_LIST,
+        Representation.FEN_PIECES,
+        PromptStyle.MINIMAL,
+        PuzzleProtocol.MOVE_BY_MOVE,
+    ),
+    3: (
+        Legality.LEGAL_LIST,
+        Representation.FEN_PIECES,
+        PromptStyle.COACHED,
+        PuzzleProtocol.MOVE_BY_MOVE,
+    ),
+    4: (
+        Legality.LEGAL_LIST,
+        Representation.FEN_PIECES,
+        PromptStyle.COACHED,
+        PuzzleProtocol.FULL_LINE,
+    ),
 }
 DEFAULT_MODE = 2
 MODE_LABELS = {
@@ -187,13 +230,22 @@ def mode_condition(mode: int) -> Condition:
     )
 
 
-def render_position(bd: chess.Board, cond: Condition, history_san: list[str] | None = None) -> str:
+def render_position(
+    bd: chess.Board, cond: Condition, history_san: list[str] | None = None
+) -> str:
     parts: list[str] = []
     rep = cond.representation
-    if rep in (Representation.FEN, Representation.FEN_ASCII, Representation.FEN_UNICODE, Representation.FEN_PIECES):
+    if rep in (
+        Representation.FEN,
+        Representation.FEN_ASCII,
+        Representation.FEN_UNICODE,
+        Representation.FEN_PIECES,
+    ):
         parts.append(f"FEN: {bd.fen()}")
     if rep == Representation.FEN_ASCII:
-        parts.append("Board (White is uppercase, `.` is empty):\n" + board_utils.render_ascii(bd))
+        parts.append(
+            "Board (White is uppercase, `.` is empty):\n" + board_utils.render_ascii(bd)
+        )
     elif rep == Representation.FEN_UNICODE:
         parts.append("Board:\n" + board_utils.render_unicode(bd))
     elif rep == Representation.PIECE_LIST:
@@ -233,7 +285,10 @@ def build_puzzle_prompt(
     if cond.legality == Legality.LEGAL_LIST:
         lines += ["", _legal_line(bd, cond)]
     if history_san:
-        lines += ["", "Moves already played in this puzzle: " + _san_history_to_pgn(history_san)]
+        lines += [
+            "",
+            "Moves already played in this puzzle: " + _san_history_to_pgn(history_san),
+        ]
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
     if cond.puzzle_protocol == PuzzleProtocol.FULL_LINE:
@@ -244,15 +299,31 @@ def build_puzzle_prompt(
         if cond.explain:
             lines += ["", _json_line_instruction()]
         else:
-            lines += [f"Reply with every move in order in {_notation_name(cond)}, starting with `line:`."]
+            lines += [
+                f"Reply with every move in order in {_notation_name(cond)}, starting with `line:`."
+            ]
     else:
-        lines += ["", _json_move_instruction() if cond.explain else f"Reply with your move in {_notation_name(cond)}."]
+        lines += [
+            "",
+            _json_move_instruction()
+            if cond.explain
+            else f"Reply with your move in {_notation_name(cond)}.",
+        ]
     if cond.prompt_style == PromptStyle.COT:
-        lines += ["Think through the position carefully before producing the requested JSON."]
-    elif not cond.explain and cond.prompt_style == PromptStyle.MINIMAL and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE:
+        lines += [
+            "Think through the position carefully before producing the requested JSON."
+        ]
+    elif (
+        not cond.explain
+        and cond.prompt_style == PromptStyle.MINIMAL
+        and cond.puzzle_protocol == PuzzleProtocol.MOVE_BY_MOVE
+    ):
         lines += ["Reply with ONLY the move, no explanation."]
     if illegal_feedback:
-        lines += ["", f"Your previous answer was illegal: {illegal_feedback}. Choose a legal move."]
+        lines += [
+            "",
+            f"Your previous answer was illegal: {illegal_feedback}. Choose a legal move.",
+        ]
     return "\n".join(lines)
 
 
@@ -286,14 +357,20 @@ COACH_ADVICE = os.environ.get("CHESSBENCH_COACH", _DEFAULT_COACH)
 
 
 def _notation_name(cond: Condition) -> str:
-    return "SAN (e.g. Nf3, exd5, O-O)" if cond.notation == Notation.SAN else "UCI (e.g. g1f3, e5d6)"
+    return (
+        "SAN (e.g. Nf3, exd5, O-O)"
+        if cond.notation == Notation.SAN
+        else "UCI (e.g. g1f3, e5d6)"
+    )
 
 
 def _json_move_instruction() -> str:
     return (
         "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
         '{"move":"e2e4","rationale":"A concise explanation of why the move is best."}\n'
-        "`move` must be one legal move in UCI notation. `rationale` should briefly identify the important "
+        "`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: "
+        "`e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the "
+        "object in a Markdown code fence. `rationale` should briefly identify the important "
         "features of the position, why the move works against the opponent's strongest response, and any "
         "important tactical or strategic idea. Mention alternatives only when relevant; preferably stay "
         "under 150 words."
@@ -304,7 +381,10 @@ def _json_line_instruction() -> str:
     return (
         "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
         '{"moves":["e2e4","e7e5","g1f3"],"rationale":"A concise explanation of the forced sequence."}\n'
-        "`moves` must contain the complete variation in legal UCI notation, including the opponent's replies. "
+        "Every entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, "
+        "`g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object "
+        "in a Markdown code fence. `moves` must contain the complete variation in legal play order, including "
+        "the opponent's replies. "
         "`rationale` should briefly explain why the sequence is forced against the strongest defense; "
         "preferably stay under 150 words."
     )
@@ -320,7 +400,9 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
     if cond.prompt_style == PromptStyle.COT:
-        lines += ["Think through the position carefully before producing the requested response."]
+        lines += [
+            "Think through the position carefully before producing the requested response."
+        ]
     if cond.explain:
         lines += ["", _json_move_instruction()]
     elif cond.prompt_style in (PromptStyle.MINIMAL, PromptStyle.FEW_SHOT):
@@ -348,7 +430,9 @@ def build_game_turn(
 
     if illegal_feedback and not is_first:
         # A retry within the same turn: only feedback, whatever the mode.
-        lines.append(f"That move was illegal: {illegal_feedback}. Reply with a legal move.")
+        lines.append(
+            f"That move was illegal: {illegal_feedback}. Reply with a legal move."
+        )
         if cond.legality == Legality.LEGAL_LIST:
             lines.append(_legal_line(bd, cond))
         return "\n".join(lines)

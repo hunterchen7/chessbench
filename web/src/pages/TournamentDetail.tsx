@@ -1,15 +1,27 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, MessageSquareText, Radio, Trophy } from "lucide-react"
+import { ArrowLeft, BrainCircuit, Eye, Radio, Sparkles, Trophy } from "lucide-react"
 import { loadTournament, type Tournament, type TournamentGame } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
+
+function modeLabel(t: Tournament): string {
+  if (t.condition.prompt_style === "coached") return "Mode 3 · coached"
+  if (t.condition.legality === "legal_list") return "Mode 2 · legal moves"
+  return "Mode 1 · raw position"
+}
+
+function reasoningLabel(t: Tournament): string {
+  if (t.condition.reasoning_max_tokens) return `${t.condition.reasoning_max_tokens.toLocaleString()} thinking tokens`
+  return `${t.condition.reasoning_effort ?? "default"} reasoning`
+}
 
 function LiveBadge() {
   return (
@@ -30,6 +42,7 @@ export function TournamentDetail() {
   const [t, setT] = useState<Tournament | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [open, setOpen] = useState<TournamentGame | null>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     setT(null)
@@ -48,6 +61,20 @@ export function TournamentDetail() {
     }, 1200)
     return () => clearInterval(id)
   }, [isLive, decoded])
+
+  useEffect(() => {
+    if (!open) return
+    const dialog = dialogRef.current
+    if (dialog && !dialog.open) dialog.showModal()
+    return () => {
+      if (dialog?.open) dialog.close()
+    }
+  }, [open])
+
+  const closeReplay = () => {
+    dialogRef.current?.close()
+    setOpen(null)
+  }
 
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
   if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
@@ -70,7 +97,12 @@ export function TournamentDetail() {
           <span className="font-mono">{t.condition.slug}</span>
           {isLive ? " · updating live" : ` · max ${t.max_plies} plies`}
         </p>
-        <div className="mt-3"><ExportButton track="game" /></div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge variant="outline"><Sparkles className="size-3" /> {modeLabel(t)}</Badge>
+          <Badge variant="outline"><BrainCircuit className="size-3" /> {reasoningLabel(t)}</Badge>
+          <Badge variant="outline">{t.condition.context_mode ?? "game"} context</Badge>
+          <ExportButton track="game" />
+        </div>
       </div>
 
       {live && (
@@ -143,16 +175,31 @@ export function TournamentDetail() {
                 <TableHead className="text-center">Result</TableHead>
                 <TableHead>Termination</TableHead>
                 <TableHead className="text-right">Plies</TableHead>
+                <TableHead className="w-24 text-right"><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {t.games.map((g, i) => (
-                <TableRow key={i} className="cursor-pointer" onClick={() => setOpen(g)}>
+                <TableRow key={i} className="group">
                   <TableCell className="font-medium">{short(g.white)}</TableCell>
                   <TableCell className="font-medium">{short(g.black)}</TableCell>
                   <TableCell className="text-center">{resultBadge(g.result)}</TableCell>
                   <TableCell className="text-muted-foreground">{g.termination}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">{g.plies}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {g.plies}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                      aria-label={`Replay ${short(g.white)} versus ${short(g.black)}, ${g.result}`}
+                      onClick={() => setOpen(g)}
+                    >
+                      <Eye className="size-3.5" /> Replay
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -161,56 +208,35 @@ export function TournamentDetail() {
       </Card>
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-4 sm:p-8"
-          onClick={() => setOpen(null)}
+        <dialog
+          ref={dialogRef}
+          aria-labelledby="game-replay-title"
+          className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/65 backdrop:backdrop-blur-sm"
+          onCancel={(event) => {
+            event.preventDefault()
+            closeReplay()
+          }}
         >
           <div
-            className="w-full max-w-4xl rounded-lg border bg-background p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="flex min-h-full items-start justify-center overflow-y-auto bg-black/65 p-4 backdrop-blur-sm animate-in fade-in-0 sm:p-8"
+            onClick={closeReplay}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                {short(open.white)} <span className="text-muted-foreground">vs</span> {short(open.black)}
-              </h3>
-              <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setOpen(null)}>
-                Close ✕
-              </button>
-            </div>
-            <GameReplay game={open} />
-            <div className="mt-6 border-t pt-5">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                <MessageSquareText className="size-4" /> Model transcript
+            <div
+              className="w-full max-w-[min(1560px,calc(100vw-2rem))] rounded-2xl border bg-background p-4 shadow-2xl sm:p-6"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 id="game-replay-title" className="text-lg font-semibold">
+                  {short(open.white)} <span className="text-muted-foreground">vs</span> {short(open.black)}
+                </h3>
+                <button autoFocus aria-label="Close game replay" className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground" onClick={closeReplay}>
+                  Close ✕
+                </button>
               </div>
-              <div className="space-y-2">
-                {open.moves.flatMap((move) => (move.attempts ?? []).map((attempt, attemptIndex) => (
-                  <details key={`${move.ply}-${attemptIndex}`} className="group rounded-lg border bg-muted/20">
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-3 text-sm">
-                      <span className="font-medium">Ply {move.ply} · {move.color} · attempt {attemptIndex + 1}</span>
-                      <span className={attempt.legal ? "text-emerald-600" : "text-rose-600"}>
-                        {attempt.legal ? attempt.parsed_move ?? "legal" : "illegal"}
-                      </span>
-                    </summary>
-                    <div className="space-y-3 border-t p-3 text-xs">
-                      {attempt.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-3">{attempt.system_prompt}</pre></div>}
-                      <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Turn prompt</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.prompt ?? "—"}</pre></div>
-                      {attempt.explanation && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-background p-3 leading-relaxed">{attempt.explanation}</p></div>}
-                      <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded bg-background p-3">{attempt.raw_response}</pre></div>
-                      <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
-                        {attempt.response_format_valid != null && <Badge variant={attempt.response_format_valid ? "secondary" : "destructive"}>{attempt.response_format_valid ? "valid JSON" : "format recovered"}</Badge>}
-                        <span>{attempt.prompt_tokens} prompt</span><span>{attempt.completion_tokens} completion</span><span>{attempt.reasoning_tokens} reasoning tokens</span><span>${attempt.cost_usd.toFixed(5)}</span>
-                      </div>
-                      {attempt.response_format_error && <p className="text-[11px] text-destructive">{attempt.response_format_error}</p>}
-                    </div>
-                  </details>
-                )))}
-                {!open.moves.some((move) => (move.attempts?.length ?? 0) > 0) && (
-                  <p className="text-sm text-muted-foreground">This legacy game predates per-turn transcript capture.</p>
-                )}
-              </div>
+              <GameReplay game={open} condition={t.condition} variants={t.model_variants} />
             </div>
           </div>
-        </div>
+        </dialog>
       )}
     </div>
   )

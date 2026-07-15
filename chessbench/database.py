@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator
+from typing import TYPE_CHECKING, Iterator
 
 from .conditions import Condition
 from .report import PuzzleReport
@@ -24,7 +24,11 @@ from .tasks.puzzles import Puzzle, PuzzleResult
 from .variants import ModelVariant
 
 
-SCHEMA_VERSION = 2
+if TYPE_CHECKING:
+    from .tasks.games import GameRecord
+
+
+SCHEMA_VERSION = 3
 DEFAULT_DB = Path("runs/chessbench.db")
 
 
@@ -123,6 +127,28 @@ CREATE TABLE IF NOT EXISTS puzzle_attempt (
 );
 CREATE INDEX IF NOT EXISTS idx_puzzle_cross_run ON puzzle_attempt(puzzle_id, run_id);
 
+CREATE TABLE IF NOT EXISTS benchmark_item (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL,
+  item_id TEXT NOT NULL,
+  points REAL NOT NULL,
+  max_points REAL NOT NULL DEFAULT 1,
+  solved INTEGER NOT NULL,
+  first_move_legal INTEGER,
+  response_format_valid INTEGER,
+  failure_reason TEXT,
+  payload_json TEXT NOT NULL,
+  latency_ms INTEGER,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  completion_tokens INTEGER NOT NULL DEFAULT 0,
+  reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (run_id, item_id),
+  UNIQUE (run_id, sequence)
+);
+CREATE INDEX IF NOT EXISTS idx_benchmark_item_cross_run ON benchmark_item(item_id, run_id);
+
 CREATE TABLE IF NOT EXISTS game (
   game_id TEXT PRIMARY KEY,
   run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
@@ -173,6 +199,30 @@ CREATE TABLE IF NOT EXISTS sync_delivery (
 );
 """
 
+_GENERIC_ITEM_SCHEMA = """
+CREATE TABLE IF NOT EXISTS benchmark_item (
+  run_id TEXT NOT NULL REFERENCES benchmark_run(run_id) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL,
+  item_id TEXT NOT NULL,
+  points REAL NOT NULL,
+  max_points REAL NOT NULL DEFAULT 1,
+  solved INTEGER NOT NULL,
+  first_move_legal INTEGER,
+  response_format_valid INTEGER,
+  failure_reason TEXT,
+  payload_json TEXT NOT NULL,
+  latency_ms INTEGER,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  completion_tokens INTEGER NOT NULL DEFAULT 0,
+  reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (run_id, item_id),
+  UNIQUE (run_id, sequence)
+);
+CREATE INDEX IF NOT EXISTS idx_benchmark_item_cross_run ON benchmark_item(item_id, run_id);
+"""
+
 
 class BenchmarkStore:
     def __init__(self, path: str | Path = DEFAULT_DB) -> None:
@@ -197,12 +247,17 @@ class BenchmarkStore:
     def _migrate(self) -> None:
         version = int(self._db.execute("PRAGMA user_version").fetchone()[0])
         if version > SCHEMA_VERSION:
-            raise RuntimeError(f"database schema {version} is newer than supported {SCHEMA_VERSION}")
+            raise RuntimeError(
+                f"database schema {version} is newer than supported {SCHEMA_VERSION}"
+            )
         if version == 0:
             self._db.executescript(_SCHEMA)
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-        elif version == 1:
-            self._db.executescript(_SYNC_SCHEMA)
+        else:
+            if version == 1:
+                self._db.executescript(_SYNC_SCHEMA)
+            if version < 3:
+                self._db.executescript(_GENERIC_ITEM_SCHEMA)
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     @contextmanager
@@ -251,8 +306,15 @@ class BenchmarkStore:
                            WHERE run_id=?""",
                         (now, now, row["run_id"]),
                     )
-                    self._event(row["run_id"], "resumed", f"at item {row['completed_items']}", now)
-                return RunHandle(row["run_id"], row["status"], row["completed_items"], resumed)
+                    self._event(
+                        row["run_id"],
+                        "resumed",
+                        f"at item {row['completed_items']}",
+                        now,
+                    )
+                return RunHandle(
+                    row["run_id"], row["status"], row["completed_items"], resumed
+                )
 
             run_id = uuid.uuid4().hex
             self._db.execute(
@@ -281,7 +343,9 @@ class BenchmarkStore:
             self._event(run_id, "started", None, now)
             return RunHandle(run_id, "running", 0, False)
 
-    def _event(self, run_id: str, kind: str, detail: str | None, now: str | None = None) -> None:
+    def _event(
+        self, run_id: str, kind: str, detail: str | None, now: str | None = None
+    ) -> None:
         self._db.execute(
             "INSERT INTO run_event(run_id, kind, detail, created_at) VALUES (?, ?, ?, ?)",
             (run_id, kind, detail, now or _now()),
@@ -289,9 +353,13 @@ class BenchmarkStore:
 
     def load_puzzle_results(self, run_id: str) -> dict[str, PuzzleResult]:
         rows = self._db.execute(
-            "SELECT puzzle_id, result_json FROM puzzle_attempt WHERE run_id=? ORDER BY sequence", (run_id,)
+            "SELECT puzzle_id, result_json FROM puzzle_attempt WHERE run_id=? ORDER BY sequence",
+            (run_id,),
         ).fetchall()
-        return {row["puzzle_id"]: PuzzleResult(**json.loads(row["result_json"])) for row in rows}
+        return {
+            row["puzzle_id"]: PuzzleResult(**json.loads(row["result_json"]))
+            for row in rows
+        }
 
     def save_puzzle_result(
         self,
@@ -335,12 +403,224 @@ class BenchmarkStore:
                          cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
                          completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
                          updated_at=? WHERE run_id=?""",
-                    (cost_usd, prompt_tokens, completion_tokens, reasoning_tokens, now, run_id),
+                    (
+                        cost_usd,
+                        prompt_tokens,
+                        completion_tokens,
+                        reasoning_tokens,
+                        now,
+                        run_id,
+                    ),
                 )
                 self._event(run_id, "item_completed", puzzle.id, now)
             return inserted
 
-    def finalize_puzzle_run(self, run_id: str, report: PuzzleReport, *, cost_usd: float | None = None) -> None:
+    def load_benchmark_items(self, run_id: str) -> dict[str, dict[str, object]]:
+        rows = self._db.execute(
+            "SELECT item_id, payload_json FROM benchmark_item WHERE run_id=? ORDER BY sequence",
+            (run_id,),
+        ).fetchall()
+        return {str(row["item_id"]): json.loads(row["payload_json"]) for row in rows}
+
+    def save_benchmark_item(
+        self,
+        run_id: str,
+        sequence: int,
+        item_id: str,
+        payload: dict[str, object],
+        *,
+        points: float,
+        max_points: float = 1.0,
+        solved: bool,
+        first_move_legal: bool | None = None,
+        response_format_valid: bool | None = None,
+        failure_reason: str | None = None,
+        latency_ms: int | None = None,
+        cost_usd: float = 0.0,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        reasoning_tokens: int = 0,
+    ) -> bool:
+        """Commit one non-tactical benchmark item and its complete audit payload."""
+        now = _now()
+        with self._transaction():
+            cursor = self._db.execute(
+                """INSERT OR IGNORE INTO benchmark_item
+                   (run_id, sequence, item_id, points, max_points, solved, first_move_legal,
+                    response_format_valid, failure_reason, payload_json, latency_ms, cost_usd,
+                    prompt_tokens, completion_tokens, reasoning_tokens, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    run_id,
+                    sequence,
+                    item_id,
+                    points,
+                    max_points,
+                    int(solved),
+                    None if first_move_legal is None else int(first_move_legal),
+                    None
+                    if response_format_valid is None
+                    else int(response_format_valid),
+                    failure_reason,
+                    _canonical(payload),
+                    latency_ms,
+                    cost_usd,
+                    prompt_tokens,
+                    completion_tokens,
+                    reasoning_tokens,
+                    now,
+                ),
+            )
+            inserted = cursor.rowcount == 1
+            if inserted:
+                self._db.execute(
+                    """UPDATE benchmark_run SET
+                         completed_items=completed_items+1,
+                         cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
+                         completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                         updated_at=? WHERE run_id=?""",
+                    (
+                        cost_usd,
+                        prompt_tokens,
+                        completion_tokens,
+                        reasoning_tokens,
+                        now,
+                        run_id,
+                    ),
+                )
+                self._event(run_id, "item_completed", item_id, now)
+            return inserted
+
+    def save_game_result(
+        self, run_id: str, sequence: int, record: "GameRecord"
+    ) -> bool:
+        """Commit a completed game and both players' separate turn transcripts."""
+        game_id = f"{run_id}:game:{sequence}"
+        pairing_key = f"game:{sequence}"
+        now = _now()
+        prompt_tokens = sum(
+            attempt.prompt_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        completion_tokens = sum(
+            attempt.completion_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        reasoning_tokens = sum(
+            attempt.reasoning_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        cost_usd = sum(
+            attempt.cost_usd for move in record.records for attempt in move.attempts
+        )
+        with self._transaction():
+            cursor = self._db.execute(
+                """INSERT OR IGNORE INTO game
+                   (game_id, run_id, pairing_key, white_variant, black_variant, opening_key,
+                    start_fen, status, result, termination, pgn, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?)""",
+                (
+                    game_id,
+                    run_id,
+                    pairing_key,
+                    record.white,
+                    record.black,
+                    "standard" if record.start_fen is None else record.start_fen,
+                    record.start_fen,
+                    record.result,
+                    record.termination,
+                    record.pgn,
+                    now,
+                    now,
+                ),
+            )
+            inserted = cursor.rowcount == 1
+            if inserted:
+                for move_sequence, move in enumerate(record.records):
+                    self._db.execute(
+                        """INSERT INTO game_move (game_id, ply, payload_json, created_at)
+                           VALUES (?, ?, ?, ?)""",
+                        (game_id, move_sequence, _canonical(asdict(move)), now),
+                    )
+                self._db.execute(
+                    """UPDATE benchmark_run SET completed_items=completed_items+1,
+                       cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
+                       completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                       updated_at=? WHERE run_id=?""",
+                    (
+                        cost_usd,
+                        prompt_tokens,
+                        completion_tokens,
+                        reasoning_tokens,
+                        now,
+                        run_id,
+                    ),
+                )
+                self._event(run_id, "game_completed", pairing_key, now)
+            return inserted
+
+    def load_game_results(self, run_id: str) -> dict[int, "GameRecord"]:
+        from .tasks.games import GameRecord, MoveAttempt, MoveRecord
+
+        games = self._db.execute(
+            "SELECT * FROM game WHERE run_id=? AND status='completed'",
+            (run_id,),
+        ).fetchall()
+        results: dict[int, GameRecord] = {}
+        for game in games:
+            move_rows = self._db.execute(
+                "SELECT payload_json FROM game_move WHERE game_id=? ORDER BY ply",
+                (game["game_id"],),
+            ).fetchall()
+            records: list[MoveRecord] = []
+            for move_row in move_rows:
+                payload = json.loads(move_row["payload_json"])
+                payload["attempts"] = [
+                    MoveAttempt(**attempt) for attempt in payload.get("attempts", [])
+                ]
+                records.append(MoveRecord(**payload))
+            sequence = int(str(game["pairing_key"]).split(":", 1)[1])
+            results[sequence] = GameRecord(
+                white=game["white_variant"],
+                black=game["black_variant"],
+                result=game["result"],
+                termination=game["termination"],
+                plies=sum(record.san is not None for record in records),
+                moves_san=[record.san for record in records if record.san is not None],
+                records=records,
+                pgn=game["pgn"],
+                start_fen=game["start_fen"],
+            )
+        return results
+
+    def finalize_run(self, run_id: str, summary: dict[str, object]) -> None:
+        """Finalize any generic/composed/game run after every item is durable."""
+        now = _now()
+        with self._transaction():
+            row = self._db.execute(
+                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            if row["completed_items"] != row["total_items"]:
+                raise RuntimeError(
+                    f"cannot complete run {run_id}: "
+                    f"{row['completed_items']}/{row['total_items']} items persisted"
+                )
+            self._db.execute(
+                """UPDATE benchmark_run SET status='completed', summary_json=?,
+                   completed_at=?, updated_at=?, error=NULL WHERE run_id=?""",
+                (_canonical(summary), now, now, run_id),
+            )
+            self._event(run_id, "completed", None, now)
+
+    def finalize_puzzle_run(
+        self, run_id: str, report: PuzzleReport, *, cost_usd: float | None = None
+    ) -> None:
         summary = {
             "n": report.n,
             "solved": report.solved,
@@ -354,7 +634,8 @@ class BenchmarkStore:
         now = _now()
         with self._transaction():
             row = self._db.execute(
-                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?", (run_id,)
+                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?",
+                (run_id,),
             ).fetchone()
             if row is None:
                 raise KeyError(run_id)
@@ -386,7 +667,9 @@ class BenchmarkStore:
             self._event(run_id, "interrupted", error[:500], now)
 
     def run_row(self, run_id: str) -> dict[str, object]:
-        row = self._db.execute("SELECT * FROM benchmark_run WHERE run_id=?", (run_id,)).fetchone()
+        row = self._db.execute(
+            "SELECT * FROM benchmark_run WHERE run_id=?", (run_id,)
+        ).fetchone()
         if row is None:
             raise KeyError(run_id)
         return dict(row)
@@ -410,7 +693,7 @@ class BenchmarkStore:
             raise KeyError(run_id)
         return {
             "run_id": row["run_id"],
-            "track": row["track"],
+            "track": "esoteric" if row["track"] == "composed" else row["track"],
             "model_variant": json.loads(row["variant_json"]),
             "condition": json.loads(row["condition_json"]),
             "suite": {
@@ -418,7 +701,9 @@ class BenchmarkStore:
                 "version": row["suite_version"],
                 "content_hash": row["suite_hash"],
                 "visibility": row["suite_visibility"],
-            } if row["suite_name"] else None,
+            }
+            if row["suite_name"]
+            else None,
             "total_items": row["total_items"],
             "created_at": row["created_at"],
         }
@@ -443,23 +728,56 @@ class BenchmarkStore:
                 **_position_fields(puzzle),
                 "categories": categorize_puzzle(result["themes"], result["rating"]),
             }
-            docs.append({
-                "run_id": run_id,
-                "item_id": row["puzzle_id"],
-                "sequence": row["sequence"],
-                "points": result["score"],
-                "max_points": 1,
-                "solved": result["solved"],
-                "first_move_legal": result["first_move_legal"],
-                "response_format_valid": result.get("answer_response_format_valid"),
-                "failure_reason": result["failure_reason"],
-                "latency_ms": row["latency_ms"],
-                "cost_usd": row["cost_usd"],
-                "prompt_tokens": row["prompt_tokens"],
-                "completion_tokens": row["completion_tokens"],
-                "reasoning_tokens": row["reasoning_tokens"],
-                "payload": payload,
-            })
+            docs.append(
+                {
+                    "run_id": run_id,
+                    "item_id": row["puzzle_id"],
+                    "sequence": row["sequence"],
+                    "points": result["score"],
+                    "max_points": 1,
+                    "solved": result["solved"],
+                    "first_move_legal": result["first_move_legal"],
+                    "response_format_valid": result.get("answer_response_format_valid"),
+                    "failure_reason": result["failure_reason"],
+                    "latency_ms": row["latency_ms"],
+                    "cost_usd": row["cost_usd"],
+                    "prompt_tokens": row["prompt_tokens"],
+                    "completion_tokens": row["completion_tokens"],
+                    "reasoning_tokens": row["reasoning_tokens"],
+                    "payload": payload,
+                }
+            )
+        generic_rows = self._db.execute(
+            """SELECT a.* FROM benchmark_item a
+               LEFT JOIN sync_delivery d ON d.run_id=a.run_id AND d.item_id=a.item_id
+               WHERE a.run_id=? AND d.item_id IS NULL ORDER BY a.sequence""",
+            (run_id,),
+        ).fetchall()
+        for row in generic_rows:
+            docs.append(
+                {
+                    "run_id": run_id,
+                    "item_id": row["item_id"],
+                    "sequence": row["sequence"],
+                    "points": row["points"],
+                    "max_points": row["max_points"],
+                    "solved": bool(row["solved"]),
+                    "first_move_legal": None
+                    if row["first_move_legal"] is None
+                    else bool(row["first_move_legal"]),
+                    "response_format_valid": None
+                    if row["response_format_valid"] is None
+                    else bool(row["response_format_valid"]),
+                    "failure_reason": row["failure_reason"],
+                    "latency_ms": row["latency_ms"],
+                    "cost_usd": row["cost_usd"],
+                    "prompt_tokens": row["prompt_tokens"],
+                    "completion_tokens": row["completion_tokens"],
+                    "reasoning_tokens": row["reasoning_tokens"],
+                    "payload": json.loads(row["payload_json"]),
+                }
+            )
+        docs.sort(key=lambda item: int(str(item["sequence"])))
         return docs
 
     def mark_item_synced(self, run_id: str, item_id: str) -> None:
@@ -475,5 +793,11 @@ class BenchmarkStore:
         if row is None:
             raise KeyError(run_id)
         status = row["status"]
-        remote_status = "completed" if status == "completed" else "failed" if status == "failed" else "partial"
+        remote_status = (
+            "completed"
+            if status == "completed"
+            else "failed"
+            if status == "failed"
+            else "partial"
+        )
         return {"run_id": run_id, "status": remote_status, "error": row["error"]}

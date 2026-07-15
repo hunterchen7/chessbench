@@ -25,6 +25,14 @@
    "enabled": true
   },
   {
+   "label": "claude-haiku-4.5",
+   "provider": "openrouter",
+   "model_id": "anthropic/claude-haiku-4.5",
+   "family": "anthropic",
+   "notes": "Anthropic Claude Haiku 4.5 — low-cost reasoning model",
+   "enabled": true
+  },
+  {
    "label": "gemini-3.5-flash",
    "provider": "openrouter",
    "model_id": "google/gemini-3.5-flash",

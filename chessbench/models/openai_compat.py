@@ -17,6 +17,7 @@ import urllib.error
 import urllib.request
 from typing import TypedDict, cast
 
+from ..response_protocols import ResponseFormat
 from ..types import Message
 
 # HTTP statuses worth retrying (rate limit + transient server errors).
@@ -62,6 +63,7 @@ class _OpenAICompatModel:
         max_retries: int = 4,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
+        require_structured_parameters: bool = False,
     ) -> None:
         self.name = model
         self._model = model
@@ -72,9 +74,12 @@ class _OpenAICompatModel:
         self._timeout = timeout
         self._max_retries = max_retries
         if reasoning_effort is not None and reasoning_max_tokens is not None:
-            raise ValueError("reasoning_effort and reasoning_max_tokens are mutually exclusive")
+            raise ValueError(
+                "reasoning_effort and reasoning_max_tokens are mutually exclusive"
+            )
         self._reasoning_effort = reasoning_effort
         self._reasoning_max_tokens = reasoning_max_tokens
+        self._require_structured_parameters = require_structured_parameters
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
@@ -82,7 +87,9 @@ class _OpenAICompatModel:
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST with retry+backoff on transient failures (network resets,
         timeouts, 429/5xx). Non-retryable HTTP errors raise immediately."""
-        req = urllib.request.Request(f"{self._base_url}/chat/completions", data=data, headers=headers)
+        req = urllib.request.Request(
+            f"{self._base_url}/chat/completions", data=data, headers=headers
+        )
         last: Exception | None = None
         for attempt in range(self._max_retries):
             try:
@@ -94,12 +101,23 @@ class _OpenAICompatModel:
                     raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
                 last = e
             except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
-                last = e  # ConnectionResetError, timeouts, DNS, etc. are OSError/URLError
+                last = (
+                    e  # ConnectionResetError, timeouts, DNS, etc. are OSError/URLError
+                )
             if attempt < self._max_retries - 1:
-                time.sleep(min(8.0, 0.7 * (2 ** attempt)))  # 0.7, 1.4, 2.8, ...
-        raise ModelError(f"{self._model}: transient request failure after {self._max_retries} tries: {last}")
+                time.sleep(min(8.0, 0.7 * (2**attempt)))  # 0.7, 1.4, 2.8, ...
+        raise ModelError(
+            f"{self._model}: transient request failure after {self._max_retries} tries: {last}"
+        )
 
-    def _complete(self, messages: list[object], temperature: float, max_tokens: int) -> str:
+    def _complete(
+        self,
+        messages: list[object],
+        temperature: float,
+        max_tokens: int,
+        *,
+        response_format: ResponseFormat | None = None,
+    ) -> str:
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {
@@ -114,11 +132,24 @@ class _OpenAICompatModel:
         if self._reasoning_effort is not None:
             payload["reasoning"] = {"effort": self._reasoning_effort, "exclude": True}
         elif self._reasoning_max_tokens is not None:
-            payload["reasoning"] = {"max_tokens": self._reasoning_max_tokens, "exclude": True}
+            payload["reasoning"] = {
+                "max_tokens": self._reasoning_max_tokens,
+                "exclude": True,
+            }
             payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
+        if response_format is not None:
+            payload["response_format"] = response_format
+            if self._require_structured_parameters:
+                # OpenRouter otherwise permits a provider to silently ignore
+                # unsupported parameters. Benchmark protocol constraints fail
+                # closed instead of mixing constrained and unconstrained cells.
+                payload["provider"] = {"require_parameters": True}
         data = json.dumps(payload).encode("utf-8")
-        headers = {"Authorization": f"Bearer {self._api_key}", "Content-Type": "application/json",
-                   **self._extra_headers}
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            **self._extra_headers,
+        }
         body = self._post(data, headers)
         parsed = cast(_Response, json.loads(body))
         if "error" in parsed:
@@ -138,28 +169,104 @@ class _OpenAICompatModel:
         content = message.get("content")
         return content if isinstance(content, str) else ""
 
-    def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+    def chat(
+        self,
+        messages: list[Message],
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+    ) -> str:
         return self._complete(list(messages), temperature, max_tokens)
 
-    def chat_image(self, text: str, png: bytes, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+    def chat_structured(
+        self,
+        messages: list[Message],
+        *,
+        response_format: ResponseFormat,
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+    ) -> str:
+        return self._complete(
+            list(messages),
+            temperature,
+            max_tokens,
+            response_format=response_format,
+        )
+
+    def chat_image(
+        self, text: str, png: bytes, *, temperature: float = 0.0, max_tokens: int = 2048
+    ) -> str:
         """Vision call: a text prompt plus a board PNG (OpenAI image_url format)."""
         import base64
 
         data_uri = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
-        content = [{"type": "text", "text": text}, {"type": "image_url", "image_url": {"url": data_uri}}]
-        return self._complete([{"role": "user", "content": content}], temperature, max_tokens)
+        content = [
+            {"type": "text", "text": text},
+            {"type": "image_url", "image_url": {"url": data_uri}},
+        ]
+        return self._complete(
+            [{"role": "user", "content": content}], temperature, max_tokens
+        )
 
-    def generate(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+    def chat_image_structured(
+        self,
+        text: str,
+        png: bytes,
+        *,
+        response_format: ResponseFormat,
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+    ) -> str:
+        import base64
+
+        data_uri = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+        content = [
+            {"type": "text", "text": text},
+            {"type": "image_url", "image_url": {"url": data_uri}},
+        ]
+        return self._complete(
+            [{"role": "user", "content": content}],
+            temperature,
+            max_tokens,
+            response_format=response_format,
+        )
+
+    def generate(
+        self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048
+    ) -> str:
         msg: Message = {"role": "user", "content": prompt}
         return self.chat([msg], temperature=temperature, max_tokens=max_tokens)
+
+    def generate_structured(
+        self,
+        prompt: str,
+        *,
+        response_format: ResponseFormat,
+        temperature: float = 0.0,
+        max_tokens: int = 2048,
+    ) -> str:
+        msg: Message = {"role": "user", "content": prompt}
+        return self.chat_structured(
+            [msg],
+            response_format=response_format,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
 
 class OpenRouterModel(_OpenAICompatModel):
     """Any model routed through https://openrouter.ai (e.g. ``openai/gpt-4o-mini``,
     ``google/gemini-2.0-flash-001``). Reports USD cost per call."""
 
-    def __init__(self, model: str, *, api_key: str | None = None, timeout: float = 120.0,
-                 reasoning_effort: str | None = None, reasoning_max_tokens: int | None = None) -> None:
+    def __init__(
+        self,
+        model: str,
+        *,
+        api_key: str | None = None,
+        timeout: float = 120.0,
+        reasoning_effort: str | None = None,
+        reasoning_max_tokens: int | None = None,
+    ) -> None:
         super().__init__(
             model,
             base_url="https://openrouter.ai/api/v1",
@@ -172,13 +279,24 @@ class OpenRouterModel(_OpenAICompatModel):
             timeout=timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
+            require_structured_parameters=True,
         )
 
 
 class OpenAIModel(_OpenAICompatModel):
     """A model on OpenAI's own API (e.g. ``gpt-4.1``, ``gpt-4o-mini``)."""
 
-    def __init__(self, model: str = "gpt-4.1", *, api_key: str | None = None, timeout: float = 120.0) -> None:
+    def __init__(
+        self,
+        model: str = "gpt-4.1",
+        *,
+        api_key: str | None = None,
+        timeout: float = 120.0,
+    ) -> None:
         super().__init__(
-            model, base_url="https://api.openai.com/v1", api_key=api_key, env_var="OPENAI_API_KEY", timeout=timeout
+            model,
+            base_url="https://api.openai.com/v1",
+            api_key=api_key,
+            env_var="OPENAI_API_KEY",
+            timeout=timeout,
         )

@@ -155,28 +155,33 @@ export interface GameMove {
   color: "white" | "black"
   san: string | null
   uci: string | null
-  first_attempt_legal: boolean
-  illegal_attempts: number
+  /** Optional on legacy exports; the dashboard derives it from attempts when absent. */
+  first_attempt_legal?: boolean
+  /** Optional on legacy exports; the dashboard derives it from attempts when absent. */
+  illegal_attempts?: number
   eval_cp: number | null
   forfeited: boolean
-  attempts?: Array<{
-    system_prompt?: string | null
-    prompt: string | null
-    raw_response: string
-    parsed_move: string | null
-    legal: boolean
-    explanation?: string | null
-    response_format_valid?: boolean | null
-    response_format_error?: string | null
-    prompt_tokens: number
-    completion_tokens: number
-    reasoning_tokens: number
-    cost_usd: number
-  }>
+  attempts?: GameMoveAttempt[]
   prompt_tokens?: number
   completion_tokens?: number
   reasoning_tokens?: number
   cost_usd?: number
+}
+
+export interface GameMoveAttempt {
+  system_prompt?: string | null
+  prompt: string | null
+  raw_response: string
+  parsed_move: string | null
+  legal: boolean
+  rationale?: string | null
+  explanation?: string | null
+  response_format_valid?: boolean | null
+  response_format_error?: string | null
+  prompt_tokens: number
+  completion_tokens: number
+  reasoning_tokens: number
+  cost_usd: number
 }
 
 export interface TournamentGame {
@@ -211,6 +216,8 @@ export interface Tournament {
   games: TournamentGame[]
   crosstable: { a: string; b: string; w: number; d: number; l: number }[]
   live_game?: LiveGame | null
+  /** Newer exports can preserve the complete participant identity directly. */
+  model_variants?: ModelVariant[] | Record<string, ModelVariant>
 }
 
 export interface TournamentIndexEntry {

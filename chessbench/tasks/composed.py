@@ -24,9 +24,21 @@ from typing import Protocol
 
 import chess
 
-from ..conditions import Condition, Notation, render_position
+from ..conditions import (
+    COACH_ADVICE,
+    Condition,
+    Legality,
+    Notation,
+    PromptStyle,
+    _legal_line,
+    _json_line_instruction,
+    _json_move_instruction,
+    render_position,
+)
 from ..core import board as board_utils
 from ..models import Model
+from ..models.base import generate_with_response_format
+from ..response_protocols import ResponseShape, response_format_for
 from ..solvers import proofgame, series, stipulations
 from ..types import AnswerShape, StipulationKind, StudyGoal
 
@@ -58,9 +70,11 @@ class ComposedProblem:
     id: str
     fen: str
     kind: StipulationKind
-    n: int                              # #n / s#n / h#n length, or ply count for proofgame
-    solution: list[str] = field(default_factory=list)  # a known solution (UCI): [key] or full line
-    goal: StudyGoal | None = None       # study only
+    n: int  # #n / s#n / h#n length, or ply count for proofgame
+    solution: list[str] = field(
+        default_factory=list
+    )  # a known solution (UCI): [key] or full line
+    goal: StudyGoal | None = None  # study only
     themes: list[str] = field(default_factory=list)
     source: str = "chessbench"
     provenance: dict[str, object] = field(default_factory=dict)
@@ -84,6 +98,10 @@ class ComposedResult:
     first_move_legal: bool
     detail: str
     answer: str
+    answer_rationale: str | None = None
+    response_format_valid: bool | None = None
+    response_format_error: str | None = None
+    turns: list[dict[str, object]] = field(default_factory=list)
 
 
 class ComposedSolver(Protocol):
@@ -116,32 +134,42 @@ _STIPULATION_HELP: dict[StipulationKind, str] = {
 
 def build_composed_prompt(problem: ComposedProblem, condition: Condition) -> str:
     board = chess.Board(problem.fen)
-    notation = "SAN (e.g. Nf3, Qxe7, O-O)" if condition.notation == Notation.SAN else "UCI (e.g. g1f3, e7e5)"
-    help_text = _STIPULATION_HELP[problem.kind].format(n=problem.n, plies=2 * problem.n, goal=problem.goal or "")
+    notation = (
+        "SAN (e.g. Nf3, Qxe7, O-O)"
+        if condition.notation == Notation.SAN
+        else "UCI (e.g. g1f3, e7e5)"
+    )
+    help_text = _STIPULATION_HELP[problem.kind].format(
+        n=problem.n, plies=2 * problem.n, goal=problem.goal or ""
+    )
 
-    lines = [f"You are solving a composed chess problem. Stipulation: {problem.label}.", "", help_text, ""]
+    lines = [
+        f"You are solving a composed chess problem. Stipulation: {problem.label}.",
+        "",
+        help_text,
+        "",
+    ]
     if problem.kind == "proofgame":
         lines.append("Target position to reach:")
     lines.append(render_position(board, condition))
+    move_board = chess.Board() if problem.kind == "proofgame" else board
+    if condition.legality == Legality.LEGAL_LIST:
+        lines.extend(["", _legal_line(move_board, condition)])
+    if condition.prompt_style == PromptStyle.COACHED:
+        lines.extend(["", COACH_ADVICE])
     lines.append("")
 
     shape = problem.answer_shape
     if condition.explain and shape in ("key", "play"):
-        lines.append(
-            "Return exactly one JSON object with no Markdown or additional text: "
-            '{"move":"e2e4","rationale":"A concise explanation of the idea."} '
-            "The move must be legal UCI, and the rationale should preferably stay under 150 words."
-        )
+        lines.append(_json_move_instruction())
     elif condition.explain and shape == "line":
-        lines.append(
-            "Return exactly one JSON object with no Markdown or additional text: "
-            '{"moves":["e2e4","e7e5"],"rationale":"A concise explanation of the sequence."} '
-            "Give the complete line in legal UCI order; the rationale should preferably stay under 150 words."
-        )
+        lines.append(_json_line_instruction())
     elif shape == "key":
         lines.append(f"Reply with ONLY the key (first) move in {notation}.")
     elif shape == "line":
-        lines.append(f"Reply with the full solution as a sequence of moves in {notation}, in order.")
+        lines.append(
+            f"Reply with the full solution as a sequence of moves in {notation}, in order."
+        )
     else:  # play
         lines.append(f"Reply with your move in {notation}.")
     return "\n".join(lines)
@@ -174,37 +202,94 @@ class RandomComposedSolver:
 
 
 class LLMComposedSolver:
-    """Prompts a Model once and returns its raw answer text."""
+    """Prompts a Model once and retains the complete visible conversation."""
 
     def __init__(self, model: Model) -> None:
         self._model = model
         self.name = model.name
+        self.last_turn: dict[str, object] | None = None
 
     def solve(self, problem: ComposedProblem, condition: Condition) -> str:
         prompt = build_composed_prompt(problem, condition)
-        return self._model.generate(prompt, temperature=condition.temperature)
+        response_shape: ResponseShape = (
+            "line" if problem.answer_shape == "line" else "move"
+        )
+        response_format = response_format_for(
+            condition.response_protocol, response_shape, explain=condition.explain
+        )
+        raw, applied_format = generate_with_response_format(
+            self._model,
+            prompt,
+            response_format=response_format,
+            temperature=condition.temperature,
+            max_tokens=condition.max_output_tokens,
+        )
+        usage = getattr(self._model, "last_usage", None)
+        self.last_turn = {
+            "system_prompt": None,
+            "prompt": prompt,
+            "raw_response": raw,
+            "response_format": applied_format,
+            "usage": dict(usage) if isinstance(usage, dict) else None,
+            "cost_usd": float(getattr(self._model, "last_cost", 0.0)),
+        }
+        return raw
 
 
 # --- Grading (key / line shapes) ---
 
 
-def grade_composed(solver: ComposedSolver, problem: ComposedProblem, condition: Condition) -> ComposedResult:
+def grade_composed(
+    solver: ComposedSolver, problem: ComposedProblem, condition: Condition
+) -> ComposedResult:
     """Grade a one-shot (key or line) composed problem via the solver in the loop."""
     board = chess.Board(problem.fen)
     raw = solver.solve(problem, condition)
 
     if problem.answer_shape == "key":
-        return _grade_key(problem, board, raw)
-    if problem.answer_shape == "line":
-        return _grade_line(problem, board, raw)
-    raise ValueError(f"{problem.kind} is graded interactively; use solvers.grade_study, not grade_composed.")
+        result = _grade_key(problem, board, raw)
+        parsed_move = board_utils.parse_model_move_response(board, raw)
+        rationale = parsed_move.rationale
+        format_valid = parsed_move.format_valid
+        format_error = parsed_move.format_error
+    elif problem.answer_shape == "line":
+        result = _grade_line(problem, board, raw)
+        parse_board = chess.Board() if problem.kind == "proofgame" else board
+        parsed_line = board_utils.parse_model_line_response(parse_board, raw)
+        rationale = parsed_line.rationale
+        format_valid = parsed_line.format_valid
+        format_error = parsed_line.format_error
+    else:
+        raise ValueError(
+            f"{problem.kind} is graded interactively; use solvers.grade_study, not grade_composed."
+        )
+    result.answer_rationale = rationale
+    if condition.explain:
+        result.response_format_valid = format_valid
+        result.response_format_error = format_error
+    turn = getattr(solver, "last_turn", None)
+    if isinstance(turn, dict):
+        enriched = dict(turn)
+        enriched.update(
+            {
+                "rationale": rationale,
+                "response_format_valid": format_valid,
+                "response_format_error": format_error,
+            }
+        )
+        result.turns = [enriched]
+    return result
 
 
-def _grade_key(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
+def _grade_key(
+    problem: ComposedProblem, board: chess.Board, raw: str
+) -> ComposedResult:
     move = board_utils.parse_model_move_response(board, raw).move
     first_legal = move is not None
     if move is None:
-        return ComposedResult(problem.id, problem.kind, False, 0.0, False, "no legal move parsed", raw)
+        return ComposedResult(
+            problem.id, problem.kind, False, 0.0, False, "no legal move parsed", raw
+        )
 
     if problem.kind == "directmate":
         ok = stipulations.verify_directmate(board, problem.n, move)
@@ -216,16 +301,25 @@ def _grade_key(problem: ComposedProblem, board: chess.Board, raw: str) -> Compos
         raise ValueError(problem.kind)
 
     detail = f"key {move.uci()} {'forces' if ok else 'does not force'} {problem.label}"
-    return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
+    return ComposedResult(
+        problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw
+    )
 
 
-def _grade_line(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
+def _grade_line(
+    problem: ComposedProblem, board: chess.Board, raw: str
+) -> ComposedResult:
     if problem.kind == "proofgame":
-        moves = [m.uci() for m in board_utils.parse_model_line_response(chess.Board(), raw).moves]
+        moves = [
+            m.uci()
+            for m in board_utils.parse_model_line_response(chess.Board(), raw).moves
+        ]
         ok = proofgame.verify_proofgame(problem.fen, moves, n_plies=problem.n)
         first_legal = bool(moves)
         detail = f"{len(moves)} plies {'reach' if ok else 'do not reach'} the target in {problem.n}"
-        return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
+        return ComposedResult(
+            problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw
+        )
 
     if problem.kind in ("series_directmate", "series_helpmate"):
         return _grade_series(problem, board, raw)
@@ -237,10 +331,14 @@ def _grade_line(problem: ComposedProblem, board: chess.Board, raw: str) -> Compo
     else:  # pragma: no cover - guarded by answer_shape
         raise ValueError(f"line grading for {problem.kind} is not implemented")
     detail = f"{len(line)}-ply line is {'a valid' if ok else 'not a'} {problem.label}"
-    return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
+    return ComposedResult(
+        problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw
+    )
 
 
-def _grade_series(problem: ComposedProblem, board: chess.Board, raw: str) -> ComposedResult:
+def _grade_series(
+    problem: ComposedProblem, board: chess.Board, raw: str
+) -> ComposedResult:
     """Series-movers need a bespoke parse: the opponent passes, so all the series
     moves are by the side to move (plus, for series-helpmate, one opponent mate)."""
     side = board.turn
@@ -264,8 +362,12 @@ def _grade_series(problem: ComposedProblem, board: chess.Board, raw: str) -> Com
         ok = series.verify_series_directmate(board, n, moves)
     else:
         ok = series.verify_series_helpmate(board, n, moves)
-    detail = f"{len(moves)}-move series is {'a valid' if ok else 'not a'} {problem.label}"
-    return ComposedResult(problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw)
+    detail = (
+        f"{len(moves)}-move series is {'a valid' if ok else 'not a'} {problem.label}"
+    )
+    return ComposedResult(
+        problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw
+    )
 
 
 # --- Persistence ---

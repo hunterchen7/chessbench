@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
 SCHEMA = "chessbench.run.v1"
 TOURNAMENT_SCHEMA = "chessbench.tournament.v1"
+COMPOSED_SCHEMA = "chessbench.composed_run.v1"
 
 
 def _now() -> str:
@@ -284,6 +285,60 @@ def list_tournaments(directory: str | Path) -> list[dict[str, object]]:
                 "n_players": len(standings) if isinstance(standings, list) else 0,
                 "n_games": len(games) if isinstance(games, list) else 0,
                 "winner": top,
+            }
+        )
+    return out
+
+
+def list_composed_runs(directory: str | Path) -> list[dict[str, object]]:
+    """Return the lightweight, deterministic index consumed by the esoteric UI.
+
+    Only complete composed-run documents enter the index. This deliberately
+    ignores ``index.json``, unrelated JSON documents, truncated checkpoints,
+    and files missing the fields the loader needs.
+    """
+    out: list[dict[str, object]] = []
+    for path in sorted(Path(directory).glob("*.json")):
+        try:
+            run = load_run(path)
+        except (json.JSONDecodeError, OSError):
+            continue
+        if run.get("schema") != COMPOSED_SCHEMA:
+            continue
+        model = run.get("model")
+        solver = run.get("solver")
+        summary = run.get("summary")
+        items = run.get("items")
+        if (
+            not isinstance(model, str)
+            or not model
+            or not isinstance(solver, str)
+            or not solver
+            or not isinstance(summary, dict)
+            or not isinstance(items, list)
+        ):
+            continue
+        solve_rate = summary.get("solve_rate")
+        if (
+            not isinstance(solve_rate, (int, float))
+            or isinstance(solve_rate, bool)
+            or not math.isfinite(float(solve_rate))
+            or not 0.0 <= float(solve_rate) <= 1.0
+        ):
+            continue
+        suite = run.get("suite")
+        condition = run.get("condition")
+        out.append(
+            {
+                "file": path.name,
+                "model": model,
+                "solver": solver,
+                "created": run.get("created"),
+                "suite": suite.get("name") if isinstance(suite, dict) else None,
+                "condition": condition.get("slug")
+                if isinstance(condition, dict)
+                else None,
+                "solve_rate": solve_rate,
             }
         )
     return out

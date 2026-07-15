@@ -2,23 +2,27 @@
 grader accepting correct answers and rejecting wrong ones across answer shapes."""
 
 import pathlib
+from dataclasses import replace
 
 import chess
 import pytest
 
-from chessbench.conditions import HEADLINE, Condition
+from chessbench.conditions import HEADLINE, Condition, mode_condition
 from chessbench.core.engine import EngineConfig, find_stockfish
 from chessbench.solvers import stipulations
 from chessbench.solvers.proofgame import verify_proofgame
 from chessbench.tasks.composed import (
     ComposedProblem,
     ComposedSolver,
+    LLMComposedSolver,
     OracleComposedSolver,
     grade_composed,
     load_composed,
 )
 
-FIXTURE = pathlib.Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
+FIXTURE = (
+    pathlib.Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
+)
 
 
 # --- solver unit tests on independently-discovered examples ---
@@ -45,16 +49,27 @@ def test_helpmate_2_line_and_wrong_line():
 
 
 def test_series_directmate_and_helpmate():
-    from chessbench.solvers.series import verify_series_directmate, verify_series_helpmate
+    from chessbench.solvers.series import (
+        verify_series_directmate,
+        verify_series_helpmate,
+    )
 
     dm = chess.Board("7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1")
-    assert verify_series_directmate(dm, 2, [chess.Move.from_uci(u) for u in ["a1a7", "a7a8"]])
+    assert verify_series_directmate(
+        dm, 2, [chess.Move.from_uci(u) for u in ["a1a7", "a7a8"]]
+    )
     # a check on the first (non-final) series move is illegal
-    assert not verify_series_directmate(dm, 2, [chess.Move.from_uci(u) for u in ["a1a8", "a8a7"]])
+    assert not verify_series_directmate(
+        dm, 2, [chess.Move.from_uci(u) for u in ["a1a8", "a8a7"]]
+    )
 
     hm = chess.Board("7k/p7/5KQ1/8/8/8/8/8 b - - 0 1")
-    assert verify_series_helpmate(hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "g6g7"]])
-    assert not verify_series_helpmate(hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "f6f7"]])
+    assert verify_series_helpmate(
+        hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "g6g7"]]
+    )
+    assert not verify_series_helpmate(
+        hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "f6f7"]]
+    )
 
 
 def test_proofgame_target():
@@ -101,6 +116,158 @@ def test_wrong_answers_rejected():
     for p in _oneshot_problems():
         res = grade_composed(WrongSolver(), p, HEADLINE)
         assert not res.solved, f"{p.id} wrongly accepted a non-solution"
+
+
+def test_llm_composed_turn_keeps_exact_prompt_response_usage_and_modes():
+    class AuditedModel:
+        name = "audited"
+        last_usage = {
+            "prompt_tokens": 21,
+            "completion_tokens": 8,
+            "completion_tokens_details": {"reasoning_tokens": 5},
+        }
+        last_cost = 0.004
+
+        def __init__(self):
+            self.prompt = ""
+            self.max_tokens = 0
+            self.response_format = None
+
+        def generate(self, prompt, *, temperature=0.0, max_tokens=2048):
+            self.prompt = prompt
+            self.max_tokens = max_tokens
+            return '{"move":"a1a8","rationale":"The rook mates on the back rank."}'
+
+        def generate_structured(
+            self,
+            prompt,
+            *,
+            response_format,
+            temperature=0.0,
+            max_tokens=2048,
+        ):
+            self.response_format = response_format
+            return self.generate(prompt, temperature=temperature, max_tokens=max_tokens)
+
+        def chat_structured(
+            self,
+            messages,
+            *,
+            response_format,
+            temperature=0.0,
+            max_tokens=2048,
+        ):
+            self.response_format = response_format
+            return self.generate(
+                messages[-1]["content"],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+    problem = ComposedProblem(
+        "audit",
+        "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
+        "directmate",
+        1,
+    )
+    condition = replace(mode_condition(3), max_output_tokens=77)
+    model = AuditedModel()
+    result = grade_composed(LLMComposedSolver(model), problem, condition)
+
+    assert result.solved
+    assert model.max_tokens == 77
+    assert "Legal moves [SAN (UCI)]" in model.prompt
+    assert "opponent's strongest defense" in model.prompt
+    assert result.turns == [
+        {
+            "system_prompt": None,
+            "prompt": model.prompt,
+            "raw_response": '{"move":"a1a8","rationale":"The rook mates on the back rank."}',
+            "response_format": model.response_format,
+            "usage": model.last_usage,
+            "cost_usd": 0.004,
+            "rationale": "The rook mates on the back rank.",
+            "response_format_valid": True,
+            "response_format_error": None,
+        }
+    ]
+
+
+def test_composed_reasoning_usage_is_not_double_counted():
+    from chessbench.__main__ import _turn_usage_totals
+
+    turns = [
+        {
+            "usage": {
+                "prompt_tokens": 10,
+                "completion_tokens": 7,
+                "completion_tokens_details": {"reasoning_tokens": 3},
+            },
+            "reasoning_tokens": 3,
+            "cost_usd": 0.01,
+        },
+        {
+            "usage": {"prompt_tokens": 12, "completion_tokens": 8},
+            "reasoning_tokens": 4,
+            "cost_usd": 0.02,
+        },
+    ]
+    assert _turn_usage_totals(turns) == (22, 15, 7, pytest.approx(0.03))
+
+
+def test_study_keeps_every_attempt_audit_envelope():
+    from chessbench.solvers import grade_study
+
+    class AuditedIllegalAgent:
+        name = "audited-illegal"
+
+        def choose(self, _board, ctx):
+            ctx.last_system_prompt = "study system"
+            ctx.last_prompt = "exact study prompt"
+            ctx.last_raw_response = "banana"
+            ctx.last_explanation = "private rationale"
+            ctx.last_response_format_valid = False
+            ctx.last_response_format_error = "not JSON"
+            ctx.last_usage = {
+                "prompt_tokens": 4,
+                "completion_tokens": 2,
+                "completion_tokens_details": {"reasoning_tokens": 1},
+            }
+            ctx.last_cost = 0.001
+            return "banana"
+
+    class EvalOnlyEngine:
+        def evaluate(self, _board):
+            return 0
+
+    result = grade_study(
+        AuditedIllegalAgent(),
+        chess.Board().fen(),
+        "win",
+        EvalOnlyEngine(),
+        HEADLINE,
+    )
+    assert result.outcome == "illegal"
+    assert result.turns == [
+        {
+            "system_prompt": "study system",
+            "prompt": "exact study prompt",
+            "raw_response": "banana",
+            "parsed_move": None,
+            "legal": False,
+            "rationale": "private rationale",
+            "response_format_valid": False,
+            "response_format_error": "not JSON",
+            "response_format": None,
+            "usage": {
+                "prompt_tokens": 4,
+                "completion_tokens": 2,
+                "completion_tokens_details": {"reasoning_tokens": 1},
+            },
+            "reasoning_tokens": 1,
+            "cost_usd": 0.001,
+        }
+    ]
 
 
 @pytest.mark.skipif(find_stockfish() is None, reason="stockfish not installed")

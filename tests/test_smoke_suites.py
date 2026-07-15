@@ -1,0 +1,173 @@
+import json
+import pathlib
+from collections import Counter
+from dataclasses import asdict
+
+import chess
+
+from chessbench.conditions import mode_condition
+from chessbench.suite import load_suite
+from chessbench.tasks.composed import OracleComposedSolver, grade_composed
+from scripts.build_smoke_suites import SEED, build
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+EXPECTED = {
+    "standard-smoke-v1": {
+        "path": "suites/public/standard-smoke-v1.json",
+        "parent": "suites/public/standard-lichess-v2.json",
+        "count": 12,
+        "hash": "sha256:6a13da8035f65a2c",
+    },
+    "woodpecker-smoke-v1": {
+        "path": "suites/public/woodpecker-smoke-v1.json",
+        "parent": "suites/public/woodpecker-masters-v1.json",
+        "count": 10,
+        "hash": "sha256:4a2fb14e424a258c",
+    },
+    "esoteric-smoke-v1": {
+        "path": "suites/public/esoteric-smoke-v1.json",
+        "parent": "suites/public/esoteric-seed-v1.json",
+        "count": 7,
+        "hash": "sha256:70fb0097ee520bae",
+    },
+}
+
+
+def test_smoke_suites_have_frozen_metadata_and_documented_hashes():
+    catalog = (ROOT / "docs/SUITES.md").read_text(encoding="utf-8")
+    for name, expected in EXPECTED.items():
+        suite = load_suite(ROOT / expected["path"])
+        parent = load_suite(ROOT / expected["parent"])
+        assert suite.name == name
+        assert suite.version == "1.0.0"
+        assert suite.visibility == "public"
+        assert suite.seed == SEED
+        assert len(suite.items) == expected["count"]
+        assert suite.content_hash == expected["hash"]
+        assert suite.source == f"suite:{parent.name}@{parent.content_hash}"
+        assert (
+            f"| `{expected['path']}` | {expected['count']} | `{expected['hash']}` |"
+        ) in catalog
+
+
+def test_smoke_suites_are_exact_ordered_subsets_of_canonical_parents():
+    for expected in EXPECTED.values():
+        suite = load_suite(ROOT / expected["path"])
+        parent = load_suite(ROOT / expected["parent"])
+        parent_items = (
+            {str(item["id"]): item for item in parent.items}
+            if suite.kind == "puzzle"
+            else {problem.id: asdict(problem) for problem in parent.composed_problems()}
+        )
+        ids = [str(item["id"]) for item in suite.items]
+        if suite.kind == "puzzle":
+            assert ids == sorted(ids)
+        else:
+            assert [
+                (str(item["kind"]), str(item["id"])) for item in suite.items
+            ] == sorted((str(item["kind"]), str(item["id"])) for item in suite.items)
+        assert len(ids) == len(set(ids))
+        assert all(item == parent_items[str(item["id"])] for item in suite.items)
+
+
+def test_builder_reproduces_committed_smoke_suites_byte_for_byte():
+    for generated, path in build():
+        committed = json.loads(path.read_text(encoding="utf-8"))
+        assert asdict(generated) == committed
+
+
+def test_every_smoke_puzzle_solution_line_is_legal():
+    for path in (
+        ROOT / "suites/public/standard-smoke-v1.json",
+        ROOT / "suites/public/woodpecker-smoke-v1.json",
+    ):
+        for puzzle in load_suite(path).puzzles():
+            start = chess.Board(puzzle.fen)
+            setup = chess.Move.from_uci(puzzle.moves[0])
+            assert setup in start.legal_moves
+            start.push(setup)
+            for line in puzzle.solution_lines():
+                board = start.copy()
+                for uci in line:
+                    move = chess.Move.from_uci(uci)
+                    assert move in board.legal_moves
+                    board.push(move)
+
+
+def test_standard_smoke_suite_is_small_and_rating_balanced():
+    suite = load_suite(ROOT / "suites/public/standard-smoke-v1.json")
+    puzzles = suite.puzzles()
+    assert len(puzzles) == 12
+    assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 32
+    assert [
+        sum(lo <= puzzle.rating <= lo + 399 for puzzle in puzzles)
+        for lo in range(600, 3000, 400)
+    ] == [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+    ]
+
+
+def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
+    suite = load_suite(ROOT / "suites/public/woodpecker-smoke-v1.json")
+    puzzles = suite.puzzles()
+    assert len(puzzles) == 10
+    assert [
+        sum(lo <= puzzle.rating <= lo + 399 for puzzle in puzzles)
+        for lo in range(1000, 3000, 400)
+    ] == [2, 2, 2, 2, 2]
+    assert all(len(puzzle.moves[1::2]) >= 3 for puzzle in puzzles)
+    assert all(puzzle.game_url.startswith("https://lichess.org/") for puzzle in puzzles)
+
+
+def test_esoteric_smoke_suite_has_one_of_every_public_genre():
+    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v1.json")
+    counts = Counter(problem.kind for problem in suite.composed_problems())
+    assert len(suite.items) == 7
+    assert counts == {
+        "directmate": 1,
+        "helpmate": 1,
+        "proofgame": 1,
+        "reflexmate": 1,
+        "selfmate": 1,
+        "series_directmate": 1,
+        "series_helpmate": 1,
+    }
+
+
+def test_esoteric_smoke_known_solutions_pass_native_graders():
+    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v1.json")
+    condition = mode_condition(3)
+    results = [
+        grade_composed(OracleComposedSolver(), problem, condition)
+        for problem in suite.composed_problems()
+    ]
+    assert all(result.solved for result in results)
+
+
+def test_smoke_model_registry_slugs_are_exact():
+    registry = json.loads((ROOT / "registry/models.json").read_text(encoding="utf-8"))
+    labels = [entry["label"] for entry in registry["models"]]
+    assert len(labels) == len(set(labels))
+    by_label = {entry["label"]: entry for entry in registry["models"]}
+    assert by_label["gpt-5.6-luna"] == {
+        "label": "gpt-5.6-luna",
+        "provider": "openrouter",
+        "model_id": "openai/gpt-5.6-luna",
+        "family": "openai",
+        "notes": "cheaper GPT-5.6 tier ($1/$6)",
+        "enabled": True,
+    }
+    assert by_label["claude-haiku-4.5"] == {
+        "label": "claude-haiku-4.5",
+        "provider": "openrouter",
+        "model_id": "anthropic/claude-haiku-4.5",
+        "family": "anthropic",
+        "notes": "Anthropic Claude Haiku 4.5 — low-cost reasoning model",
+        "enabled": True,
+    }

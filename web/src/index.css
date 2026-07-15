@@ -118,4 +118,8 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  .conversation-turn {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 260px;
+  }
 }

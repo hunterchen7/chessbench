@@ -46,7 +46,9 @@ class TournamentResult:
     standings: list[Standing]
     games: list[GameRecord] = field(default_factory=list)
     # (label_i, label_j) -> i's (wins, draws, losses) against j
-    crosstable: dict[tuple[str, str], tuple[int, int, int]] = field(default_factory=dict)
+    crosstable: dict[tuple[str, str], tuple[int, int, int]] = field(
+        default_factory=dict
+    )
 
     def pgns(self) -> str:
         return "\n\n".join(g.pgn for g in self.games)
@@ -60,8 +62,10 @@ def round_robin(
     *,
     eval_engine: Engine | None = None,
     openings: list[str] | None = None,
+    completed_games: dict[int, GameRecord] | None = None,
     on_game: Callable[[GameRecord, int], None] | None = None,
-    on_move: Callable[[str, str, str | None, int, chess.Board, list[MoveRecord]], None] | None = None,
+    on_move: Callable[[str, str, str | None, int, chess.Board, list[MoveRecord]], None]
+    | None = None,
 ) -> TournamentResult:
     """`on_game(record, idx)` fires after each completed game; `on_move(white, black,
     start_fen, idx, board, records)` fires after each half-move. Both are best-effort
@@ -69,11 +73,20 @@ def round_robin(
     if len({e.label for e in entries}) != len(entries):
         raise ValueError("tournament entries must have distinct labels")
     config = config or GameConfig()
-    book: list[str | None] = list(openings) if openings else [None]  # None = standard start
+    book: list[str | None] = (
+        list(openings) if openings else [None]
+    )  # None = standard start
 
     standings = {e.label: Standing(label=e.label) for e in entries}
     cross: dict[tuple[str, str], list[int]] = {}
     games: list[GameRecord] = []
+    completed_games = completed_games or {}
+    expected_games = len(entries) * (len(entries) - 1) // 2 * games_per_pair
+    unexpected = set(completed_games).difference(range(expected_games))
+    if unexpected:
+        raise ValueError(
+            f"completed game indices outside this tournament: {sorted(unexpected)}"
+        )
 
     def bump(a: str, b: str, wdl_index: int) -> None:
         cross.setdefault((a, b), [0, 0, 0])[wdl_index] += 1
@@ -81,19 +94,50 @@ def round_robin(
     for a, b in combinations(entries, 2):
         for g in range(games_per_pair):
             white, black = (a, b) if g % 2 == 0 else (b, a)
-            start_fen = book[(g // 2) % len(book)]  # each opening played from both colors
+            start_fen = book[
+                (g // 2) % len(book)
+            ]  # each opening played from both colors
             idx = len(games)
-            mv = None
-            if on_move is not None:
-                def mv(board: chess.Board, recs: list[MoveRecord],
-                       _w=white.label, _b=black.label, _sf=start_fen, _i=idx) -> None:
-                    on_move(_w, _b, _sf, _i, board, recs)
-            record = play_game(white.agent, black.agent, condition, config,
-                               eval_engine=eval_engine, start_fen=start_fen, on_move=mv)
-            record.white, record.black = white.label, black.label  # use entry labels, not agent.name
+            record = completed_games.get(idx)
+            if record is not None:
+                if (
+                    record.white != white.label
+                    or record.black != black.label
+                    or record.start_fen != start_fen
+                ):
+                    raise ValueError(
+                        f"completed game {idx} does not match the expected pairing/start position"
+                    )
+            else:
+                mv = None
+                if on_move is not None:
+
+                    def mv(
+                        board: chess.Board,
+                        recs: list[MoveRecord],
+                        _w=white.label,
+                        _b=black.label,
+                        _sf=start_fen,
+                        _i=idx,
+                    ) -> None:
+                        on_move(_w, _b, _sf, _i, board, recs)
+
+                record = play_game(
+                    white.agent,
+                    black.agent,
+                    condition,
+                    config,
+                    eval_engine=eval_engine,
+                    start_fen=start_fen,
+                    on_move=mv,
+                )
+                record.white, record.black = (
+                    white.label,
+                    black.label,
+                )  # use entry labels, not agent.name
+                if on_game is not None:
+                    on_game(record, idx)
             games.append(record)
-            if on_game is not None:
-                on_game(record, idx)
             ws = record.white_score
             if record.termination == "illegal_forfeit":
                 loser = white.label if record.result == "0-1" else black.label
@@ -121,10 +165,14 @@ def round_robin(
 
 
 def format_tournament(result: TournamentResult) -> str:
-    lines = [f"{'#':>2} {'player':<38} {'points':>8} {'games':>6} {'W-D-L':>10} {'rate':>6} {'illegal':>7}"]
+    lines = [
+        f"{'#':>2} {'player':<38} {'points':>8} {'games':>6} {'W-D-L':>10} {'rate':>6} {'illegal':>7}"
+    ]
     lines.append("-" * 84)
     for i, s in enumerate(result.standings, 1):
         wdl = f"{s.wins}-{s.draws}-{s.losses}"
         pct = s.score / s.games if s.games else 0.0
-        lines.append(f"{i:>2} {s.label:<38} {s.score:>8.1f} {s.games:>6} {wdl:>10} {pct:>5.0%} {s.illegal_forfeits:>7}")
+        lines.append(
+            f"{i:>2} {s.label:<38} {s.score:>8.1f} {s.games:>6} {wdl:>10} {pct:>5.0%} {s.illegal_forfeits:>7}"
+        )
     return "\n".join(lines)

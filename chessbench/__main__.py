@@ -23,9 +23,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .conditions import (
-    Condition, ContextMode, Legality, Notation, PromptStyle, Representation, mode_condition,
+    Condition,
+    ContextMode,
+    Legality,
+    Notation,
+    PromptStyle,
+    Representation,
+    mode_condition,
 )
 from .report import format_report
+from .response_protocols import ResponseProtocol
 from .store import RunRecord, SuiteRef, save_run
 from .tasks.puzzles import load_puzzles
 from .tasks.runner import run_puzzles
@@ -37,7 +44,47 @@ if TYPE_CHECKING:
     from .tasks.composed import ComposedSolver
 
 DEFAULT_DATA = Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
-DEFAULT_COMPOSED = Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
+DEFAULT_COMPOSED = (
+    Path(__file__).resolve().parent.parent / "data" / "composed_problems.json"
+)
+
+
+def _usage_int(value: object) -> int:
+    return int(value) if isinstance(value, (str, int, float)) else 0
+
+
+def _usage_float(value: object) -> float:
+    return float(value) if isinstance(value, (str, int, float)) else 0.0
+
+
+def _turn_usage_totals(
+    turns: list[dict[str, object]],
+) -> tuple[int, int, int, float]:
+    """Aggregate audited turns without double-counting reasoning tokens.
+
+    Game/study envelopes expose a normalized ``reasoning_tokens`` field while
+    provider usage often exposes the same value inside
+    ``completion_tokens_details``. Prefer the provider field when present and
+    only fall back to the normalized field.
+    """
+    prompt = completion = reasoning = 0
+    cost = 0.0
+    for turn in turns:
+        usage = turn.get("usage")
+        turn_reasoning: object | None = None
+        if isinstance(usage, dict):
+            prompt += _usage_int(usage.get("prompt_tokens", 0))
+            completion += _usage_int(usage.get("completion_tokens", 0))
+            details = usage.get("completion_tokens_details")
+            if isinstance(details, dict) and "reasoning_tokens" in details:
+                turn_reasoning = details.get("reasoning_tokens")
+            elif "reasoning_tokens" in usage:
+                turn_reasoning = usage.get("reasoning_tokens")
+        if turn_reasoning is None:
+            turn_reasoning = turn.get("reasoning_tokens", 0)
+        reasoning += _usage_int(turn_reasoning)
+        cost += _usage_float(turn.get("cost_usd", 0.0))
+    return prompt, completion, reasoning, cost
 
 
 def _base_condition(args: argparse.Namespace) -> Condition:
@@ -58,6 +105,9 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         retry_attempts=args.retry_attempts,
         otb_illegal_limit=args.otb_limit,
         explain=args.explain,
+        response_protocol=ResponseProtocol(
+            getattr(args, "response_protocol", ResponseProtocol.JSON_SCHEMA_V1.value)
+        ),
         temperature=args.temperature,
         reasoning_effort=getattr(args, "reasoning", None),
         reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
@@ -75,7 +125,9 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
     if args.agent == "stockfish":
         from .core.engine import EngineConfig
 
-        return stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.nodes)))
+        return stack.enter_context(
+            StockfishAgent(config=EngineConfig(nodes=args.nodes))
+        )
     if args.agent == "anthropic":
         from .models import AnthropicModel
 
@@ -87,16 +139,20 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
     if args.agent == "openrouter":
         from .models import OpenRouterModel
 
-        return LLMAgent(OpenRouterModel(
-            args.model or "openai/gpt-4o-mini",
-            reasoning_effort=getattr(args, "reasoning", None),
-            reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
-        ))
+        return LLMAgent(
+            OpenRouterModel(
+                args.model or "openai/gpt-4o-mini",
+                reasoning_effort=getattr(args, "reasoning", None),
+                reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
+            )
+        )
     if args.agent == "openrouter-vision":
         from .agents import VisionAgent
         from .models import OpenRouterModel
 
-        return VisionAgent(OpenRouterModel(args.model or "google/gemma-4-26b-a4b-it:free"))
+        return VisionAgent(
+            OpenRouterModel(args.model or "google/gemma-4-26b-a4b-it:free")
+        )
     raise SystemExit(f"unknown agent: {args.agent}")
 
 
@@ -108,8 +164,12 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
 
         suite = load_suite(args.suite)
         puzzles = suite.puzzles()
-        suite_ref = SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash)
-        print(f"suite: {suite.name} v{suite.version} [{suite.visibility}] {suite.content_hash} ({len(puzzles)} puzzles)")
+        suite_ref = SuiteRef(
+            suite.name, suite.version, suite.visibility, suite.content_hash
+        )
+        print(
+            f"suite: {suite.name} v{suite.version} [{suite.visibility}] {suite.content_hash} ({len(puzzles)} puzzles)"
+        )
     else:
         puzzles = load_puzzles(args.data, limit=args.limit)
         print(f"loaded {len(puzzles)} puzzles from {args.data}")
@@ -120,8 +180,14 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
 
     with ExitStack() as stack:
         agent = _build_agent(args, stack)
-        report, results = run_puzzles(agent, puzzles, condition, log_path=args.log,
-                                      progress_every=args.progress, resume_path=ckpt)
+        report, results = run_puzzles(
+            agent,
+            puzzles,
+            condition,
+            log_path=args.log,
+            progress_every=args.progress,
+            resume_path=ckpt,
+        )
 
     print(format_report(report))
 
@@ -129,9 +195,14 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
         model = getattr(agent, "_model", None)
         cost = getattr(model, "total_cost", None)
         record = RunRecord(
-            model=args.model or agent.name, provider=args.agent, condition=condition,
-            report=report, results=results, puzzles={p.id: p for p in puzzles},
-            suite=suite_ref, cost_usd=cost,
+            model=args.model or agent.name,
+            provider=args.agent,
+            condition=condition,
+            report=report,
+            results=results,
+            puzzles={p.id: p for p in puzzles},
+            suite=suite_ref,
+            cost_usd=cost,
         )
         save_run(record, args.save_run)
         print(f"\nsaved run -> {args.save_run}")
@@ -146,7 +217,9 @@ def cmd_woodpecker(args: argparse.Namespace) -> int:
     return cmd_puzzles(args)
 
 
-def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, stack: ExitStack) -> Agent:
+def _build_player(
+    spec: str, model_id: str | None, args: argparse.Namespace, stack: ExitStack
+) -> Agent:
     from .agents import FirstLegalAgent, LLMGameAgent, RandomAgent, StockfishAgent
     from .core.engine import EngineConfig
 
@@ -169,11 +242,14 @@ def _build_player(spec: str, model_id: str | None, args: argparse.Namespace, sta
     if spec == "openrouter":
         from .models import OpenRouterModel
 
-        return LLMGameAgent(OpenRouterModel(
-            model_id or "openai/gpt-4o-mini",
-            reasoning_effort=cond.reasoning_effort,
-            reasoning_max_tokens=cond.reasoning_max_tokens,
-        ), cond)
+        return LLMGameAgent(
+            OpenRouterModel(
+                model_id or "openai/gpt-4o-mini",
+                reasoning_effort=cond.reasoning_effort,
+                reasoning_max_tokens=cond.reasoning_max_tokens,
+            ),
+            cond,
+        )
     raise SystemExit(f"unknown player: {spec}")
 
 
@@ -187,7 +263,9 @@ def cmd_play(args: argparse.Namespace) -> int:
     condition = _condition_from_args(args)
     config = GameConfig(max_plies=args.max_plies)
     print(f"condition: {condition.game_slug()} (temp={condition.temperature})")
-    print(f"{args.white} (White-start) vs {args.black}, {args.games} game(s), cap {args.max_plies} plies\n")
+    print(
+        f"{args.white} (White-start) vs {args.black}, {args.games} game(s), cap {args.max_plies} plies\n"
+    )
 
     with ExitStack() as stack:
         a = _build_player(args.white, args.white_model, args, stack)
@@ -197,8 +275,10 @@ def cmd_play(args: argparse.Namespace) -> int:
     print(f"score: {res.a} {res.a_wins}  /  draws {res.draws}  /  {res.b} {res.b_wins}")
     print(f"{res.a} score: {res.a_score:.1%}")
     for i, g in enumerate(res.games, 1):
-        print(f"  game {i}: {g.result:>7}  {g.termination:<16} {g.plies} plies  "
-              f"(illegal-move rate W+B {g.illegal_rate():.1%})")
+        print(
+            f"  game {i}: {g.result:>7}  {g.termination:<16} {g.plies} plies  "
+            f"(illegal-move rate W+B {g.illegal_rate():.1%})"
+        )
     if args.pgn_out:
         with open(args.pgn_out, "w", encoding="utf-8") as f:
             f.write("\n\n".join(g.pgn for g in res.games))
@@ -206,60 +286,196 @@ def cmd_play(args: argparse.Namespace) -> int:
     return 0
 
 
-def _build_composed_solver(spec: str, model_id: str | None, seed: int) -> ComposedSolver:
-    from .tasks.composed import LLMComposedSolver, OracleComposedSolver, RandomComposedSolver
+def _build_composed_solver(
+    spec: str, model_id: str | None, seed: int, condition: Condition
+) -> ComposedSolver:
+    from .tasks.composed import (
+        LLMComposedSolver,
+        OracleComposedSolver,
+        RandomComposedSolver,
+    )
 
     if spec == "oracle":
         return OracleComposedSolver()
     if spec == "random":
         return RandomComposedSolver(seed=seed)
     if spec in ("anthropic", "openai", "openrouter"):
-        return LLMComposedSolver(_build_model(spec, model_id))
+        return LLMComposedSolver(
+            _build_model(
+                spec,
+                model_id,
+                reasoning_effort=condition.reasoning_effort,
+                reasoning_max_tokens=condition.reasoning_max_tokens,
+            )
+        )
     raise SystemExit(f"unknown solver: {spec}")
 
 
 def cmd_composed(args: argparse.Namespace) -> int:
+    from dataclasses import asdict
+
     from .core.engine import Engine, EngineConfig
+    from .database import BenchmarkStore, RunSpec
     from .solvers import grade_study
     from .tasks.composed import grade_composed, load_composed
+    from .variants import ModelVariant, ReasoningConfig
 
     condition = _base_condition(args)
-    suite_ref = None
+    suite = None
     if args.suite:
         from .suite import load_suite
 
         suite = load_suite(args.suite)
         problems = suite.composed_problems()
-        suite_ref = f"{suite.name} v{suite.version} {suite.content_hash}"
     else:
         problems = load_composed(args.data)
-    solver = _build_composed_solver(args.solver, args.model, args.seed)
+    solver = _build_composed_solver(args.solver, args.model, args.seed, condition)
+    model_id = args.model or solver.name
+    variant = ModelVariant(
+        base_key=model_id,
+        display_name=model_id.rsplit("/", 1)[-1],
+        provider=args.solver,
+        model_id=model_id,
+        reasoning=ReasoningConfig(
+            effort=condition.reasoning_effort,
+            max_tokens=condition.reasoning_max_tokens,
+        ),
+        max_output_tokens=condition.max_output_tokens,
+    )
+    store = BenchmarkStore(args.db)
+    spec = RunSpec(
+        "composed",
+        variant,
+        condition,
+        len(problems),
+        suite_name=suite.name if suite else None,
+        suite_version=suite.version if suite else None,
+        suite_hash=suite.content_hash if suite else None,
+        suite_visibility=suite.visibility if suite else None,
+    )
+    handle = store.start_run(spec, force=args.force)
+    if handle.status == "completed" and not args.force:
+        print(
+            f"skip (completed): {variant.label} × {suite.name if suite else args.data}"
+        )
+        store.close()
+        return 0
+    completed = store.load_benchmark_items(handle.run_id)
     print(f"solver: {solver.name} | condition: {condition.slug()}")
-    origin = f"suite {suite_ref}" if suite_ref else args.data
-    print(f"problems: {len(problems)} from {origin}\n")
+    origin = (
+        f"suite {suite.name} v{suite.version} {suite.content_hash}"
+        if suite
+        else args.data
+    )
+    print(
+        f"problems: {len(problems)} from {origin}; {len(completed)} already durable\n"
+    )
 
     by_kind: dict[str, list[bool]] = {}
     needs_engine = any(p.answer_shape == "play" for p in problems)
     items: list[dict[str, object]] = []
 
-    with ExitStack() as stack:
-        engine = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes))) if needs_engine else None
-        study_agent = _build_study_agent(args, engine, stack)
-        for p in problems:
-            if p.answer_shape == "play":
-                assert engine is not None
-                res = grade_study(study_agent, p.fen, p.goal or "win", engine, condition)
-                solved, detail, answer = res.solved, res.outcome, ""
-            else:
-                r = grade_composed(solver, p, condition)
-                solved, detail, answer = r.solved, r.detail, r.answer
-            by_kind.setdefault(p.kind, []).append(solved)
-            items.append({
-                "id": p.id, "kind": p.kind, "label": p.label, "n": p.n, "fen": p.fen,
-                "goal": p.goal, "solution": p.solution, "themes": p.themes,
-                "answer_shape": p.answer_shape, "solved": solved, "answer": answer, "detail": detail,
-            })
-            print(f"  {p.id:<14} {p.label:<20} {'SOLVED' if solved else 'failed':<7} {detail}")
+    try:
+        with ExitStack() as stack:
+            engine = (
+                stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes)))
+                if needs_engine
+                else None
+            )
+            study_agent = _build_study_agent(args, engine, stack, condition)
+            for sequence, p in enumerate(problems):
+                if p.id in completed:
+                    item = completed[p.id]
+                    solved = bool(item["solved"])
+                    detail = str(item["detail"])
+                    items.append(item)
+                    by_kind.setdefault(p.kind, []).append(solved)
+                    print(f"  {p.id:<14} {p.label:<20} resumed {detail}")
+                    continue
+                if p.answer_shape == "play":
+                    assert engine is not None
+                    study = grade_study(
+                        study_agent, p.fen, p.goal or "win", engine, condition
+                    )
+                    solved, detail, answer = study.solved, study.outcome, ""
+                    first_legal = study.first_move_legal
+                    turns = study.turns
+                    rationale = None
+                    format_values = [
+                        turn.get("response_format_valid")
+                        for turn in turns
+                        if turn.get("response_format_valid") is not None
+                    ]
+                    format_valid = (
+                        all(bool(value) for value in format_values)
+                        if format_values
+                        else None
+                    )
+                    format_error = next(
+                        (
+                            str(turn["response_format_error"])
+                            for turn in turns
+                            if turn.get("response_format_error")
+                        ),
+                        None,
+                    )
+                    result_fields = asdict(study)
+                else:
+                    result = grade_composed(solver, p, condition)
+                    solved, detail, answer = result.solved, result.detail, result.answer
+                    first_legal = result.first_move_legal
+                    turns = result.turns
+                    rationale = result.answer_rationale
+                    format_valid = result.response_format_valid
+                    format_error = result.response_format_error
+                    result_fields = asdict(result)
+                item = {
+                    "id": p.id,
+                    "kind": p.kind,
+                    "label": p.label,
+                    "n": p.n,
+                    "fen": p.fen,
+                    "goal": p.goal,
+                    "solution": p.solution,
+                    "themes": p.themes,
+                    "answer_shape": p.answer_shape,
+                    "solved": solved,
+                    "answer": answer,
+                    "answer_rationale": rationale,
+                    "response_format_valid": format_valid,
+                    "response_format_error": format_error,
+                    "detail": detail,
+                    "turns": turns,
+                    "result": result_fields,
+                }
+                prompt_tokens, completion_tokens, reasoning_tokens, cost_usd = (
+                    _turn_usage_totals(turns)
+                )
+                store.save_benchmark_item(
+                    handle.run_id,
+                    sequence,
+                    p.id,
+                    item,
+                    points=1.0 if solved else 0.0,
+                    solved=solved,
+                    first_move_legal=first_legal,
+                    response_format_valid=format_valid,
+                    failure_reason=None if solved else detail,
+                    cost_usd=cost_usd,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    reasoning_tokens=reasoning_tokens,
+                )
+                items.append(item)
+                by_kind.setdefault(p.kind, []).append(solved)
+                print(
+                    f"  {p.id:<14} {p.label:<20} "
+                    f"{'SOLVED' if solved else 'failed':<7} {detail}"
+                )
+    except BaseException as exc:
+        store.mark_partial(handle.run_id, str(exc))
+        store.close()
+        raise
 
     print("\nby stipulation:")
     total = solved_total = 0
@@ -271,6 +487,16 @@ def cmd_composed(args: argparse.Namespace) -> int:
         by_kind_summary[kind] = {"solved": s, "n": n}
         print(f"  {kind:<18} {s}/{n}")
     print(f"  {'TOTAL':<18} {solved_total}/{total}")
+    summary: dict[str, object] = {
+        "n": total,
+        "solved": solved_total,
+        "solve_rate": solved_total / total if total else 0.0,
+        "points": float(solved_total),
+        "max_points": float(total),
+        "by_kind": by_kind_summary,
+    }
+    store.finalize_run(handle.run_id, summary)
+    store.close()
 
     if getattr(args, "save_run", None):
         import json
@@ -278,11 +504,14 @@ def cmd_composed(args: argparse.Namespace) -> int:
 
         doc = {
             "schema": "chessbench.composed_run.v1",
+            "run_id": handle.run_id,
             "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "model": args.model or solver.name, "solver": args.solver,
-            "condition": {"slug": condition.slug(), "temperature": condition.temperature},
-            "summary": {"n": total, "solved": solved_total,
-                        "solve_rate": (solved_total / total if total else 0.0), "by_kind": by_kind_summary},
+            "model": args.model or solver.name,
+            "solver": args.solver,
+            "model_variant": variant.to_dict(),
+            "suite": suite.manifest() if suite else None,
+            "condition": condition.to_dict(),
+            "summary": summary,
             "items": items,
         }
         Path(args.save_run).parent.mkdir(parents=True, exist_ok=True)
@@ -292,7 +521,12 @@ def cmd_composed(args: argparse.Namespace) -> int:
     return 0
 
 
-def _build_study_agent(args: argparse.Namespace, engine: "Engine | None", stack: ExitStack) -> Agent:
+def _build_study_agent(
+    args: argparse.Namespace,
+    engine: "Engine | None",
+    stack: ExitStack,
+    condition: Condition,
+) -> Agent:
     from .agents import LLMGameAgent, RandomAgent, StockfishAgent
 
     spec = args.solver
@@ -300,7 +534,15 @@ def _build_study_agent(args: argparse.Namespace, engine: "Engine | None", stack:
         return RandomAgent(seed=args.seed)
     if spec in ("oracle", "stockfish"):
         return StockfishAgent(engine=engine)  # oracle stand-in for interactive studies
-    return LLMGameAgent(_build_model(spec, args.model))
+    return LLMGameAgent(
+        _build_model(
+            spec,
+            args.model,
+            reasoning_effort=condition.reasoning_effort,
+            reasoning_max_tokens=condition.reasoning_max_tokens,
+        ),
+        condition,
+    )
 
 
 def _build_model(
@@ -331,15 +573,26 @@ def cmd_suite_build(args: argparse.Namespace) -> int:
 
     source = load_puzzles(args.source)
     suite = build_puzzle_suite(
-        source, name=args.name, version=args.version, visibility=args.visibility,
-        source_label=args.source_label, per_bucket=args.per_bucket, seed=args.seed,
+        source,
+        name=args.name,
+        version=args.version,
+        visibility=args.visibility,
+        source_label=args.source_label,
+        per_bucket=args.per_bucket,
+        seed=args.seed,
     )
     save_suite(suite, args.out)
     ratings = sorted(int(it["rating"]) for it in suite.items)  # type: ignore[call-overload]
-    print(f"built suite '{suite.name}' v{suite.version} [{suite.visibility}] -> {args.out}")
-    print(f"  {len(suite.items)} puzzles, ratings {ratings[0]}-{ratings[-1]}, {suite.content_hash}")
+    print(
+        f"built suite '{suite.name}' v{suite.version} [{suite.visibility}] -> {args.out}"
+    )
+    print(
+        f"  {len(suite.items)} puzzles, ratings {ratings[0]}-{ratings[-1]}, {suite.content_hash}"
+    )
     if suite.visibility == "private":
-        print("  NOTE: private suite -- keep it out of the public repo (suites/private/ is gitignored).")
+        print(
+            "  NOTE: private suite -- keep it out of the public repo (suites/private/ is gitignored)."
+        )
     return 0
 
 
@@ -351,14 +604,20 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
 
     suite = load_suite(args.suite)
     puzzles = suite.puzzles()
-    legalities = [s.strip() for s in (args.legalities or args.legality).split(",") if s.strip()]
+    legalities = [
+        s.strip() for s in (args.legalities or args.legality).split(",") if s.strip()
+    ]
 
     def condition_for(legality: str) -> Condition:
         return replace(_base_condition(args), legality=Legality(legality))
 
-    print(f"leaderboard on suite '{suite.name}' {suite.content_hash} "
-          f"({len(puzzles)} puzzles, identical for every model)")
-    print(f"settings: legality={legalities}, {args.representation}/{args.notation}/{args.prompt_style}\n")
+    print(
+        f"leaderboard on suite '{suite.name}' {suite.content_hash} "
+        f"({len(puzzles)} puzzles, identical for every model)"
+    )
+    print(
+        f"settings: legality={legalities}, {args.representation}/{args.notation}/{args.prompt_style}\n"
+    )
 
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
     # rows[name] = {legality: PuzzleReport, ...}
@@ -368,7 +627,11 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         if args.include_baselines:
             agents.append(RandomAgent())
             if find_stockfish():
-                agents.append(stack.enter_context(StockfishAgent(config=EngineConfig(nodes=args.sf_nodes))))
+                agents.append(
+                    stack.enter_context(
+                        StockfishAgent(config=EngineConfig(nodes=args.sf_nodes))
+                    )
+                )
         agents.extend(LLMAgent(_build_model(args.provider, mid)) for mid in model_ids)
 
         for agent in agents:
@@ -381,8 +644,16 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
                     rows[agent.name]["_solved"] = report.solve_rate
                     rows[agent.name]["_legal"] = report.first_move_legal_rate
 
-    order = sorted(rows, key=lambda name: getattr(rows[name][legalities[0]], "points", 0.0), reverse=True)
-    header = f"{'model':<38} " + " ".join(f"{lg:>12}" for lg in legalities) + f" {'solved':>7} {'legal':>7}"
+    order = sorted(
+        rows,
+        key=lambda name: getattr(rows[name][legalities[0]], "points", 0.0),
+        reverse=True,
+    )
+    header = (
+        f"{'model':<38} "
+        + " ".join(f"{lg:>12}" for lg in legalities)
+        + f" {'solved':>7} {'legal':>7}"
+    )
     print("\n" + header)
     print("-" * len(header))
     for name in order:
@@ -393,7 +664,9 @@ def cmd_leaderboard(args: argparse.Namespace) -> int:
         solved = rows[name].get("_solved", 0.0)
         legal = rows[name].get("_legal", 0.0)
         print(f"{name:<38} {cells} {solved:>6.1%} {legal:>6.1%}")  # type: ignore[str-format]
-    print("\npoints = sum of per-puzzle credit; a full solve is 1 point and correct line prefixes earn partial credit")
+    print(
+        "\npoints = sum of per-puzzle credit; a full solve is 1 point and correct line prefixes earn partial credit"
+    )
     return 0
 
 
@@ -401,8 +674,15 @@ def cmd_models(args: argparse.Namespace) -> int:
     from .registry import ModelEntry, add_model, load_registry
 
     if args.models_action == "add":
-        add_model(ModelEntry(label=args.label, provider=args.provider, model_id=args.model_id,
-                             family=args.family or "", notes=args.notes or ""))
+        add_model(
+            ModelEntry(
+                label=args.label,
+                provider=args.provider,
+                model_id=args.model_id,
+                family=args.family or "",
+                notes=args.notes or "",
+            )
+        )
         print(f"registered {args.label} ({args.provider}:{args.model_id})")
         return 0
     for e in load_registry():
@@ -477,11 +757,20 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         item_cost = max(0.0, total_cost - prior_cost)
         prior_cost = total_cost
         prompt_tokens = sum(int(turn.get("prompt_tokens", 0)) for turn in result.turns)
-        completion_tokens = sum(int(turn.get("completion_tokens", 0)) for turn in result.turns)
-        reasoning_tokens = sum(int(turn.get("reasoning_tokens", 0)) for turn in result.turns)
+        completion_tokens = sum(
+            int(turn.get("completion_tokens", 0)) for turn in result.turns
+        )
+        reasoning_tokens = sum(
+            int(turn.get("reasoning_tokens", 0)) for turn in result.turns
+        )
         store.save_puzzle_result(
-            handle.run_id, seq, puzzle, result, cost_usd=item_cost,
-            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            handle.run_id,
+            seq,
+            puzzle,
+            result,
+            cost_usd=item_cost,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
             reasoning_tokens=reasoning_tokens,
         )
 
@@ -503,8 +792,12 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     store.close()
     print(format_report(report))
     record = RunRecord(
-        model=entry.model_id, provider=entry.provider, condition=condition, report=report,
-        results=results, puzzles={p.id: p for p in puzzles},
+        model=entry.model_id,
+        provider=entry.provider,
+        condition=condition,
+        report=report,
+        results=results,
+        puzzles={p.id: p for p in puzzles},
         suite=SuiteRef(suite.name, suite.version, suite.visibility, suite.content_hash),
         cost_usd=cost,
         run_id=handle.run_id,
@@ -517,15 +810,21 @@ def cmd_run_model(args: argparse.Namespace) -> int:
 
 def cmd_category_leaderboard(args: argparse.Namespace) -> int:
     """Per-category rankings from saved run records (offline)."""
-    from .leaderboards import category_leaderboard, format_category_leaderboard, load_runs
+    from .leaderboards import (
+        category_leaderboard,
+        format_category_leaderboard,
+        load_runs,
+    )
 
     runs = load_runs(args.runs_dir)
     if not runs:
         print(f"no run records in {args.runs_dir}")
         return 0
     board = category_leaderboard(runs, min_n=args.min_n, dim=args.dim)
-    print(f"per-category points from {len(runs)} run(s)"
-          + (f", dimension '{args.dim}'" if args.dim else ""))
+    print(
+        f"per-category points from {len(runs)} run(s)"
+        + (f", dimension '{args.dim}'" if args.dim else "")
+    )
     print(format_category_leaderboard(board))
     return 0
 
@@ -542,149 +841,355 @@ def cmd_sprt(args: argparse.Namespace) -> int:
         from .openings import opening_fens
 
         openings = opening_fens()
-    print(f"SPRT: {args.a} vs {args.b} | H0 elo<={args.elo0} vs H1 elo>={args.elo1} "
-          f"| alpha={args.alpha} beta={args.beta} | max {args.max_games} games\n")
+    print(
+        f"SPRT: {args.a} vs {args.b} | H0 elo<={args.elo0} vs H1 elo>={args.elo1} "
+        f"| alpha={args.alpha} beta={args.beta} | max {args.max_games} games\n"
+    )
     with ExitStack() as stack:
         a = _build_player(args.a, args.a_model, args, stack)
         b = _build_player(args.b, args.b_model, args, stack)
-        status, games = sprt_match(a, b, condition, config, elo0=args.elo0, elo1=args.elo1,
-                                   alpha=args.alpha, beta=args.beta, max_games=args.max_games, openings=openings)
-    verdict = {"accept_h1": f"{args.a} is stronger (accept H1)",
-               "accept_h0": f"no evidence {args.a} is stronger (accept H0)",
-               "continue": "inconclusive at max games"}[status.decision]
-    print(f"result: {status.wins}-{status.draws}-{status.losses} ({status.score:.1%}) over {status.n} games")
-    print(f"LLR {status.llr:+.2f}  (bounds {status.lower:.2f} .. {status.upper:.2f})  ->  {verdict}")
+        status, games = sprt_match(
+            a,
+            b,
+            condition,
+            config,
+            elo0=args.elo0,
+            elo1=args.elo1,
+            alpha=args.alpha,
+            beta=args.beta,
+            max_games=args.max_games,
+            openings=openings,
+        )
+    verdict = {
+        "accept_h1": f"{args.a} is stronger (accept H1)",
+        "accept_h0": f"no evidence {args.a} is stronger (accept H0)",
+        "continue": "inconclusive at max games",
+    }[status.decision]
+    print(
+        f"result: {status.wins}-{status.draws}-{status.losses} ({status.score:.1%}) over {status.n} games"
+    )
+    print(
+        f"LLR {status.llr:+.2f}  (bounds {status.lower:.2f} .. {status.upper:.2f})  ->  {verdict}"
+    )
     return 0
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    """Write data/index.json (puzzle runs) and data/tournaments/index.json (games)."""
+    """Rebuild deterministic static indexes for puzzle, composed, and game runs."""
     import json
 
-    from .store import json_safe, list_runs, list_tournaments
+    from .store import json_safe, list_composed_runs, list_runs, list_tournaments
 
     runs = list_runs(args.runs_dir)
     with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(json_safe({"schema": "chessbench.index.v1", "runs": runs}), f, indent=1)
+        json.dump(
+            json_safe({"schema": "chessbench.index.v1", "runs": runs}), f, indent=1
+        )
     print(f"indexed {len(runs)} run(s) -> {args.out}")
+
+    cdir = Path(args.runs_dir).parent / "composed"
+    if cdir.is_dir():
+        composed = list_composed_runs(cdir)
+        with open(cdir / "index.json", "w", encoding="utf-8") as f:
+            json.dump(
+                json_safe(
+                    {
+                        "schema": "chessbench.composed_index.v1",
+                        "runs": composed,
+                    }
+                ),
+                f,
+                indent=1,
+            )
+        print(f"indexed {len(composed)} composed run(s) -> {cdir / 'index.json'}")
 
     tdir = Path(args.runs_dir).parent / "tournaments"
     if tdir.is_dir():
         tournaments = list_tournaments(tdir)
         with open(tdir / "index.json", "w", encoding="utf-8") as f:
-            json.dump(json_safe({"schema": "chessbench.tournament_index.v1", "tournaments": tournaments}), f, indent=1)
+            json.dump(
+                json_safe(
+                    {
+                        "schema": "chessbench.tournament_index.v1",
+                        "tournaments": tournaments,
+                    }
+                ),
+                f,
+                indent=1,
+            )
         print(f"indexed {len(tournaments)} tournament(s) -> {tdir / 'index.json'}")
     return 0
 
 
 def cmd_tournament(args: argparse.Namespace) -> int:
     """Round-robin among LLMs (+ optional Stockfish baseline) -> match points."""
+    import hashlib
+    import json
+    from dataclasses import asdict
+
     from .agents import LLMGameAgent, RandomAgent, StockfishAgent
     from .core.engine import Engine, EngineConfig, find_stockfish
+    from .database import BenchmarkStore, RunSpec
+    from .store import TournamentRecord, json_safe, save_tournament
     from .tasks.games import GameConfig
     from .tasks.tournament import TournamentEntry, format_tournament, round_robin
+    from .variants import ModelVariant, ReasoningConfig
 
     condition = _condition_from_args(args)
     config = GameConfig(max_plies=args.max_plies, eval_moves=args.eval_moves)
     model_ids = [m.strip() for m in args.models.split(",") if m.strip()]
-    print(f"tournament: {len(model_ids)} models, {args.games} games/pair, condition {condition.game_slug()}\n")
+    print(
+        f"tournament: {len(model_ids)} models, {args.games} games/pair, condition {condition.game_slug()}\n"
+    )
 
-    with ExitStack() as stack:
-        entries = [TournamentEntry(
-            mid,
-            LLMGameAgent(_build_model(
-                args.provider, mid,
-                reasoning_effort=condition.reasoning_effort,
-                reasoning_max_tokens=condition.reasoning_max_tokens,
-            ), condition),
-        ) for mid in model_ids]
-        if args.include_random:
-            entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
-        eval_engine = None
-        if (args.include_stockfish or args.eval_moves) and find_stockfish():
-            eng = stack.enter_context(Engine(EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill)))
-            eval_engine = eng if args.eval_moves else None
-            if args.include_stockfish:
-                sf = stack.enter_context(StockfishAgent(engine=eng))
-                label = f"stockfish(sk{args.sf_skill})"
-                entries.append(TournamentEntry(label, sf))
-        openings = None
-        if args.openings == "book":
-            from .openings import opening_fens
+    store: BenchmarkStore | None = None
+    run_id: str | None = None
+    pusher = None
+    try:
+        with ExitStack() as stack:
+            entries = [
+                TournamentEntry(
+                    mid,
+                    LLMGameAgent(
+                        _build_model(
+                            args.provider,
+                            mid,
+                            reasoning_effort=condition.reasoning_effort,
+                            reasoning_max_tokens=condition.reasoning_max_tokens,
+                        ),
+                        condition,
+                    ),
+                )
+                for mid in model_ids
+            ]
+            if args.include_random:
+                entries.append(TournamentEntry("random", RandomAgent(seed=args.seed)))
+            eval_engine = None
+            if (args.include_stockfish or args.eval_moves) and find_stockfish():
+                eng = stack.enter_context(
+                    Engine(EngineConfig(nodes=args.sf_nodes, skill_level=args.sf_skill))
+                )
+                eval_engine = eng if args.eval_moves else None
+                if args.include_stockfish:
+                    sf = stack.enter_context(StockfishAgent(engine=eng))
+                    label = f"stockfish(sk{args.sf_skill})"
+                    entries.append(TournamentEntry(label, sf))
+            openings = None
+            if args.openings == "book":
+                from .openings import opening_fens
 
-            openings = opening_fens()
+                openings = opening_fens()
 
-        pusher = None
-        if args.stream:
-            import os
-            from datetime import datetime, timezone
+            labels = [entry.label for entry in entries]
+            manifest: dict[str, object] = {
+                "players": labels,
+                "games_per_pair": args.games,
+                "max_plies": args.max_plies,
+                "eval_moves": args.eval_moves,
+                "opening_fens": openings or [None],
+                "seed": args.seed,
+                "stockfish_nodes": args.sf_nodes if args.include_stockfish else None,
+                "stockfish_skill": args.sf_skill if args.include_stockfish else None,
+            }
+            manifest_json = json.dumps(
+                manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+            )
+            manifest_hash = hashlib.sha256(manifest_json.encode()).hexdigest()
+            variant = ModelVariant(
+                base_key=f"tournament-{manifest_hash[:16]}",
+                display_name=" vs ".join(labels) or "empty tournament",
+                provider=args.provider,
+                model_id=",".join(labels),
+                reasoning=ReasoningConfig(
+                    effort=condition.reasoning_effort,
+                    max_tokens=condition.reasoning_max_tokens,
+                ),
+                max_output_tokens=condition.max_output_tokens,
+            )
+            total_games = len(entries) * (len(entries) - 1) // 2 * args.games
+            spec = RunSpec(
+                "tournament",
+                variant,
+                condition,
+                total_games,
+                suite_name="standard-start-games"
+                if openings is None
+                else "opening-book-games",
+                suite_version="1",
+                suite_hash=f"sha256:{manifest_hash[:16]}",
+                suite_visibility="private",
+            )
+            store = BenchmarkStore(args.db)
+            handle = store.start_run(spec, force=args.force)
+            run_id = handle.run_id
+            completed_games = store.load_game_results(handle.run_id)
+            print(
+                f"durable run {handle.run_id}: {len(completed_games)}/{total_games} "
+                "games already complete"
+            )
 
-            from .stream import StreamPusher
+            if args.stream:
+                import os
+                from datetime import datetime, timezone
 
-            base, token = os.environ.get("CHESSBENCH_API"), os.environ.get("CHESSBENCH_INGEST_TOKEN")
-            if not base or not token:
-                raise SystemExit("--stream needs CHESSBENCH_API and CHESSBENCH_INGEST_TOKEN in the env")
-            tid = args.tid or (Path(args.save).stem if args.save else "live")
-            pusher = StreamPusher(base, token, tid, condition_slug=condition.game_slug(),
-                                  players=[e.label for e in entries],
-                                  created=datetime.now(timezone.utc).isoformat(timespec="seconds"))
-            print(f"streaming games live to {base} as tournament '{tid}'")
+                from .stream import StreamPusher
 
-        result = round_robin(entries, args.games, condition, config, eval_engine=eval_engine, openings=openings,
-                             on_game=pusher.on_game if pusher else None,
-                             on_move=pusher.on_move if pusher else None)
+                base = os.environ.get("CHESSBENCH_API")
+                token = os.environ.get("CHESSBENCH_INGEST_TOKEN")
+                if not base or not token:
+                    raise SystemExit(
+                        "--stream needs CHESSBENCH_API and "
+                        "CHESSBENCH_INGEST_TOKEN in the env"
+                    )
+                tid = args.tid or (Path(args.save).stem if args.save else "live")
+                pusher = StreamPusher(
+                    base,
+                    token,
+                    tid,
+                    condition_slug=condition.game_slug(),
+                    players=labels,
+                    created=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                )
+                print(f"streaming games live to {base} as tournament '{tid}'")
+
+            def persist_game(record, sequence: int) -> None:
+                assert store is not None and run_id is not None
+                store.save_game_result(run_id, sequence, record)
+                if pusher is not None:
+                    pusher.on_game(record, sequence)
+
+            result = round_robin(
+                entries,
+                args.games,
+                condition,
+                config,
+                eval_engine=eval_engine,
+                openings=openings,
+                completed_games=completed_games,
+                on_game=persist_game,
+                on_move=pusher.on_move if pusher else None,
+            )
+            summary = {
+                "n_games": len(result.games),
+                "standings": [
+                    {
+                        **asdict(standing),
+                        "games": standing.games,
+                        "score": standing.score,
+                    }
+                    for standing in result.standings
+                ],
+            }
+            store.finalize_run(handle.run_id, summary)
+            store.close()
+            store = None
+    except BaseException as exc:
+        if store is not None:
+            if run_id is not None:
+                store.mark_partial(run_id, str(exc))
+            store.close()
+        raise
 
     print(format_tournament(result))
     if args.pgn_out:
         with open(args.pgn_out, "w", encoding="utf-8") as f:
             f.write(result.pgns())
         print(f"\nwrote {len(result.games)} game PGNs -> {args.pgn_out}")
-    if args.save or pusher:
-        from .store import TournamentRecord, json_safe, save_tournament
-
-        record = TournamentRecord(result, condition, args.max_plies)
-        if args.save:
-            save_tournament(record, args.save)
-            print(f"saved tournament -> {args.save}")
-        if pusher:
-            final_doc = json_safe(record.to_dict())
-            assert isinstance(final_doc, dict)
-            pusher.push_final(final_doc)  # flip the live view to the final points table
-            print("pushed final standings to the backend")
+    record = TournamentRecord(result, condition, args.max_plies)
+    if args.save:
+        save_tournament(record, args.save)
+        print(f"saved tournament -> {args.save}")
+    if pusher:
+        final_doc = json_safe(record.to_dict())
+        assert isinstance(final_doc, dict)
+        pusher.push_final(final_doc)  # flip the live view to the final points table
+        print("pushed final standings to the backend")
     return 0
 
 
 def _add_condition_args(p: argparse.ArgumentParser) -> None:
     # Mode presets (override the individual axes below). Default run = MODE 2.
-    p.add_argument("--mode", type=int, default=None, choices=[1, 2, 3, 4],
-                   help="1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line")
+    p.add_argument(
+        "--mode",
+        type=int,
+        default=None,
+        choices=[1, 2, 3, 4],
+        help="1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line",
+    )
     # Individual axes default to MODE 2 (hand-holding: legal moves in SAN & UCI).
-    p.add_argument("--legality", default="legal_list", choices=[e.value for e in Legality])
-    p.add_argument("--representation", default="fen_pieces", choices=[e.value for e in Representation])
+    p.add_argument(
+        "--legality", default="legal_list", choices=[e.value for e in Legality]
+    )
+    p.add_argument(
+        "--representation",
+        default="fen_pieces",
+        choices=[e.value for e in Representation],
+    )
     p.add_argument("--notation", default="uci", choices=[e.value for e in Notation])
-    p.add_argument("--prompt-style", dest="prompt_style", default="minimal",
-                   choices=[e.value for e in PromptStyle])
+    p.add_argument(
+        "--prompt-style",
+        dest="prompt_style",
+        default="minimal",
+        choices=[e.value for e in PromptStyle],
+    )
     p.add_argument("--retry-attempts", type=int, default=3)
-    p.add_argument("--otb-limit", dest="otb_limit", type=int, default=2,
-                   help="Nth cumulative illegal move that forfeits under --legality otb")
+    p.add_argument(
+        "--otb-limit",
+        dest="otb_limit",
+        type=int,
+        default=2,
+        help="Nth cumulative illegal move that forfeits under --legality otb",
+    )
     response = p.add_mutually_exclusive_group()
     response.add_argument(
-        "--rationale", "--explain", dest="explain", action="store_true", default=True,
+        "--rationale",
+        "--explain",
+        dest="explain",
+        action="store_true",
+        default=True,
         help="request the canonical JSON move + rationale response (default)",
     )
     response.add_argument(
-        "--move-only", dest="explain", action="store_false",
+        "--move-only",
+        dest="explain",
+        action="store_false",
         help="legacy output ablation: request only a move, without JSON or rationale",
     )
-    p.add_argument("--temperature", type=float, default=1.0,
-                   help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.")
-    p.add_argument("--reasoning", default=None,
-                   choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
-                   help="for reasoning models: how hard to think (adds a reasoning axis to the run)")
-    p.add_argument("--reasoning-tokens", dest="reasoning_tokens", type=int, default=None,
-                   help="exact thinking-token budget; cannot be combined with --reasoning")
-    p.add_argument("--max-output-tokens", dest="max_output_tokens", type=int, default=2048,
-                   help="maximum output tokens, tracked as part of the model variant")
+    p.add_argument(
+        "--response-protocol",
+        default=ResponseProtocol.JSON_SCHEMA_V1.value,
+        choices=[protocol.value for protocol in ResponseProtocol],
+        help=(
+            "JSON response enforcement: strict API JSON Schema (default) or the "
+            "versioned prompt-only compatibility protocol"
+        ),
+    )
+    p.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="sampling temperature; default 1.0 (models' native default). Use 0.0 for deterministic runs.",
+    )
+    p.add_argument(
+        "--reasoning",
+        default=None,
+        choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+        help="for reasoning models: how hard to think (adds a reasoning axis to the run)",
+    )
+    p.add_argument(
+        "--reasoning-tokens",
+        dest="reasoning_tokens",
+        type=int,
+        default=None,
+        help="exact thinking-token budget; cannot be combined with --reasoning",
+    )
+    p.add_argument(
+        "--max-output-tokens",
+        dest="max_output_tokens",
+        type=int,
+        default=2048,
+        help="maximum output tokens, tracked as part of the model variant",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -695,56 +1200,135 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("puzzles", help="run the puzzle track")
-    p.add_argument("--agent", default="random",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter", "openrouter-vision"])
+    p.add_argument(
+        "--agent",
+        default="random",
+        choices=[
+            "random",
+            "first_legal",
+            "stockfish",
+            "anthropic",
+            "openai",
+            "openrouter",
+            "openrouter-vision",
+        ],
+    )
     p.add_argument("--model", default=None, help="model id for LLM agents")
     p.add_argument("--data", default=str(DEFAULT_DATA))
-    p.add_argument("--suite", default=None, help="run a frozen suite (same items for every model) instead of --data")
+    p.add_argument(
+        "--suite",
+        default=None,
+        help="run a frozen suite (same items for every model) instead of --data",
+    )
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--nodes", type=int, default=200_000, help="Stockfish node limit")
     _add_condition_args(p)
-    p.add_argument("--log", default=None, help="write per-puzzle results to this JSONL file")
-    p.add_argument("--save-run", dest="save_run", default=None,
-                   help="write a full run record JSON (for the web app) to this path")
-    p.add_argument("--progress", type=int, default=0, help="print progress every N puzzles")
+    p.add_argument(
+        "--log", default=None, help="write per-puzzle results to this JSONL file"
+    )
+    p.add_argument(
+        "--save-run",
+        dest="save_run",
+        default=None,
+        help="write a full run record JSON (for the web app) to this path",
+    )
+    p.add_argument(
+        "--progress", type=int, default=0, help="print progress every N puzzles"
+    )
     p.set_defaults(func=cmd_puzzles)
 
     g = sub.add_parser("play", help="run the game track (agent vs agent)")
-    g.add_argument("--white", default="stockfish",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
-    g.add_argument("--black", default="random",
-                   choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
+    g.add_argument(
+        "--white",
+        default="stockfish",
+        choices=[
+            "random",
+            "first_legal",
+            "stockfish",
+            "anthropic",
+            "openai",
+            "openrouter",
+        ],
+    )
+    g.add_argument(
+        "--black",
+        default="random",
+        choices=[
+            "random",
+            "first_legal",
+            "stockfish",
+            "anthropic",
+            "openai",
+            "openrouter",
+        ],
+    )
     g.add_argument("--white-model", default=None)
     g.add_argument("--black-model", default=None)
     g.add_argument("--games", type=int, default=1)
     g.add_argument("--max-plies", type=int, default=200)
     g.add_argument("--seed", type=int, default=0)
-    g.add_argument("--sf-nodes", type=int, default=100_000, help="node limit for stockfish players")
-    g.add_argument("--sf-skill", type=int, default=3, help="Stockfish Skill Level 0-20 for stockfish players")
-    g.add_argument("--context-mode", dest="context_mode", default="fresh",
-                   choices=[e.value for e in ContextMode])
+    g.add_argument(
+        "--sf-nodes", type=int, default=100_000, help="node limit for stockfish players"
+    )
+    g.add_argument(
+        "--sf-skill",
+        type=int,
+        default=3,
+        help="Stockfish Skill Level 0-20 for stockfish players",
+    )
+    g.add_argument(
+        "--context-mode",
+        dest="context_mode",
+        default="fresh",
+        choices=[e.value for e in ContextMode],
+    )
     _add_condition_args(g)
     g.set_defaults(legality="retry", context_mode="hybrid")
     g.add_argument("--pgn-out", default=None, help="write game PGNs to this file")
     g.set_defaults(func=cmd_play)
 
     c = sub.add_parser("composed", help="run the composed/esoteric track")
-    c.add_argument("--solver", default="oracle",
-                   choices=["oracle", "random", "anthropic", "openai", "openrouter"])
+    c.add_argument(
+        "--solver",
+        default="oracle",
+        choices=["oracle", "random", "anthropic", "openai", "openrouter"],
+    )
     c.add_argument("--model", default=None, help="model id for LLM solvers")
     c.add_argument("--data", default=str(DEFAULT_COMPOSED))
-    c.add_argument("--suite", default=None,
-                   help="run a frozen composed suite instead of the mutable --data source")
+    c.add_argument(
+        "--suite",
+        default=None,
+        help="run a frozen composed suite instead of the mutable --data source",
+    )
     c.add_argument("--seed", type=int, default=0)
-    c.add_argument("--sf-nodes", type=int, default=120_000, help="engine nodes for study adjudication")
-    c.add_argument("--save-run", dest="save_run", default=None,
-                   help="write a composed-run JSON (per-problem model results) for the web app")
+    c.add_argument(
+        "--sf-nodes",
+        type=int,
+        default=120_000,
+        help="engine nodes for study adjudication",
+    )
+    c.add_argument(
+        "--save-run",
+        dest="save_run",
+        default=None,
+        help="write a composed-run JSON (per-problem model results) for the web app",
+    )
+    c.add_argument(
+        "--db", default="runs/chessbench.db", help="durable local benchmark database"
+    )
+    c.add_argument(
+        "--force", action="store_true", help="create an explicit replicate run"
+    )
     _add_condition_args(c)
     c.set_defaults(func=cmd_composed)
 
-    sb = sub.add_parser("suite", help="build a frozen benchmark suite (identical items for every model)")
-    sb.add_argument("--source", required=True, help="puzzle source CSV/JSON to sample from")
+    sb = sub.add_parser(
+        "suite", help="build a frozen benchmark suite (identical items for every model)"
+    )
+    sb.add_argument(
+        "--source", required=True, help="puzzle source CSV/JSON to sample from"
+    )
     sb.add_argument("--name", required=True)
     sb.add_argument("--version", default="1")
     sb.add_argument("--visibility", default="public", choices=["public", "private"])
@@ -754,53 +1338,139 @@ def main(argv: list[str] | None = None) -> int:
     sb.add_argument("--out", required=True)
     sb.set_defaults(func=cmd_suite_build)
 
-    lb = sub.add_parser("leaderboard", help="points for several models on the SAME suite")
+    lb = sub.add_parser(
+        "leaderboard", help="points for several models on the SAME suite"
+    )
     lb.add_argument("--suite", required=True)
-    lb.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
+    lb.add_argument(
+        "--provider",
+        default="openrouter",
+        choices=["openrouter", "openai", "anthropic"],
+    )
     lb.add_argument("--models", required=True, help="comma-separated model ids")
-    lb.add_argument("--legalities", default=None,
-                    help="comma-separated legality settings to sweep (points per setting); defaults to --legality")
-    lb.add_argument("--include-baselines", dest="include_baselines", action="store_true",
-                    help="also run random + stockfish for reference")
+    lb.add_argument(
+        "--legalities",
+        default=None,
+        help="comma-separated legality settings to sweep (points per setting); defaults to --legality",
+    )
+    lb.add_argument(
+        "--include-baselines",
+        dest="include_baselines",
+        action="store_true",
+        help="also run random + stockfish for reference",
+    )
     lb.add_argument("--sf-nodes", type=int, default=200_000)
     _add_condition_args(lb)
     lb.set_defaults(func=cmd_leaderboard)
 
     t = sub.add_parser("tournament", help="round-robin among LLMs -> match points")
-    t.add_argument("--models", default="", help="comma-separated model ids (empty = baselines only)")
-    t.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
-    t.add_argument("--games", type=int, default=2, help="games per pair (colors alternate)")
+    t.add_argument(
+        "--models",
+        default="",
+        help="comma-separated model ids (empty = baselines only)",
+    )
+    t.add_argument(
+        "--provider",
+        default="openrouter",
+        choices=["openrouter", "openai", "anthropic"],
+    )
+    t.add_argument(
+        "--games", type=int, default=2, help="games per pair (colors alternate)"
+    )
     t.add_argument("--max-plies", type=int, default=200)
     t.add_argument("--seed", type=int, default=0)
-    t.add_argument("--include-random", dest="include_random", action="store_true", help="add a random baseline")
-    t.add_argument("--include-stockfish", dest="include_stockfish", action="store_true",
-                   help="add a Stockfish baseline to the match-points table")
+    t.add_argument(
+        "--include-random",
+        dest="include_random",
+        action="store_true",
+        help="add a random baseline",
+    )
+    t.add_argument(
+        "--include-stockfish",
+        dest="include_stockfish",
+        action="store_true",
+        help="add a Stockfish baseline to the match-points table",
+    )
     t.add_argument("--sf-nodes", type=int, default=100_000)
     t.add_argument("--sf-skill", type=int, default=3)
-    t.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
+    t.add_argument(
+        "--context-mode",
+        dest="context_mode",
+        default="fresh",
+        choices=[e.value for e in ContextMode],
+    )
     t.add_argument("--pgn-out", default=None)
-    t.add_argument("--save", default=None, help="save a tournament record JSON (for the web games viewer)")
-    t.add_argument("--stream", action="store_true",
-                   help="stream games live to the backend as they play (needs CHESSBENCH_API + "
-                        "CHESSBENCH_INGEST_TOKEN env); durable per-game, watchable per-move")
-    t.add_argument("--tid", default=None, help="tournament id for --stream (defaults to the --save basename)")
-    t.add_argument("--eval-moves", dest="eval_moves", action="store_true",
-                   help="Stockfish-evaluate each move (per-move centipawns / accuracy)")
-    t.add_argument("--openings", default="none", choices=["book", "none"],
-                   help="diversify games from an opening book vs the standard start (default). "
-                        "At temperature 1.0 games self-diversify, so the book is opt-in.")
+    t.add_argument(
+        "--save",
+        default=None,
+        help="save a tournament record JSON (for the web games viewer)",
+    )
+    t.add_argument(
+        "--db", default="runs/chessbench.db", help="durable local benchmark database"
+    )
+    t.add_argument(
+        "--force", action="store_true", help="create an explicit replicate run"
+    )
+    t.add_argument(
+        "--stream",
+        action="store_true",
+        help="stream games live to the backend as they play (needs CHESSBENCH_API + "
+        "CHESSBENCH_INGEST_TOKEN env); durable per-game, watchable per-move",
+    )
+    t.add_argument(
+        "--tid",
+        default=None,
+        help="tournament id for --stream (defaults to the --save basename)",
+    )
+    t.add_argument(
+        "--eval-moves",
+        dest="eval_moves",
+        action="store_true",
+        help="Stockfish-evaluate each move (per-move centipawns / accuracy)",
+    )
+    t.add_argument(
+        "--openings",
+        default="none",
+        choices=["book", "none"],
+        help="diversify games from an opening book vs the standard start (default). "
+        "At temperature 1.0 games self-diversify, so the book is opt-in.",
+    )
     _add_condition_args(t)
     t.set_defaults(legality="retry", context_mode="hybrid")
     t.set_defaults(func=cmd_tournament)
 
-    e = sub.add_parser("export", help="write data/index.json listing run records for the web app")
+    e = sub.add_parser(
+        "export", help="rebuild puzzle, esoteric, and game indexes for the web app"
+    )
     e.add_argument("--runs-dir", dest="runs_dir", default="web/public/data/runs")
     e.add_argument("--out", default="web/public/data/index.json")
     e.set_defaults(func=cmd_export)
 
     sp = sub.add_parser("sprt", help="A-vs-B with sequential early stopping (SPRT)")
-    sp.add_argument("--a", default="openrouter", choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
-    sp.add_argument("--b", default="random", choices=["random", "first_legal", "stockfish", "anthropic", "openai", "openrouter"])
+    sp.add_argument(
+        "--a",
+        default="openrouter",
+        choices=[
+            "random",
+            "first_legal",
+            "stockfish",
+            "anthropic",
+            "openai",
+            "openrouter",
+        ],
+    )
+    sp.add_argument(
+        "--b",
+        default="random",
+        choices=[
+            "random",
+            "first_legal",
+            "stockfish",
+            "anthropic",
+            "openai",
+            "openrouter",
+        ],
+    )
     sp.add_argument("--a-model", dest="a_model", default=None)
     sp.add_argument("--b-model", dest="b_model", default=None)
     sp.add_argument("--elo0", type=float, default=0.0, help="H0: A's Elo edge <= this")
@@ -813,45 +1483,74 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--seed", type=int, default=0)
     sp.add_argument("--sf-nodes", type=int, default=100_000)
     sp.add_argument("--sf-skill", type=int, default=3)
-    sp.add_argument("--context-mode", dest="context_mode", default="fresh", choices=[e.value for e in ContextMode])
+    sp.add_argument(
+        "--context-mode",
+        dest="context_mode",
+        default="fresh",
+        choices=[e.value for e in ContextMode],
+    )
     _add_condition_args(sp)
     sp.set_defaults(legality="retry", context_mode="hybrid")
     sp.set_defaults(func=cmd_sprt)
 
-    cl = sub.add_parser("category-leaderboard", help="per-category rankings from saved run records")
+    cl = sub.add_parser(
+        "category-leaderboard", help="per-category rankings from saved run records"
+    )
     cl.add_argument("--runs-dir", dest="runs_dir", default="web/public/data/runs")
-    cl.add_argument("--dim", default=None,
-                    choices=["tier", "phase", "motif", "mate_pattern", "goal", "length"],
-                    help="restrict to one category dimension")
+    cl.add_argument(
+        "--dim",
+        default=None,
+        choices=["tier", "phase", "motif", "mate_pattern", "goal", "length"],
+        help="restrict to one category dimension",
+    )
     cl.add_argument("--min-n", dest="min_n", type=int, default=3)
     cl.set_defaults(func=cmd_category_leaderboard)
 
     m = sub.add_parser("models", help="model registry (list / add)")
     m.add_argument("models_action", nargs="?", default="list", choices=["list", "add"])
     m.add_argument("--label")
-    m.add_argument("--provider", default="openrouter", choices=["openrouter", "openai", "anthropic"])
+    m.add_argument(
+        "--provider",
+        default="openrouter",
+        choices=["openrouter", "openai", "anthropic"],
+    )
     m.add_argument("--model-id", dest="model_id")
     m.add_argument("--family", default="")
     m.add_argument("--notes", default="")
     m.set_defaults(func=cmd_models)
 
-    rmp = sub.add_parser("run-model", help="run a registry model through a suite (incremental, saves a run record)")
-    rmp.add_argument("--model", required=True, help="registry label (see `chessbench models`)")
+    rmp = sub.add_parser(
+        "run-model",
+        help="run a registry model through a suite (incremental, saves a run record)",
+    )
+    rmp.add_argument(
+        "--model", required=True, help="registry label (see `chessbench models`)"
+    )
     rmp.add_argument("--suite", required=True)
     rmp.add_argument("--out-dir", dest="out_dir", default="webapp/data/runs")
-    rmp.add_argument("--db", default="runs/chessbench.db",
-                     help="durable local outbox/database (syncs to Cloudflare separately)")
-    rmp.add_argument("--force", action="store_true", help="recompute even if the run file exists")
+    rmp.add_argument(
+        "--db",
+        default="runs/chessbench.db",
+        help="durable local outbox/database (syncs to Cloudflare separately)",
+    )
+    rmp.add_argument(
+        "--force", action="store_true", help="recompute even if the run file exists"
+    )
     rmp.add_argument("--progress", type=int, default=10)
     _add_condition_args(rmp)
     rmp.set_defaults(func=cmd_run_model)
 
-    wp = sub.add_parser("woodpecker", help="run puzzles as one-shot complete variations")
-    wp.add_argument("--agent", default="openrouter",
-                    choices=["anthropic", "openai", "openrouter"])
+    wp = sub.add_parser(
+        "woodpecker", help="run puzzles as one-shot complete variations"
+    )
+    wp.add_argument(
+        "--agent", default="openrouter", choices=["anthropic", "openai", "openrouter"]
+    )
     wp.add_argument("--model", default=None, help="model id for the LLM agent")
     wp.add_argument("--data", default=str(DEFAULT_DATA))
-    wp.add_argument("--suite", default=None, help="run a frozen suite instead of --data")
+    wp.add_argument(
+        "--suite", default=None, help="run a frozen suite instead of --data"
+    )
     wp.add_argument("--limit", type=int, default=None)
     wp.add_argument("--seed", type=int, default=0)
     wp.add_argument("--nodes", type=int, default=200_000)
@@ -862,7 +1561,10 @@ def main(argv: list[str] | None = None) -> int:
     wp.set_defaults(func=cmd_woodpecker)
 
     args = parser.parse_args(argv)
-    if getattr(args, "reasoning", None) is not None and getattr(args, "reasoning_tokens", None) is not None:
+    if (
+        getattr(args, "reasoning", None) is not None
+        and getattr(args, "reasoning_tokens", None) is not None
+    ):
         parser.error("--reasoning and --reasoning-tokens are mutually exclusive")
     return args.func(args)
 

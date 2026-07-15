@@ -98,17 +98,41 @@ results to a canonical leaderboard.
 | `suites/private/tactical-private-v1.json` | Private | 1,000 | `sha256:510a0dd0400b2e30` | Superseded generated set |
 | `suites/private/tactical-private-cal-v1.json` | Private | 1,000 | `sha256:ea8c9b5d565a02a6` | Superseded calibration set |
 
+The following content-addressed integration suites are intentionally tiny but derived from canonical public
+parents. They test paid provider calls and every public suite grader without claiming headline scores:
+
+| Suite | Items | Content hash | Coverage |
+| --- | ---: | --- | --- |
+| `suites/public/standard-smoke-v1.json` | 12 | `sha256:6a13da8035f65a2c` | Two puzzles in each Standard rating band |
+| `suites/public/woodpecker-smoke-v1.json` | 10 | `sha256:4a2fb14e424a258c` | Two puzzles in each master-game rating band |
+| `suites/public/esoteric-smoke-v1.json` | 7 | `sha256:70fb0097ee520bae` | One problem in every public esoteric genre |
+
 ## Initial model smoke-test plan
 
 Before paying for full canonical runs, use a bounded subset to verify provider compatibility, structured response
-parsing, reasoning accounting, checkpoint/resume behavior, all graders, JSON export, and Cloudflare sync. For
-`openai/gpt-5.6-luna` at low reasoning, the first pass should cover:
+parsing, reasoning accounting, checkpoint/resume behavior, the public suite graders, JSON export, and Cloudflare
+sync. The first pass evaluates both `openai/gpt-5.6-luna` and `anthropic/claude-haiku-4.5` through OpenRouter with
+normalized reasoning effort `low`. The output protocol cap is 2,048 tokens; it is not a dollar budget or an
+early-stop rule.
 
-1. Standard Mode 1, Mode 2, and Mode 3 on a small deterministic slice.
-2. Woodpecker Mode 4 on a small deterministic slice.
-3. Public esoteric examples spanning every represented genre.
-4. A short two-color game match against a deterministic baseline.
-5. Resume one interrupted run and verify that already-paid items are not called again.
+| Track | Suite/configuration | Prompt modes | Evaluations per model |
+| --- | --- | --- | ---: |
+| Standard | `standard-smoke-v1` | Modes 1, 2, and 3 as independent runs | 36 puzzle attempts |
+| Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 10 full-line attempts |
+| Esoteric | `esoteric-smoke-v1` | Mode 3 | 7 genre-specific attempts |
+| Games | Normal starting position; no opening book | Modes 1, 2, and 3 | 2 games per mode, colors alternating |
 
-Only after those checks pass should the full public suites run. Held-out suites are last, and their item payloads
-remain sealed in public dashboard reads and exports.
+This is 53 puzzle/composition evaluations per model. Because Standard is move-by-move, its 12 fixtures contain
+32 possible solver turns; the puzzle and composition portion makes at most 113 model requests per model (226 total)
+if every Standard line reaches every turn, plus however many turns the six games require. Games use `hybrid`
+context, a 200-ply ceiling, and two independent player conversations. Each player receives the authoritative current
+position and public move history but never the other player's raw response or rationale.
+
+For this match matrix, Mode 1 uses `free_form`, so one illegal move forfeits; Modes 2 and 3 provide the legal-move
+list. The separate `retry` and `otb` legality policies remain explicit game ablations and are not silently mixed into
+these six games.
+
+As a durability check, interrupt and resume at least one suite run and verify that already-persisted item IDs are
+skipped in canonical suite order. Only after every smoke cell passes should the same two variants continue through
+the full public matrix: Standard under Modes 1–3, Woodpecker under Mode 4, and Esoteric under Mode 3. Held-out suites
+are last, and their item payloads remain sealed in public dashboard reads and exports.

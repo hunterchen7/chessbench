@@ -86,6 +86,17 @@ python3 -m chessbench puzzles --suite suites/public/woodpecker-public-v1.json --
 python3 -m chessbench composed --suite suites/public/esoteric-seed-v1.json
 ```
 
+After saving static run JSON, rebuild the dashboard discovery indexes:
+
+```bash
+python3 -m chessbench export \
+  --runs-dir web/public/data/runs \
+  --out web/public/data/index.json
+```
+
+The export command deterministically indexes puzzle, esoteric/composed, and tournament files beneath the same
+`data/` directory. It ignores `index.json`, malformed JSON, and documents with the wrong run schema.
+
 ## Durable architecture
 
 ```text
