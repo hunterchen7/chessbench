@@ -124,7 +124,7 @@ Python runner ──transaction per completed item──▶ local SQLite outbox
                                                      └── filtered JSON export
 ```
 
-Local SQLite uses WAL mode and commits each paid result together with its progress counter. If credits run out or the process is interrupted, rerunning the same model × suite × condition skips completed items. The sync script marks each D1 delivery independently, so failed uploads remain queued.
+Local SQLite uses WAL mode and commits each paid result together with its progress counter. An OS-released executor lock prevents two local processes from issuing the same next paid call for one natural-key run; even an abrupt process death releases it immediately. If credits run out or the process is interrupted, rerunning the same model × suite × condition skips completed items. The sync script marks each D1 delivery independently, so failed uploads remain queued.
 
 Cloudflare serves the Vite dashboard and Worker API from one origin. D1 stores normalized run manifests, incremental item results, events, tournaments, live boards, and per-attempt game transcripts. The dashboard index fetches lightweight manifests first and lazy-loads item payloads only on detail routes.
 

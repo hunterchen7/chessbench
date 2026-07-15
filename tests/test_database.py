@@ -1,9 +1,11 @@
 import sqlite3
+import subprocess
+import sys
 
 import pytest
 
 from chessbench.conditions import mode_condition
-from chessbench.database import BenchmarkStore, RunSpec
+from chessbench.database import BenchmarkStore, RunBusyError, RunSpec
 from chessbench.report import build_report
 from chessbench.tasks.games import GameRecord, MoveAttempt, MoveRecord
 from chessbench.tasks.puzzles import Puzzle, PuzzleResult
@@ -81,6 +83,63 @@ def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
         assert resumed.completed_items == 1
         assert list(store.load_puzzle_results(first.run_id)) == ["p1"]
         assert store.run_row(first.run_id)["cost_usd"] == 0.01
+
+
+def test_executor_lock_rejects_concurrent_paid_runner_and_releases_on_close(tmp_path):
+    path = tmp_path / "locked.db"
+    first = BenchmarkStore(path)
+    second = BenchmarkStore(path)
+    try:
+        run = first.start_run(_spec())
+        acquired = first.acquire_run_lock(run.run_id)
+        assert first.acquire_run_lock(run.run_id) is acquired
+
+        resumed = second.start_run(_spec())
+        assert resumed.run_id == run.run_id
+        with pytest.raises(RunBusyError, match="already executing"):
+            second.acquire_run_lock(run.run_id)
+
+        first.close()
+        takeover = second.acquire_run_lock(run.run_id)
+        assert not takeover.closed
+    finally:
+        first.close()
+        second.close()
+
+
+def test_executor_lock_is_released_after_abrupt_process_death(tmp_path):
+    path = tmp_path / "killed.db"
+    with BenchmarkStore(path) as store:
+        run = store.start_run(_spec())
+        child = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import sys,time; "
+                    "from chessbench.database import BenchmarkStore; "
+                    "store=BenchmarkStore(sys.argv[1]); "
+                    "store.acquire_run_lock(sys.argv[2]); "
+                    "print('locked', flush=True); time.sleep(60)"
+                ),
+                str(path),
+                run.run_id,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            assert child.stdout is not None
+            assert child.stdout.readline().strip() == "locked"
+            with pytest.raises(RunBusyError):
+                store.acquire_run_lock(run.run_id)
+        finally:
+            child.kill()
+            child.wait(timeout=10)
+
+        takeover = store.acquire_run_lock(run.run_id)
+        assert not takeover.closed
 
 
 def test_run_only_completes_after_all_items_are_persisted(tmp_path):

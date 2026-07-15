@@ -10,13 +10,16 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sqlite3
 import uuid
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, IO, Iterator
+
+import fcntl
 
 from .conditions import Condition
 from .report import PuzzleReport
@@ -68,6 +71,42 @@ class RunHandle:
     status: str
     completed_items: int
     resumed: bool
+
+
+class RunBusyError(RuntimeError):
+    """Raised before paid work when another process owns the same run."""
+
+
+class RunExecutionLock:
+    """Process-scoped advisory lock for one durable natural-key run.
+
+    The descriptor stays open for the complete executor lifetime. ``flock`` is
+    released by the kernel on normal close *and* abrupt process termination, so
+    a killed runner cannot leave a stale lease that blocks an immediate resume.
+    """
+
+    def __init__(self, run_id: str, path: Path, file: IO[str]) -> None:
+        self.run_id = run_id
+        self.path = path
+        self._file = file
+
+    @property
+    def closed(self) -> bool:
+        return self._file.closed
+
+    def close(self) -> None:
+        if self._file.closed:
+            return
+        try:
+            fcntl.flock(self._file.fileno(), fcntl.LOCK_UN)
+        finally:
+            self._file.close()
+
+    def __enter__(self) -> "RunExecutionLock":
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
 
 
 _SCHEMA = """
@@ -257,6 +296,7 @@ class BenchmarkStore:
         self._db.execute("PRAGMA foreign_keys = ON")
         self._db.execute("PRAGMA journal_mode = WAL")
         self._db.execute("PRAGMA synchronous = FULL")
+        self._run_locks: dict[str, RunExecutionLock] = {}
         self._migrate()
 
     def __enter__(self) -> "BenchmarkStore":
@@ -266,7 +306,55 @@ class BenchmarkStore:
         self.close()
 
     def close(self) -> None:
+        for lock in self._run_locks.values():
+            lock.close()
+        self._run_locks.clear()
         self._db.close()
+
+    def acquire_run_lock(self, run_id: str) -> RunExecutionLock:
+        """Prevent concurrent executors from duplicating paid provider calls.
+
+        SQLite transactions make writes exact-once, but they cannot by
+        themselves protect the time between reading a checkpoint and receiving
+        the next provider response. The official paid runners hold this lock
+        across that whole interval. The persistent file is only an inode for
+        the kernel lock; it is deliberately not deleted on release, avoiding a
+        replace/unlink race between contenders.
+        """
+        existing = self._run_locks.get(run_id)
+        if existing is not None and not existing.closed:
+            return existing
+        present = self._db.execute(
+            "SELECT 1 FROM benchmark_run WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if present is None:
+            raise KeyError(f"unknown run {run_id}")
+
+        lock_dir = self.path.parent / ".locks"
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        database_key = hashlib.sha256(
+            str(self.path.resolve()).encode()
+        ).hexdigest()[:12]
+        path = lock_dir / f"{database_key}--{run_id}.lock"
+        file = path.open("a+", encoding="utf-8")
+        try:
+            fcntl.flock(file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            file.seek(0)
+            owner = file.read().strip() or "another executor"
+            file.close()
+            raise RunBusyError(
+                f"durable run {run_id} is already executing ({owner}); "
+                "wait for it to finish or terminate that runner before resuming"
+            ) from exc
+
+        file.seek(0)
+        file.truncate()
+        file.write(f"pid {os.getpid()}, acquired {_now()}")
+        file.flush()
+        lock = RunExecutionLock(run_id, path, file)
+        self._run_locks[run_id] = lock
+        return lock
 
     def _migrate(self) -> None:
         version = int(self._db.execute("PRAGMA user_version").fetchone()[0])

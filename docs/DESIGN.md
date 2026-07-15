@@ -90,6 +90,12 @@ OpenRouter receives either `reasoning.effort` or `reasoning.max_tokens`, never b
 
 A natural key hashes track, complete model variant, condition, and suite content hash. Reopening an incomplete natural key resumes it; `--force` creates an explicit replicate.
 
+Every official paid CLI holds a non-blocking OS executor lock for the lifetime of
+that run. This closes the read-checkpoint/provider-call race that a SQLite item
+transaction alone cannot cover: a second process exits before making a paid
+call. Kernel lock release on process death permits immediate recovery without a
+stale timeout. `--force` creates a distinct run and therefore a distinct lock.
+
 ### Cloudflare D1
 
 - `model_variants_v2`: display identity and reasoning/output budgets.

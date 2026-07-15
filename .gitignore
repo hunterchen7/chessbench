@@ -24,6 +24,7 @@ logs/
 runs/*.db
 runs/*.db-shm
 runs/*.db-wal
+runs/.locks/
 
 # local API keys
 .env

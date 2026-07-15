@@ -419,6 +419,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
         )
         store.close()
         return 0
+    store.acquire_run_lock(handle.run_id)
     completed = store.load_benchmark_items(handle.run_id)
     print(f"solver: {solver.name} | condition: {condition.slug()}")
     origin = (
@@ -794,6 +795,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         print(f"skip (completed): {variant.label} × {suite.name} × {condition.slug()}")
         store.close()
         return 0
+    store.acquire_run_lock(handle.run_id)
     out = _run_model_output_path(
         out_dir,
         variant_key=variant.key,
@@ -1141,6 +1143,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
             store = BenchmarkStore(args.db)
             handle = store.start_run(spec, force=args.force)
             run_id = handle.run_id
+            store.acquire_run_lock(handle.run_id)
             completed_games = store.load_game_results(handle.run_id)
             in_progress_games = store.load_in_progress_games(handle.run_id)
             print(
