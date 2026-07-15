@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Chess } from "chess.js"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Lightbulb } from "lucide-react"
+import { ArrowLeft, CircleHelp, Lightbulb } from "lucide-react"
 import { STIPULATION_BLURB, STIPULATION_LABEL } from "@/lib/composed"
 import { useComposedData } from "@/lib/useComposedData"
 import { uciLineToSan } from "@/lib/chess"
@@ -9,6 +9,7 @@ import { pct } from "@/lib/format"
 import { participantKind } from "@/lib/participants"
 import { Board } from "@/components/Board"
 import { ComposedAttemptAudit } from "@/components/ComposedAttemptAudit"
+import { StipulationTooltip } from "@/components/StipulationTooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -76,7 +77,11 @@ export function EsotericDetail() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-mono text-2xl font-bold">{p.id}</h1>
-              <Badge variant="secondary">{STIPULATION_LABEL[p.kind]}</Badge>
+              <StipulationTooltip kind={p.kind}>
+                <button type="button" className="cursor-help rounded-full focus-visible:ring-2 focus-visible:ring-ring/60">
+                  <Badge variant="secondary" className="gap-1">{STIPULATION_LABEL[p.kind]} <CircleHelp className="size-3 opacity-60" /></Badge>
+                </button>
+              </StipulationTooltip>
               <Badge variant="outline" className="font-mono">
                 {p.label}
               </Badge>

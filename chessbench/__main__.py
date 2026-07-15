@@ -1301,7 +1301,7 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         choices=[1, 2, 3, 4],
         help="1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line",
     )
-    # Individual axes default to MODE 2 (hand-holding: legal moves in SAN & UCI).
+    # Individual axes default to MODE 2 (hand-holding: legal moves in UCI).
     p.add_argument(
         "--legality", default="legal_list", choices=[e.value for e in Legality]
     )

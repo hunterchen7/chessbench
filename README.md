@@ -19,8 +19,12 @@ Leaderboards rank total points under an identical frozen suite and condition. Th
 The three standard board-information prompts are:
 
 1. **Raw** — FEN and piece locations.
-2. **Assisted** — Raw plus every legal move in SAN and UCI.
+2. **Assisted** — Raw plus every legal move in UCI coordinate notation.
 3. **Coached** — Assisted plus fixed, non-prescriptive chess calculation considerations.
+
+Canonical puzzle prompts never put SAN in a legal-candidate list. SAN appends `+` to checks and `#` to checkmates,
+so a move such as `Qh7#` would disclose a mate-in-one answer. Candidate lists, requested answers, and within-puzzle
+move history use UCI under prompt contract `uci_candidates_v1`; that version is included in every condition slug.
 
 Response style is a separate axis. It never changes the Mode 1–3 numbering:
 
@@ -60,16 +64,21 @@ The checked-in releases contain fast development seeds and the first full-dump p
 | `woodpecker-seed-v1` | 60 | 12 per band, at least two solver moves, disjoint from Standard |
 | `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
 | `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
-| `standard-lichess-v2` | 300 | 50 positions in each of six 400-point bands from the complete snapshot |
-| `woodpecker-masters-v1` | 125 | 25 per band, titled-player games and at least three solver moves |
+| `standard-lichess-v2` | 325 | 300-item calibrated core plus 25 adaptively gated 3000+ puzzles |
+| `woodpecker-masters-v1` | 136 | 50 Easy, 50 Medium, 36 Hard; long titled-game lines plus one historic classic |
 | `esoteric-seed-v1` | 50 | Native-verifier-passing non-study compositions with unique starting positions |
 
-The Standard and Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams all
-6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
-Woodpecker release is restricted to puzzles from titled-player games. The older seed uses the repository's 500-row
+The Standard and most Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
+all 6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
+Lichess Woodpecker material is restricted to puzzles from titled-player games; the public Hard section also contains
+the explicitly sourced Deep Blue–Kasparov 1997 game-two analysis challenge. The older seed uses the repository's 500-row
 fixture. Esoteric combines a checked-in development seed with private YACPDB imports and freshly generated
 compositions certified by Popeye plus the native verifier. See
 [the private-corpus MVP](docs/private-corpus-mvp.md) for the sealed release workflow.
+
+The original [*Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540)
+trains by solving a fixed puzzle set repeatedly and faster. ChessBench borrows the one-shot full-line recall pressure,
+but does not train a model across cycles or share state between repetitions.
 
 Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
 item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`
@@ -91,8 +100,8 @@ python3 scripts/build_corpora.py \
 Run each frozen collection:
 
 ```bash
-python3 -m chessbench puzzles --suite suites/public/standard-public-v1.json --mode 2
-python3 -m chessbench puzzles --suite suites/public/woodpecker-public-v1.json --mode 4
+python3 -m chessbench puzzles --suite suites/public/standard-lichess-v2.json --mode 2
+python3 -m chessbench puzzles --suite suites/public/woodpecker-masters-v1.json --mode 4
 python3 -m chessbench composed --suite suites/public/esoteric-seed-v1.json
 ```
 
@@ -184,7 +193,7 @@ For the full Standard 3 × 2 matrix, repeat that pair under Modes 1, 2, and 3. T
 `plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
 
 The frozen Luna/Haiku low-reasoning public campaign contains 20 durable cells
-and 4,300 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
+and 4,644 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
 exact matrix, dry-run validation, and resumable launcher are documented in
 [`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
 The paired public game campaign adds six color-balanced conditions across Modes

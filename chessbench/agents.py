@@ -42,6 +42,7 @@ class MoveContext:
 
     condition: Condition
     history_san: list[str] = field(default_factory=list)
+    history_uci: list[str] = field(default_factory=list)
     illegal_feedback: str | None = None
     last_opponent_move_san: str | None = None
     ply: int = 0
@@ -152,7 +153,7 @@ class LLMAgent:
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         cond = ctx.condition
         prompt = conditions.build_puzzle_prompt(
-            board, cond, ctx.illegal_feedback, history_san=ctx.history_san
+            board, cond, ctx.illegal_feedback, history_uci=ctx.history_uci
         )
         response_format = response_format_for(
             cond.response_protocol, "move", explain=cond.explain

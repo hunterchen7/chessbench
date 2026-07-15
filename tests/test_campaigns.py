@@ -20,7 +20,7 @@ def test_public_campaign_is_complete_and_unique() -> None:
 
     assert len(cells) == 20
     assert len({cell.key for cell in cells}) == len(cells)
-    assert sum(cell.item_count for cell in cells) == 4300
+    assert sum(cell.item_count for cell in cells) == 4644
     assert Counter(cell.track for cell in cells) == {
         "standard": 12,
         "woodpecker": 4,

@@ -1,6 +1,8 @@
+import { AlertTriangle, ExternalLink, FileCode2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
@@ -8,15 +10,82 @@ function Prose({ children }: { children: React.ReactNode }) {
 
 const HELP = [
   ["1", "Raw", "FEN + piece locations", "The model receives the position and must generate a legal move without a candidate list."],
-  ["2", "Assisted", "Raw + SAN/UCI legal moves", "The same task with every legal move supplied, isolating move choice from board-legality tracking."],
+  ["2", "Assisted", "Raw + UCI legal moves", "The same task with every legal move supplied as unannotated UCI coordinates, isolating move choice from board-legality tracking."],
   ["3", "Coached", "Assisted + chess guidance", "Adds fixed, non-prescriptive calculation considerations covering forcing and quiet play. It is a prompt ablation, not assumed to be stronger."],
+] as const
+
+const PROMPT_TEMPLATES = [
+  {
+    id: "standard",
+    title: "Standard puzzle · move by move",
+    body: `You are solving a chess puzzle. Choose the single best move for the side to move.
+
+FEN: {authoritative current FEN}
+
+Pieces:
+{explicit white and black piece locations}
+
+Side to move: {White|Black}
+
+{Modes 2–3 only} Legal moves [UCI]: a2a3, a2a4, ...
+
+{continuations only} Moves already played in this puzzle [UCI]: {uci moves}
+
+{Mode 3 only: fixed coaching block}
+
+{move_only: Reply with ONLY your move in UCI, no explanation or other text.}
+{json_rationale: strict JSON object with a lowercase UCI move and concise rationale.}`,
+  },
+  {
+    id: "puzzle-system",
+    title: "Stateful puzzle · system message",
+    body: `You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.`,
+  },
+  {
+    id: "woodpecker",
+    title: "Woodpecker · one-shot full line",
+    body: `You are solving a chess puzzle. Choose the single best move for the side to move.
+
+{authoritative FEN, piece list, side to move, UCI legal candidates, and coaching block}
+
+Calculate the complete solution now, including the opponent's forced replies.
+
+{move_only: return every move in legal-play order as a UCI line.}
+{json_rationale: return {"moves":["e2e4","e7e5",...],"rationale":"..."}.}`,
+  },
+  {
+    id: "game",
+    title: "Game · private system and turn messages",
+    body: `SYSTEM
+You are playing a chess game as {White|Black}.
+On each of your turns, choose a single legal move.
+{optional coaching block}
+{move-only or JSON UCI response contract}
+
+USER — canonical hybrid context
+{opponent's last played move on continuations}
+{authoritative current FEN, piece list, side to move}
+{when enabled: Legal moves [UCI]: ...}
+Your move.`,
+  },
+  {
+    id: "esoteric",
+    title: "Esoteric · verifier-specific prompt",
+    body: `You are solving a composed chess problem. Stipulation: {#n|s#n|r#n|h#n|...}.
+
+{plain-language definition of the stipulation}
+
+{authoritative position and optional UCI legal candidates}
+
+{request a UCI key move, complete UCI line, or interactive study move according to answer shape}`,
+  },
 ] as const
 
 export function Methodology() {
   return (
     <div className="space-y-10">
       <header className="max-w-4xl">
-        <Badge variant="outline">Protocol v3</Badge>
+        <Badge variant="outline">Protocol v4 · UCI candidates</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
@@ -32,6 +101,35 @@ export function Methodology() {
             <CardContent><div className="mb-3 font-mono text-xs text-foreground">{tag}</div><p className="text-sm leading-relaxed text-muted-foreground">{description}</p></CardContent>
           </Card>)}
         </div>
+        <Card className="border-amber-500/25 bg-amber-500/[0.045]">
+          <CardContent className="flex gap-3 pt-6">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <h3 className="font-semibold">Why legal candidates are UCI-only</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                SAN is not neutral metadata: <span className="font-mono text-foreground">+</span> labels a checking move and <span className="font-mono text-foreground">#</span> labels checkmate. A mate-in-one candidate such as <span className="font-mono text-foreground">Qh7#</span> therefore reveals the answer before the model calculates it. Canonical candidate lists, requested answers, and within-puzzle move history now use UCI only. The version <span className="font-mono text-foreground">uci_candidates_v1</span> is part of every condition identity, so mixed-SAN results cannot be pooled with this protocol.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div><h2 className="text-xl font-semibold">Prompt source and templates</h2><p className="mt-1 text-sm text-muted-foreground">These show the canonical message shape. Every rendered message is retained verbatim with its run.</p></div>
+          <a href="https://github.com/hunterchen7/chessbench/blob/main/chessbench/conditions.py" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300"><FileCode2 className="size-4" /> Prompt builder source <ExternalLink className="size-3.5" /></a>
+        </div>
+        <Card>
+          <CardContent className="px-5 py-1">
+            <Accordion type="multiple" defaultValue={["standard"]}>
+              {PROMPT_TEMPLATES.map((template) => <AccordionItem key={template.id} value={template.id}>
+                <AccordionTrigger>{template.title}</AccordionTrigger>
+                <AccordionContent><pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-xl border bg-muted/30 p-4 text-xs leading-relaxed">{template.body}</pre></AccordionContent>
+              </AccordionItem>)}
+            </Accordion>
+          </CardContent>
+        </Card>
+        <p className="text-xs text-muted-foreground">Puzzle/game templates live in <span className="font-mono">chessbench/conditions.py</span>; stateful puzzle and game message assembly lives in <span className="font-mono">chessbench/agents.py</span>; composed stipulations live in <span className="font-mono">chessbench/tasks/composed.py</span>.</p>
       </section>
 
       <section className="space-y-4">
@@ -65,7 +163,7 @@ export function Methodology() {
           <CardHeader><CardTitle className="text-base">Puzzle conversation state</CardTitle></CardHeader>
           <CardContent><Prose>
             <p><span className="font-medium text-foreground">No state ever crosses puzzle boundaries.</span> Each puzzle starts a new session.</p>
-            <p>For multi-move standard puzzles, the canonical policy keeps one conversation across solver moves. On every turn it also sends the authoritative current FEN, piece list, legal moves when enabled, and the line so far. This preserves continuity without trusting the model's internal board state.</p>
+            <p>For multi-move standard puzzles, the canonical policy keeps one conversation across solver moves. On every turn it also sends the authoritative current FEN, piece list, UCI legal moves when enabled, and the UCI line so far. This preserves continuity without trusting the model's internal board state.</p>
             <p><span className="font-mono text-foreground">fresh</span> is retained as a named ablation: each solver move is a new request with all required state reconstructed in the prompt.</p>
           </Prose></CardContent>
         </Card>

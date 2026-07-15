@@ -16,14 +16,14 @@ EXPECTED = {
     "standard-smoke-v1": {
         "path": "suites/public/standard-smoke-v1.json",
         "parent": "suites/public/standard-lichess-v2.json",
-        "count": 12,
-        "hash": "sha256:6a13da8035f65a2c",
+        "count": 14,
+        "hash": "sha256:63ca1208b6c74ec6",
     },
     "woodpecker-smoke-v1": {
         "path": "suites/public/woodpecker-smoke-v1.json",
         "parent": "suites/public/woodpecker-masters-v1.json",
-        "count": 10,
-        "hash": "sha256:4a2fb14e424a258c",
+        "count": 6,
+        "hash": "sha256:c5e6a85f93c8a014",
     },
     "esoteric-smoke-v1": {
         "path": "suites/public/esoteric-smoke-v1.json",
@@ -98,12 +98,13 @@ def test_every_smoke_puzzle_solution_line_is_legal():
 def test_standard_smoke_suite_is_small_and_rating_balanced():
     suite = load_suite(ROOT / "suites/public/standard-smoke-v1.json")
     puzzles = suite.puzzles()
-    assert len(puzzles) == 12
-    assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 32
+    assert len(puzzles) == 14
+    assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 40
     assert [
         sum(lo <= puzzle.rating <= lo + 399 for puzzle in puzzles)
-        for lo in range(600, 3000, 400)
+        for lo in range(600, 3200, 400)
     ] == [
+        2,
         2,
         2,
         2,
@@ -116,13 +117,15 @@ def test_standard_smoke_suite_is_small_and_rating_balanced():
 def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
     suite = load_suite(ROOT / "suites/public/woodpecker-smoke-v1.json")
     puzzles = suite.puzzles()
-    assert len(puzzles) == 10
-    assert [
-        sum(lo <= puzzle.rating <= lo + 399 for puzzle in puzzles)
-        for lo in range(1000, 3000, 400)
-    ] == [2, 2, 2, 2, 2]
+    assert len(puzzles) == 6
+    assert Counter(puzzle.difficulty_band for puzzle in puzzles) == {
+        "easy": 2,
+        "medium": 2,
+        "hard": 2,
+    }
     assert all(len(puzzle.moves[1::2]) >= 3 for puzzle in puzzles)
-    assert all(puzzle.game_url.startswith("https://lichess.org/") for puzzle in puzzles)
+    assert "historic-deep-blue-kasparov-1997-g2" in {puzzle.id for puzzle in puzzles}
+    assert all(puzzle.game_url.startswith("https://") for puzzle in puzzles)
 
 
 def test_esoteric_smoke_suite_has_one_of_every_public_genre():

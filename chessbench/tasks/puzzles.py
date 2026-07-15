@@ -52,6 +52,10 @@ class Puzzle:
     opening_tags: str = ""
     source: str = "lichess"
     alternates: list[list[str]] = field(default_factory=list)
+    # Woodpecker is organized as a training set, not as a rating ladder.
+    # Source ratings remain useful provenance, while hand-curated positions can
+    # be explicitly assigned to an editorial section without inventing an Elo.
+    difficulty_band: str = ""
 
     @property
     def solver_is_white(self) -> bool:
@@ -117,6 +121,7 @@ class PuzzleCheckpoint:
     illegal_feedback: str | None
     conversation: list[Message]
     terminal_result: PuzzleResult | None = None
+    history_uci: list[str] = field(default_factory=list)
 
 
 def _turn_record(
@@ -243,6 +248,7 @@ def grade_puzzle(
         board.push(chess.Move.from_uci(puzzle.moves[0]))
         active: list[int] = list(range(len(lines)))
         history_san: list[str] = []
+        history_uci: list[str] = []
         moves_played: list[str] = []
         plies_correct = 0
         illegal_attempts = 0
@@ -273,6 +279,17 @@ def grade_puzzle(
         answer = dict(checkpoint.answer)
         turns = [dict(turn) for turn in checkpoint.turns]
         k = checkpoint.solver_ply
+        history_uci = list(checkpoint.history_uci)
+        if not history_uci and k and active:
+            # Compatibility for a checkpoint created before UCI prompt history
+            # was persisted. Reconstruct completed plies from the viable line.
+            resume_line = lines[active[0]]
+            for previous in range(k):
+                if previous < len(moves_played):
+                    history_uci.append(moves_played[previous])
+                reply_index = previous * 2 + 1
+                if reply_index < len(resume_line):
+                    history_uci.append(resume_line[reply_index])
         attempts_used = checkpoint.attempts_used
         feedback = checkpoint.illegal_feedback
         restore = getattr(agent, "restore_puzzle", None)
@@ -340,6 +357,7 @@ def grade_puzzle(
                 illegal_feedback=feedback,
                 conversation=conversation_snapshot(),
                 terminal_result=current_result,
+                history_uci=list(history_uci),
             )
         )
 
@@ -358,6 +376,7 @@ def grade_puzzle(
             ctx = TurnContext(
                 condition=condition,
                 history_san=list(history_san),
+                history_uci=list(history_uci),
                 illegal_feedback=feedback,
             )
             raw = agent.choose(board, ctx)
@@ -399,6 +418,7 @@ def grade_puzzle(
 
         moves_played.append(uci)
         history_san.append(board.san(chosen))
+        history_uci.append(uci)
         if not viable:
             final = result(False, "wrong_move")
             persist(final)
@@ -414,6 +434,7 @@ def grade_puzzle(
             reply_uci = replies[0]
             reply = chess.Move.from_uci(reply_uci)
             history_san.append(board.san(reply))
+            history_uci.append(reply_uci)
             board.push(reply)
             active = [
                 i

@@ -1,0 +1,31 @@
+[
+ {
+  "id": "historic-deep-blue-kasparov-1997-g2",
+  "fen": "Rr6/5kp1/1qQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 w - - 13 45",
+  "moves": [
+   "a8a6",
+   "b6e3",
+   "c6d6",
+   "b8e8",
+   "h3h4",
+   "h6h5"
+  ],
+  "rating": 0,
+  "rating_deviation": 0,
+  "popularity": 0,
+  "nb_plays": 0,
+  "themes": [
+   "defensiveMove",
+   "deepCalculation",
+   "historic",
+   "master",
+   "unrated",
+   "controversialAnalysis"
+  ],
+  "game_url": "https://www.kasparov.com/timeline-event/deep-blue/",
+  "opening_tags": "Ruy Lopez: Closed, Smyslov Defense; 1997 Deep Blue rematch, game 2",
+  "source": "historic-game",
+  "alternates": [],
+  "difficulty_band": "hard"
+ }
+]

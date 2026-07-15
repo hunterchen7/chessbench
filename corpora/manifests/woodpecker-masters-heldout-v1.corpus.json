@@ -6,11 +6,11 @@
  "track": "woodpecker",
  "visibility": "private",
  "item_type": "puzzle",
- "items": 125,
- "content_hash": "sha256:e267ae24490d085f201b",
+ "items": 135,
+ "content_hash": "sha256:1f12d8179825576cb7b7",
  "validation": {
   "valid": true,
-  "unique_ids": 125,
-  "unique_positions": 125
+  "unique_ids": 135,
+  "unique_positions": 135
  }
 }

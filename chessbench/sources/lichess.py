@@ -12,6 +12,8 @@ from typing import IO, Iterator
 from ..tasks.puzzles import Puzzle
 
 MASTER_THEMES = frozenset({"master", "masterVsMaster", "superGM"})
+MAX_RATING_DEVIATION_EXCLUSIVE = 100
+MIN_CALIBRATION_PLAYS_EXCLUSIVE = 500
 
 
 @contextmanager
@@ -66,9 +68,9 @@ def iter_lichess_puzzles(path: str | Path) -> Iterator[Puzzle]:
 def standard_candidate(puzzle: Puzzle) -> bool:
     return (
         600 <= puzzle.rating < 3000
-        and puzzle.rating_deviation <= 100
+        and puzzle.rating_deviation < MAX_RATING_DEVIATION_EXCLUSIVE
         and puzzle.popularity >= 90
-        and puzzle.nb_plays >= 100
+        and puzzle.nb_plays > MIN_CALIBRATION_PLAYS_EXCLUSIVE
         and puzzle.num_solver_plies() >= 1
         and bool(puzzle.game_url)
     )
@@ -78,9 +80,35 @@ def woodpecker_candidate(puzzle: Puzzle) -> bool:
     themes = set(puzzle.themes)
     return (
         1000 <= puzzle.rating < 3000
-        and puzzle.rating_deviation <= 100
+        and puzzle.rating_deviation < MAX_RATING_DEVIATION_EXCLUSIVE
         and puzzle.popularity >= 85
-        and puzzle.nb_plays >= 50
+        and puzzle.nb_plays > MIN_CALIBRATION_PLAYS_EXCLUSIVE
+        and puzzle.num_solver_plies() >= 3
+        and bool(themes & MASTER_THEMES)
+        and bool(puzzle.game_url)
+    )
+
+
+def standard_frontier_candidate(puzzle: Puzzle) -> bool:
+    """A deliberately smaller, explicitly looser 3000+ diagnostic stratum."""
+    return (
+        3000 <= puzzle.rating < 3200
+        and puzzle.rating_deviation < 110
+        and puzzle.popularity >= 85
+        and puzzle.nb_plays > MIN_CALIBRATION_PLAYS_EXCLUSIVE
+        and puzzle.num_solver_plies() >= 1
+        and bool(puzzle.game_url)
+    )
+
+
+def woodpecker_frontier_candidate(puzzle: Puzzle) -> bool:
+    """Rare 3000+ long lines, retaining master-game provenance."""
+    themes = set(puzzle.themes)
+    return (
+        3000 <= puzzle.rating < 3200
+        and puzzle.rating_deviation < 120
+        and puzzle.popularity >= 80
+        and puzzle.nb_plays > MIN_CALIBRATION_PLAYS_EXCLUSIVE
         and puzzle.num_solver_plies() >= 3
         and bool(themes & MASTER_THEMES)
         and bool(puzzle.game_url)

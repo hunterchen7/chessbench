@@ -37,8 +37,12 @@ upstream snapshot -> bounded source pool -> validated corpus -> frozen suite -> 
 ### Puzzle information
 
 - `raw`: FEN plus a piece inventory.
-- `assisted`: raw plus SAN/UCI legal moves.
+- `assisted`: raw plus every legal move in UCI coordinate notation.
 - `coached`: assisted plus fixed, non-prescriptive calculation considerations.
+
+SAN is excluded from canonical candidate lists because its `+` and `#` suffixes reveal which candidates check or
+mate. Requested answers and within-puzzle move history are UCI as well. `prompt_version=uci_candidates_v1` is part
+of the condition manifest and slug, preventing results from different prompt text from being resumed or pooled.
 
 ### Puzzle response protocol
 

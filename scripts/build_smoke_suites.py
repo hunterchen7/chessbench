@@ -61,6 +61,25 @@ def _genre_sample(suite: Suite) -> list[ComposedProblem]:
     )
 
 
+def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
+    """Two fixtures per editorial section, including the historic hard line."""
+    grouped: dict[str, list[Puzzle]] = defaultdict(list)
+    for puzzle in suite.puzzles():
+        grouped[puzzle.difficulty_band].append(puzzle)
+    featured_id = "historic-deep-blue-kasparov-1997-g2"
+    selected: list[Puzzle] = []
+    for section in ("easy", "medium"):
+        candidates = sorted(grouped[section], key=lambda puzzle: _priority(puzzle.id))
+        selected.extend(candidates[:2])
+    hard = sorted(
+        (puzzle for puzzle in grouped["hard"] if puzzle.id != featured_id),
+        key=lambda puzzle: _priority(puzzle.id),
+    )
+    featured = next(puzzle for puzzle in grouped["hard"] if puzzle.id == featured_id)
+    selected.extend([hard[0], featured])
+    return sorted(selected, key=lambda puzzle: puzzle.id)
+
+
 def build() -> list[tuple[Suite, pathlib.Path]]:
     standard_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
@@ -69,7 +88,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     standard = freeze_puzzle_suite(
         _band_sample(
             standard_parent,
-            tuple((start, start + 399) for start in range(600, 3000, 400)),
+            (*tuple((start, start + 399) for start in range(600, 3000, 400)), (3000, 3199)),
             2,
         ),
         name="standard-smoke-v1",
@@ -78,11 +97,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         seed=SEED,
     )
     woodpecker = freeze_puzzle_suite(
-        _band_sample(
-            woodpecker_parent,
-            tuple((start, start + 399) for start in range(1000, 3000, 400)),
-            2,
-        ),
+        _woodpecker_section_sample(woodpecker_parent),
         name="woodpecker-smoke-v1",
         version="1.0.0",
         source_label=f"suite:{woodpecker_parent.name}@{woodpecker_parent.content_hash}",

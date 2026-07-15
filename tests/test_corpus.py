@@ -93,16 +93,41 @@ def test_public_v1_has_six_exact_rating_strata():
 def test_full_snapshot_releases_have_exact_strata_and_master_game_lines():
     standard = load_corpus(CORPORA / "standard-lichess-v2.json")
     woodpecker = load_corpus(CORPORA / "woodpecker-masters-v1.json")
-    assert len(standard.items) == 300
-    assert len(woodpecker.items) == 125
+    assert len(standard.items) == 325
+    assert len(woodpecker.items) == 136
     for lo in range(600, 3000, 400):
-        assert sum(lo <= puzzle.rating < lo + 400 for puzzle in standard.puzzles()) == 50
+        band = [puzzle for puzzle in standard.puzzles() if lo <= puzzle.rating < lo + 400]
+        assert len(band) == 50
+        assert all(puzzle.nb_plays > 500 for puzzle in band)
+        assert all(puzzle.rating_deviation < 100 for puzzle in band)
     for lo in range(1000, 3000, 400):
         band = [puzzle for puzzle in woodpecker.puzzles() if lo <= puzzle.rating < lo + 400]
         assert len(band) == 25
         assert all(puzzle.num_solver_plies() >= 3 for puzzle in band)
+        assert all(puzzle.nb_plays > 500 for puzzle in band)
+        assert all(puzzle.rating_deviation < 100 for puzzle in band)
         assert all({"master", "masterVsMaster", "superGM"} & set(puzzle.themes) for puzzle in band)
         assert all(puzzle.game_url.startswith("https://lichess.org/") for puzzle in band)
+
+    standard_frontier = [puzzle for puzzle in standard.puzzles() if 3000 <= puzzle.rating < 3200]
+    assert len(standard_frontier) == 25
+    assert all(puzzle.nb_plays > 500 for puzzle in standard_frontier)
+    assert all(puzzle.rating_deviation < 110 for puzzle in standard_frontier)
+    assert all(puzzle.popularity >= 85 for puzzle in standard_frontier)
+
+    wood_frontier = [puzzle for puzzle in woodpecker.puzzles() if 3000 <= puzzle.rating < 3200]
+    assert len(wood_frontier) == 10
+    assert all(puzzle.nb_plays > 500 for puzzle in wood_frontier)
+    assert all(puzzle.rating_deviation < 120 for puzzle in wood_frontier)
+    assert all(puzzle.popularity >= 80 for puzzle in wood_frontier)
+    assert all(puzzle.num_solver_plies() >= 3 for puzzle in wood_frontier)
+
+    sections = {name: [p for p in woodpecker.puzzles() if p.difficulty_band == name] for name in ("easy", "medium", "hard")}
+    assert {name: len(items) for name, items in sections.items()} == {"easy": 50, "medium": 50, "hard": 36}
+    historic = next(p for p in sections["hard"] if p.id == "historic-deep-blue-kasparov-1997-g2")
+    assert historic.rating == 0
+    assert historic.moves[1:] == ["b6e3", "c6d6", "b8e8", "h3h4", "h6h5"]
+    assert historic.game_url == "https://www.kasparov.com/timeline-event/deep-blue/"
 
 
 def test_private_manifests_do_not_reveal_membership_or_seed():

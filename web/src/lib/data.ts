@@ -14,6 +14,7 @@ export interface Condition {
   reasoning_effort?: string | null
   reasoning_max_tokens?: number | null
   max_output_tokens?: number
+  prompt_version?: string
   slug: string
 }
 
@@ -52,6 +53,7 @@ export interface PuzzlePosition {
   solution_first: string | null
   game_url?: string
   source?: string
+  difficulty_band?: "easy" | "medium" | "hard" | ""
 }
 
 export interface PuzzleItem extends PuzzlePosition {
@@ -165,6 +167,10 @@ export interface PublicCorpus<T> {
   sources: Array<Record<string, unknown>>
   validation: Record<string, unknown>
   items: T[]
+}
+
+export async function loadPublicCorpus<T>(track: "standard" | "woodpecker" | "esoteric"): Promise<PublicCorpus<T>> {
+  return fetchJSON<PublicCorpus<T>>(`${DATA}corpora/${track}.json`)
 }
 
 export interface Standing {
@@ -435,7 +441,7 @@ export async function loadRun(file: string): Promise<Run> {
 
 let puzzleCache: Promise<PuzzleEntry[]> | null = null
 async function loadStaticPuzzleCorpus(): Promise<PuzzleEntry[]> {
-  const corpus = await fetchJSON<PublicCorpus<PuzzlePosition>>(`${DATA}corpora/standard.json`)
+  const corpus = await loadPublicCorpus<PuzzlePosition>("standard")
   return corpus.items.map((position) => ({ position, answers: [], aggregate: { solved: 0, total: 0 } }))
 }
 

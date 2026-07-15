@@ -6,11 +6,11 @@
  "track": "standard",
  "visibility": "private",
  "item_type": "puzzle",
- "items": 300,
- "content_hash": "sha256:06655b0e6f9498f2be23",
+ "items": 325,
+ "content_hash": "sha256:f14812b7f258972236a2",
  "validation": {
   "valid": true,
-  "unique_ids": 300,
-  "unique_positions": 300
+  "unique_ids": 325,
+  "unique_positions": 325
  }
 }

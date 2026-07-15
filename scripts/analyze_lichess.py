@@ -17,7 +17,9 @@ from chessbench.sources.lichess import (  # noqa: E402
     MASTER_THEMES,
     iter_lichess_puzzles,
     standard_candidate,
+    standard_frontier_candidate,
     woodpecker_candidate,
+    woodpecker_frontier_candidate,
 )
 
 
@@ -35,6 +37,8 @@ def analyze(path: pathlib.Path, *, snapshot: str) -> dict[str, object]:
     wood_bands: Counter[str] = Counter()
     wood_lengths: Counter[int] = Counter()
     wood_master_themes: Counter[str] = Counter()
+    standard_frontier = 0
+    wood_frontier = 0
 
     for puzzle in iter_lichess_puzzles(path):
         scanned += 1
@@ -47,6 +51,10 @@ def analyze(path: pathlib.Path, *, snapshot: str) -> dict[str, object]:
             wood_bands.update([_bucket(puzzle.rating, width=400, origin=1000)])
             wood_lengths.update([puzzle.num_solver_plies()])
             wood_master_themes.update(set(puzzle.themes) & MASTER_THEMES)
+        if standard_frontier_candidate(puzzle):
+            standard_frontier += 1
+        if woodpecker_frontier_candidate(puzzle):
+            wood_frontier += 1
         if scanned % 500_000 == 0:
             print(f"scanned {scanned:,}", file=sys.stderr)
 
@@ -63,7 +71,7 @@ def analyze(path: pathlib.Path, *, snapshot: str) -> dict[str, object]:
         "top_themes": dict(themes.most_common(80)),
         "quality_gates": {
             "standard": {
-                "definition": "rating 600-2999; RD<=100; popularity>=90; plays>=100; game URL",
+                "definition": "rating 600-2999; RD<100; popularity>=90; plays>500; game URL",
                 "eligible": sum(standard_bands.values()),
                 "rating_buckets_400": dict(
                     sorted(standard_bands.items(), key=lambda item: int(item[0].split("-")[0]))
@@ -71,7 +79,7 @@ def analyze(path: pathlib.Path, *, snapshot: str) -> dict[str, object]:
             },
             "woodpecker_master_games": {
                 "definition": (
-                    "rating 1000-2999; RD<=100; popularity>=85; plays>=50; "
+                    "rating 1000-2999; RD<100; popularity>=85; plays>500; "
                     ">=3 solver moves; master/masterVsMaster/superGM; game URL"
                 ),
                 "eligible": sum(wood_bands.values()),
@@ -80,6 +88,17 @@ def analyze(path: pathlib.Path, *, snapshot: str) -> dict[str, object]:
                 ),
                 "solver_plies": {str(k): v for k, v in sorted(wood_lengths.items())},
                 "master_theme_counts": dict(sorted(wood_master_themes.items())),
+            },
+            "standard_frontier": {
+                "definition": "rating 3000-3199; RD<110; popularity>=85; plays>500; game URL",
+                "eligible": standard_frontier,
+            },
+            "woodpecker_frontier": {
+                "definition": (
+                    "rating 3000-3199; RD<120; popularity>=80; plays>500; "
+                    ">=3 solver moves; master/masterVsMaster/superGM; game URL"
+                ),
+                "eligible": wood_frontier,
             },
         },
     }

@@ -14,8 +14,8 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/woodpecker-seed-v1.json` | Woodpecker | 60 | Lichess CC0 local seed pool |
 | `public/standard-public-v1.json` | Standard | 240 | Lichess CC0, 2026-07-05 full dump |
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
-| `public/standard-lichess-v2.json` | Standard | 300 | Complete Lichess CC0 snapshot, stricter confidence gates |
-| `public/woodpecker-masters-v1.json` | Woodpecker | 125 | Complete Lichess CC0 snapshot, titled-player games only |
+| `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
+| `public/woodpecker-masters-v1.json` | Woodpecker | 136 | 50 Easy, 50 Medium, 36 Hard; one historic unrated classic |
 | `public/esoteric-seed-v1.json` | Esoteric | 50 | Lichess CC0 + ChessBench original |
 
 These are development-quality seed corpora. The 500-row tactical fixture predates snapshot tracking, so its exact
@@ -50,8 +50,18 @@ pool hash. `scripts/download_puzzles.py` gives bounded memory without first-row 
 The v2 curator works directly against the complete compressed snapshot. The checked-in
 `sources/lichess-analysis-2026-07-05.json` records all 6,057,356 rows and the actual candidate populations.
 `scripts/curate_lichess.py` produces four mutually disjoint releases: public and held-out Standard suites plus
-public and held-out titled-player Woodpecker suites. The latter require at least three solver moves, a source-game
-URL, and a `master`, `masterVsMaster`, or `superGM` tag.
+public and held-out titled-player Woodpecker suites. The calibrated core requires at least three solver moves, a
+source-game URL, a `master`, `masterVsMaster`, or `superGM` tag, more than 500 plays, and rating deviation below 100.
+The scarce 3000–3199 frontier is intentionally smaller and judged separately: Standard admits 25 positions at
+RD <110 and popularity ≥85; Woodpecker admits 10 at RD <120 and popularity ≥80. Both still require more than 500
+plays. This adaptive rule preserves genuinely difficult material without pretending it is as tightly estimated as
+the broad core.
+
+Woodpecker membership is presented in editorial Easy, Medium, and Hard sections. Ratings and RD are retained as
+source provenance where Lichess supplies them, but are not the track's scoring system. The public Hard section also
+contains the unrated [Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/)
+after 45.Ra6. Its traditional 45…Qe3 drawing analysis is marked as historically sourced and disputed by later
+engine analysis rather than asserted as settled fact.
 
 Held-out contents and their 256-bit selection seed stay outside Git. Only membership-free corpus/suite manifests are
 published from `corpora/manifests/`. A Lichess held-out split prevents benchmark-specific tuning but is only

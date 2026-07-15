@@ -225,7 +225,10 @@ def validate_corpus(corpus: Corpus, *, raise_on_error: bool = True) -> dict[str,
                 if position in positions:
                     errors.append(f"{puzzle.id}: duplicate shown position from {positions[position]}")
                 positions[position] = puzzle.id
-            ratings.append(puzzle.rating)
+            # Zero denotes an intentionally unrated, editorially classified
+            # historical position. It must not distort source-rating summaries.
+            if puzzle.rating > 0:
+                ratings.append(puzzle.rating)
             solver_plies.append(puzzle.num_solver_plies())
             themes.update(puzzle.themes)
     else:

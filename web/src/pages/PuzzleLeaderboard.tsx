@@ -36,7 +36,7 @@ export function PuzzleLeaderboard() {
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "points", direction: "desc" })
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
-  const activeSuite = suite || suites[0] || "standard-public-v1"
+  const activeSuite = suite || suites[0] || "standard-lichess-v2"
 
   const grouped = useMemo(() => {
     const result = new Map<string, ModeMap>()
@@ -84,13 +84,13 @@ export function PuzzleLeaderboard() {
             Tool-free model performance on fixed, rating-stratified Lichess tactics. Points decide rank; Puzzle Elo estimates the human puzzle rating at which the model would score about 50%.
           </p>
         </div>
-        <PuzzleNav count={240} />
+        <PuzzleNav count={325} />
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardContent className="flex items-center gap-4 pt-6"><Trophy className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{bestRating ? ratingText(bestRating) : "—"}</div><div className="text-xs text-muted-foreground">top Puzzle Elo · mode {mode}</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{rows.length}</div><div className="text-xs text-muted-foreground">model-budget variants</div></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">240</div><div className="text-xs text-muted-foreground">canonical public puzzles</div></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">325</div><div className="text-xs text-muted-foreground">canonical public puzzles</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totalCost.toFixed(2)}</div><div className="text-xs text-muted-foreground">provider-reported cost</div></div></CardContent></Card>
       </section>
 
@@ -109,7 +109,7 @@ export function PuzzleLeaderboard() {
           <CardContent className="py-16 text-center sm:py-20">
             <div className="mx-auto grid size-10 place-items-center rounded-full bg-secondary"><BarChart3 className="size-4 text-muted-foreground" /></div>
             <div className="mt-3 font-medium">Clean slate—no published model scores yet</div>
-            <div className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">The 240-puzzle bank and exact suite hashes are registered. The first durable run will appear here item by item without changing the corpus.</div>
+            <div className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">The 325-puzzle bank and exact suite hashes are registered. The first durable run will appear here item by item without changing the corpus.</div>
             <Badge variant="outline" className="mt-3">mode {mode} · {responseStyle === "move_only" ? "move only" : "JSON + rationale"}</Badge>
           </CardContent>
         </Card> : <Card className="overflow-hidden border-border/70">

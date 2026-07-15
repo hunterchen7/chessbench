@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Activity, ArrowUpRight, CheckCircle2, Sigma } from "lucide-react"
+import { Activity, ArrowUpRight, BookOpen, CheckCircle2, ExternalLink, History, Repeat2, Sigma } from "lucide-react"
 import { useData } from "@/lib/useData"
+import { loadPublicCorpus, type PublicCorpus, type PuzzlePosition } from "@/lib/data"
 import { pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
@@ -10,9 +11,20 @@ import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+const WOODPECKER_BOOK = "https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540"
 
 export function Woodpecker() {
   const { runs } = useData()
+  const [corpus, setCorpus] = useState<PublicCorpus<PuzzlePosition> | null>(null)
+  useEffect(() => {
+    let live = true
+    void loadPublicCorpus<PuzzlePosition>("woodpecker").then((next) => {
+      if (live) setCorpus(next)
+    })
+    return () => { live = false }
+  }, [])
   const all = useMemo(() => runs.filter((run) => run.track === "woodpecker" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(all.map((run) => run.suite?.name).filter(Boolean))) as string[], [all])
   const [suite, setSuite] = useState("")
@@ -23,6 +35,12 @@ export function Woodpecker() {
     .sort((a, b) => b.summary.points - a.summary.points || b.summary.solve_rate - a.summary.solve_rate), [all, activeSuite, responseStyle])
   const totalPoints = rows.reduce((sum, run) => sum + run.summary.points, 0)
   const totalSolved = rows.reduce((sum, run) => sum + run.summary.solved, 0)
+  const sectionCounts = useMemo(() => ({
+    easy: corpus?.items.filter((item) => item.difficulty_band === "easy").length ?? 0,
+    medium: corpus?.items.filter((item) => item.difficulty_band === "medium").length ?? 0,
+    hard: corpus?.items.filter((item) => item.difficulty_band === "hard").length ?? 0,
+  }), [corpus])
+  const deepBlue = corpus?.items.find((item) => item.puzzle_id === "historic-deep-blue-kasparov-1997-g2")
 
   return (
     <div className="space-y-8">
@@ -36,11 +54,58 @@ export function Woodpecker() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
+          {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-52"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
           <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
           <ExportButton track="woodpecker" responseStyle={responseStyle} />
         </div>
       </section>
+
+      <Card className="overflow-hidden border-violet-500/20 bg-violet-500/[0.035]">
+        <CardContent className="grid gap-5 pt-6 md:grid-cols-[auto_1fr_1fr] md:items-start">
+          <div className="grid size-11 place-items-center rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-300"><BookOpen className="size-5" /></div>
+          <div>
+            <h2 className="font-semibold">What is the Woodpecker Method?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              It is a cyclic tactics-training system developed by GM Hans Tikkanen and presented with Axel Smith:
+              solve a fixed set of puzzles, then repeat the same set again and again in progressively less time to
+              strengthen tactical pattern recognition and recall.
+            </p>
+            <a href={WOODPECKER_BOOK} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:underline dark:text-violet-300">
+              The original Quality Chess book <ExternalLink className="size-3.5" />
+            </a>
+          </div>
+          <div className="rounded-xl border bg-background/70 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold"><Repeat2 className="size-4 text-violet-600" /> What ChessBench measures</div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              A benchmark run does not train the model through repeated cycles. It borrows the method&apos;s recall and
+              calculation pressure: one familiar-shaped tactical position, one request, and the entire UCI variation
+              including forced replies. Repetitions are separate runs and are never allowed to share conversation state.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <section aria-labelledby="woodpecker-sections">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div><h2 id="woodpecker-sections" className="text-xl font-semibold">The training set</h2><p className="mt-1 text-sm text-muted-foreground">Easy, Medium, and Hard are editorial Woodpecker sections. Lichess rating and RD remain provenance—not the score for this track.</p></div>
+          <Badge variant="outline">{corpus?.items.length ?? "…"} positions</Badge>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {([
+            ["easy", sectionCounts.easy, "Direct patterns and shorter calculation."],
+            ["medium", sectionCounts.medium, "Longer combinations with less obvious first moves."],
+            ["hard", sectionCounts.hard, "Deep source lines, the 3000+ frontier, and curated classics."],
+          ] as const).map(([label, count, copy]) => <Card key={label}><CardContent className="pt-6"><div className="flex items-center justify-between"><Badge variant="secondary" className="capitalize">{label}</Badge><span className="font-mono text-2xl font-semibold">{corpus ? count : "—"}</span></div><p className="mt-3 text-sm leading-relaxed text-muted-foreground">{copy}</p></CardContent></Card>)}
+        </div>
+      </section>
+
+      {deepBlue && <Card className="overflow-hidden border-amber-500/25 bg-amber-500/[0.035]">
+        <CardContent className="grid gap-4 pt-6 md:grid-cols-[auto_1fr_auto] md:items-center">
+          <div className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><History className="size-5" /></div>
+          <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">Deep Blue–Kasparov, 1997 · game 2</h2><Badge variant="secondary">Hard</Badge><Badge variant="outline">unrated classic</Badge></div><p className="mt-2 text-sm leading-relaxed text-muted-foreground">After 45.Ra6, calculate Kasparov&apos;s historic 45…Qe3 resource and the published continuation. Contemporary analysis disputes whether it forces a draw, so ChessBench labels the claim rather than presenting it as settled fact.</p></div>
+          <a href={deepBlue.game_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:underline dark:text-amber-300">Game and historical line <ExternalLink className="size-3.5" /></a>
+        </CardContent>
+      </Card>}
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Card><CardContent className="flex items-center gap-4 pt-6"><Sigma className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">{totalPoints.toFixed(2)}</div><div className="text-xs text-muted-foreground">points across published runs</div></div></CardContent></Card>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Radio, Sparkles } from "lucide-react"
+import { CircleHelp, Radio, Sparkles } from "lucide-react"
 import {
   STIPULATION_BLURB,
   STIPULATION_LABEL,
@@ -11,6 +11,7 @@ import { pct, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { participantKind } from "@/lib/participants"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { StipulationTooltip } from "@/components/StipulationTooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -81,6 +82,8 @@ export function Esoteric() {
         </div>
       </div>
 
+      <p className="-mt-5 flex items-center gap-1.5 text-xs text-muted-foreground"><CircleHelp className="size-3.5" /> Click or focus any genre label for its exact stipulation.</p>
+
       {/* Solver leaderboard */}
       <Card>
         <CardHeader>
@@ -130,13 +133,15 @@ export function Esoteric() {
         {kinds.map((k) => {
           const count = [...data.problems.values()].filter((e) => e.problem.kind === k).length
           return (
-            <button
-              key={k}
-              onClick={() => setKind(k)}
-              className={`rounded-full border px-3 py-1 text-sm ${kind === k ? "bg-secondary" : "hover:bg-secondary/50"}`}
-            >
-              {STIPULATION_LABEL[k]} ({count})
-            </button>
+            <StipulationTooltip key={k} kind={k}>
+              <button
+                type="button"
+                onClick={() => setKind(k)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm ${kind === k ? "bg-secondary" : "hover:bg-secondary/50"}`}
+              >
+                {STIPULATION_LABEL[k]} ({count}) <CircleHelp className="size-3 opacity-55" />
+              </button>
+            </StipulationTooltip>
           )
         })}
       </div>
@@ -171,7 +176,11 @@ export function Esoteric() {
                     </TableCell>
                     <TableCell className="font-mono">{e.problem.label}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{STIPULATION_LABEL[e.problem.kind]}</Badge>
+                      <StipulationTooltip kind={e.problem.kind}>
+                        <button type="button" className="cursor-help rounded-full focus-visible:ring-2 focus-visible:ring-ring/60">
+                          <Badge variant="secondary" className="gap-1">{STIPULATION_LABEL[e.problem.kind]} <CircleHelp className="size-3 opacity-60" /></Badge>
+                        </button>
+                      </StipulationTooltip>
                     </TableCell>
                     <TableCell className="max-w-[260px]">
                       <div className="flex flex-wrap gap-1">

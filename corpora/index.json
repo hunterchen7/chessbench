@@ -18,8 +18,8 @@
    "track": "standard",
    "visibility": "public",
    "item_type": "puzzle",
-   "items": 300,
-   "content_hash": "sha256:42d4c1417c3f33d5296c"
+   "items": 325,
+   "content_hash": "sha256:5732b7cefa909aac3fa5"
   },
   {
    "name": "standard-public-v1",
@@ -48,8 +48,8 @@
    "track": "woodpecker",
    "visibility": "public",
    "item_type": "puzzle",
-   "items": 125,
-   "content_hash": "sha256:c522008598842be3e832"
+   "items": 136,
+   "content_hash": "sha256:9653d694223db0fb3458"
   },
   {
    "name": "woodpecker-public-v1",

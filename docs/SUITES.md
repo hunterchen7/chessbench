@@ -10,26 +10,34 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v2.json` | Public | 300 | `sha256:5fe06f759d825898` | Move-by-move; Modes 1–3 × both response styles |
-| Standard | `suites/private/standard-heldout-v1.json` | Held-out | 300 | `sha256:0ea544ac7405f5dc` | Move-by-move; certification run after public testing |
-| Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 125 | `sha256:26c709626e0f4ebd` | Mode 4; complete forced line in one response |
-| Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 125 | `sha256:5e7e03190877182b` | Mode 4; sealed certification run |
+| Standard | `suites/public/standard-lichess-v2.json` | Public | 325 | `sha256:611c4c22e955ece8` | Move-by-move; Modes 1–3 × both response styles |
+| Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
+| Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 136 | `sha256:eb770656644ebb92` | Mode 4; complete forced line in one response |
+| Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
 | Esoteric | `suites/public/esoteric-seed-v1.json` | Public | 50 | `sha256:aedbc34a91a528ae` | Genre-specific key, full-line, or interactive verifier |
 | Esoteric | `suites/private/esoteric-yacpdb-mvp-v1.json` | Private MVP | 400 | `sha256:f0015eebd7e2ab05` | 50 problems in each of eight genres |
 | Esoteric | `suites/private/esoteric-original-mvp-v1.json` | Private generated | 50 | `sha256:066aa9058e8ba4ae` | 10 newly generated problems in each of five genres |
 
 ### Standard
 
-`standard-lichess-v2` and `standard-heldout-v1` each contain 50 puzzles in every 400-point band from 600–999
-through 2600–2999. They are mutually disjoint and were selected from the complete 2026-07-05 Lichess snapshot.
+`standard-lichess-v2` and `standard-heldout-v1` each contain a 300-item calibrated core: 50 puzzles in every
+400-point band from 600–999 through 2600–2999. Core items have more than 500 Lichess plays, RD below 100,
+popularity of at least 90, and a source-game URL. Each suite also reserves 25 puzzles rated 3000–3199. That scarce
+frontier keeps the >500-play requirement but admits RD below 110 and popularity of at least 85. Frontier membership
+is reported separately; it is not presented as equally calibrated to the core. Public and held-out membership is
+mutually disjoint and comes from the complete 2026-07-05 Lichess snapshot.
 The model is asked for one solver move at a time. The forced reply is applied by the harness, and state may continue
 within that puzzle only. No state crosses puzzle boundaries.
 
 Every Standard suite is evaluated under three independent prompt conditions:
 
 1. **Mode 1 — Raw:** FEN, explicit piece locations, and side to move. Illegal output fails the puzzle.
-2. **Mode 2 — Assisted:** Mode 1 plus every legal move in SAN and UCI.
+2. **Mode 2 — Assisted:** Mode 1 plus every legal move in UCI coordinate notation.
 3. **Mode 3 — Coached:** Mode 2 plus the fixed calculation-advice block.
+
+SAN candidates are intentionally excluded: `+` marks check and `#` marks checkmate, which would directly leak
+forcing and mate-in-one answers. Canonical requested answers and within-puzzle history are also UCI. The prompt
+version `uci_candidates_v1` is embedded in the complete condition slug.
 
 Response style is an orthogonal axis; it does **not** create Modes 4–6. The canonical Standard comparison is the
 following 3 × 2 matrix, holding the suite, model variant, context policy, and all other settings constant:
@@ -50,13 +58,28 @@ and played line re-sent each turn. `fresh` is an explicit ablation, not another 
 
 ### Woodpecker
 
-`woodpecker-masters-v1` and its held-out counterpart each contain 25 titled-player-game puzzles in five 400-point
-bands from 1000–1399 through 2600–2999. Every puzzle has at least three solver moves and a source-game URL. They are
-mutually disjoint from one another and from the corresponding Standard releases.
+Woodpecker is organized as a training set, not an Elo ladder. The public release contains 50 Easy, 50 Medium, and
+36 Hard positions; the held-out reserve contains 50 Easy, 50 Medium, and 35 Hard. Lichess ratings and RD remain
+provenance where available, but headline scoring is points and section difficulty is editorial.
 
-Mode 4 is a one-request full-line protocol. It currently supplies FEN plus piece locations, legal SAN/UCI moves, and
+The Lichess portion contains 25 titled-player-game puzzles in five internal 400-point source strata from 1000–1399
+through 2600–2999, plus 10 scarce 3000–3199 frontier positions. Core items require more than 500 plays, RD below
+100, popularity of at least 85, a source-game URL, and at least three solver moves. The Hard frontier retains the
+play and line-length requirements while allowing RD below 120 and popularity of at least 80. Public and held-out
+Lichess membership is mutually disjoint and also disjoint from Standard.
+
+The 136th public item is the unrated [Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/)
+after 45.Ra6. It asks for the historic 45…Qe3, 46.Qxd6 Re8, 47.h4 h5 line. The old claim that this forces a draw is
+disputed by later engine analysis, so the corpus records it as a historic analysis challenge rather than an
+objectively certified draw.
+
+Mode 4 is a one-request full-line protocol. It supplies FEN plus piece locations, legal UCI moves, and
 the fixed coaching block, then requests the complete solution—including forced opponent replies—as a UCI array.
 There is no between-move conversation state because the model answers once.
+
+The training method described in [*The Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540)
+repeats the same large puzzle set in progressively less time. ChessBench does not perform model training or carry
+state across repetitions; it borrows the full-line recall/calculation shape for a single-response evaluation.
 
 ### Esoteric
 
@@ -135,8 +158,8 @@ parents. They test paid provider calls and every public suite grader without cla
 
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
-| `suites/public/standard-smoke-v1.json` | 12 | `sha256:6a13da8035f65a2c` | Two puzzles in each Standard rating band |
-| `suites/public/woodpecker-smoke-v1.json` | 10 | `sha256:4a2fb14e424a258c` | Two puzzles in each master-game rating band |
+| `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Two puzzles in each core band plus the 3000+ frontier |
+| `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:c5e6a85f93c8a014` | Two per editorial section, including Deep Blue–Kasparov |
 | `suites/public/esoteric-smoke-v1.json` | 7 | `sha256:70fb0097ee520bae` | One problem in every public esoteric genre |
 
 ## Initial model smoke-test plan
@@ -149,13 +172,13 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v1` | Modes 1, 2, and 3; `json_rationale` first pass | 36 puzzle attempts |
-| Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 10 full-line attempts |
+| Standard | `standard-smoke-v1` | Modes 1, 2, and 3; `json_rationale` first pass | 42 puzzle attempts |
+| Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
 | Esoteric | `esoteric-smoke-v1` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, and 3 | 2 games per mode, colors alternating |
 
-This is 53 puzzle/composition evaluations per model. Because Standard is move-by-move, its 12 fixtures contain
-32 possible solver turns; the puzzle and composition portion makes at most 113 model requests per model (226 total)
+This is 55 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain
+40 possible solver turns; the puzzle and composition portion makes at most 133 model requests per model (266 total)
 if every Standard line reaches every turn, plus however many turns the six games require. Games use `hybrid`
 context, a 200-ply ceiling, and two independent player conversations. Each player receives the authoritative current
 position and public move history but never the other player's raw response or rationale.

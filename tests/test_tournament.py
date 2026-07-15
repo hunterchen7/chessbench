@@ -179,7 +179,8 @@ def test_tournament_cli_persists_and_resumes_without_replaying_games(
         def respond(messages):
             latest = messages[-1]["content"]
             calls.append(f"{model_id}:{latest}")
-            legal = re.findall(r"\(([a-h][1-8][a-h][1-8][qrbn]?)\)", latest)
+            legal_line = latest.split("Legal moves [UCI]:", 1)[1].splitlines()[0]
+            legal = re.findall(r"\b[a-h][1-8][a-h][1-8][qrbn]?\b", legal_line)
             assert legal
             return json.dumps({"move": legal[0], "rationale": f"{model_id} private"})
 

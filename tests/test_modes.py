@@ -24,11 +24,25 @@ def test_mode1_is_raw_fen_and_pieces_no_legal_moves():
     assert '{"move":"e2e4","rationale":' in p
 
 
-def test_mode2_lists_legal_moves_in_both_san_and_uci():
+def test_mode2_lists_only_unannotated_uci_legal_moves():
     p = build_puzzle_prompt(B, mode_condition(2))
-    assert "Legal moves" in p
-    assert "Nf3 (g1f3)" in p            # SAN with UCI in parentheses
-    assert "e4 (e2e4)" in p
+    assert "Legal moves [UCI]" in p
+    assert "g1f3" in p and "e2e4" in p
+    assert "Nf3" not in p and "e4 (e2e4)" not in p
+
+
+def test_uci_candidate_list_does_not_reveal_mate_in_one():
+    board = chess.Board("7k/6pp/8/6Q1/8/8/8/7K w - - 0 1")
+    p = build_puzzle_prompt(board, mode_condition(2))
+    assert "g5d8" in p  # Qd8 is mate, but the candidate carries no '#'.
+    legal_line = p.split("Legal moves [UCI]:", 1)[1].split("\n", 1)[0]
+    assert "#" not in legal_line and "+" not in legal_line
+
+
+def test_puzzle_history_is_rendered_in_uci_not_san():
+    p = build_puzzle_prompt(B, mode_condition(2), history_uci=["e2e4", "e7e5"])
+    assert "Moves already played in this puzzle [UCI]: e2e4 e7e5" in p
+    assert "1.e4 e5" not in p
 
 
 def test_mode3_adds_coaching_tips():
@@ -69,6 +83,7 @@ def test_mode_presets_and_default():
     assert mode_condition(1).legality == Legality.FREE_FORM
     assert mode_condition(2).legality == Legality.LEGAL_LIST
     assert mode_condition(3).prompt_style == PromptStyle.COACHED
+    assert "prompt-uci-candidates-v1" in mode_condition(2).slug()
 
 
 def test_stateful_and_stateless_puzzle_contexts_have_distinct_ids():

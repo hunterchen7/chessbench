@@ -176,7 +176,7 @@ def test_llm_composed_turn_keeps_exact_prompt_response_usage_and_modes():
 
     assert result.solved
     assert model.max_tokens == 77
-    assert "Legal moves [SAN (UCI)]" in model.prompt
+    assert "Legal moves [UCI]" in model.prompt
     assert "opponent's strongest defense" in model.prompt
     assert result.turns == [
         {

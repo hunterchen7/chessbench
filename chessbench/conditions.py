@@ -51,7 +51,7 @@ class Representation(str, Enum):
 
 
 class Notation(str, Enum):
-    SAN = "san"  # model-facing default (dominant in pretraining)
+    SAN = "san"  # non-canonical diagnostic output notation
     UCI = "uci"
 
 
@@ -110,6 +110,9 @@ class Condition:
         None  # exact thinking-token budget; mutually exclusive with effort
     )
     max_output_tokens: int = 2048
+    # Prompt text is part of result identity. This version introduced UCI-only
+    # legal candidate lists and UCI within-puzzle move history.
+    prompt_version: str = "uci_candidates_v1"
 
     def __post_init__(self) -> None:
         if self.reasoning_effort is not None and self.reasoning_max_tokens is not None:
@@ -120,6 +123,8 @@ class Condition:
             raise ValueError("reasoning_max_tokens must be positive")
         if self.max_output_tokens <= 0:
             raise ValueError("max_output_tokens must be positive")
+        if not self.prompt_version:
+            raise ValueError("prompt_version must not be empty")
 
     def slug(self) -> str:
         base = self._base_slug()
@@ -135,6 +140,7 @@ class Condition:
             self.representation.value,
             self.notation.value,
             self.prompt_style.value,
+            f"prompt-{self.prompt_version.replace('_', '-')}",
         ]
         if self.explain:
             parts.append("json-rationale")
@@ -173,6 +179,7 @@ class Condition:
             "reasoning_effort": self.reasoning_effort,
             "reasoning_max_tokens": self.reasoning_max_tokens,
             "max_output_tokens": self.max_output_tokens,
+            "prompt_version": self.prompt_version,
             "slug": self.slug(),
         }
 
@@ -181,7 +188,7 @@ class Condition:
 HEADLINE = Condition()
 
 # --- Named "how much help" modes (presets over the axes) ---
-# 1: raw FEN + piece list; 2: + legal moves (SAN & UCI); 3: + coaching tips.
+# 1: raw FEN + piece list; 2: + legal moves (UCI only); 3: + coaching tips.
 # The DEFAULT for CLI runs is MODE 2 ("hand-holding": the legal moves are provided).
 MODES: dict[int, tuple[Legality, Representation, PromptStyle, PuzzleProtocol]] = {
     1: (
@@ -274,7 +281,7 @@ def build_puzzle_prompt(
     bd: chess.Board,
     cond: Condition,
     illegal_feedback: str | None = None,
-    history_san: list[str] | None = None,
+    history_uci: list[str] | None = None,
 ) -> str:
     """Assemble the full user prompt for a single-position puzzle move."""
     lines = [
@@ -284,10 +291,10 @@ def build_puzzle_prompt(
     ]
     if cond.legality == Legality.LEGAL_LIST:
         lines += ["", _legal_line(bd, cond)]
-    if history_san:
+    if history_uci:
         lines += [
             "",
-            "Moves already played in this puzzle: " + _san_history_to_pgn(history_san),
+            "Moves already played in this puzzle [UCI]: " + " ".join(history_uci),
         ]
     if cond.prompt_style == PromptStyle.COACHED:
         lines += ["", COACH_ADVICE]
@@ -363,8 +370,8 @@ def _json_move_instruction() -> str:
     return (
         "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
         '{"move":"e2e4","rationale":"A concise explanation of why the move is best."}\n'
-        "`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: "
-        "`e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the "
+        "`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid examples: "
+        "`e2e4`, `g1f3`, `e7e8q`. Do not use SAN or any other notation. Do not wrap the "
         "object in a Markdown code fence. `rationale` should briefly identify the important "
         "features of the position, why the move works against the opponent's strongest response, and any "
         "important tactical or strategic idea. Mention alternatives only when relevant; preferably stay "
@@ -376,8 +383,8 @@ def _json_line_instruction() -> str:
     return (
         "Return exactly one JSON object with no Markdown or additional text, using this shape:\n"
         '{"moves":["e2e4","e7e5","g1f3"],"rationale":"A concise explanation of the forced sequence."}\n'
-        "Every entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, "
-        "`g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object "
+        "Every entry in `moves` must use lowercase UCI coordinate notation. Valid examples: `e2e4`, "
+        "`g1f3`, `e7e8q`. Do not use SAN or any other notation, and do not wrap the object "
         "in a Markdown code fence. `moves` must contain the complete variation in legal play order, including "
         "the opponent's replies. "
         "`rationale` should briefly explain why the sequence is forced against the strongest defense; "
@@ -453,6 +460,8 @@ def build_game_turn(
 
 
 def _legal_line(bd: chess.Board, cond: Condition) -> str:
-    # Show every legal move in BOTH SAN and UCI, so the model can map notations.
-    pairs = sorted(f"{bd.san(m)} ({m.uci()})" for m in bd.legal_moves)
-    return "Legal moves [SAN (UCI)]: " + ", ".join(pairs)
+    del cond  # Candidate notation is deliberately invariant across conditions.
+    # SAN suffixes leak tactical labels: '+' identifies checks and '#' identifies
+    # checkmates. Candidate lists therefore use unannotated UCI coordinates only.
+    moves = sorted(m.uci() for m in bd.legal_moves)
+    return "Legal moves [UCI]: " + ", ".join(moves)

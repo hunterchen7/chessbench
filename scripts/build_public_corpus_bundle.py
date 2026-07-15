@@ -25,8 +25,8 @@ from chessbench.tasks.composed import ComposedProblem
 DEFAULT_OUT = ROOT / "web" / "public" / "data" / "corpora"
 
 RELEASES = {
-    "standard": ROOT / "corpora" / "public" / "standard-public-v1.json",
-    "woodpecker": ROOT / "corpora" / "public" / "woodpecker-public-v1.json",
+    "standard": ROOT / "corpora" / "public" / "standard-lichess-v2.json",
+    "woodpecker": ROOT / "corpora" / "public" / "woodpecker-masters-v1.json",
     "esoteric": ROOT / "corpora" / "public" / "esoteric-seed-v1.json",
 }
 
@@ -59,6 +59,7 @@ def _puzzle(item: dict[str, object]) -> dict[str, object]:
         "solution_first": moves[1] if len(moves) > 1 else None,
         "game_url": str(item.get("game_url", "")),
         "source": str(item.get("source", "lichess")),
+        "difficulty_band": str(item.get("difficulty_band", "")),
     }
 
 

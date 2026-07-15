@@ -9,10 +9,10 @@ protocol. It contains 20 independently durable cells:
 
 | Track | Information mode | Response styles | Models | Items per cell | Evaluations |
 | --- | --- | --- | ---: | ---: | ---: |
-| Standard | Modes 1, 2, and 3 | move-only + JSON rationale | 2 | 300 | 3,600 |
-| Woodpecker | Mode 4 full line | move-only + JSON rationale | 2 | 125 | 500 |
+| Standard | Modes 1, 2, and 3 | move-only + JSON rationale | 2 | 325 | 3,900 |
+| Woodpecker | Mode 4 full line | move-only + JSON rationale | 2 | 136 | 544 |
 | Esoteric | Mode 3 coached | move-only + JSON rationale | 2 | 50 | 200 |
-| **Total** |  |  |  |  | **4,300** |
+| **Total** |  |  |  |  | **4,644** |
 
 The models are `openai/gpt-5.6-luna` and
 `anthropic/claude-haiku-4.5`, each addressed through OpenRouter. Response style
