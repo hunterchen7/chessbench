@@ -1,5 +1,6 @@
 import type { Env } from "./types"
 import { authorized } from "./auth"
+import { includesTournaments } from "./export_filters"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
 
@@ -258,7 +259,7 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
     return { ...publicRun(row), disclosure: disclosure(row, ownerAccess), items }
   }))
 
-  const includeGames = !track || track === "game"
+  const includeGames = includesTournaments({ track, model, runId, status })
   let tournaments: unknown[] = []
   if (includeGames) {
     const tournamentFilter = responseStyle
