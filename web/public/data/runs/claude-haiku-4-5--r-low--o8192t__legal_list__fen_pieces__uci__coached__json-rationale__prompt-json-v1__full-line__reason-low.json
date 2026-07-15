@@ -1,0 +1,883 @@
+{
+ "schema": "chessbench.run.v1",
+ "run_id": "550d5b1a098a48d49da50398573af103",
+ "kind": "woodpecker",
+ "created": "2026-07-15T04:56:49+00:00",
+ "model": "anthropic/claude-haiku-4.5",
+ "provider": "openrouter",
+ "model_variant": {
+  "key": "claude-haiku-4-5--r-low--o8192t",
+  "base_key": "claude-haiku-4.5",
+  "display_name": "claude-haiku-4.5",
+  "label": "claude-haiku-4.5 \u00b7 low reasoning",
+  "provider": "openrouter",
+  "model_id": "anthropic/claude-haiku-4.5",
+  "reasoning": {
+   "effort": "low",
+   "max_tokens": null,
+   "exclude": true
+  },
+  "max_output_tokens": 8192
+ },
+ "suite": {
+  "name": "woodpecker-smoke-v1",
+  "version": "1.0.0",
+  "visibility": "public",
+  "content_hash": "sha256:4a2fb14e424a258c"
+ },
+ "condition": {
+  "legality": "legal_list",
+  "representation": "fen_pieces",
+  "notation": "uci",
+  "prompt_style": "coached",
+  "context_mode": "hybrid",
+  "puzzle_protocol": "full_line",
+  "retry_attempts": 3,
+  "otb_illegal_limit": 2,
+  "explain": true,
+  "response_protocol": "prompt_json_v1",
+  "temperature": 1.0,
+  "include_side_to_move": true,
+  "reasoning_effort": "low",
+  "reasoning_max_tokens": null,
+  "max_output_tokens": 8192,
+  "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low"
+ },
+ "summary": {
+  "n": 10,
+  "solved": 0,
+  "solve_rate": 0.0,
+  "mean_score": 0.025,
+  "first_move_legal_rate": 1.0,
+  "response_format_valid_rate": 0.0,
+  "points": 0.25,
+  "max_points": 10,
+  "cost_usd": 0.04782294000000001
+ },
+ "themes": [
+  {
+   "theme": "master",
+   "n": 10,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "long",
+   "n": 7,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "middlegame",
+   "n": 7,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "advantage",
+   "n": 6,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "crushing",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "fork",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "endgame",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "masterVsMaster",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "veryLong",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "advancedPawn",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "deflection",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "exposedKing",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "quietMove",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "rookEndgame",
+   "n": 1,
+   "accuracy": 0.0
+  }
+ ],
+ "items": [
+  {
+   "puzzle_id": "9gjXc",
+   "rating": 2697,
+   "themes": [
+    "crushing",
+    "long",
+    "master",
+    "middlegame",
+    "quietMove"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "quietMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g8g2",
+   "answer_rationale": "Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.",
+   "answer_explanation": "Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"g8g2\",\"h2h1\",\"f5h5\"],\"rationale\":\"Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.\"}\n```",
+   "moves_played": [
+    "g8g2"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 3rk1r1/p2n1p2/1p2p2Q/5q2/5B1P/P7/2PR1P1K/7R b - - 2 28\n\nPieces:\nWhite: Kh2, Qh6, Rh1, Rd2, Bf4, Pc2, Pf2, Pa3, Ph4\nBlack: Ke8, Qf5, Rd8, Rg8, Nd7, Pb6, Pe6, Pa7, Pf7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Ke7 (e8e7), Nb8 (d7b8), Nc5 (d7c5), Ne5 (d7e5), Nf6 (d7f6), Nf8 (d7f8), Qa5 (f5a5), Qb5 (f5b5), Qc5 (f5c5), Qd3 (f5d3), Qd5 (f5d5), Qe4 (f5e4), Qe5 (f5e5), Qf6 (f5f6), Qg4 (f5g4), Qg5 (f5g5), Qg6 (f5g6), Qh3+ (f5h3), Qh5 (f5h5), Qh7 (f5h7), Qxc2 (f5c2), Qxf4+ (f5f4), Ra8 (d8a8), Rb8 (d8b8), Rc8 (d8c8), Rf8 (g8f8), Rg1 (g8g1), Rg2+ (g8g2), Rg3 (g8g3), Rg4 (g8g4), Rg5 (g8g5), Rg6 (g8g6), Rg7 (g8g7), Rh8 (g8h8), a5 (a7a5), a6 (a7a6), b5 (b6b5), e5 (e6e5), f6 (f7f6)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"g8g2\",\"h2h1\",\"f5h5\"],\"rationale\":\"Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.\"}\n```",
+     "parsed_move": "g8g2",
+     "rationale": "Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.",
+     "explanation": "Black delivers a decisive mating attack starting with Rg2+, which gives check to the White king on h2. White has only two options: if Kh1, then Qh5# is immediate checkmate (the queen on h5 is supported and delivers mate to the trapped king on h1). If instead Kh3, Black has overwhelming threats including Qh5 with unstoppable mate, as the king has no escape squares. The rook on g2 cuts off retreat squares while the queen delivers the final blow. This is a forced checkmate sequence.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1119,
+     "completion_tokens": 830,
+     "reasoning_tokens": 332,
+     "cost_usd": 0.00521631
+    }
+   ],
+   "fen": "3rk1r1/p2n1p2/1p2p2Q/5q2/5B1P/P7/2PR1P1K/7R b - - 2 28",
+   "setup_san": "Rd2",
+   "solver_is_white": false,
+   "solution": [
+    "d7e5",
+    "d2d8",
+    "e8d8",
+    "h6g5",
+    "g8g5"
+   ],
+   "solution_first": "d7e5",
+   "game_url": "https://lichess.org/cwGxRMIZ#55"
+  },
+  {
+   "puzzle_id": "SVyhm",
+   "rating": 1028,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "master",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.25,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c3e2",
+   "answer_rationale": "The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.",
+   "answer_explanation": "The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"c3e2\",\"g1h1\",\"e2g3\"],\"rationale\":\"The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.\"}\n```",
+   "moves_played": [
+    "c3e2",
+    "g1h1",
+    "e2g3"
+   ],
+   "solver_plies": 4,
+   "plies_correct": 1,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 1r4k1/5pp1/p1P4p/1p1BP3/1P1R1P2/2n3PP/8/6K1 b - - 0 35\n\nPieces:\nWhite: Kg1, Rd4, Bd5, Pg3, Ph3, Pb4, Pf4, Pe5, Pc6\nBlack: Kg8, Rb8, Nc3, Pb5, Pa6, Ph6, Pf7, Pg7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Kf8 (g8f8), Kh7 (g8h7), Kh8 (g8h8), Na2 (c3a2), Na4 (c3a4), Nb1 (c3b1), Nd1 (c3d1), Ne2+ (c3e2), Ne4 (c3e4), Nxd5 (c3d5), Ra8 (b8a8), Rb6 (b8b6), Rb7 (b8b7), Rc8 (b8c8), Rd8 (b8d8), Re8 (b8e8), Rf8 (b8f8), a5 (a6a5), g5 (g7g5), g6 (g7g6), h5 (h6h5)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"c3e2\",\"g1h1\",\"e2g3\"],\"rationale\":\"The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.\"}\n```",
+     "parsed_move": "c3e2",
+     "rationale": "The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.",
+     "explanation": "The check Ne2+ forces the White king to move (Kh1 is the most natural). Then Ng3+ is a devastating discovered check/fork that forces the king to move again, after which Black has won material or achieved a winning position. This is a forcing sequence that exploits the exposed position of White's king and the undefended rook on d4.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 904,
+     "completion_tokens": 771,
+     "reasoning_tokens": 495,
+     "cost_usd": 0.00471141
+    }
+   ],
+   "fen": "1r4k1/5pp1/p1P4p/1p1BP3/1P1R1P2/2n3PP/8/6K1 b - - 0 35",
+   "setup_san": "c6",
+   "solver_is_white": false,
+   "solution": [
+    "c3e2",
+    "g1f2",
+    "e2d4",
+    "c6c7",
+    "b8c8",
+    "d5b7",
+    "c8c7"
+   ],
+   "solution_first": "c3e2",
+   "game_url": "https://lichess.org/CZKB5qEw#69"
+  },
+  {
+   "puzzle_id": "aFDFK",
+   "rating": 2208,
+   "themes": [
+    "advantage",
+    "exposedKing",
+    "fork",
+    "master",
+    "middlegame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "exposedKing",
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f3g5",
+   "answer_rationale": "Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.",
+   "answer_explanation": "Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\n  \"moves\": [\"f3g5\", \"e6d7\", \"g5h6\", \"g7h6\", \"e2h5\"],\n  \"rationale\": \"Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.\"\n}\n```",
+   "moves_played": [
+    "f3g5"
+   ],
+   "solver_plies": 4,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 5r1k/pp1q1rb1/3pb2p/2p1p3/3P3n/2P2NP1/PP2QBBK/R3R3 w - - 0 23\n\nPieces:\nWhite: Kh2, Qe2, Ra1, Re1, Bf2, Bg2, Nf3, Pa2, Pb2, Pc3, Pg3, Pd4\nBlack: Kh8, Qd7, Rf7, Rf8, Be6, Bg7, Nh4, Pc5, Pe5, Pd6, Ph6, Pa7, Pb7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Be3 (f2e3), Bf1 (g2f1), Bg1 (f2g1), Bh1 (g2h1), Bh3 (g2h3), Kg1 (h2g1), Kh1 (h2h1), Nd2 (f3d2), Ng1 (f3g1), Ng5 (f3g5), Nxe5 (f3e5), Nxh4 (f3h4), Qa6 (e2a6), Qb5 (e2b5), Qc2 (e2c2), Qc4 (e2c4), Qd1 (e2d1), Qd2 (e2d2), Qd3 (e2d3), Qe3 (e2e3), Qe4 (e2e4), Qf1 (e2f1), Qxe5 (e2e5), Rab1 (a1b1), Rac1 (a1c1), Rad1 (a1d1), Reb1 (e1b1), Rec1 (e1c1), Red1 (e1d1), Rf1 (e1f1), Rg1 (e1g1), Rh1 (e1h1), a3 (a2a3), a4 (a2a4), b3 (b2b3), b4 (b2b4), c4 (c3c4), d5 (d4d5), dxc5 (d4c5), dxe5 (d4e5), g4 (g3g4), gxh4 (g3h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\n  \"moves\": [\"f3g5\", \"e6d7\", \"g5h6\", \"g7h6\", \"e2h5\"],\n  \"rationale\": \"Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.\"\n}\n```",
+     "parsed_move": "f3g5",
+     "rationale": "Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.",
+     "explanation": "Ng5 is the winning move, attacking both e6 and h6. Black's best defense is Bf6 or moving the bishop away, but after Nxh6, White has a decisive attack on the weakened h-file. The h6 pawn removal exposes the black king to mating threats. For example, after the likely Bf6 (or another bishop move) Nxh6, White threatens Qh5 with mate following, forcing Black into a lost endgame. This forcing sequence wins material and creates an unstoppable attack.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1175,
+     "completion_tokens": 703,
+     "reasoning_tokens": 403,
+     "cost_usd": 0.0046431
+    }
+   ],
+   "fen": "5r1k/pp1q1rb1/3pb2p/2p1p3/3P3n/2P2NP1/PP2QBBK/R3R3 w - - 0 23",
+   "setup_san": "Nxh4",
+   "solver_is_white": true,
+   "solution": [
+    "f3h4",
+    "f7f2",
+    "h4g6",
+    "h8g8",
+    "g6f8",
+    "f2e2",
+    "f8d7"
+   ],
+   "solution_first": "f3h4",
+   "game_url": "https://lichess.org/rWr6GjGu/black#44"
+  },
+  {
+   "puzzle_id": "eEQqA",
+   "rating": 1799,
+   "themes": [
+    "advantage",
+    "fork",
+    "long",
+    "master",
+    "masterVsMaster",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c3d5",
+   "answer_rationale": "Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.",
+   "answer_explanation": "Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"c3d5\",\"a5b5\",\"c3e7\"],\"rationale\":\"Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.\"}\n```",
+   "moves_played": [
+    "c3d5",
+    "a5b5"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2kr3r/ppp2pp1/2n5/q3p1Pp/3P1P2/P1N1B2b/1PPQ1K2/R5R1 w - - 0 19\n\nPieces:\nWhite: Kf2, Qd2, Ra1, Rg1, Be3, Nc3, Pb2, Pc2, Pa3, Pd4, Pf4, Pg5\nBlack: Kc8, Qa5, Rd8, Rh8, Bh3, Nc6, Pe5, Ph5, Pa7, Pb7, Pc7, Pf7, Pg7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Ke1 (f2e1), Ke2 (f2e2), Kf3 (f2f3), Kg3 (f2g3), Na2 (c3a2), Na4 (c3a4), Nb1 (c3b1), Nb5 (c3b5), Nd1 (c3d1), Nd5 (c3d5), Ne2 (c3e2), Ne4 (c3e4), Qc1 (d2c1), Qd1 (d2d1), Qd3 (d2d3), Qe1 (d2e1), Qe2 (d2e2), Ra2 (a1a2), Rab1 (a1b1), Rac1 (a1c1), Rad1 (a1d1), Rae1 (a1e1), Raf1 (a1f1), Rg2 (g1g2), Rg3 (g1g3), Rg4 (g1g4), Rgb1 (g1b1), Rgc1 (g1c1), Rgd1 (g1d1), Rge1 (g1e1), Rgf1 (g1f1), Rh1 (g1h1), a4 (a3a4), b3 (b2b3), b4 (b2b4), d5 (d4d5), dxe5 (d4e5), f5 (f4f5), fxe5 (f4e5), g6 (g5g6)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"c3d5\",\"a5b5\",\"c3e7\"],\"rationale\":\"Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.\"}\n```",
+     "parsed_move": "c3d5",
+     "rationale": "Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.",
+     "explanation": "Nd5 is a powerful forcing move attacking c7 and creating a lethal threat of Ne7+. After Black moves the queen (e.g., Qb5 is most natural), Ne7+ is a check that wins material or delivers mate. The Black king on c8 is fatally exposed to this knight fork. Black has no adequate defense - moving the queen doesn't help since Ne7+ follows with devastating effect, checking the king and forking major pieces or leading to mating patterns. This is a forced tactical sequence exploiting the exposed placement of Black's king.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1151,
+     "completion_tokens": 885,
+     "reasoning_tokens": 359,
+     "cost_usd": 0.00552024
+    }
+   ],
+   "fen": "2kr3r/ppp2pp1/2n5/q3p1Pp/3P1P2/P1N1B2b/1PPQ1K2/R5R1 w - - 0 19",
+   "setup_san": "e5",
+   "solver_is_white": true,
+   "solution": [
+    "b2b4",
+    "a5a6",
+    "b4b5",
+    "a6a5",
+    "b5c6"
+   ],
+   "solution_first": "b2b4",
+   "game_url": "https://lichess.org/iK0sgjBY/black#36"
+  },
+  {
+   "puzzle_id": "eykdW",
+   "rating": 1914,
+   "themes": [
+    "advantage",
+    "long",
+    "master",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b2g7",
+   "answer_rationale": "Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.",
+   "answer_explanation": "Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"b2g7\"],\"rationale\":\"Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.\"}\n```",
+   "moves_played": [
+    "b2g7"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2r2r1k/2q1b1p1/3pb1Pp/p6P/Np2Ppn1/1P4Q1/PBPRN3/1K5R w - - 0 27\n\nPieces:\nWhite: Kb1, Qg3, Rh1, Rd2, Bb2, Ne2, Na4, Pa2, Pc2, Pb3, Pe4, Ph5, Pg6\nBlack: Kh8, Qc7, Rc8, Rf8, Be6, Be7, Ng4, Pb4, Pf4, Pa5, Pd6, Ph6, Pg7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Ba1 (b2a1), Ba3 (b2a3), Bc1 (b2c1), Bc3 (b2c3), Bd4 (b2d4), Be5 (b2e5), Bf6 (b2f6), Bxg7+ (b2g7), Ka1 (b1a1), Kc1 (b1c1), Nac3 (a4c3), Nb6 (a4b6), Nc1 (e2c1), Nc5 (a4c5), Nd4 (e2d4), Nec3 (e2c3), Ng1 (e2g1), Nxf4 (e2f4), Qc3 (g3c3), Qd3 (g3d3), Qe1 (g3e1), Qe3 (g3e3), Qf2 (g3f2), Qf3 (g3f3), Qg1 (g3g1), Qg2 (g3g2), Qh2 (g3h2), Qh3 (g3h3), Qh4 (g3h4), Qxf4 (g3f4), Qxg4 (g3g4), Rc1 (h1c1), Rd3 (d2d3), Rd4 (d2d4), Rd5 (d2d5), Rdd1 (d2d1), Re1 (h1e1), Rf1 (h1f1), Rg1 (h1g1), Rh2 (h1h2), Rh3 (h1h3), Rh4 (h1h4), Rhd1 (h1d1), Rxd6 (d2d6), a3 (a2a3), c3 (c2c3), c4 (c2c4), e5 (e4e5)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"b2g7\"],\"rationale\":\"Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.\"}\n```",
+     "parsed_move": "b2g7",
+     "rationale": "Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.",
+     "explanation": "Bxg7+ is a forcing check that wins material. The Black king on h8 is in check and must move to g8 (the only legal move). After 1.Bxg7+ Kg8, White has captured the g7 pawn and severely exposed the Black king. The advanced g6 pawn dominates the kingside, and Black's position collapses with the king driven into the open. This tactical blow wins material cleanly with a continuing attack.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1241,
+     "completion_tokens": 624,
+     "reasoning_tokens": 369,
+     "cost_usd": 0.00431739
+    }
+   ],
+   "fen": "2r2r1k/2q1b1p1/3pb1Pp/p6P/Np2Ppn1/1P4Q1/PBPRN3/1K5R w - - 0 27",
+   "setup_san": "exf4",
+   "solver_is_white": true,
+   "solution": [
+    "e2f4",
+    "f8f4",
+    "g3f4",
+    "c8f8",
+    "f4g3"
+   ],
+   "solution_first": "e2f4",
+   "game_url": "https://lichess.org/mgFeL2Gn/black#52"
+  },
+  {
+   "puzzle_id": "iAdwV",
+   "rating": 1305,
+   "themes": [
+    "crushing",
+    "endgame",
+    "fork",
+    "long",
+    "master"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "fork"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a3a2",
+   "answer_rationale": "The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.",
+   "answer_explanation": "The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\n  \"moves\": [\"a3a2\"],\n  \"rationale\": \"The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.\"\n}\n```",
+   "moves_played": [
+    "a3a2"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 8/8/5r1p/R1b1k3/8/p2P4/2N4P/7K b - - 5 44\n\nPieces:\nWhite: Kh1, Ra5, Nc2, Ph2, Pd3\nBlack: Ke5, Rf6, Bc5, Pa3, Ph6\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Kd5 (e5d5), Kd6 (e5d6), Ke6 (e5e6), Kf4 (e5f4), Kf5 (e5f5), Ra6 (f6a6), Rb6 (f6b6), Rc6 (f6c6), Rd6 (f6d6), Re6 (f6e6), Rf1+ (f6f1), Rf2 (f6f2), Rf3 (f6f3), Rf4 (f6f4), Rf5 (f6f5), Rf7 (f6f7), Rf8 (f6f8), Rg6 (f6g6), a2 (a3a2), h5 (h6h5)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\n  \"moves\": [\"a3a2\"],\n  \"rationale\": \"The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.\"\n}\n```",
+     "parsed_move": "a3a2",
+     "rationale": "The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.",
+     "explanation": "The a-pawn is unstoppable. After a2, White cannot prevent queening: if Ra3 (blocking), Black's rook and king coordinate to support promotion while White's knight cannot help defend. The pawn advances one square from promotion next move, and White's pieces are too scattered to mount adequate defense. This forcing move guarantees victory as any attempt by White to stop the pawn fails to the coordination of Black's pieces and material advantage.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 860,
+     "completion_tokens": 711,
+     "reasoning_tokens": 431,
+     "cost_usd": 0.00437085
+    }
+   ],
+   "fen": "8/8/5r1p/R1b1k3/8/p2P4/2N4P/7K b - - 5 44",
+   "setup_san": "Ra5",
+   "solver_is_white": false,
+   "solution": [
+    "f6f1",
+    "h1g2",
+    "f1f2",
+    "g2g3",
+    "f2c2"
+   ],
+   "solution_first": "f6f1",
+   "game_url": "https://lichess.org/KpIYO71B#87"
+  },
+  {
+   "puzzle_id": "lmMzX",
+   "rating": 2194,
+   "themes": [
+    "advancedPawn",
+    "advantage",
+    "endgame",
+    "long",
+    "master",
+    "rookEndgame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame",
+     "rookEndgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "advancedPawn"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g1f1",
+   "answer_rationale": "Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.",
+   "answer_explanation": "Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"g1f1\",\"f6e5\",\"f1f5\",\"e5e6\",\"f5f6\",\"e6e7\",\"f6f7\",\"e7e8\",\"f7f8\",\"e8d7\"],\"rationale\":\"Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.\"}\n```",
+   "moves_played": [
+    "g1f1",
+    "f6e5",
+    "f1f5",
+    "e5e6",
+    "f5f6",
+    "e6e7",
+    "f6f7",
+    "e7e8",
+    "f7f8"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 6R1/2p3P1/2k2K2/8/3P4/p7/8/6r1 b - - 1 40\n\nPieces:\nWhite: Kf6, Rg8, Pd4, Pg7\nBlack: Kc6, Rg1, Pa3, Pc7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Kb5 (c6b5), Kb6 (c6b6), Kb7 (c6b7), Kd5 (c6d5), Kd6 (c6d6), Kd7 (c6d7), Ra1 (g1a1), Rb1 (g1b1), Rc1 (g1c1), Rd1 (g1d1), Re1 (g1e1), Rf1+ (g1f1), Rg2 (g1g2), Rg3 (g1g3), Rg4 (g1g4), Rg5 (g1g5), Rg6+ (g1g6), Rh1 (g1h1), Rxg7 (g1g7), a2 (a3a2)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"g1f1\",\"f6e5\",\"f1f5\",\"e5e6\",\"f5f6\",\"e6e7\",\"f6f7\",\"e7e8\",\"f7f8\",\"e8d7\"],\"rationale\":\"Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.\"}\n```",
+     "parsed_move": "g1f1",
+     "rationale": "Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.",
+     "explanation": "Black plays Rf1+ forcing perpetual check. After Ke5, Black continues with Rf5+. The white king cannot escape the checks while the g7 pawn is still on the board - the rook controls key squares and maintains checks by moving along the f and 5th ranks. After White plays g8=Q, Black's rook continues to give perpetual checks (Rf8, etc.), preventing White from using the new queen or advancing the d-pawn. White cannot make progress and Black forces a draw by perpetual check.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 865,
+     "completion_tokens": 975,
+     "reasoning_tokens": 430,
+     "cost_usd": 0.0056826
+    }
+   ],
+   "fen": "6R1/2p3P1/2k2K2/8/3P4/p7/8/6r1 b - - 1 40",
+   "setup_san": "Kf6",
+   "solver_is_white": false,
+   "solution": [
+    "c6b7",
+    "g8e8",
+    "a3a2",
+    "g7g8q",
+    "g1g8"
+   ],
+   "solution_first": "c6b7",
+   "game_url": "https://lichess.org/EmmuSPrU#79"
+  },
+  {
+   "puzzle_id": "n7ztU",
+   "rating": 2788,
+   "themes": [
+    "crushing",
+    "master",
+    "masterVsMaster",
+    "middlegame",
+    "veryLong"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e6f7",
+   "answer_rationale": "After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.",
+   "answer_explanation": "After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"e6f7\",\"g8h8\",\"f7h7\"],\"rationale\":\"After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.\"}\n```",
+   "moves_played": [
+    "e6f7",
+    "g8h8",
+    "f7h7"
+   ],
+   "solver_plies": 5,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 6k1/5r1p/p3Q1p1/1q1NP1b1/3P4/1p2B1K1/r7/2R5 w - - 0 32\n\nPieces:\nWhite: Kg3, Qe6, Rc1, Be3, Nd5, Pd4, Pe5\nBlack: Kg8, Qb5, Ra2, Rf7, Bg5, Pb3, Pa6, Pg6, Ph7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Bd2 (e3d2), Bf2 (e3f2), Bf4 (e3f4), Bg1 (e3g1), Bxg5 (e3g5), Kg4 (g3g4), Kh3 (g3h3), Nb4 (d5b4), Nb6 (d5b6), Nc3 (d5c3), Nc7 (d5c7), Ne7+ (d5e7), Nf4 (d5f4), Nf6+ (d5f6), Qb6 (e6b6), Qc6 (e6c6), Qc8+ (e6c8), Qd6 (e6d6), Qd7 (e6d7), Qe7 (e6e7), Qe8+ (e6e8), Qf5 (e6f5), Qf6 (e6f6), Qg4 (e6g4), Qh3 (e6h3), Qxa6 (e6a6), Qxf7+ (e6f7), Qxg6+ (e6g6), Ra1 (c1a1), Rb1 (c1b1), Rc2 (c1c2), Rc3 (c1c3), Rc4 (c1c4), Rc5 (c1c5), Rc6 (c1c6), Rc7 (c1c7), Rc8+ (c1c8), Rd1 (c1d1), Re1 (c1e1), Rf1 (c1f1), Rg1 (c1g1), Rh1 (c1h1)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"e6f7\",\"g8h8\",\"f7h7\"],\"rationale\":\"After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.\"}\n```",
+     "parsed_move": "e6f7",
+     "rationale": "After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.",
+     "explanation": "After Qxf7+ the Black king is forced to h8 (the only legal move). Then Qxh7# is checkmate\u2014the queen on h7 checks the king on h8, which has no escape squares and cannot capture the queen or interpose. This is a forced mate in 2.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1137,
+     "completion_tokens": 555,
+     "reasoning_tokens": 286,
+     "cost_usd": 0.00387288
+    }
+   ],
+   "fen": "6k1/5r1p/p3Q1p1/1q1NP1b1/3P4/1p2B1K1/r7/2R5 w - - 0 32",
+   "setup_san": "Bxg5",
+   "solver_is_white": true,
+   "solution": [
+    "c1c8",
+    "g8g7",
+    "d5f6",
+    "g5f4",
+    "e3f4",
+    "b5d3",
+    "g3h4",
+    "a2h2",
+    "f4h2"
+   ],
+   "solution_first": "c1c8",
+   "game_url": "https://lichess.org/VTObKWe8/black#62"
+  },
+  {
+   "puzzle_id": "vyNof",
+   "rating": 1618,
+   "themes": [
+    "advantage",
+    "long",
+    "master",
+    "masterVsMaster",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b2g2",
+   "answer_rationale": "Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.",
+   "answer_explanation": "Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"b2g2\",\"g1g2\",\"c8c1\",\"d1d2\",\"g7d4\",\"d3d4\",\"c1d1\"],\"rationale\":\"Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.\"}\n```",
+   "moves_played": [
+    "b2g2",
+    "g1g2",
+    "c8c1",
+    "d1d2",
+    "g7d4",
+    "d3d4",
+    "c1d1"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2q2rk1/R4pbp/3pp1p1/8/3BPP2/3Q2PP/1r4B1/3R2K1 b - - 1 24\n\nPieces:\nWhite: Kg1, Qd3, Rd1, Ra7, Bg2, Bd4, Pg3, Ph3, Pe4, Pf4\nBlack: Kg8, Qc8, Rb2, Rf8, Bg7, Pd6, Pe6, Pg6, Pf7, Ph7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Be5 (g7e5), Bf6 (g7f6), Bh6 (g7h6), Bh8 (g7h8), Bxd4+ (g7d4), Kh8 (g8h8), Qa6 (c8a6), Qa8 (c8a8), Qb7 (c8b7), Qb8 (c8b8), Qc1 (c8c1), Qc2 (c8c2), Qc3 (c8c3), Qc4 (c8c4), Qc5 (c8c5), Qc6 (c8c6), Qc7 (c8c7), Qd7 (c8d7), Qd8 (c8d8), Qe8 (c8e8), Ra2 (b2a2), Rb1 (b2b1), Rb3 (b2b3), Rb4 (b2b4), Rb5 (b2b5), Rb6 (b2b6), Rb7 (b2b7), Rb8 (b2b8), Rc2 (b2c2), Rd2 (b2d2), Rd8 (f8d8), Re2 (b2e2), Re8 (f8e8), Rf2 (b2f2), Rxg2+ (b2g2), d5 (d6d5), e5 (e6e5), f5 (f7f5), f6 (f7f6), g5 (g6g5), h5 (h7h5), h6 (h7h6)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"b2g2\",\"g1g2\",\"c8c1\",\"d1d2\",\"g7d4\",\"d3d4\",\"c1d1\"],\"rationale\":\"Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.\"}\n```",
+     "parsed_move": "b2g2",
+     "rationale": "Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.",
+     "explanation": "Black plays Rxg2+ forcing Kxg2 (only legal move). Then Qc1 attacks the vulnerable rook on d1. The rook must move (Rd2 is forced). Black then plays Bxd4, winning the bishop since if Qxd4, Black recaptures with Qxd1, winning the exchange and maintaining a dominant position with a checkmating attack threat against the exposed white king.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1141,
+     "completion_tokens": 807,
+     "reasoning_tokens": 398,
+     "cost_usd": 0.00512424
+    }
+   ],
+   "fen": "2q2rk1/R4pbp/3pp1p1/8/3BPP2/3Q2PP/1r4B1/3R2K1 b - - 1 24",
+   "setup_san": "Bd4",
+   "solver_is_white": false,
+   "solution": [
+    "g7d4",
+    "d3d4",
+    "c8c2",
+    "d4b2",
+    "c2b2"
+   ],
+   "solution_first": "g7d4",
+   "game_url": "https://lichess.org/ZVOkLStm#47"
+  },
+  {
+   "puzzle_id": "xvZqC",
+   "rating": 2521,
+   "themes": [
+    "advantage",
+    "deflection",
+    "long",
+    "master",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f3f6",
+   "answer_rationale": "Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.",
+   "answer_explanation": "Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.",
+   "answer_response_format_valid": false,
+   "answer_response_format_error": "response contains a Markdown fence",
+   "answer_raw": "```json\n{\"moves\":[\"f3f6\"],\"rationale\":\"Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.\"}\n```",
+   "moves_played": [
+    "f3f6"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": null,
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2r4r/pb4k1/1q3bpp/4p3/4N3/4nQ2/PP3PPP/R2R2K1 w - - 0 23\n\nPieces:\nWhite: Kg1, Qf3, Ra1, Rd1, Ne4, Pa2, Pb2, Pf2, Pg2, Ph2\nBlack: Kg7, Qb6, Rc8, Rh8, Bf6, Bb7, Ne3, Pe5, Pg6, Ph6, Pa7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Kh1 (g1h1), Nc3 (e4c3), Nc5 (e4c5), Nd2 (e4d2), Nd6 (e4d6), Ng3 (e4g3), Ng5 (e4g5), Nxf6 (e4f6), Qe2 (f3e2), Qf4 (f3f4), Qf5 (f3f5), Qg3 (f3g3), Qg4 (f3g4), Qh3 (f3h3), Qh5 (f3h5), Qxe3 (f3e3), Qxf6+ (f3f6), Rab1 (a1b1), Rac1 (a1c1), Rd2 (d1d2), Rd3 (d1d3), Rd4 (d1d4), Rd5 (d1d5), Rd6 (d1d6), Rd7+ (d1d7), Rd8 (d1d8), Rdb1 (d1b1), Rdc1 (d1c1), Re1 (d1e1), Rf1 (d1f1), a3 (a2a3), a4 (a2a4), b3 (b2b3), b4 (b2b4), fxe3 (f2e3), g3 (g2g3), g4 (g2g4), h3 (h2h3), h4 (h2h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nCalculate the complete solution now, including the opponent's forced replies.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "```json\n{\"moves\":[\"f3f6\"],\"rationale\":\"Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.\"}\n```",
+     "parsed_move": "f3f6",
+     "rationale": "Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.",
+     "explanation": "Qxf6+ is a forcing check that wins Black's undefended bishop. The Black king on g7 is in check from the queen on f6 and must move (Kh7, Kf8, Kg8, Kh6, or Kf7 are the only options). White gains a full piece with no compensation for Black. This is a simple tactical win that ends the game decisively.",
+     "response_format_valid": false,
+     "response_format_error": "response contains a Markdown fence",
+     "response_format": null,
+     "prompt_tokens": 1113,
+     "completion_tokens": 659,
+     "reasoning_tokens": 356,
+     "cost_usd": 0.00436392
+    }
+   ],
+   "fen": "2r4r/pb4k1/1q3bpp/4p3/4N3/4nQ2/PP3PPP/R2R2K1 w - - 0 23",
+   "setup_san": "Nxe3",
+   "solver_is_white": true,
+   "solution": [
+    "d1d7",
+    "g7f8",
+    "d7b7",
+    "b6b7",
+    "f3f6"
+   ],
+   "solution_first": "d1d7",
+   "game_url": "https://lichess.org/ho3QtvKC/black#44"
+  }
+ ]
+}

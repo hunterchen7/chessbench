@@ -2,12 +2,499 @@
  "schema": "chessbench.index.v1",
  "runs": [
   {
-   "file": "command-r7b__legal_list__fen_pieces__san__minimal.json",
-   "model": "cohere/command-r7b-12-2024",
-   "created": "2026-07-13T21:14:32+00:00",
+   "run_id": "b89640bf6f5b48e59d3f201a93a55827",
+   "file": "claude-haiku-4-5--r-low--o8192t__free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:43:09+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.041666666666666664,
+    "first_move_legal_rate": 0.4166666666666667,
+    "response_format_valid_rate": 0.0,
+    "points": 0.5,
+    "max_points": 12,
+    "cost_usd": 0.05426487
+   }
+  },
+  {
+   "run_id": "6198e2febc6643eca3f59d64670eb8d4",
+   "file": "claude-haiku-4-5--r-low--o8192t__free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:48:19+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.0,
+    "first_move_legal_rate": 0.5833333333333334,
+    "response_format_valid_rate": null,
+    "points": 0.0,
+    "max_points": 12,
+    "cost_usd": 0.041870069999999995
+   }
+  },
+  {
+   "run_id": "550d5b1a098a48d49da50398573af103",
+   "file": "claude-haiku-4-5--r-low--o8192t__legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low.json",
+   "track": "woodpecker",
+   "kind": "woodpecker",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:56:49+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "full_line",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low",
+   "suite": {
+    "name": "woodpecker-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:4a2fb14e424a258c"
+   },
+   "progress": {
+    "completed": 10,
+    "total": 10
+   },
+   "summary": {
+    "n": 10,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.025,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 0.0,
+    "points": 0.25,
+    "max_points": 10,
+    "cost_usd": 0.04782294000000001
+   }
+  },
+  {
+   "run_id": "abcd64467877432a9a53ed3fc572d5aa",
+   "file": "claude-haiku-4-5--r-low--o8192t__legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:52:15+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 2,
+    "solve_rate": 0.16666666666666666,
+    "mean_score": 0.20833333333333334,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 0.0,
+    "points": 2.5,
+    "max_points": 12,
+    "cost_usd": 0.06072858
+   }
+  },
+  {
+   "run_id": "39fdfa0dd54a49468587169a047a1eb0",
+   "file": "claude-haiku-4-5--r-low--o8192t__legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:51:36+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 2,
+    "solve_rate": 0.16666666666666666,
+    "mean_score": 0.20833333333333334,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": null,
+    "points": 2.5,
+    "max_points": 12,
+    "cost_usd": 0.049838579999999987
+   }
+  },
+  {
+   "run_id": "88ae6bd784fb4c479b4818a00227087f",
+   "file": "claude-haiku-4-5--r-low--o8192t__legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:47:20+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 2,
+    "solve_rate": 0.16666666666666666,
+    "mean_score": 0.16666666666666666,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 0.0,
+    "points": 2.0,
+    "max_points": 12,
+    "cost_usd": 0.04931289
+   }
+  },
+  {
+   "run_id": "17632af87bcc4b3a9be39b2191705df2",
+   "file": "claude-haiku-4-5--r-low--o8192t__legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "anthropic/claude-haiku-4.5",
+   "model_variant": {
+    "key": "claude-haiku-4-5--r-low--o8192t",
+    "base_key": "claude-haiku-4.5",
+    "display_name": "claude-haiku-4.5",
+    "label": "claude-haiku-4.5 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "anthropic/claude-haiku-4.5",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:49:49+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 1,
+    "solve_rate": 0.08333333333333333,
+    "mean_score": 0.125,
+    "first_move_legal_rate": 0.9166666666666666,
+    "response_format_valid_rate": null,
+    "points": 1.5,
+    "max_points": 12,
+    "cost_usd": 0.03791799
+   }
+  },
+  {
+   "run_id": "command-r7b__legal_list__fen_pieces__san__minimal",
+   "file": "command-r7b__legal_list__fen_pieces__san__minimal.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "cohere/command-r7b-12-2024",
+   "model_variant": {
+    "key": "cohere-command-r7b-12-2024--r-default--o2048t",
+    "base_key": "cohere/command-r7b-12-2024",
+    "display_name": "command-r7b-12-2024",
+    "label": "command-r7b-12-2024 \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "cohere/command-r7b-12-2024",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T21:14:32+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 0,
@@ -24,12 +511,51 @@
    }
   },
   {
+   "run_id": "gpt-4o-mini__legal_list__fen_pieces__san__minimal",
    "file": "gpt-4o-mini__legal_list__fen_pieces__san__minimal.json",
-   "model": "openai/gpt-4o-mini",
-   "created": "2026-07-13T21:52:32+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "openai/gpt-4o-mini",
+   "model_variant": {
+    "key": "openai-gpt-4o-mini--r-default--o2048t",
+    "base_key": "openai/gpt-4o-mini",
+    "display_name": "gpt-4o-mini",
+    "label": "gpt-4o-mini \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-4o-mini",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T21:52:32+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 23,
@@ -46,12 +572,508 @@
    }
   },
   {
-   "file": "granite-4-micro__legal_list__fen_pieces__san__minimal.json",
-   "model": "ibm-granite/granite-4.0-h-micro",
-   "created": "2026-07-13T22:18:18+00:00",
+   "run_id": "36fc2a31ff28420c9145c5172338e4de",
+   "file": "gpt-5-6-luna--r-low--o8192t__free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:45:35+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 2,
+    "solve_rate": 0.16666666666666666,
+    "mean_score": 0.19444444444444445,
+    "first_move_legal_rate": 0.9166666666666666,
+    "response_format_valid_rate": 1.0,
+    "points": 2.3333,
+    "max_points": 12,
+    "cost_usd": 0.17503200000000002
+   }
+  },
+  {
+   "run_id": "d75fc37fc0d345f18981e227229942d3",
+   "file": "gpt-5-6-luna--r-low--o8192t__free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:46:47+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 3,
+    "solve_rate": 0.25,
+    "mean_score": 0.34722222222222227,
+    "first_move_legal_rate": 0.9166666666666666,
+    "response_format_valid_rate": null,
+    "points": 4.1667,
+    "max_points": 12,
+    "cost_usd": 0.18022355999999998
+   }
+  },
+  {
+   "run_id": "721f85082842405788766a5c845149ad",
+   "file": "gpt-5-6-luna--r-low--o8192t__legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low.json",
+   "track": "woodpecker",
+   "kind": "woodpecker",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:59:18+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "full_line",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__full-line__reason-low",
+   "suite": {
+    "name": "woodpecker-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:4a2fb14e424a258c"
+   },
+   "progress": {
+    "completed": 10,
+    "total": 10
+   },
+   "summary": {
+    "n": 10,
+    "solved": 0,
+    "solve_rate": 0.0,
+    "mean_score": 0.09166666666666666,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 1.0,
+    "points": 0.9167,
+    "max_points": 10,
+    "cost_usd": 0.17409867749999997
+   }
+  },
+  {
+   "run_id": "93fa08fab01c49f0a649c0ef66fc9af2",
+   "file": "gpt-5-6-luna--r-low--o8192t__legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:55:16+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 2,
+    "solve_rate": 0.16666666666666666,
+    "mean_score": 0.3611111111111111,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 1.0,
+    "points": 4.3333,
+    "max_points": 12,
+    "cost_usd": 0.22469703299999996
+   }
+  },
+  {
+   "run_id": "23c891256e7840a098065e1ba08c5cba",
+   "file": "gpt-5-6-luna--r-low--o8192t__legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "partial",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:55:45+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 11,
+    "total": 12
+   },
+   "summary": {
+    "n": 11,
+    "solved": 3,
+    "solve_rate": 0.2727272727272727,
+    "mean_score": 0.42424242424242425,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": null,
+    "points": 4.6667,
+    "max_points": 11,
+    "cost_usd": 0.18127756350000002
+   },
+   "updated_at": "2026-07-15T06:03:35+00:00",
+   "completed_at": null,
+   "usage": {
+    "cost_usd": 0.18127756350000002,
+    "prompt_tokens": 17125,
+    "completion_tokens": 27581,
+    "reasoning_tokens": 27411
+   },
+   "error": "1/12 provider calls failed; successful items are persisted and missing items will retry"
+  },
+  {
+   "run_id": "abf02a12d5844c679bb2b9dbba3c40d0",
+   "file": "gpt-5-6-luna--r-low--o8192t__legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T04:50:19+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__json-rationale__prompt-json-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 5,
+    "solve_rate": 0.4166666666666667,
+    "mean_score": 0.513888888888889,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 1.0,
+    "points": 6.1667,
+    "max_points": 12,
+    "cost_usd": 0.19979338499999996
+   }
+  },
+  {
+   "run_id": "7529434591aa48bb8f2984af979d929c",
+   "file": "gpt-5-6-luna--r-low--o8192t__legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low--o8192t",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-15T05:55:25+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "slug": "legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-smoke-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:6a13da8035f65a2c"
+   },
+   "progress": {
+    "completed": 12,
+    "total": 12
+   },
+   "summary": {
+    "n": 12,
+    "solved": 3,
+    "solve_rate": 0.25,
+    "mean_score": 0.375,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": null,
+    "points": 4.5,
+    "max_points": 12,
+    "cost_usd": 0.15779090249999997
+   }
+  },
+  {
+   "run_id": "granite-4-micro__legal_list__fen_pieces__san__minimal",
+   "file": "granite-4-micro__legal_list__fen_pieces__san__minimal.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "ibm-granite/granite-4.0-h-micro",
+   "model_variant": {
+    "key": "ibm-granite-granite-4-0-h-micro--r-default--o2048t",
+    "base_key": "ibm-granite/granite-4.0-h-micro",
+    "display_name": "granite-4.0-h-micro",
+    "label": "granite-4.0-h-micro \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "ibm-granite/granite-4.0-h-micro",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:18:18+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 2,
@@ -68,12 +1090,51 @@
    }
   },
   {
+   "run_id": "ling-2.6-flash__legal_list__fen_pieces__san__minimal",
    "file": "ling-2.6-flash__legal_list__fen_pieces__san__minimal.json",
-   "model": "inclusionai/ling-2.6-flash",
-   "created": "2026-07-13T22:20:03+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "inclusionai/ling-2.6-flash",
+   "model_variant": {
+    "key": "inclusionai-ling-2-6-flash--r-default--o2048t",
+    "base_key": "inclusionai/ling-2.6-flash",
+    "display_name": "ling-2.6-flash",
+    "label": "ling-2.6-flash \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "inclusionai/ling-2.6-flash",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:20:03+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 9,
@@ -90,12 +1151,51 @@
    }
   },
   {
+   "run_id": "llama-3.1-8b__legal_list__fen_pieces__san__minimal",
    "file": "llama-3.1-8b__legal_list__fen_pieces__san__minimal.json",
-   "model": "meta-llama/llama-3.1-8b-instruct",
-   "created": "2026-07-13T22:24:48+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "meta-llama/llama-3.1-8b-instruct",
+   "model_variant": {
+    "key": "meta-llama-llama-3-1-8b-instruct--r-default--o2048t",
+    "base_key": "meta-llama/llama-3.1-8b-instruct",
+    "display_name": "llama-3.1-8b-instruct",
+    "label": "llama-3.1-8b-instruct \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "meta-llama/llama-3.1-8b-instruct",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:24:48+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 0,
@@ -112,12 +1212,51 @@
    }
   },
   {
+   "run_id": "llama-3.3-70b__legal_list__fen_pieces__san__minimal",
    "file": "llama-3.3-70b__legal_list__fen_pieces__san__minimal.json",
-   "model": "meta-llama/llama-3.3-70b-instruct",
-   "created": "2026-07-13T22:30:18+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "meta-llama/llama-3.3-70b-instruct",
+   "model_variant": {
+    "key": "meta-llama-llama-3-3-70b-instruct--r-default--o2048t",
+    "base_key": "meta-llama/llama-3.3-70b-instruct",
+    "display_name": "llama-3.3-70b-instruct",
+    "label": "llama-3.3-70b-instruct \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "meta-llama/llama-3.3-70b-instruct",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:30:18+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 18,
@@ -134,12 +1273,51 @@
    }
   },
   {
+   "run_id": "mistral-nemo__legal_list__fen_pieces__san__minimal",
    "file": "mistral-nemo__legal_list__fen_pieces__san__minimal.json",
-   "model": "mistralai/mistral-nemo",
-   "created": "2026-07-13T22:33:21+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "mistralai/mistral-nemo",
+   "model_variant": {
+    "key": "mistralai-mistral-nemo--r-default--o2048t",
+    "base_key": "mistralai/mistral-nemo",
+    "display_name": "mistral-nemo",
+    "label": "mistral-nemo \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "mistralai/mistral-nemo",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:33:21+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 2,
@@ -156,12 +1334,51 @@
    }
   },
   {
+   "run_id": "nova-micro__legal_list__fen_pieces__san__minimal",
    "file": "nova-micro__legal_list__fen_pieces__san__minimal.json",
-   "model": "amazon/nova-micro-v1",
-   "created": "2026-07-13T22:50:05+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "amazon/nova-micro-v1",
+   "model_variant": {
+    "key": "amazon-nova-micro-v1--r-default--o2048t",
+    "base_key": "amazon/nova-micro-v1",
+    "display_name": "nova-micro-v1",
+    "label": "nova-micro-v1 \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "amazon/nova-micro-v1",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:50:05+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 3,
@@ -178,12 +1395,51 @@
    }
   },
   {
+   "run_id": "phi-4__legal_list__fen_pieces__san__minimal",
    "file": "phi-4__legal_list__fen_pieces__san__minimal.json",
-   "model": "microsoft/phi-4",
-   "created": "2026-07-13T22:52:37+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "microsoft/phi-4",
+   "model_variant": {
+    "key": "microsoft-phi-4--r-default--o2048t",
+    "base_key": "microsoft/phi-4",
+    "display_name": "phi-4",
+    "label": "phi-4 \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "microsoft/phi-4",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:52:37+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 3,
@@ -200,12 +1456,51 @@
    }
   },
   {
+   "run_id": "qwen2.5-7b__legal_list__fen_pieces__san__minimal",
    "file": "qwen2.5-7b__legal_list__fen_pieces__san__minimal.json",
-   "model": "qwen/qwen-2.5-7b-instruct",
-   "created": "2026-07-13T22:54:44+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "qwen/qwen-2.5-7b-instruct",
+   "model_variant": {
+    "key": "qwen-qwen-2-5-7b-instruct--r-default--o2048t",
+    "base_key": "qwen/qwen-2.5-7b-instruct",
+    "display_name": "qwen-2.5-7b-instruct",
+    "label": "qwen-2.5-7b-instruct \u00b7 provider default",
+    "provider": "openrouter",
+    "model_id": "qwen/qwen-2.5-7b-instruct",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "openrouter",
+   "created": "2026-07-13T22:54:44+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": true,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 1.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 2,
@@ -222,12 +1517,51 @@
    }
   },
   {
+   "run_id": "random__legal_list__fen_pieces__san__minimal",
    "file": "random__legal_list__fen_pieces__san__minimal.json",
-   "model": "random",
-   "created": "2026-07-13T18:52:17+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "random",
+   "model_variant": {
+    "key": "random--r-default--o2048t",
+    "base_key": "random",
+    "display_name": "random",
+    "label": "random \u00b7 provider default",
+    "provider": "random",
+    "model_id": "random",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "random",
+   "created": "2026-07-13T18:52:17+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": false,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 0.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 1,
@@ -244,12 +1578,51 @@
    }
   },
   {
+   "run_id": "stockfish__legal_list__fen_pieces__san__minimal",
    "file": "stockfish__legal_list__fen_pieces__san__minimal.json",
-   "model": "stockfish@150000n",
-   "created": "2026-07-13T18:52:16+00:00",
+   "track": "puzzle",
    "kind": "puzzle",
-   "condition": "legal_list__fen_pieces__san__minimal",
-   "suite": "tactical-public-v1",
+   "status": "completed",
+   "model": "stockfish@150000n",
+   "model_variant": {
+    "key": "stockfish-150000n--r-default--o2048t",
+    "base_key": "stockfish@150000n",
+    "display_name": "stockfish@150000n",
+    "label": "stockfish@150000n \u00b7 provider default",
+    "provider": "stockfish",
+    "model_id": "stockfish@150000n",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 2048
+   },
+   "provider": "stockfish",
+   "created": "2026-07-13T18:52:16+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "san",
+    "prompt_style": "minimal",
+    "context_mode": "fresh",
+    "explain": false,
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "temperature": 0.0,
+    "slug": "legal_list__fen_pieces__san__minimal"
+   },
+   "condition_slug": "legal_list__fen_pieces__san__minimal",
+   "suite": {
+    "name": "tactical-public-v1",
+    "version": "1",
+    "visibility": "public",
+    "content_hash": "sha256:dbc5236e81094e35"
+   },
+   "progress": {
+    "completed": 96,
+    "total": 96
+   },
    "summary": {
     "n": 96,
     "solved": 96,

@@ -1,0 +1,828 @@
+{
+ "schema": "chessbench.composed_run.v1",
+ "run_id": "5a0c7f2270934217bb8ef39af0c07c60",
+ "created": "2026-07-15T05:01:14+00:00",
+ "model": "openai/gpt-5.6-luna",
+ "solver": "openrouter",
+ "model_variant": {
+  "key": "openai-gpt-5-6-luna--r-low--o8192t",
+  "base_key": "openai/gpt-5.6-luna",
+  "display_name": "gpt-5.6-luna",
+  "label": "gpt-5.6-luna \u00b7 low reasoning",
+  "provider": "openrouter",
+  "model_id": "openai/gpt-5.6-luna",
+  "reasoning": {
+   "effort": "low",
+   "max_tokens": null,
+   "exclude": true
+  },
+  "max_output_tokens": 8192
+ },
+ "suite": {
+  "schema": "chessbench.suite_manifest.v1",
+  "name": "esoteric-smoke-v1",
+  "version": "1.0.0",
+  "visibility": "public",
+  "kind": "composed",
+  "source": "suite:esoteric-seed-v1@sha256:aedbc34a91a528ae",
+  "items": 7,
+  "content_hash": "sha256:70fb0097ee520bae"
+ },
+ "condition": {
+  "legality": "legal_list",
+  "representation": "fen_pieces",
+  "notation": "uci",
+  "prompt_style": "coached",
+  "context_mode": "hybrid",
+  "puzzle_protocol": "move_by_move",
+  "retry_attempts": 3,
+  "otb_illegal_limit": 2,
+  "explain": true,
+  "response_protocol": "prompt_json_v1",
+  "temperature": 1.0,
+  "include_side_to_move": true,
+  "reasoning_effort": "low",
+  "reasoning_max_tokens": null,
+  "max_output_tokens": 8192,
+  "slug": "legal_list__fen_pieces__uci__coached__json-rationale__prompt-json-v1__pctx-hybrid__reason-low"
+ },
+ "summary": {
+  "n": 7,
+  "solved": 5,
+  "solve_rate": 0.7142857142857143,
+  "points": 5.0,
+  "max_points": 7.0,
+  "by_kind": {
+   "directmate": {
+    "solved": 1,
+    "n": 1
+   },
+   "helpmate": {
+    "solved": 0,
+    "n": 1
+   },
+   "proofgame": {
+    "solved": 1,
+    "n": 1
+   },
+   "reflexmate": {
+    "solved": 0,
+    "n": 1
+   },
+   "selfmate": {
+    "solved": 1,
+    "n": 1
+   },
+   "series_directmate": {
+    "solved": 1,
+    "n": 1
+   },
+   "series_helpmate": {
+    "solved": 1,
+    "n": 1
+   }
+  }
+ },
+ "items": [
+  {
+   "id": "dm1_000rZ",
+   "kind": "directmate",
+   "label": "#1",
+   "n": 1,
+   "fen": "2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13",
+   "goal": null,
+   "solution": [
+    "d6h2"
+   ],
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "answer_shape": "key",
+   "solved": true,
+   "answer": "{\"move\":\"d6h2\",\"rationale\":\"Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.\"}",
+   "answer_rationale": "Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "key d6h2 forces #1",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: #1.\n\nThe side to move must force checkmate in at most 1 of its own moves against ANY defense.\n\nFEN: 2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13\n\nPieces:\nWhite: Kg1, Qd1, Ra1, Rf1, Be3, Nc3, Ne6, Pa2, Pb2, Pc2, Pf2, Pg2, Ph2, Pd3\nBlack: Kc8, Qd6, Rd8, Rh8, Bf8, Ng4, Ph5, Pc6, Pa7, Pc7, Pf7, Pg7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Be7 (f8e7), Kb7 (c8b7), Kb8 (c8b8), Kd7 (c8d7), Ne5 (g4e5), Nf6 (g4f6), Nh6 (g4h6), Nxe3 (g4e3), Nxf2 (g4f2), Nxh2 (g4h2), Qa3 (d6a3), Qb4 (d6b4), Qc5 (d6c5), Qd4 (d6d4), Qd5 (d6d5), Qd7 (d6d7), Qe5 (d6e5), Qe7 (d6e7), Qf4 (d6f4), Qg3 (d6g3), Qxd3 (d6d3), Qxe6 (d6e6), Qxh2# (d6h2), Rd7 (d8d7), Re8 (d8e8), Rg8 (h8g8), Rh6 (h8h6), Rh7 (h8h7), a5 (a7a5), a6 (a7a6), c5 (c6c5), f5 (f7f5), f6 (f7f6), fxe6 (f7e6), g5 (g7g5), g6 (g7g6), h4 (h5h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+     "raw_response": "{\"move\":\"d6h2\",\"rationale\":\"Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 949,
+      "completion_tokens": 305,
+      "total_tokens": 1254,
+      "cost": 0.00275121,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.002779,
+       "upstream_inference_prompt_cost": 0.000949,
+       "upstream_inference_completions_cost": 0.00183
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 233,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.00275121,
+     "rationale": "Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "dm1_000rZ",
+    "kind": "directmate",
+    "solved": true,
+    "score": 1.0,
+    "first_move_legal": true,
+    "detail": "key d6h2 forces #1",
+    "answer": "{\"move\":\"d6h2\",\"rationale\":\"Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.\"}",
+    "answer_rationale": "Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: #1.\n\nThe side to move must force checkmate in at most 1 of its own moves against ANY defense.\n\nFEN: 2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13\n\nPieces:\nWhite: Kg1, Qd1, Ra1, Rf1, Be3, Nc3, Ne6, Pa2, Pb2, Pc2, Pf2, Pg2, Ph2, Pd3\nBlack: Kc8, Qd6, Rd8, Rh8, Bf8, Ng4, Ph5, Pc6, Pa7, Pc7, Pf7, Pg7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Be7 (f8e7), Kb7 (c8b7), Kb8 (c8b8), Kd7 (c8d7), Ne5 (g4e5), Nf6 (g4f6), Nh6 (g4h6), Nxe3 (g4e3), Nxf2 (g4f2), Nxh2 (g4h2), Qa3 (d6a3), Qb4 (d6b4), Qc5 (d6c5), Qd4 (d6d4), Qd5 (d6d5), Qd7 (d6d7), Qe5 (d6e5), Qe7 (d6e7), Qf4 (d6f4), Qg3 (d6g3), Qxd3 (d6d3), Qxe6 (d6e6), Qxh2# (d6h2), Rd7 (d8d7), Re8 (d8e8), Rg8 (h8g8), Rh6 (h8h6), Rh7 (h8h7), a5 (a7a5), a6 (a7a6), c5 (c6c5), f5 (f7f5), f6 (f7f6), fxe6 (f7e6), g5 (g7g5), g6 (g7g6), h4 (h5h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+      "raw_response": "{\"move\":\"d6h2\",\"rationale\":\"Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 949,
+       "completion_tokens": 305,
+       "total_tokens": 1254,
+       "cost": 0.00275121,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.002779,
+        "upstream_inference_prompt_cost": 0.000949,
+        "upstream_inference_completions_cost": 0.00183
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 233,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.00275121,
+      "rationale": "Qxh2 is immediate checkmate: the queen checks the king on g1 along the diagonal, while h2 is protected by the knight on g4. White cannot capture the queen or interpose, and every king escape square is occupied, attacked, or unavailable.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "hm3_3",
+   "kind": "helpmate",
+   "label": "h#3",
+   "n": 3,
+   "fen": "8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "h3g4",
+    "d6f8",
+    "g4h3",
+    "e1f1",
+    "h3h2",
+    "f8d6"
+   ],
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "answer_shape": "line",
+   "solved": false,
+   "answer": "{\"moves\":[\"h3g2\",\"a2b2\",\"g2f3\",\"b2a2\",\"f3g2\",\"e1g3\"],\"rationale\":\"Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.\"}",
+   "answer_rationale": "Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "6-ply line is not a h#3",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: h#3.\n\nBoth sides COOPERATE to checkmate the side to move in exactly 3 moves. Give the full line as 6 moves (the side to move first, then alternating).\n\nFEN: 8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1\n\nPieces:\nWhite: Ka2, Qe1, Bd6\nBlack: Kh3\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Kg2 (h3g2), Kg4 (h3g4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "{\"moves\":[\"h3g2\",\"a2b2\",\"g2f3\",\"b2a2\",\"f3g2\",\"e1g3\"],\"rationale\":\"Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 579,
+      "completion_tokens": 2181,
+      "total_tokens": 2760,
+      "cost": 0.01352835,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.013665,
+       "upstream_inference_prompt_cost": 0.000579,
+       "upstream_inference_completions_cost": 0.013086
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 2070,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.01352835,
+     "rationale": "Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "hm3_3",
+    "kind": "helpmate",
+    "solved": false,
+    "score": 0.0,
+    "first_move_legal": true,
+    "detail": "6-ply line is not a h#3",
+    "answer": "{\"moves\":[\"h3g2\",\"a2b2\",\"g2f3\",\"b2a2\",\"f3g2\",\"e1g3\"],\"rationale\":\"Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.\"}",
+    "answer_rationale": "Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: h#3.\n\nBoth sides COOPERATE to checkmate the side to move in exactly 3 moves. Give the full line as 6 moves (the side to move first, then alternating).\n\nFEN: 8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1\n\nPieces:\nWhite: Ka2, Qe1, Bd6\nBlack: Kh3\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: Kg2 (h3g2), Kg4 (h3g4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+      "raw_response": "{\"moves\":[\"h3g2\",\"a2b2\",\"g2f3\",\"b2a2\",\"f3g2\",\"e1g3\"],\"rationale\":\"Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 579,
+       "completion_tokens": 2181,
+       "total_tokens": 2760,
+       "cost": 0.01352835,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.013665,
+        "upstream_inference_prompt_cost": 0.000579,
+        "upstream_inference_completions_cost": 0.013086
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 2070,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.01352835,
+      "rationale": "Black\u2019s only suitable first move is Kg2. White uses the harmless king shuffles Kb2 and Ka2 while Black routes Kf3\u2013Kg2. The final Qg3 is protected by the bishop on d6 and checks the king on g2; it covers every escape square and cannot be captured, giving mate.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "pg2",
+   "kind": "proofgame",
+   "label": "proof game in 2 plies",
+   "n": 2,
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+   "goal": null,
+   "solution": [
+    "e2e4",
+    "e7e5"
+   ],
+   "themes": [
+    "proofgame",
+    "beginner"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "{\"moves\":[\"e2e4\",\"e7e5\"],\"rationale\":\"White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.\"}",
+   "answer_rationale": "White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "2 plies reach the target in 2",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: proof game in 2 plies.\n\nGive a legal sequence of exactly 2 plies (half-moves) from the standard starting position that reaches the position shown. List the moves in order.\n\nTarget position to reach:\nFEN: rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2\n\nPieces:\nWhite: Ke1, Qd1, Ra1, Rh1, Bc1, Bf1, Nb1, Ng1, Pa2, Pb2, Pc2, Pd2, Pf2, Pg2, Ph2, Pe4\nBlack: Ke8, Qd8, Ra8, Rh8, Bc8, Bf8, Nb8, Ng8, Pe5, Pa7, Pb7, Pc7, Pd7, Pf7, Pg7, Ph7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Na3 (b1a3), Nc3 (b1c3), Nf3 (g1f3), Nh3 (g1h3), a3 (a2a3), a4 (a2a4), b3 (b2b3), b4 (b2b4), c3 (c2c3), c4 (c2c4), d3 (d2d3), d4 (d2d4), e3 (e2e3), e4 (e2e4), f3 (f2f3), f4 (f2f4), g3 (g2g3), g4 (g2g4), h3 (h2h3), h4 (h2h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "{\"moves\":[\"e2e4\",\"e7e5\"],\"rationale\":\"White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 835,
+      "completion_tokens": 129,
+      "total_tokens": 964,
+      "cost": 0.00159291,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.001609,
+       "upstream_inference_prompt_cost": 0.000835,
+       "upstream_inference_completions_cost": 0.000774
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 66,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.00159291,
+     "rationale": "White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "pg2",
+    "kind": "proofgame",
+    "solved": true,
+    "score": 1.0,
+    "first_move_legal": true,
+    "detail": "2 plies reach the target in 2",
+    "answer": "{\"moves\":[\"e2e4\",\"e7e5\"],\"rationale\":\"White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.\"}",
+    "answer_rationale": "White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: proof game in 2 plies.\n\nGive a legal sequence of exactly 2 plies (half-moves) from the standard starting position that reaches the position shown. List the moves in order.\n\nTarget position to reach:\nFEN: rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2\n\nPieces:\nWhite: Ke1, Qd1, Ra1, Rh1, Bc1, Bf1, Nb1, Ng1, Pa2, Pb2, Pc2, Pd2, Pf2, Pg2, Ph2, Pe4\nBlack: Ke8, Qd8, Ra8, Rh8, Bc8, Bf8, Nb8, Ng8, Pe5, Pa7, Pb7, Pc7, Pd7, Pf7, Pg7, Ph7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Na3 (b1a3), Nc3 (b1c3), Nf3 (g1f3), Nh3 (g1h3), a3 (a2a3), a4 (a2a4), b3 (b2b3), b4 (b2b4), c3 (c2c3), c4 (c2c4), d3 (d2d3), d4 (d2d4), e3 (e2e3), e4 (e2e4), f3 (f2f3), f4 (f2f4), g3 (g2g3), g4 (g2g4), h3 (h2h3), h4 (h2h4)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+      "raw_response": "{\"moves\":[\"e2e4\",\"e7e5\"],\"rationale\":\"White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 835,
+       "completion_tokens": 129,
+       "total_tokens": 964,
+       "cost": 0.00159291,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.001609,
+        "upstream_inference_prompt_cost": 0.000835,
+        "upstream_inference_completions_cost": 0.000774
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 66,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.00159291,
+      "rationale": "White advances the king pawn two squares, and Black replies by advancing the king pawn two squares. This produces the shown position after exactly two plies, with White to move on move 2.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "rm1_0",
+   "kind": "reflexmate",
+   "label": "r#1",
+   "n": 1,
+   "fen": "6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1",
+   "goal": null,
+   "solution": [
+    "h3h5"
+   ],
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": false,
+   "answer": "{\"move\":\"g8a8\",\"rationale\":\"Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.\"}",
+   "answer_rationale": "Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "key g8a8 does not force r#1",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: r#1.\n\nAs a selfmate in 1, but under the reflex condition: EITHER side must give checkmate immediately whenever it is able to.\n\nFEN: 6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1\n\nPieces:\nWhite: Kh1, Qg8, Rh3\nBlack: Kf1, Qf7, Rc2\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Qa8 (g8a8), Qb8 (g8b8), Qc8 (g8c8), Qd8 (g8d8), Qe8 (g8e8), Qf8 (g8f8), Qg1+ (g8g1), Qg2+ (g8g2), Qg3 (g8g3), Qg4 (g8g4), Qg5 (g8g5), Qg6 (g8g6), Qg7 (g8g7), Qh7 (g8h7), Qh8 (g8h8), Qxf7+ (g8f7), Ra3 (h3a3), Rb3 (h3b3), Rc3 (h3c3), Rd3 (h3d3), Re3 (h3e3), Rf3+ (h3f3), Rg3 (h3g3), Rh2 (h3h2), Rh4 (h3h4), Rh5 (h3h5), Rh6 (h3h6), Rh7 (h3h7), Rh8 (h3h8)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+     "raw_response": "{\"move\":\"g8a8\",\"rationale\":\"Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 817,
+      "completion_tokens": 4122,
+      "total_tokens": 4939,
+      "cost": 0.02529351,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.025549,
+       "upstream_inference_prompt_cost": 0.000817,
+       "upstream_inference_completions_cost": 0.024732
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 4039,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.02529351,
+     "rationale": "Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "rm1_0",
+    "kind": "reflexmate",
+    "solved": false,
+    "score": 0.0,
+    "first_move_legal": true,
+    "detail": "key g8a8 does not force r#1",
+    "answer": "{\"move\":\"g8a8\",\"rationale\":\"Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.\"}",
+    "answer_rationale": "Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: r#1.\n\nAs a selfmate in 1, but under the reflex condition: EITHER side must give checkmate immediately whenever it is able to.\n\nFEN: 6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1\n\nPieces:\nWhite: Kh1, Qg8, Rh3\nBlack: Kf1, Qf7, Rc2\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Qa8 (g8a8), Qb8 (g8b8), Qc8 (g8c8), Qd8 (g8d8), Qe8 (g8e8), Qf8 (g8f8), Qg1+ (g8g1), Qg2+ (g8g2), Qg3 (g8g3), Qg4 (g8g4), Qg5 (g8g5), Qg6 (g8g6), Qg7 (g8g7), Qh7 (g8h7), Qh8 (g8h8), Qxf7+ (g8f7), Ra3 (h3a3), Rb3 (h3b3), Rc3 (h3c3), Rd3 (h3d3), Re3 (h3e3), Rf3+ (h3f3), Rg3 (h3g3), Rh2 (h3h2), Rh4 (h3h4), Rh5 (h3h5), Rh6 (h3h6), Rh7 (h3h7), Rh8 (h3h8)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+      "raw_response": "{\"move\":\"g8a8\",\"rationale\":\"Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 817,
+       "completion_tokens": 4122,
+       "total_tokens": 4939,
+       "cost": 0.02529351,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.025549,
+        "upstream_inference_prompt_cost": 0.000817,
+        "upstream_inference_completions_cost": 0.024732
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 4039,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.02529351,
+      "rationale": "Qa8 is a quiet selfmate key: it vacates g8 and removes White\u2019s potential interposition on g1. Black\u2019s forced mating resource is ...Qf3#, with the queen checking along f3\u2013g2\u2013h1 while the rook controls h2 and the king controls g1 and g2.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "sm2_1",
+   "kind": "selfmate",
+   "label": "s#2",
+   "n": 2,
+   "fen": "1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "c1a1"
+   ],
+   "themes": [
+    "selfmate",
+    "advanced"
+   ],
+   "answer_shape": "key",
+   "solved": true,
+   "answer": "{\"move\":\"c1a1\",\"rationale\":\"Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.\"}",
+   "answer_rationale": "Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "key c1a1 forces s#2",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: s#2.\n\nThe side to move must force the OPPONENT to deliver checkmate to the side to move within 2 moves. (The side to move wants to be mated; the opponent tries to avoid mating.)\n\nFEN: 1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1\n\nPieces:\nWhite: Kc2, Qb6, Rc1\nBlack: Ka2, Qb8, Rd3\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Kxd3 (c2d3), Qa5+ (b6a5), Qa6+ (b6a6), Qa7+ (b6a7), Qb1+ (b6b1), Qb2+ (b6b2), Qb3+ (b6b3), Qb4 (b6b4), Qb5 (b6b5), Qb7 (b6b7), Qc5 (b6c5), Qc6 (b6c6), Qc7 (b6c7), Qd4 (b6d4), Qd6 (b6d6), Qd8 (b6d8), Qe3 (b6e3), Qe6+ (b6e6), Qf2 (b6f2), Qf6 (b6f6), Qg1 (b6g1), Qg6 (b6g6), Qh6 (b6h6), Qxb8 (b6b8), Ra1+ (c1a1), Rb1 (c1b1), Rd1 (c1d1), Re1 (c1e1), Rf1 (c1f1), Rg1 (c1g1), Rh1 (c1h1)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+     "raw_response": "{\"move\":\"c1a1\",\"rationale\":\"Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 857,
+      "completion_tokens": 2161,
+      "total_tokens": 3018,
+      "cost": 0.01368477,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.013823,
+       "upstream_inference_prompt_cost": 0.000857,
+       "upstream_inference_completions_cost": 0.012966
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 2070,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.01368477,
+     "rationale": "Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "sm2_1",
+    "kind": "selfmate",
+    "solved": true,
+    "score": 1.0,
+    "first_move_legal": true,
+    "detail": "key c1a1 forces s#2",
+    "answer": "{\"move\":\"c1a1\",\"rationale\":\"Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.\"}",
+    "answer_rationale": "Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: s#2.\n\nThe side to move must force the OPPONENT to deliver checkmate to the side to move within 2 moves. (The side to move wants to be mated; the opponent tries to avoid mating.)\n\nFEN: 1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1\n\nPieces:\nWhite: Kc2, Qb6, Rc1\nBlack: Ka2, Qb8, Rd3\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Kxd3 (c2d3), Qa5+ (b6a5), Qa6+ (b6a6), Qa7+ (b6a7), Qb1+ (b6b1), Qb2+ (b6b2), Qb3+ (b6b3), Qb4 (b6b4), Qb5 (b6b5), Qb7 (b6b7), Qc5 (b6c5), Qc6 (b6c6), Qc7 (b6c7), Qd4 (b6d4), Qd6 (b6d6), Qd8 (b6d8), Qe3 (b6e3), Qe6+ (b6e6), Qf2 (b6f2), Qf6 (b6f6), Qg1 (b6g1), Qg6 (b6g6), Qh6 (b6h6), Qxb8 (b6b8), Ra1+ (c1a1), Rb1 (c1b1), Rd1 (c1d1), Re1 (c1e1), Rf1 (c1f1), Rg1 (c1g1), Rh1 (c1h1)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"move\":\"e2e4\",\"rationale\":\"A concise explanation of why the move is best.\"}\n`move` must be exactly one legal move in lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`. Do not wrap the object in a Markdown code fence. `rationale` should briefly identify the important features of the position, why the move works against the opponent's strongest response, and any important tactical or strategic idea. Mention alternatives only when relevant; preferably stay under 150 words.",
+      "raw_response": "{\"move\":\"c1a1\",\"rationale\":\"Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 857,
+       "completion_tokens": 2161,
+       "total_tokens": 3018,
+       "cost": 0.01368477,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.013823,
+        "upstream_inference_prompt_cost": 0.000857,
+        "upstream_inference_completions_cost": 0.012966
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 2070,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.01368477,
+      "rationale": "Ra1+ is a forcing key: Black\u2019s king has no flight or interposition and must capture on a1. White then plays Qb2+, again leaving Black only Qxb2. That capture gives check to the white king on c2, and the queen on b2 is protected by the black king on a1, so it is checkmate.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "ser_dm2",
+   "kind": "series_directmate",
+   "label": "ser-#2",
+   "n": 2,
+   "fen": "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+   "goal": null,
+   "solution": [
+    "a1a7",
+    "a7a8"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "{\"moves\":[\"a1a2\",\"a2a8\"],\"rationale\":\"White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.\"}",
+   "answer_rationale": "White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "2-move series is a valid ser-#2",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: ser-#2.\n\nThe side to move plays 2 consecutive moves (giving check only on the last), ending in checkmate. Give the full move sequence.\n\nFEN: 7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1\n\nPieces:\nWhite: Kg1, Ra1\nBlack: Kh8, Pf7, Pg7, Ph7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Kf1 (g1f1), Kf2 (g1f2), Kg2 (g1g2), Kh1 (g1h1), Kh2 (g1h2), Ra2 (a1a2), Ra3 (a1a3), Ra4 (a1a4), Ra5 (a1a5), Ra6 (a1a6), Ra7 (a1a7), Ra8# (a1a8), Rb1 (a1b1), Rc1 (a1c1), Rd1 (a1d1), Re1 (a1e1), Rf1 (a1f1)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "{\"moves\":[\"a1a2\",\"a2a8\"],\"rationale\":\"White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 702,
+      "completion_tokens": 614,
+      "total_tokens": 1316,
+      "cost": 0.00434214,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.004386,
+       "upstream_inference_prompt_cost": 0.000702,
+       "upstream_inference_completions_cost": 0.003684
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 516,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.00434214,
+     "rationale": "White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "ser_dm2",
+    "kind": "series_directmate",
+    "solved": true,
+    "score": 1.0,
+    "first_move_legal": true,
+    "detail": "2-move series is a valid ser-#2",
+    "answer": "{\"moves\":[\"a1a2\",\"a2a8\"],\"rationale\":\"White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.\"}",
+    "answer_rationale": "White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: ser-#2.\n\nThe side to move plays 2 consecutive moves (giving check only on the last), ending in checkmate. Give the full move sequence.\n\nFEN: 7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1\n\nPieces:\nWhite: Kg1, Ra1\nBlack: Kh8, Pf7, Pg7, Ph7\n\nSide to move: White\n\nLegal moves [SAN (UCI)]: Kf1 (g1f1), Kf2 (g1f2), Kg2 (g1g2), Kh1 (g1h1), Kh2 (g1h2), Ra2 (a1a2), Ra3 (a1a3), Ra4 (a1a4), Ra5 (a1a5), Ra6 (a1a6), Ra7 (a1a7), Ra8# (a1a8), Rb1 (a1b1), Rc1 (a1c1), Rd1 (a1d1), Re1 (a1e1), Rf1 (a1f1)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+      "raw_response": "{\"moves\":[\"a1a2\",\"a2a8\"],\"rationale\":\"White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 702,
+       "completion_tokens": 614,
+       "total_tokens": 1316,
+       "cost": 0.00434214,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.004386,
+        "upstream_inference_prompt_cost": 0.000702,
+        "upstream_inference_completions_cost": 0.003684
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 516,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.00434214,
+      "rationale": "White first makes the quiet rook move Ra2, which gives no check. The second move Ra8 gives check along the eighth rank. Black's king on h8 cannot escape: g8 is covered by the rook, while g7 and h7 are occupied by Black's own pawns and cannot interpose or capture the rook. Thus Ra8 is checkmate.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  },
+  {
+   "id": "ser_hm2",
+   "kind": "series_helpmate",
+   "label": "ser-h#2",
+   "n": 2,
+   "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+   "goal": null,
+   "solution": [
+    "a7a6",
+    "a6a5",
+    "g6g7"
+   ],
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "answer_shape": "line",
+   "solved": true,
+   "answer": "{\"moves\":[\"a7a6\",\"a6a5\",\"g6g7\"],\"rationale\":\"Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.\"}",
+   "answer_rationale": "Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.",
+   "response_format_valid": true,
+   "response_format_error": null,
+   "detail": "3-move series is a valid ser-h#2",
+   "turns": [
+    {
+     "system_prompt": null,
+     "prompt": "You are solving a composed chess problem. Stipulation: ser-h#2.\n\nThe side to move plays 2 consecutive moves (the opponent does not move), then the opponent delivers mate. Give the full move sequence.\n\nFEN: 7k/p7/5KQ1/8/8/8/8/8 b - - 0 1\n\nPieces:\nWhite: Kf6, Qg6\nBlack: Kh8, Pa7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: a5 (a7a5), a6 (a7a6)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+     "raw_response": "{\"moves\":[\"a7a6\",\"a6a5\",\"g6g7\"],\"rationale\":\"Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.\"}",
+     "response_format": null,
+     "usage": {
+      "prompt_tokens": 572,
+      "completion_tokens": 1593,
+      "total_tokens": 2165,
+      "cost": 0.0100287,
+      "is_byok": false,
+      "prompt_tokens_details": {
+       "cached_tokens": 0,
+       "cache_write_tokens": 0,
+       "audio_tokens": 0,
+       "video_tokens": 0
+      },
+      "cost_details": {
+       "upstream_inference_cost": 0.01013,
+       "upstream_inference_prompt_cost": 0.000572,
+       "upstream_inference_completions_cost": 0.009558
+      },
+      "completion_tokens_details": {
+       "reasoning_tokens": 1504,
+       "image_tokens": 0,
+       "audio_tokens": 0
+      }
+     },
+     "cost_usd": 0.0100287,
+     "rationale": "Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.",
+     "response_format_valid": true,
+     "response_format_error": null
+    }
+   ],
+   "result": {
+    "problem_id": "ser_hm2",
+    "kind": "series_helpmate",
+    "solved": true,
+    "score": 1.0,
+    "first_move_legal": true,
+    "detail": "3-move series is a valid ser-h#2",
+    "answer": "{\"moves\":[\"a7a6\",\"a6a5\",\"g6g7\"],\"rationale\":\"Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.\"}",
+    "answer_rationale": "Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.",
+    "response_format_valid": true,
+    "response_format_error": null,
+    "turns": [
+     {
+      "system_prompt": null,
+      "prompt": "You are solving a composed chess problem. Stipulation: ser-h#2.\n\nThe side to move plays 2 consecutive moves (the opponent does not move), then the opponent delivers mate. Give the full move sequence.\n\nFEN: 7k/p7/5KQ1/8/8/8/8/8 b - - 0 1\n\nPieces:\nWhite: Kf6, Qg6\nBlack: Kh8, Pa7\n\nSide to move: Black\n\nLegal moves [SAN (UCI)]: a5 (a7a5), a6 (a7a6)\n\nAs you analyze the position, consider the following. These are useful considerations, not a mandatory sequence or an exhaustive checklist:\n- The side to move, checks, material balance, king safety, immediate threats, and loose or inadequately defended pieces.\n- Checks, captures, promotions, and direct threats. These are often useful to examine early, but a forcing move is not necessarily best.\n- Defensive resources, quiet threats, sacrifices, zwischenzugs, pawn breaks, improving moves, prophylaxis, waiting moves, and possible zugzwang.\n- Every legal move when the position has few alternatives or appears to depend on a precise quiet move.\n- The opponent's strongest defense, including counterchecks, intermediate moves, tactical refutations, move-order changes, and unexpected defensive resources.\n- Tactical features such as pins, overloaded or removed defenders, discovered attacks, mating nets, perpetual checks, stalemate, and promotion.\n- Whether each important line has been followed far enough for its consequences to become clear. Winning material may not end the calculation.\n- Resulting positions in terms of forced outcomes, material, king safety, activity, pawn structure, passed pawns, space, and long-term threats.\n- In a puzzle, whether the move begins a forced solution against every defense rather than being merely advantageous.\n- A final legality and blunder check from the opponent's perspective.\n\nReturn exactly one JSON object with no Markdown or additional text, using this shape:\n{\"moves\":[\"e2e4\",\"e7e5\",\"g1f3\"],\"rationale\":\"A concise explanation of the forced sequence.\"}\nEvery entry in `moves` must use lowercase UCI coordinate notation. Valid UCI examples: `e2e4`, `g1f3`, `e7e8q`. Do not use SAN such as `e4`, `Nf3`, `Qh4+`, or `O-O`, and do not wrap the object in a Markdown code fence. `moves` must contain the complete variation in legal play order, including the opponent's replies. `rationale` should briefly explain why the sequence is forced against the strongest defense; preferably stay under 150 words.",
+      "raw_response": "{\"moves\":[\"a7a6\",\"a6a5\",\"g6g7\"],\"rationale\":\"Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.\"}",
+      "response_format": null,
+      "usage": {
+       "prompt_tokens": 572,
+       "completion_tokens": 1593,
+       "total_tokens": 2165,
+       "cost": 0.0100287,
+       "is_byok": false,
+       "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0,
+        "audio_tokens": 0,
+        "video_tokens": 0
+       },
+       "cost_details": {
+        "upstream_inference_cost": 0.01013,
+        "upstream_inference_prompt_cost": 0.000572,
+        "upstream_inference_completions_cost": 0.009558
+       },
+       "completion_tokens_details": {
+        "reasoning_tokens": 1504,
+        "image_tokens": 0,
+        "audio_tokens": 0
+       }
+      },
+      "cost_usd": 0.0100287,
+      "rationale": "Black\u2019s king has no legal move, so the pawn makes the two consecutive moves a7-a6 and a6-a5. White then plays Qg7 mate: the queen attacks h8, h7, and g8, while the king on f6 protects g7, preventing capture.",
+      "response_format_valid": true,
+      "response_format_error": null
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,1031 @@
+{
+ "schema": "chessbench.run.v1",
+ "run_id": "6198e2febc6643eca3f59d64670eb8d4",
+ "kind": "puzzle",
+ "created": "2026-07-15T05:48:19+00:00",
+ "model": "anthropic/claude-haiku-4.5",
+ "provider": "openrouter",
+ "model_variant": {
+  "key": "claude-haiku-4-5--r-low--o8192t",
+  "base_key": "claude-haiku-4.5",
+  "display_name": "claude-haiku-4.5",
+  "label": "claude-haiku-4.5 \u00b7 low reasoning",
+  "provider": "openrouter",
+  "model_id": "anthropic/claude-haiku-4.5",
+  "reasoning": {
+   "effort": "low",
+   "max_tokens": null,
+   "exclude": true
+  },
+  "max_output_tokens": 8192
+ },
+ "suite": {
+  "name": "standard-smoke-v1",
+  "version": "1.0.0",
+  "visibility": "public",
+  "content_hash": "sha256:6a13da8035f65a2c"
+ },
+ "condition": {
+  "legality": "free_form",
+  "representation": "fen_pieces",
+  "notation": "uci",
+  "prompt_style": "minimal",
+  "context_mode": "hybrid",
+  "puzzle_protocol": "move_by_move",
+  "retry_attempts": 3,
+  "otb_illegal_limit": 2,
+  "explain": false,
+  "response_protocol": "plain_text_v1",
+  "temperature": 1.0,
+  "include_side_to_move": true,
+  "reasoning_effort": "low",
+  "reasoning_max_tokens": null,
+  "max_output_tokens": 8192,
+  "slug": "free_form__fen_pieces__uci__minimal__plain-text-v1__pctx-hybrid__reason-low"
+ },
+ "summary": {
+  "n": 12,
+  "solved": 0,
+  "solve_rate": 0.0,
+  "mean_score": 0.0,
+  "first_move_legal_rate": 0.5833333333333334,
+  "response_format_valid_rate": null,
+  "points": 0.0,
+  "max_points": 12,
+  "cost_usd": 0.041870069999999995
+ },
+ "themes": [
+  {
+   "theme": "endgame",
+   "n": 8,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "crushing",
+   "n": 6,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "short",
+   "n": 6,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "long",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "middlegame",
+   "n": 4,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "advantage",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "defensiveMove",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mate",
+   "n": 3,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "deflection",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mateIn2",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "pin",
+   "n": 2,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "attraction",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "discoveredAttack",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "discoveredCheck",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "kingsideAttack",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "master",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "mateIn1",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "oneMove",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "pawnEndgame",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "quietMove",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "veryLong",
+   "n": 1,
+   "accuracy": 0.0
+  },
+  {
+   "theme": "zugzwang",
+   "n": 1,
+   "accuracy": 0.0
+  }
+ ],
+ "items": [
+  {
+   "puzzle_id": "BolbX",
+   "rating": 953,
+   "themes": [
+    "crushing",
+    "deflection",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "b1b8",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "b1b8",
+   "moves_played": [],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2k5/1p1r2r1/p1p2p1p/2Q2p2/3P4/4P2P/PR4Pq/1R3K2 w - - 2 31\n\nPieces:\nWhite: Kf1, Qc5, Rb1, Rb2, Pa2, Pg2, Pe3, Ph3, Pd4\nBlack: Kc8, Qh2, Rd7, Rg7, Pf5, Pa6, Pc6, Pf6, Ph6, Pb7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "b1b8",
+     "parsed_move": null,
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 262,
+     "completion_tokens": 573,
+     "reasoning_tokens": 405,
+     "cost_usd": 0.00309573
+    }
+   ],
+   "fen": "2k5/1p1r2r1/p1p2p1p/2Q2p2/3P4/4P2P/PR4Pq/1R3K2 w - - 2 31",
+   "setup_san": "Rdd7",
+   "solver_is_white": true,
+   "solution": [
+    "c5f8",
+    "d7d8",
+    "f8g7"
+   ],
+   "solution_first": "c5f8",
+   "game_url": "https://lichess.org/dRI2i1q4/black#60"
+  },
+  {
+   "puzzle_id": "FqYKR",
+   "rating": 2670,
+   "themes": [
+    "crushing",
+    "endgame",
+    "pawnEndgame",
+    "quietMove",
+    "veryLong",
+    "zugzwang"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame",
+     "pawnEndgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "veryLong"
+    ],
+    "motif": [
+     "quietMove",
+     "zugzwang"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "b5b6",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "b6",
+   "moves_played": [
+    "b5b6"
+   ],
+   "solver_plies": 7,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 8/p5p1/8/1PK1kpp1/8/5P2/6PP/8 w - - 1 49\n\nPieces:\nWhite: Kc5, Pg2, Ph2, Pf3, Pb5\nBlack: Ke5, Pf5, Pg5, Pa7, Pg7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "b6",
+     "parsed_move": "b5b6",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 206,
+     "completion_tokens": 508,
+     "reasoning_tokens": 359,
+     "cost_usd": 0.00271854
+    }
+   ],
+   "fen": "8/p5p1/8/1PK1kpp1/8/5P2/6PP/8 w - - 1 49",
+   "setup_san": "Ke5",
+   "solver_is_white": true,
+   "solution": [
+    "g2g3",
+    "g5g4",
+    "f3f4",
+    "e5e4",
+    "c5c6",
+    "e4d4",
+    "c6b7",
+    "d4c5",
+    "b7a7",
+    "c5b5",
+    "a7b7",
+    "g7g5",
+    "f4g5"
+   ],
+   "solution_first": "g2g3",
+   "game_url": "https://lichess.org/bBRDBIeH/black#96"
+  },
+  {
+   "puzzle_id": "Q1IxZ",
+   "rating": 2203,
+   "themes": [
+    "crushing",
+    "middlegame",
+    "pin",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "d8d2",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "d8d2",
+   "moves_played": [],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 2kr1r2/pbpq3p/1p2p3/4Bp2/3Pp2Q/2P1P3/PP1K1PPP/2R1R3 b - - 1 18\n\nPieces:\nWhite: Kd2, Qh4, Rc1, Re1, Be5, Pa2, Pb2, Pf2, Pg2, Ph2, Pc3, Pe3, Pd4\nBlack: Kc8, Qd7, Rd8, Rf8, Bb7, Pe4, Pf5, Pb6, Pe6, Pa7, Pc7, Ph7\n\nSide to move: Black\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "d8d2",
+     "parsed_move": null,
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 282,
+     "completion_tokens": 789,
+     "reasoning_tokens": 368,
+     "cost_usd": 0.00418473
+    }
+   ],
+   "fen": "2kr1r2/pbpq3p/1p2p3/4Bp2/3Pp2Q/2P1P3/PP1K1PPP/2R1R3 b - - 1 18",
+   "setup_san": "Rac1",
+   "solver_is_white": false,
+   "solution": [
+    "d7b5",
+    "c3c4",
+    "b5e5"
+   ],
+   "solution_first": "d7b5",
+   "game_url": "https://lichess.org/zNLs4KSY#35"
+  },
+  {
+   "puzzle_id": "QLxFo",
+   "rating": 1475,
+   "themes": [
+    "deflection",
+    "endgame",
+    "mate",
+    "mateIn2",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ],
+    "motif": [
+     "deflection"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "h6d6",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "h6d6",
+   "moves_played": [
+    "h6d6"
+   ],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 8/p7/1p1r3R/1Bpkpp2/4p3/2P3P1/PKPb1P2/8 w - - 9 31\n\nPieces:\nWhite: Kb2, Rh6, Bb5, Pa2, Pc2, Pf2, Pc3, Pg3\nBlack: Kd5, Rd6, Bd2, Pe4, Pc5, Pe5, Pf5, Pb6, Pa7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "h6d6",
+     "parsed_move": "h6d6",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 244,
+     "completion_tokens": 641,
+     "reasoning_tokens": 269,
+     "cost_usd": 0.00341451
+    }
+   ],
+   "fen": "8/p7/1p1r3R/1Bpkpp2/4p3/2P3P1/PKPb1P2/8 w - - 9 31",
+   "setup_san": "Kd5",
+   "solver_is_white": true,
+   "solution": [
+    "c3c4",
+    "d5d4",
+    "h6d6"
+   ],
+   "solution_first": "c3c4",
+   "game_url": "https://lichess.org/HfDvhOZM/black#60"
+  },
+  {
+   "puzzle_id": "Rs5Az",
+   "rating": 2649,
+   "themes": [
+    "crushing",
+    "defensiveMove",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "master"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "c3e4",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "c3e4",
+   "moves_played": [
+    "c3e4"
+   ],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 8/8/B4K2/1P1k1P2/p7/2n5/8/8 b - - 0 65\n\nPieces:\nWhite: Kf6, Ba6, Pb5, Pf5\nBlack: Kd5, Nc3, Pa4\n\nSide to move: Black\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "c3e4",
+     "parsed_move": "c3e4",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 194,
+     "completion_tokens": 512,
+     "reasoning_tokens": 382,
+     "cost_usd": 0.00272646
+    }
+   ],
+   "fen": "8/8/B4K2/1P1k1P2/p7/2n5/8/8 b - - 0 65",
+   "setup_san": "b5",
+   "solver_is_white": false,
+   "solution": [
+    "a4a3",
+    "a6c8",
+    "d5d6"
+   ],
+   "solution_first": "a4a3",
+   "game_url": "https://lichess.org/pAUKP1qY#129"
+  },
+  {
+   "puzzle_id": "adW34",
+   "rating": 1918,
+   "themes": [
+    "crushing",
+    "discoveredAttack",
+    "discoveredCheck",
+    "long",
+    "middlegame"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "discoveredAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "g5f5",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "g5f5",
+   "moves_played": [
+    "g5f5"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 6rr/pp2n3/4pk2/6R1/4p2q/2P2P2/PP4QP/5RK1 w - - 0 34\n\nPieces:\nWhite: Kg1, Qg2, Rf1, Rg5, Pa2, Pb2, Ph2, Pc3, Pf3\nBlack: Kf6, Qh4, Rg8, Rh8, Ne7, Pe4, Pe6, Pa7, Pb7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "g5f5",
+     "parsed_move": "g5f5",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 248,
+     "completion_tokens": 537,
+     "reasoning_tokens": 342,
+     "cost_usd": 0.00290367
+    }
+   ],
+   "fen": "6rr/pp2n3/4pk2/6R1/4p2q/2P2P2/PP4QP/5RK1 w - - 0 34",
+   "setup_san": "Qxh4",
+   "solver_is_white": true,
+   "solution": [
+    "f3e4",
+    "e7f5",
+    "g5g8",
+    "h8g8",
+    "g2g8"
+   ],
+   "solution_first": "f3e4",
+   "game_url": "https://lichess.org/jIPnsG2K/black#66"
+  },
+  {
+   "puzzle_id": "j9qcm",
+   "rating": 1346,
+   "themes": [
+    "mate",
+    "mateIn2",
+    "middlegame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "short"
+    ],
+    "mate_pattern": [
+     "mateIn2"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "e5d3",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "e5d3",
+   "moves_played": [
+    "e5d3"
+   ],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 1kN2r2/pp4p1/3p4/4n1Pp/3BP2P/1P3PQ1/q7/2KR1R2 b - - 0 27\n\nPieces:\nWhite: Kc1, Qg3, Rd1, Rf1, Bd4, Nc8, Pb3, Pf3, Pe4, Ph4, Pg5\nBlack: Kb8, Qa2, Rf8, Ne5, Ph5, Pd6, Pa7, Pb7, Pg7\n\nSide to move: Black\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "e5d3",
+     "parsed_move": "e5d3",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 259,
+     "completion_tokens": 689,
+     "reasoning_tokens": 381,
+     "cost_usd": 0.00366696
+    }
+   ],
+   "fen": "1kN2r2/pp4p1/3p4/4n1Pp/3BP2P/1P3PQ1/q7/2KR1R2 b - - 0 27",
+   "setup_san": "Nxc8",
+   "solver_is_white": false,
+   "solution": [
+    "f8c8",
+    "d4c5",
+    "c8c5"
+   ],
+   "solution_first": "f8c8",
+   "game_url": "https://lichess.org/IPLal0Uv#53"
+  },
+  {
+   "puzzle_id": "jXOeD",
+   "rating": 2214,
+   "themes": [
+    "advantage",
+    "defensiveMove",
+    "endgame",
+    "short"
+   ],
+   "categories": {
+    "tier": [
+     "expert"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "short"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "g6g7",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "g6g7",
+   "moves_played": [],
+   "solver_plies": 2,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 7k/6p1/p5Pn/P4b2/1pPp4/1P1P2N1/5K1P/8 w - - 2 35\n\nPieces:\nWhite: Kf2, Ng3, Ph2, Pb3, Pd3, Pc4, Pa5, Pg6\nBlack: Kh8, Bf5, Nh6, Pb4, Pd4, Pa6, Pg7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "g6g7",
+     "parsed_move": null,
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 236,
+     "completion_tokens": 1026,
+     "reasoning_tokens": 481,
+     "cost_usd": 0.00531234
+    }
+   ],
+   "fen": "7k/6p1/p5Pn/P4b2/1pPp4/1P1P2N1/5K1P/8 w - - 2 35",
+   "setup_san": "Bf5",
+   "solver_is_white": true,
+   "solution": [
+    "g3f5",
+    "h6f5",
+    "f2f3"
+   ],
+   "solution_first": "g3f5",
+   "game_url": "https://lichess.org/ehzuygg3/black#68"
+  },
+  {
+   "puzzle_id": "tcnPG",
+   "rating": 1566,
+   "themes": [
+    "advantage",
+    "endgame",
+    "long",
+    "master",
+    "pin"
+   ],
+   "categories": {
+    "tier": [
+     "intermediate"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "pin"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "a5a1",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "a5a1",
+   "moves_played": [
+    "a5a1"
+   ],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 6rk/pR4pp/3p2b1/q7/3Q4/2P5/2PK1PPP/2R5 b - - 0 25\n\nPieces:\nWhite: Kd2, Qd4, Rc1, Rb7, Pc2, Pf2, Pg2, Ph2, Pc3\nBlack: Kh8, Qa5, Rg8, Bg6, Pd6, Pa7, Pg7, Ph7\n\nSide to move: Black\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "a5a1",
+     "parsed_move": "a5a1",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 244,
+     "completion_tokens": 684,
+     "reasoning_tokens": 467,
+     "cost_usd": 0.00362736
+    }
+   ],
+   "fen": "6rk/pR4pp/3p2b1/q7/3Q4/2P5/2PK1PPP/2R5 b - - 0 25",
+   "setup_san": "Rxb7",
+   "solver_is_white": false,
+   "solution": [
+    "a5g5",
+    "d2d1",
+    "g6h5",
+    "f2f3",
+    "g5g2"
+   ],
+   "solution_first": "a5g5",
+   "game_url": "https://lichess.org/DfQsiLgX#49"
+  },
+  {
+   "puzzle_id": "thuGf",
+   "rating": 947,
+   "themes": [
+    "kingsideAttack",
+    "mate",
+    "mateIn1",
+    "middlegame",
+    "oneMove"
+   ],
+   "categories": {
+    "tier": [
+     "beginner"
+    ],
+    "phase": [
+     "middlegame"
+    ],
+    "goal": [
+     "mate"
+    ],
+    "length": [
+     "oneMove"
+    ],
+    "mate_pattern": [
+     "mateIn1"
+    ],
+    "motif": [
+     "kingsideAttack"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": true,
+   "failure_reason": "wrong_move",
+   "answer_move": "f5g6",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "Qg6",
+   "moves_played": [
+    "f5g6"
+   ],
+   "solver_plies": 1,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: r2q1rk1/2p4p/p2p1p1P/1p1bpQb1/1P6/2P4P/P1Bn1P2/R4RK1 w - - 0 22\n\nPieces:\nWhite: Kg1, Qf5, Ra1, Rf1, Bc2, Pa2, Pf2, Pc3, Ph3, Pb4, Ph6\nBlack: Kg8, Qd8, Ra8, Rf8, Bd5, Bg5, Nd2, Pb5, Pe5, Pa6, Pd6, Pf6, Pc7, Ph7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "Qg6",
+     "parsed_move": "f5g6",
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 285,
+     "completion_tokens": 934,
+     "reasoning_tokens": 377,
+     "cost_usd": 0.00490545
+    }
+   ],
+   "fen": "r2q1rk1/2p4p/p2p1p1P/1p1bpQb1/1P6/2P4P/P1Bn1P2/R4RK1 w - - 0 22",
+   "setup_san": "f6",
+   "solver_is_white": true,
+   "solution": [
+    "f5h7"
+   ],
+   "solution_first": "f5h7",
+   "game_url": "https://lichess.org/I3guHurC/black#42"
+  },
+  {
+   "puzzle_id": "tzJvv",
+   "rating": 1232,
+   "themes": [
+    "attraction",
+    "crushing",
+    "endgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "novice"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "crushing"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "attraction"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "qd1+",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "qd1+",
+   "moves_played": [],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: rr4k1/4Q1pp/8/p2p3q/3Pp3/P3P1P1/3K1P2/2R2R2 b - - 3 27\n\nPieces:\nWhite: Kd2, Qe7, Rc1, Rf1, Pf2, Pa3, Pe3, Pg3, Pd4\nBlack: Kg8, Qh5, Ra8, Rb8, Pe4, Pa5, Pd5, Pg7, Ph7\n\nSide to move: Black\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "qd1+",
+     "parsed_move": null,
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 249,
+     "completion_tokens": 504,
+     "reasoning_tokens": 336,
+     "cost_usd": 0.00274131
+    }
+   ],
+   "fen": "rr4k1/4Q1pp/8/p2p3q/3Pp3/P3P1P1/3K1P2/2R2R2 b - - 3 27",
+   "setup_san": "Qe7",
+   "solver_is_white": false,
+   "solution": [
+    "b8b2",
+    "c1c2",
+    "b2c2",
+    "d2c2",
+    "h5e2"
+   ],
+   "solution_first": "b8b2",
+   "game_url": "https://lichess.org/6L228rqu#53"
+  },
+  {
+   "puzzle_id": "yW5Su",
+   "rating": 2160,
+   "themes": [
+    "advantage",
+    "defensiveMove",
+    "endgame",
+    "long"
+   ],
+   "categories": {
+    "tier": [
+     "advanced"
+    ],
+    "phase": [
+     "endgame"
+    ],
+    "goal": [
+     "advantage"
+    ],
+    "length": [
+     "long"
+    ],
+    "motif": [
+     "defensiveMove"
+    ]
+   },
+   "solved": false,
+   "score": 0.0,
+   "first_move_legal": false,
+   "failure_reason": "illegal",
+   "answer_move": "d4d8",
+   "answer_rationale": null,
+   "answer_explanation": null,
+   "answer_response_format_valid": null,
+   "answer_response_format_error": null,
+   "answer_raw": "d4d8",
+   "moves_played": [],
+   "solver_plies": 3,
+   "plies_correct": 0,
+   "turns": [
+    {
+     "solver_ply": 0,
+     "system_prompt": "You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.",
+     "prompt": "You are solving a chess puzzle. Choose the single best move for the side to move.\n\nFEN: 6k1/2p3p1/p1P5/1p1p3p/3Q4/2P4r/P3R1P1/2q3K1 w - - 1 40\n\nPieces:\nWhite: Kg1, Qd4, Re2, Pa2, Pg2, Pc3, Pc6\nBlack: Kg8, Qc1, Rh3, Pb5, Pd5, Ph5, Pa6, Pc7, Pg7\n\nSide to move: White\n\nReply with ONLY your move in UCI (e.g. g1f3, e5d6), no explanation or other text.",
+     "raw_response": "d4d8",
+     "parsed_move": null,
+     "rationale": null,
+     "explanation": null,
+     "response_format_valid": null,
+     "response_format_error": null,
+     "response_format": null,
+     "prompt_tokens": 244,
+     "completion_tokens": 471,
+     "reasoning_tokens": 337,
+     "cost_usd": 0.00257301
+    }
+   ],
+   "fen": "6k1/2p3p1/p1P5/1p1p3p/3Q4/2P4r/P3R1P1/2q3K1 w - - 1 40",
+   "setup_san": "Qc1+",
+   "solver_is_white": true,
+   "solution": [
+    "g1f2",
+    "h3c3",
+    "d4d5",
+    "g8h7",
+    "d5f5"
+   ],
+   "solution_first": "g1f2",
+   "game_url": "https://lichess.org/efxk8sfQ/black#78"
+  }
+ ]
+}
