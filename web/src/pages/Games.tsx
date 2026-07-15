@@ -57,7 +57,7 @@ export function Games() {
                 ) : (
                   <div className="flex items-center gap-2 text-sm">
                     <Trophy className="size-4 text-chart-4" />
-                    Winner: <span className="font-medium">{t.winner ?? "—"}</span>
+                    {t.winner ? <>Winner: <span className="font-medium">{t.winner}</span></> : <span className="font-medium">Match tied</span>}
                   </div>
                 )}
               </CardContent>
