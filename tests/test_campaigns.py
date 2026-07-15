@@ -10,6 +10,7 @@ import pytest
 from chessbench.campaigns import (
     PUBLIC_MODELS,
     openrouter_credit_remaining,
+    public_low_reasoning_game_campaign,
     public_low_reasoning_campaign,
 )
 
@@ -72,6 +73,36 @@ def test_esoteric_campaign_uses_registry_identity_and_distinct_exports() -> None
         assert cell.response_style.replace("_", "-") in output
 
     assert len(outputs) == len(cells)
+
+
+def test_public_game_campaign_crosses_modes_styles_and_colors() -> None:
+    cells = public_low_reasoning_game_campaign()
+    assert len(cells) == 6
+    assert sum(cell.games_per_pair for cell in cells) == 12
+    assert {(cell.mode, cell.response_style) for cell in cells} == {
+        (mode, style)
+        for mode in (1, 2, 3)
+        for style in ("move_only", "json_rationale")
+    }
+
+    for cell in cells:
+        command = cell.command(python="python", publish=True)
+        models = command[command.index("--models") + 1].split(",")
+        assert models == ["openai/gpt-5.6-luna", "anthropic/claude-haiku-4.5"]
+        assert command[command.index("--games") + 1] == "2"
+        assert command[command.index("--openings") + 1] == "none"
+        assert command[command.index("--context-mode") + 1] == "hybrid"
+        assert "--stream" in command and "--tid" in command
+        assert ("--move-only" in command) != ("--rationale" in command)
+
+    rationale = next(
+        cell
+        for cell in cells
+        if cell.mode == 1 and cell.response_style == "json_rationale"
+    )
+    assert rationale.output_stem() == (
+        "luna-vs-haiku--mode-1--r-low--o8192--prompt-json-v1"
+    )
 
 
 def test_openrouter_credit_preflight_parses_limited_and_unlimited_keys(monkeypatch) -> None:

@@ -186,6 +186,9 @@ The frozen Luna/Haiku low-reasoning public campaign contains 20 durable cells
 and 4,300 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
 exact matrix, dry-run validation, and resumable launcher are documented in
 [`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
+The paired public game campaign adds six color-balanced conditions across Modes
+1–3 and both response styles; its launcher is
+`scripts/run_public_game_campaign.py`.
 
 Play and optionally stream a points tournament:
 

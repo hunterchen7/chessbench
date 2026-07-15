@@ -32,6 +32,7 @@ PUBLIC_SUITES: dict[Track, tuple[str, int]] = {
     "woodpecker": ("suites/public/woodpecker-masters-v1.json", 125),
     "esoteric": ("suites/public/esoteric-seed-v1.json", 50),
 }
+PUBLIC_GAME_MODELS = ("gpt-5.6-luna", "claude-haiku-4.5")
 
 
 def openrouter_credit_remaining(api_key: str, *, timeout: float = 15.0) -> float | None:
@@ -155,6 +156,90 @@ class CampaignCell:
         ]
 
 
+@dataclass(frozen=True)
+class GameCampaignCell:
+    """One color-balanced Luna/Haiku game condition from the standard start."""
+
+    mode: int
+    response_style: ResponseStyle
+    model_labels: tuple[str, str] = PUBLIC_GAME_MODELS
+    games_per_pair: int = 2
+    max_plies: int = 200
+    reasoning: str = "low"
+    max_output_tokens: int = 8192
+    response_protocol: str = "prompt_json_v1"
+
+    @property
+    def key(self) -> str:
+        return (
+            f"games:mode-{self.mode}:{self.response_style}:"
+            f"r-{self.reasoning}:o-{self.max_output_tokens}"
+        )
+
+    def output_stem(self) -> str:
+        base = (
+            f"luna-vs-haiku--mode-{self.mode}--r-{self.reasoning}--"
+            f"o{self.max_output_tokens}--{self.response_protocol.replace('_', '-')}"
+        )
+        # Preserve the already-published rationale filenames/natural keys while
+        # making the paired move-only artifacts unambiguous.
+        return base if self.response_style == "json_rationale" else base + "--move-only"
+
+    def command(
+        self,
+        *,
+        db: str = "runs/chessbench.db",
+        data_root: str = "web/public/data",
+        python: str = sys.executable,
+        publish: bool = False,
+    ) -> list[str]:
+        entries = [get_model(label) for label in self.model_labels]
+        providers = {entry.provider for entry in entries}
+        if providers != {"openrouter"}:
+            raise ValueError("the public game campaign requires OpenRouter registry entries")
+        stem = self.output_stem()
+        command = [
+            python,
+            "-m",
+            "chessbench",
+            "tournament",
+            "--models",
+            ",".join(entry.model_id for entry in entries),
+            "--provider",
+            "openrouter",
+            "--games",
+            str(self.games_per_pair),
+            "--max-plies",
+            str(self.max_plies),
+            "--mode",
+            str(self.mode),
+            "--move-only"
+            if self.response_style == "move_only"
+            else "--rationale",
+            "--response-protocol",
+            self.response_protocol,
+            "--reasoning",
+            self.reasoning,
+            "--max-output-tokens",
+            str(self.max_output_tokens),
+            "--context-mode",
+            "hybrid",
+            "--notation",
+            "uci",
+            "--temperature",
+            "1",
+            "--openings",
+            "none",
+            "--db",
+            db,
+            "--save",
+            str(Path(data_root) / "tournaments" / f"{stem}.json"),
+        ]
+        if publish:
+            command.extend(["--stream", "--tid", stem])
+        return command
+
+
 def public_low_reasoning_campaign(
     models: Sequence[str] = PUBLIC_MODELS,
 ) -> list[CampaignCell]:
@@ -179,3 +264,12 @@ def public_low_reasoning_campaign(
             suite, count = PUBLIC_SUITES["esoteric"]
             cells.append(CampaignCell(model, "esoteric", suite, count, 3, style))
     return cells
+
+
+def public_low_reasoning_game_campaign() -> list[GameCampaignCell]:
+    """Three information modes crossed with the move-only response ablation."""
+    return [
+        GameCampaignCell(mode, style)
+        for mode in (1, 2, 3)
+        for style in PUBLIC_RESPONSE_STYLES
+    ]

@@ -52,3 +52,22 @@ python3 scripts/run_public_campaign.py --tracks standard --models gpt-5.6-luna
 python3 scripts/run_public_campaign.py --tracks woodpecker --response-styles move_only
 python3 scripts/run_public_campaign.py --tracks esoteric --models claude-haiku-4.5
 ```
+
+## Public game response-style campaign
+
+Games use a separate six-condition matrix because the number of paid turns per
+game is variable. It crosses Modes 1–3 with move-only and JSON+rationale, using
+two games per condition so each model receives White once. Every game starts
+from the standard initial position, uses separate private conversations, hybrid
+within-game context, low reasoning, and the same 8,192-token output identity.
+
+```bash
+python3 scripts/run_public_game_campaign.py --dry-run
+python3 scripts/run_public_game_campaign.py --publish
+```
+
+The three rationale conditions already published under the original filenames
+are recognized by the same natural keys and replay to Cloudflare without paid
+calls. The launcher therefore spends only on missing/partial conditions, most
+notably the three move-only matches. A Cloudflare interruption is recovered by
+rerunning `--publish`; the local game ledger is replayed before any new move.
