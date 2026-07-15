@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 type Status = "playing" | "solved" | "failed"
+const EMPTY_SOLUTION: string[] = []
 
 export function PuzzleDetail() {
   const { id = "" } = useParams()
@@ -44,7 +45,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
   const [reveal, setReveal] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
 
-  const solution = entry.position.solution ?? []
+  const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
 
   const p = entry.position
