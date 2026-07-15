@@ -65,13 +65,12 @@ The checked-in releases contain fast development seeds and the first full-dump p
 | `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
 | `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
 | `standard-lichess-v2` | 325 | 300-item calibrated core plus 25 adaptively gated 3000+ puzzles |
-| `woodpecker-masters-v1` | 136 | 50 Easy, 50 Medium, 36 Hard; long titled-game lines plus one historic classic |
+| `woodpecker-masters-v1` | 135 | 50 Easy, 50 Medium, 35 Hard; long titled-game lines with a separate historical review bank |
 | `esoteric-seed-v1` | 50 | Native-verifier-passing non-study compositions with unique starting positions |
 
-The Standard and most Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
+The Standard and scored Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
 all 6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
-Lichess Woodpecker material is restricted to puzzles from titled-player games; the public Hard section also contains
-the explicitly sourced Deep Blue–Kasparov 1997 game-two analysis challenge. The older seed uses the repository's 500-row
+Woodpecker material is restricted to puzzles from titled-player games. The older seed uses the repository's 500-row
 fixture. Esoteric combines a checked-in development seed with private YACPDB imports and freshly generated
 compositions certified by Popeye plus the native verifier. See
 [the private-corpus MVP](docs/private-corpus-mvp.md) for the sealed release workflow.
@@ -79,6 +78,13 @@ compositions certified by Popeye plus the native verifier. See
 The original [*Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540)
 trains by solving a fixed puzzle set repeatedly and faster. ChessBench borrows the one-shot full-line recall pressure,
 but does not train a model across cycles or share state between repetitions.
+
+Famous World Championship, tournament, and human–computer positions are curated separately in
+`data/curated/candidates/`. A legal played continuation is only a lead: it is not promoted to a scored exact-line
+task until its strongest defenses, alternate solutions, provenance, overlap, and editorial difficulty have been
+reviewed. The Deep Blue–Kasparov 1997 game-two position is deliberately visible in that lab but excluded from
+exact-line scoring: a pinned Stockfish review validates `45…Qe3`, while rejecting the traditional continuation as
+best play throughout. See [the historical-game source and review plan](docs/HISTORICAL_CORPUS.md).
 
 Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
 item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`
@@ -193,7 +199,7 @@ For the full Standard 3 × 2 matrix, repeat that pair under Modes 1, 2, and 3. T
 `plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
 
 The frozen Luna/Haiku low-reasoning public campaign contains 20 durable cells
-and 4,644 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
+and 4,640 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
 exact matrix, dry-run validation, and resumable launcher are documented in
 [`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
 The paired public game campaign adds six color-balanced conditions across Modes

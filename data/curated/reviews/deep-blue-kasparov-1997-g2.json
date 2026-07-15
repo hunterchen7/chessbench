@@ -1,0 +1,391 @@
+{
+  "schema": "chessbench.historical_review_receipt.v1",
+  "candidate_id": "historic-deep-blue-kasparov-1997-g2",
+  "reviewed_at_utc": "2026-07-15T23:11:06.599405+00:00",
+  "status": "candidate_only",
+  "position": {
+    "event": "Deep Blue vs Garry Kasparov, 1997 rematch, game 2",
+    "start_after": "45.Ra6",
+    "fen": "1r6/5kp1/RqQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 b - - 14 45",
+    "source_url": "https://www.kasparov.com/timeline-event/deep-blue/",
+    "historical_claim": "Contemporary analysis reported 45...Qe3 as a drawing resource based on perpetual check.",
+    "historical_line_san": "45...Qe3 46.Qxd6 Re8 47.h4 h5",
+    "historical_line_uci": [
+      "b6e3",
+      "c6d6",
+      "b8e8",
+      "h3h4",
+      "h6h5"
+    ]
+  },
+  "engine": {
+    "name": "Stockfish 18",
+    "author": "the Stockfish developers (see AUTHORS file)",
+    "invoked_path": "/opt/homebrew/bin/stockfish",
+    "resolved_binary_path": "/opt/homebrew/Cellar/stockfish/18/bin/stockfish",
+    "binary_sha256": "ae4c93fa9676ca7750d0714342fd8a5b1d018000fc6e0f6cedf112067b5ef374",
+    "binary_format": "Mach-O 64-bit executable arm64",
+    "installation": {
+      "manager": "Homebrew",
+      "formula": "stockfish",
+      "version": "18",
+      "built_as_bottle": true,
+      "formula_license": "GPL-3.0-only",
+      "upstream_source_url": "https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_18.tar.gz",
+      "upstream_source_sha256": "22a195567e3493e7c9ca8bf8fa2339f4ffc876384849ac8a417ff4b919607e7b",
+      "homebrew_bottle_sha256": "9a5b9fefb7c4839d8c27bade2699cc10a567224b1c8eed3138cec4a8baa6766d"
+    },
+    "nnue": {
+      "EvalFile": "nn-c288c895ea92.nnue",
+      "EvalFileSmall": "nn-37f18f62d772.nnue"
+    }
+  },
+  "settings": {
+    "Threads": 1,
+    "Hash": 256,
+    "UCI_ShowWDL": true,
+    "SyzygyPath": "<empty>",
+    "Syzygy_used": false,
+    "limit_type": "fixed_nodes",
+    "rank_pass_nodes_per_position": 3000000,
+    "target_constrained_nodes_per_position": 5000000,
+    "root_confirmation_nodes": 10000000,
+    "root_confirmation_multipv": 10,
+    "continuation_nodes": 5000000,
+    "continuation_multipv": 5,
+    "hash_cleared_before_each_pass": true,
+    "score_pov": "white",
+    "wdl_scale": "per_1000"
+  },
+  "ranked_root_evidence": {
+    "pass": "all_legal_moves",
+    "nodes": 3000000,
+    "legal_move_count": 31,
+    "moves": [
+      {
+        "rank": 1,
+        "uci": "b6e3",
+        "san": "Qe3",
+        "white_cp": 134,
+        "white_wdl": {
+          "wins": 900,
+          "draws": 100,
+          "losses": 0
+        }
+      },
+      {
+        "rank": 2,
+        "uci": "b6c6",
+        "san": "Qxc6",
+        "white_cp": 357
+      },
+      {
+        "rank": 3,
+        "uci": "b6b7",
+        "san": "Qb7",
+        "white_cp": 527
+      },
+      {
+        "rank": 4,
+        "uci": "b6c7",
+        "san": "Qc7",
+        "white_cp": 564
+      },
+      {
+        "rank": 5,
+        "uci": "b6d8",
+        "san": "Qd8",
+        "white_cp": 569
+      },
+      {
+        "rank": 6,
+        "uci": "b6a6",
+        "san": "Qxa6",
+        "white_cp": 589
+      },
+      {
+        "rank": 7,
+        "uci": "b6d4",
+        "san": "Qd4",
+        "white_cp": 760
+      },
+      {
+        "rank": 8,
+        "uci": "f7e7",
+        "san": "Ke7",
+        "white_cp": 824
+      },
+      {
+        "rank": 9,
+        "uci": "g7g5",
+        "san": "g5",
+        "white_cp": 859
+      },
+      {
+        "rank": 10,
+        "uci": "b8d8",
+        "san": "Rd8",
+        "white_cp": 863
+      }
+    ],
+    "best_pv_uci": [
+      "b6e3",
+      "c6d6",
+      "b8e8",
+      "d6d7",
+      "e8e7",
+      "d7c6",
+      "e3e4",
+      "d5d6",
+      "e4b1",
+      "f1f2",
+      "b1f5",
+      "f2g1",
+      "e7d7",
+      "c6b5",
+      "f5e6",
+      "b5c5",
+      "f6f5",
+      "b4b5"
+    ],
+    "best_pv_san": "45...Qe3 46.Qxd6 Re8 47.Qd7+ Re7 48.Qc6 Qxe4 49.d6 Qb1+ 50.Kf2 Qxf5+ 51.Kg1 Rd7 52.Qxb5 Qe6 53.Qc5 f5 54.b5",
+    "deeper_confirmation": {
+      "nodes": 10000000,
+      "multipv": 10,
+      "best": {
+        "uci": "b6e3",
+        "san": "Qe3",
+        "white_cp": 115,
+        "white_wdl": {
+          "wins": 728,
+          "draws": 272,
+          "losses": 0
+        }
+      },
+      "runner_up": {
+        "uci": "b6c6",
+        "san": "Qxc6",
+        "white_cp": 389,
+        "white_wdl": {
+          "wins": 1000,
+          "draws": 0,
+          "losses": 0
+        }
+      }
+    }
+  },
+  "historical_line_rank_receipts": [
+    {
+      "ply": 1,
+      "move_uci": "b6e3",
+      "move_san": "Qe3",
+      "rank": 1,
+      "legal_move_count": 31,
+      "rank_pass_white_cp": 134,
+      "rank_pass_white_wdl": {
+        "wins": 900,
+        "draws": 100,
+        "losses": 0
+      },
+      "constrained_white_cp": 76,
+      "constrained_white_wdl": {
+        "wins": 179,
+        "draws": 821,
+        "losses": 0
+      }
+    },
+    {
+      "ply": 2,
+      "move_uci": "c6d6",
+      "move_san": "Qxd6",
+      "rank": 1,
+      "legal_move_count": 26,
+      "rank_pass_white_cp": 99,
+      "rank_pass_white_wdl": {
+        "wins": 489,
+        "draws": 511,
+        "losses": 0
+      },
+      "constrained_white_cp": 90,
+      "constrained_white_wdl": {
+        "wins": 347,
+        "draws": 653,
+        "losses": 0
+      }
+    },
+    {
+      "ply": 3,
+      "move_uci": "b8e8",
+      "move_san": "Re8",
+      "rank": 1,
+      "legal_move_count": 32,
+      "rank_pass_white_cp": 124,
+      "rank_pass_white_wdl": {
+        "wins": 822,
+        "draws": 178,
+        "losses": 0
+      },
+      "constrained_white_cp": 96,
+      "constrained_white_wdl": {
+        "wins": 441,
+        "draws": 559,
+        "losses": 0
+      }
+    },
+    {
+      "ply": 4,
+      "move_uci": "h3h4",
+      "move_san": "h4",
+      "rank": 4,
+      "legal_move_count": 28,
+      "rank_pass_white_cp": 0,
+      "rank_pass_white_wdl": {
+        "wins": 2,
+        "draws": 997,
+        "losses": 1
+      },
+      "constrained_white_cp": 0,
+      "constrained_white_wdl": {
+        "wins": 2,
+        "draws": 997,
+        "losses": 1
+      }
+    },
+    {
+      "ply": 5,
+      "move_uci": "h6h5",
+      "move_san": "h5",
+      "rank": 2,
+      "legal_move_count": 31,
+      "rank_pass_white_cp": 19,
+      "rank_pass_white_wdl": {
+        "wins": 5,
+        "draws": 995,
+        "losses": 0
+      },
+      "constrained_white_cp": 0,
+      "constrained_white_wdl": {
+        "wins": 2,
+        "draws": 997,
+        "losses": 1
+      }
+    }
+  ],
+  "best_continuations_after_46_Re8": {
+    "fen": "4r3/5kp1/R2Q1p1p/1p1PpP2/1Pp1B3/2P1q2P/6P1/5K2 w - - 1 47",
+    "nodes": 5000000,
+    "multipv": 5,
+    "moves": [
+      {
+        "rank": 1,
+        "uci": "d6d7",
+        "san": "Qd7+",
+        "white_cp": 94,
+        "white_wdl": {
+          "wins": 404,
+          "draws": 596,
+          "losses": 0
+        },
+        "pv_uci": [
+          "d6d7",
+          "e8e7",
+          "d7c6",
+          "e3e4",
+          "d5d6",
+          "e4b1",
+          "f1f2",
+          "b1f5",
+          "f2g1",
+          "e7d7",
+          "c6b5",
+          "f5e6",
+          "b5c5",
+          "f7g6",
+          "a6c6",
+          "e5e4",
+          "c5d4",
+          "e4e3",
+          "d4g4",
+          "g6f7"
+        ],
+        "pv_san": "47.Qd7+ Re7 48.Qc6 Qxe4 49.d6 Qb1+ 50.Kf2 Qxf5+ 51.Kg1 Rd7 52.Qxb5 Qe6 53.Qc5 Kg6 54.Rc6 e4 55.Qd4 e3 56.Qg4+ Kf7"
+      },
+      {
+        "rank": 2,
+        "uci": "d6c7",
+        "san": "Qc7+",
+        "white_cp": 87,
+        "white_wdl": {
+          "wins": 307,
+          "draws": 693,
+          "losses": 0
+        },
+        "pv_uci": [
+          "d6c7",
+          "e8e7",
+          "c7c6",
+          "e3e4",
+          "d5d6",
+          "e4b1",
+          "f1f2",
+          "b1f5",
+          "f2g1",
+          "e7d7",
+          "c6b5",
+          "f5e6",
+          "b5c5",
+          "f7g6",
+          "a6c6",
+          "e5e4",
+          "c5d4",
+          "e4e3",
+          "d4g4",
+          "g6f7"
+        ],
+        "pv_san": "47.Qc7+ Re7 48.Qc6 Qxe4 49.d6 Qb1+ 50.Kf2 Qxf5+ 51.Kg1 Rd7 52.Qxb5 Qe6 53.Qc5 Kg6 54.Rc6 e4 55.Qd4 e3 56.Qg4+ Kf7"
+      },
+      {
+        "rank": 4,
+        "uci": "h3h4",
+        "san": "h4",
+        "white_cp": 0,
+        "white_wdl": {
+          "wins": 2,
+          "draws": 997,
+          "losses": 1
+        },
+        "pv_uci": [
+          "h3h4",
+          "h6h5",
+          "e4f3",
+          "e3c1",
+          "f1f2",
+          "c1d2",
+          "f3e2",
+          "d2f4",
+          "f2g1",
+          "f4e3",
+          "g1h2",
+          "e3f4",
+          "h2h3",
+          "f4f5",
+          "h3h2",
+          "f5f4",
+          "h2g1",
+          "f4e3",
+          "g1f1",
+          "e3c1"
+        ],
+        "pv_san": "47.h4 h5 48.Bf3 Qc1+ 49.Kf2 Qd2+ 50.Be2 Qf4+ 51.Kg1 Qe3+ 52.Kh2 Qf4+ 53.Kh3 Qxf5+ 54.Kh2 Qf4+ 55.Kg1 Qe3+ 56.Kf1 Qc1+"
+      }
+    ]
+  },
+  "review_decision": {
+    "difficulty": "hard",
+    "exact_historical_line_approved": false,
+    "recommended_scoring": "first_move_or_branch_aware",
+    "accepted_first_move_candidate_uci": "b6e3",
+    "reason": "Stockfish 18 consistently ranks 45...Qe3 first and far ahead of every alternative, but after 46.Qxd6 Re8 it prefers 47.Qd7+ or 47.Qc7+. Historical 47.h4 ranks fourth and evaluates to a draw. The evidence supports Qe3 as the defensive tactic, not the historical five-ply line as exact optimal play.",
+    "promotion_gate": "Do not promote automatically. A chess-competent human reviewer must approve a branch-aware answer graph and decide whether the item is scored for the first move only."
+  }
+}

@@ -23,7 +23,7 @@ EXPECTED = {
         "path": "suites/public/woodpecker-smoke-v1.json",
         "parent": "suites/public/woodpecker-masters-v1.json",
         "count": 6,
-        "hash": "sha256:c5e6a85f93c8a014",
+        "hash": "sha256:486f9b5e854c299d",
     },
     "esoteric-smoke-v1": {
         "path": "suites/public/esoteric-smoke-v1.json",
@@ -124,7 +124,7 @@ def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
         "hard": 2,
     }
     assert all(len(puzzle.moves[1::2]) >= 3 for puzzle in puzzles)
-    assert "historic-deep-blue-kasparov-1997-g2" in {puzzle.id for puzzle in puzzles}
+    assert "historic-deep-blue-kasparov-1997-g2" not in {puzzle.id for puzzle in puzzles}
     assert all(puzzle.game_url.startswith("https://") for puzzle in puzzles)
 
 

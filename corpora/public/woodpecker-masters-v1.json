@@ -15,15 +15,6 @@
    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
    "snapshot": "2026-07-05",
    "notes": "Every retained Woodpecker item links to its originating titled-player game."
-  },
-  {
-   "id": "deep-blue-kasparov-1997-game-2",
-   "title": "Deep Blue–Kasparov, 1997 rematch, game 2",
-   "url": "https://www.kasparov.com/timeline-event/deep-blue/",
-   "license": "Factual game record; source terms apply",
-   "license_url": "https://www.kasparov.com/terms-of-use/",
-   "snapshot": "accessed-2026-07-15",
-   "notes": "Historic analysis challenge after 45.Ra6. The traditional 45...Qe3 drawing claim is retained as a sourced training line and explicitly marked as disputed by later engine analysis."
   }
  ],
  "selection": {
@@ -77,12 +68,11 @@
     ]
    },
    "hard": {
-    "items": 36,
+    "items": 35,
     "source_rating_range": [
      2600,
      3200
-    ],
-    "includes_editorial_unrated": 1
+    ]
    },
    "policy": "Editorial Woodpecker sections; source ratings are provenance only."
   }
@@ -2524,35 +2514,6 @@
    "difficulty_band": "easy"
   },
   {
-   "id": "historic-deep-blue-kasparov-1997-g2",
-   "fen": "Rr6/5kp1/1qQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 w - - 13 45",
-   "moves": [
-    "a8a6",
-    "b6e3",
-    "c6d6",
-    "b8e8",
-    "h3h4",
-    "h6h5"
-   ],
-   "rating": 0,
-   "rating_deviation": 0,
-   "popularity": 0,
-   "nb_plays": 0,
-   "themes": [
-    "defensiveMove",
-    "deepCalculation",
-    "historic",
-    "master",
-    "unrated",
-    "controversialAnalysis"
-   ],
-   "game_url": "https://www.kasparov.com/timeline-event/deep-blue/",
-   "opening_tags": "Ruy Lopez: Closed, Smyslov Defense; 1997 Deep Blue rematch, game 2",
-   "source": "historic-game",
-   "alternates": [],
-   "difficulty_band": "hard"
-  },
-  {
    "id": "hsjB5",
    "fen": "8/bQ1bk1p1/p1n1pr2/3p4/5P2/P1N4R/1P1B1qPP/R6K w - - 1 24",
    "moves": [
@@ -4127,11 +4088,11 @@
  ],
  "validation": {
   "validator": "chessbench.corpus.v1",
-  "items": 136,
+  "items": 135,
   "valid": true,
   "errors": [],
-  "unique_ids": 136,
-  "unique_positions": 136,
+  "unique_ids": 135,
+  "unique_positions": 135,
   "theme_counts": {
    "advancedPawn": 18,
    "advantage": 40,
@@ -4139,10 +4100,8 @@
    "bishopEndgame": 2,
    "capturingDefender": 1,
    "clearance": 3,
-   "controversialAnalysis": 1,
    "crushing": 84,
-   "deepCalculation": 1,
-   "defensiveMove": 18,
+   "defensiveMove": 17,
    "deflection": 9,
    "discoveredAttack": 9,
    "discoveredCheck": 5,
@@ -4150,12 +4109,11 @@
    "exposedKing": 15,
    "fork": 13,
    "hangingPiece": 6,
-   "historic": 1,
    "intermezzo": 2,
    "kingsideAttack": 4,
    "knightEndgame": 5,
    "long": 87,
-   "master": 136,
+   "master": 135,
    "masterVsMaster": 11,
    "mate": 8,
    "mateIn3": 5,
@@ -4176,7 +4134,6 @@
    "skewer": 1,
    "superGM": 2,
    "trappedPiece": 2,
-   "unrated": 1,
    "veryLong": 45,
    "zugzwang": 5
   },
@@ -4186,7 +4143,7 @@
    "mean": 2061.57
   },
   "solver_plies": {
-   "3": 90,
+   "3": 89,
    "4": 29,
    "5": 13,
    "6": 1,
@@ -4195,6 +4152,6 @@
    "9": 1
   }
  },
- "content_hash": "sha256:9653d694223db0fb3458",
+ "content_hash": "sha256:c411950e6bc1d935879d",
  "schema": "chessbench.corpus.v1"
 }

@@ -3,7 +3,7 @@
  "version": "1.0.0",
  "visibility": "public",
  "kind": "puzzle",
- "source": "corpus:woodpecker-masters-v1@sha256:9653d694223db0fb3458",
+ "source": "corpus:woodpecker-masters-v1@sha256:c411950e6bc1d935879d",
  "seed": 0,
  "items": [
   {
@@ -2442,35 +2442,6 @@
    "difficulty_band": "easy"
   },
   {
-   "id": "historic-deep-blue-kasparov-1997-g2",
-   "fen": "Rr6/5kp1/1qQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 w - - 13 45",
-   "moves": [
-    "a8a6",
-    "b6e3",
-    "c6d6",
-    "b8e8",
-    "h3h4",
-    "h6h5"
-   ],
-   "rating": 0,
-   "rating_deviation": 0,
-   "popularity": 0,
-   "nb_plays": 0,
-   "themes": [
-    "defensiveMove",
-    "deepCalculation",
-    "historic",
-    "master",
-    "unrated",
-    "controversialAnalysis"
-   ],
-   "game_url": "https://www.kasparov.com/timeline-event/deep-blue/",
-   "opening_tags": "Ruy Lopez: Closed, Smyslov Defense; 1997 Deep Blue rematch, game 2",
-   "source": "historic-game",
-   "alternates": [],
-   "difficulty_band": "hard"
-  },
-  {
    "id": "hsjB5",
    "fen": "8/bQ1bk1p1/p1n1pr2/3p4/5P2/P1N4R/1P1B1qPP/R6K w - - 1 24",
    "moves": [
@@ -4043,5 +4014,5 @@
    "difficulty_band": "easy"
   }
  ],
- "content_hash": "sha256:eb770656644ebb92"
+ "content_hash": "sha256:20e309892363e42e"
 }

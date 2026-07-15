@@ -48,8 +48,8 @@
    "track": "woodpecker",
    "visibility": "public",
    "item_type": "puzzle",
-   "items": 136,
-   "content_hash": "sha256:9653d694223db0fb3458"
+   "items": 135,
+   "content_hash": "sha256:c411950e6bc1d935879d"
   },
   {
    "name": "woodpecker-public-v1",

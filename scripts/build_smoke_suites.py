@@ -62,21 +62,14 @@ def _genre_sample(suite: Suite) -> list[ComposedProblem]:
 
 
 def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
-    """Two fixtures per editorial section, including the historic hard line."""
+    """Two deterministic fixtures per editorial section."""
     grouped: dict[str, list[Puzzle]] = defaultdict(list)
     for puzzle in suite.puzzles():
         grouped[puzzle.difficulty_band].append(puzzle)
-    featured_id = "historic-deep-blue-kasparov-1997-g2"
     selected: list[Puzzle] = []
-    for section in ("easy", "medium"):
+    for section in ("easy", "medium", "hard"):
         candidates = sorted(grouped[section], key=lambda puzzle: _priority(puzzle.id))
         selected.extend(candidates[:2])
-    hard = sorted(
-        (puzzle for puzzle in grouped["hard"] if puzzle.id != featured_id),
-        key=lambda puzzle: _priority(puzzle.id),
-    )
-    featured = next(puzzle for puzzle in grouped["hard"] if puzzle.id == featured_id)
-    selected.extend([hard[0], featured])
     return sorted(selected, key=lambda puzzle: puzzle.id)
 
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Activity, ArrowUpRight, BookOpen, CheckCircle2, ExternalLink, History, Repeat2, Sigma } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadPublicCorpus, type PublicCorpus, type PuzzlePosition } from "@/lib/data"
+import { loadHistoricalCandidates, loadPublicCorpus, type HistoricalCandidateBank, type PublicCorpus, type PuzzlePosition } from "@/lib/data"
 import { pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
@@ -14,14 +14,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const WOODPECKER_BOOK = "https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540"
+const DEEP_BLUE_GAME = "https://www.kasparov.com/timeline-event/deep-blue/"
 
 export function Woodpecker() {
   const { runs } = useData()
   const [corpus, setCorpus] = useState<PublicCorpus<PuzzlePosition> | null>(null)
+  const [historical, setHistorical] = useState<HistoricalCandidateBank | null>(null)
   useEffect(() => {
     let live = true
     void loadPublicCorpus<PuzzlePosition>("woodpecker").then((next) => {
       if (live) setCorpus(next)
+    })
+    void loadHistoricalCandidates().then((next) => {
+      if (live) setHistorical(next)
     })
     return () => { live = false }
   }, [])
@@ -40,7 +45,6 @@ export function Woodpecker() {
     medium: corpus?.items.filter((item) => item.difficulty_band === "medium").length ?? 0,
     hard: corpus?.items.filter((item) => item.difficulty_band === "hard").length ?? 0,
   }), [corpus])
-  const deepBlue = corpus?.items.find((item) => item.puzzle_id === "historic-deep-blue-kasparov-1997-g2")
 
   return (
     <div className="space-y-8">
@@ -86,7 +90,7 @@ export function Woodpecker() {
       </Card>
 
       <section aria-labelledby="woodpecker-sections">
-        <div className="mb-3 flex items-end justify-between gap-3">
+        <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div><h2 id="woodpecker-sections" className="text-xl font-semibold">The training set</h2><p className="mt-1 text-sm text-muted-foreground">Easy, Medium, and Hard are editorial Woodpecker sections. Lichess rating and RD remain provenance—not the score for this track.</p></div>
           <Badge variant="outline">{corpus?.items.length ?? "…"} positions</Badge>
         </div>
@@ -94,18 +98,44 @@ export function Woodpecker() {
           {([
             ["easy", sectionCounts.easy, "Direct patterns and shorter calculation."],
             ["medium", sectionCounts.medium, "Longer combinations with less obvious first moves."],
-            ["hard", sectionCounts.hard, "Deep source lines, the 3000+ frontier, and curated classics."],
+            ["hard", sectionCounts.hard, "Deep source lines and the 3000+ Lichess frontier."],
           ] as const).map(([label, count, copy]) => <Card key={label}><CardContent className="pt-6"><div className="flex items-center justify-between"><Badge variant="secondary" className="capitalize">{label}</Badge><span className="font-mono text-2xl font-semibold">{corpus ? count : "—"}</span></div><p className="mt-3 text-sm leading-relaxed text-muted-foreground">{copy}</p></CardContent></Card>)}
         </div>
       </section>
 
-      {deepBlue && <Card className="overflow-hidden border-amber-500/25 bg-amber-500/[0.035]">
+      <Card className="overflow-hidden border-amber-500/25 bg-amber-500/[0.035]">
         <CardContent className="grid gap-4 pt-6 md:grid-cols-[auto_1fr_auto] md:items-center">
           <div className="grid size-11 place-items-center rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300"><History className="size-5" /></div>
-          <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">Deep Blue–Kasparov, 1997 · game 2</h2><Badge variant="secondary">Hard</Badge><Badge variant="outline">unrated classic</Badge></div><p className="mt-2 text-sm leading-relaxed text-muted-foreground">After 45.Ra6, calculate Kasparov&apos;s historic 45…Qe3 resource and the published continuation. Contemporary analysis disputes whether it forces a draw, so ChessBench labels the claim rather than presenting it as settled fact.</p></div>
-          <a href={deepBlue.game_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:underline dark:text-amber-300">Game and historical line <ExternalLink className="size-3.5" /></a>
+          <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">Deep Blue–Kasparov, 1997 · game 2</h2><Badge variant="secondary">Historical lab</Badge><Badge variant="outline">not scored yet</Badge></div><p className="mt-2 text-sm leading-relaxed text-muted-foreground">Kasparov missed the exceptional 45…Qe3 defensive resource after 45.Ra6. A pinned Stockfish 18 review validates that first move, but finds that the famous published continuation is not best play throughout. It stays visible here while branch-aware grading is designed instead of being forced into a misleading exact-line score.</p></div>
+          <a href={DEEP_BLUE_GAME} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-800 hover:underline dark:text-amber-300">Game and historical account <ExternalLink className="size-3.5" /></a>
         </CardContent>
-      </Card>}
+      </Card>
+
+      <section aria-labelledby="historical-lab" className="space-y-3">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 id="historical-lab" className="text-xl font-semibold">Historical curation lab</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Famous World Championship, Candidates, tournament, and human–computer positions enter here first. Every line replays legally; none affects the leaderboard until its strongest defenses and acceptable branches pass separate review.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">{historical?.candidate_count ?? "…"} candidates</Badge>
+            {historical && (["easy", "medium", "hard"] as const).map((band) => <Badge key={band} variant="secondary" className="capitalize">{historical.difficulty[band]} {band}</Badge>)}
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {historical?.items.slice(0, 6).map((item) => (
+            <Card key={item.id} className="group transition-colors hover:border-violet-500/35">
+              <CardContent className="pt-6">
+                <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary" className="capitalize">{item.difficulty_band}</Badge><Badge variant="outline" className="capitalize">{item.provenance_confidence} provenance</Badge></div>
+                <h3 className="mt-3 font-semibold leading-snug">{item.white} vs {item.black}</h3>
+                <p className="mt-1 text-xs text-muted-foreground">{item.event}{item.date ? ` · ${item.date.slice(0, 4)}` : ""}</p>
+                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{item.why_famous}</p>
+                <a href={item.historical_context_url || item.source_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-violet-700 hover:underline dark:text-violet-300">Source and context <ExternalLink className="size-3.5" /></a>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Card><CardContent className="flex items-center gap-4 pt-6"><Sigma className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">{totalPoints.toFixed(2)}</div><div className="text-xs text-muted-foreground">points across published runs</div></div></CardContent></Card>

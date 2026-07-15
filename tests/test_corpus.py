@@ -94,7 +94,7 @@ def test_full_snapshot_releases_have_exact_strata_and_master_game_lines():
     standard = load_corpus(CORPORA / "standard-lichess-v2.json")
     woodpecker = load_corpus(CORPORA / "woodpecker-masters-v1.json")
     assert len(standard.items) == 325
-    assert len(woodpecker.items) == 136
+    assert len(woodpecker.items) == 135
     for lo in range(600, 3000, 400):
         band = [puzzle for puzzle in standard.puzzles() if lo <= puzzle.rating < lo + 400]
         assert len(band) == 50
@@ -123,11 +123,14 @@ def test_full_snapshot_releases_have_exact_strata_and_master_game_lines():
     assert all(puzzle.num_solver_plies() >= 3 for puzzle in wood_frontier)
 
     sections = {name: [p for p in woodpecker.puzzles() if p.difficulty_band == name] for name in ("easy", "medium", "hard")}
-    assert {name: len(items) for name, items in sections.items()} == {"easy": 50, "medium": 50, "hard": 36}
-    historic = next(p for p in sections["hard"] if p.id == "historic-deep-blue-kasparov-1997-g2")
-    assert historic.rating == 0
-    assert historic.moves[1:] == ["b6e3", "c6d6", "b8e8", "h3h4", "h6h5"]
-    assert historic.game_url == "https://www.kasparov.com/timeline-event/deep-blue/"
+    assert {name: len(items) for name, items in sections.items()} == {
+        "easy": 50,
+        "medium": 50,
+        "hard": 35,
+    }
+    assert "historic-deep-blue-kasparov-1997-g2" not in {
+        puzzle.id for puzzle in woodpecker.puzzles()
+    }
 
 
 def test_private_manifests_do_not_reveal_membership_or_seed():

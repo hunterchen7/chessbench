@@ -16,6 +16,15 @@ if str(ROOT) not in sys.path:
 
 from chessbench.env import load_local_env  # noqa: E402
 
+ACTIVE_SUITE_FILES = (
+    "standard-lichess-v2.json",
+    "woodpecker-masters-v1.json",
+    "esoteric-seed-v1.json",
+    "standard-smoke-v1.json",
+    "woodpecker-smoke-v1.json",
+    "esoteric-smoke-v1.json",
+)
+
 
 def post(api: str, token: str, path: str, document: dict[str, object]) -> dict[str, object]:
     request = urllib.request.Request(
@@ -47,6 +56,11 @@ def main() -> int:
     parser.add_argument("--token", default=os.environ.get("CHESSBENCH_INGEST_TOKEN"))
     parser.add_argument("--corpora", type=Path, default=ROOT / "web" / "public" / "data" / "corpora")
     parser.add_argument("--suites", type=Path, default=ROOT / "suites" / "public")
+    parser.add_argument(
+        "--include-superseded",
+        action="store_true",
+        help="also register legacy/superseded suite files (off by default)",
+    )
     args = parser.parse_args()
     if not args.api or not args.token:
         parser.error("set CHESSBENCH_API and CHESSBENCH_INGEST_TOKEN")
@@ -56,7 +70,12 @@ def main() -> int:
         result = post(args.api, args.token, "ingest/corpus", document)
         print(f"corpus {document['name']}: {result['items']} items")
 
-    for path in sorted(args.suites.glob("*.json")):
+    paths = (
+        sorted(args.suites.glob("*.json"))
+        if args.include_superseded
+        else [args.suites / name for name in ACTIVE_SUITE_FILES]
+    )
+    for path in paths:
         document = json.loads(path.read_text(encoding="utf-8"))
         document["track"] = suite_track(str(document["name"]), str(document["kind"]))
         result = post(args.api, args.token, "ingest/suite", document)

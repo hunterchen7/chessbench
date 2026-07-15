@@ -1,0 +1,57 @@
+{
+ "schema_version": "chessbench.historical_candidates.v1",
+ "track": "woodpecker-historical-candidates",
+ "curation_policy": {
+  "rating_policy": "No rating or rating-deviation gate; editorial Easy/Medium/Hard bands only.",
+  "line_policy": "Historical analysis lines are staging evidence, not scored ground truth. Promotion requires first-move or branch-aware review.",
+  "prompt_notation": "UCI is canonical. SAN fields are audit-only and must never be exposed in benchmark prompts because +/# leak tactical labels."
+ },
+ "candidate_count": 1,
+ "candidates": [
+  {
+   "id": "historic-deep-blue-kasparov-1997-g2",
+   "event": "Deep Blue versus Garry Kasparov rematch",
+   "site": "New York, USA",
+   "date": "1997-05-04",
+   "round": "2",
+   "white": "Deep Blue",
+   "black": "Garry Kasparov",
+   "result": "1-0",
+   "fen": "Rr6/5kp1/1qQb1p1p/1p1PpP2/1Pp1B3/2P4P/6P1/5K2 w - - 13 45",
+   "setup_uci": "a8a6",
+   "setup_san_audit_only": "Ra6",
+   "moves": [
+    "b6e3",
+    "c6d6",
+    "b8e8",
+    "h3h4",
+    "h6h5"
+   ],
+   "san_audit_only": [
+    "Qe3",
+    "Qxd6",
+    "Re8",
+    "h4",
+    "h5"
+   ],
+   "solver_color": "black",
+   "solver_plies": 3,
+   "difficulty_band": "hard",
+   "themes": [
+    "defensiveMove",
+    "perpetualCheck",
+    "humanComputer",
+    "historic"
+   ],
+   "source_url": "https://www.kasparov.com/timeline-event/deep-blue/",
+   "why_famous": "Kasparov resigned after Deep Blue's 45.Ra6 and missed the exceptional 45...Qe3 defensive resource identified in contemporary analysis.",
+   "provenance_confidence": "contested",
+   "line_provenance": "historical-analysis-line-modern-review-diverges",
+   "forced": false,
+   "engine_derived": false,
+   "line_note": "A pinned Stockfish 18 audit ranks Qe3 first, Qxd6 first, and Re8 first, but ranks the traditional 47.h4 only fourth. This is a first-move or branch-aware candidate, never an exact-line key.",
+   "review_receipt": "data/curated/reviews/deep-blue-kasparov-1997-g2.json",
+   "verification": "python-chess legal replay; source and engine conclusions reviewed; excluded from scored suites"
+  }
+ ]
+}

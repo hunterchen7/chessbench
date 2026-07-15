@@ -30,7 +30,7 @@ from chessbench.sources.lichess import (  # noqa: E402
     woodpecker_frontier_candidate,
 )
 from chessbench.suite import freeze_puzzle_suite, save_suite, save_suite_manifest  # noqa: E402
-from chessbench.tasks.puzzles import Puzzle, load_puzzles_json  # noqa: E402
+from chessbench.tasks.puzzles import Puzzle  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STANDARD_BANDS = [(lo, lo + 400) for lo in range(600, 3000, 400)]
@@ -123,24 +123,6 @@ def _source(snapshot: str) -> dict[str, str]:
     )
 
 
-def _historic_source() -> dict[str, str]:
-    return asdict(
-        CorpusSource(
-            id="deep-blue-kasparov-1997-game-2",
-            title="Deep Blue–Kasparov, 1997 rematch, game 2",
-            url="https://www.kasparov.com/timeline-event/deep-blue/",
-            license="Factual game record; source terms apply",
-            license_url="https://www.kasparov.com/terms-of-use/",
-            snapshot="accessed-2026-07-15",
-            notes=(
-                "Historic analysis challenge after 45.Ra6. The traditional 45...Qe3 "
-                "drawing claim is retained as a sourced training line and explicitly marked "
-                "as disputed by later engine analysis."
-            ),
-        )
-    )
-
-
 def _assign_woodpecker_sections(puzzles: list[Puzzle]) -> list[Puzzle]:
     """Use book-shaped Easy / Medium / Hard sections, not benchmark Elo tiers."""
     for puzzle in puzzles:
@@ -215,9 +197,6 @@ def _make_corpus(
 def curate(args: argparse.Namespace) -> list[Corpus]:
     source_sha256 = hashlib.sha256(args.source.read_bytes()).hexdigest()
     private_seed = _load_or_create_private_seed(args.private_seed_file)
-    historic_woodpecker = load_puzzles_json(args.curated_woodpecker)
-    if any(puzzle.difficulty_band != "hard" for puzzle in historic_woodpecker):
-        raise ValueError("all curated historic Woodpecker positions must declare difficulty_band=hard")
     existing = _existing_public_ids(
         args.public_corpus_dir,
         replacing={"standard-lichess-v2", "woodpecker-masters-v1"},
@@ -298,7 +277,6 @@ def curate(args: argparse.Namespace) -> list[Corpus]:
         args.public_woodpecker_frontier, forbidden=claimed
     )
     wood_public = _assign_woodpecker_sections(wood_public)
-    wood_public.extend(historic_woodpecker)
     wood_public.sort(key=lambda puzzle: puzzle.id)
     claimed.update(puzzle.id for puzzle in wood_public)
     wood_private = samplers["wood_private"].select(args.private_woodpecker_per_band, forbidden=claimed)
@@ -353,7 +331,7 @@ def curate(args: argparse.Namespace) -> list[Corpus]:
                 "Three-or-more-move full lines from titled-player games, with source game links "
                 "and high-confidence Lichess solve statistics."
             ),
-            sources=[source, _historic_source()],
+            sources=[source],
             selection=_selection(
                 bands=WOODPECKER_BANDS,
                 per_band=args.public_woodpecker_per_band,
@@ -366,11 +344,7 @@ def curate(args: argparse.Namespace) -> list[Corpus]:
                 difficulty_sections={
                     "easy": {"items": 50, "source_rating_range": [1000, 1800]},
                     "medium": {"items": 50, "source_rating_range": [1800, 2600]},
-                    "hard": {
-                        "items": 36,
-                        "source_rating_range": [2600, 3200],
-                        "includes_editorial_unrated": 1,
-                    },
+                    "hard": {"items": 35, "source_rating_range": [2600, 3200]},
                     "policy": "Editorial Woodpecker sections; source ratings are provenance only.",
                 },
             ),
@@ -452,11 +426,6 @@ def main() -> int:
     parser.add_argument("--public-seed", default="20260714")
     parser.add_argument(
         "--private-seed-file", type=pathlib.Path, default=ROOT / "data/private/selection.seed"
-    )
-    parser.add_argument(
-        "--curated-woodpecker",
-        type=pathlib.Path,
-        default=ROOT / "data/curated/woodpecker-historic.json",
     )
     parser.add_argument("--public-standard-per-band", type=int, default=50)
     parser.add_argument("--private-standard-per-band", type=int, default=50)

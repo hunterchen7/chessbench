@@ -12,7 +12,7 @@ These are the suites to use for new model evaluations.
 | --- | --- | --- | ---: | --- | --- |
 | Standard | `suites/public/standard-lichess-v2.json` | Public | 325 | `sha256:611c4c22e955ece8` | Move-by-move; Modes 1–3 × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
-| Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 136 | `sha256:eb770656644ebb92` | Mode 4; complete forced line in one response |
+| Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
 | Esoteric | `suites/public/esoteric-seed-v1.json` | Public | 50 | `sha256:aedbc34a91a528ae` | Genre-specific key, full-line, or interactive verifier |
 | Esoteric | `suites/private/esoteric-yacpdb-mvp-v1.json` | Private MVP | 400 | `sha256:f0015eebd7e2ab05` | 50 problems in each of eight genres |
@@ -58,8 +58,8 @@ and played line re-sent each turn. `fresh` is an explicit ablation, not another 
 
 ### Woodpecker
 
-Woodpecker is organized as a training set, not an Elo ladder. The public release contains 50 Easy, 50 Medium, and
-36 Hard positions; the held-out reserve contains 50 Easy, 50 Medium, and 35 Hard. Lichess ratings and RD remain
+Woodpecker is organized as a training set, not an Elo ladder. The public and held-out releases each contain 50 Easy,
+50 Medium, and 35 Hard positions. Lichess ratings and RD remain
 provenance where available, but headline scoring is points and section difficulty is editorial.
 
 The Lichess portion contains 25 titled-player-game puzzles in five internal 400-point source strata from 1000–1399
@@ -68,10 +68,10 @@ through 2600–2999, plus 10 scarce 3000–3199 frontier positions. Core items r
 play and line-length requirements while allowing RD below 120 and popularity of at least 80. Public and held-out
 Lichess membership is mutually disjoint and also disjoint from Standard.
 
-The 136th public item is the unrated [Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/)
-after 45.Ra6. It asks for the historic 45…Qe3, 46.Qxd6 Re8, 47.h4 h5 line. The old claim that this forces a draw is
-disputed by later engine analysis, so the corpus records it as a historic analysis challenge rather than an
-objectively certified draw.
+The [Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/) after 45.Ra6
+remains a featured Hard candidate, not a scored exact-line item. A pinned Stockfish 18 review finds `45…Qe3` first
+among all 31 legal moves, but prefers `47.Qd7+` or `47.Qc7+` to the traditional `47.h4` continuation. It will only
+enter a leaderboard suite with first-move or branch-aware grading.
 
 Mode 4 is a one-request full-line protocol. It supplies FEN plus piece locations, legal UCI moves, and
 the fixed coaching block, then requests the complete solution—including forced opponent replies—as a UCI array.
@@ -80,6 +80,11 @@ There is no between-move conversation state because the model answers once.
 The training method described in [*The Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540)
 repeats the same large puzzle set in progressively less time. ChessBench does not perform model training or carry
 state across repetitions; it borrows the full-line recall/calculation shape for a single-response evaluation.
+
+Additional famous-game positions live in the non-scoring candidate bank under `data/curated/candidates/`. Legal
+replay is necessary but insufficient for promotion: exact-line tasks also require branch-aware engine and human
+review. The complete acquisition, overlap, difficulty, and promotion policy is documented in
+[`docs/HISTORICAL_CORPUS.md`](HISTORICAL_CORPUS.md).
 
 ### Esoteric
 
@@ -159,7 +164,7 @@ parents. They test paid provider calls and every public suite grader without cla
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
 | `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Two puzzles in each core band plus the 3000+ frontier |
-| `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:c5e6a85f93c8a014` | Two per editorial section, including Deep Blue–Kasparov |
+| `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v1.json` | 7 | `sha256:70fb0097ee520bae` | One problem in every public esoteric genre |
 
 ## Initial model smoke-test plan

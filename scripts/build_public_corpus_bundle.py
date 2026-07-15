@@ -23,6 +23,7 @@ from chessbench.categories import categorize_puzzle
 from chessbench.tasks.composed import ComposedProblem
 
 DEFAULT_OUT = ROOT / "web" / "public" / "data" / "corpora"
+HISTORICAL_CANDIDATES = ROOT / "data" / "curated" / "candidates"
 
 RELEASES = {
     "standard": ROOT / "corpora" / "public" / "standard-lichess-v2.json",
@@ -103,6 +104,43 @@ def _bundle(track: str, release: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _historical_bundle() -> dict[str, object]:
+    """Publish candidate metadata without presenting staging lines as answers."""
+    items: list[dict[str, object]] = []
+    for path in sorted(HISTORICAL_CANDIDATES.glob("*.json")):
+        document = _read(path)
+        for raw in document.get("candidates", []):  # type: ignore[assignment]
+            item = dict(raw)  # type: ignore[arg-type]
+            items.append(
+                {
+                    "id": item["id"],
+                    "event": item.get("event", "Historical game"),
+                    "date": item.get("date", ""),
+                    "white": item.get("white", ""),
+                    "black": item.get("black", ""),
+                    "difficulty_band": item["difficulty_band"],
+                    "themes": item.get("themes", []),
+                    "source_url": item["source_url"],
+                    "historical_context_url": item.get("historical_context_url", ""),
+                    "why_famous": item.get("why_famous", item.get("provenance_note", "")),
+                    "provenance_confidence": item["provenance_confidence"],
+                    "line_provenance": item["line_provenance"],
+                }
+            )
+    items.sort(key=lambda item: (str(item["date"]), str(item["id"])))
+    counts = {
+        band: sum(item["difficulty_band"] == band for item in items)
+        for band in ("easy", "medium", "hard")
+    }
+    return {
+        "schema": "chessbench.public_historical_candidates.v1",
+        "status": "candidate_only_not_scored",
+        "candidate_count": len(items),
+        "difficulty": counts,
+        "items": items,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -130,6 +168,11 @@ def main() -> int:
         json.dumps({"schema": "chessbench.public_corpus_index.v1", "corpora": index}, indent=1) + "\n",
         encoding="utf-8",
     )
+    historical = _historical_bundle()
+    (args.out / "historical.json").write_text(
+        json.dumps(historical, indent=1) + "\n", encoding="utf-8"
+    )
+    print(f"historical: {historical['candidate_count']} candidate-only positions")
     return 0
 
 

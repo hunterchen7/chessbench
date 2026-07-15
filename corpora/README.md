@@ -15,7 +15,7 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/standard-public-v1.json` | Standard | 240 | Lichess CC0, 2026-07-05 full dump |
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
 | `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
-| `public/woodpecker-masters-v1.json` | Woodpecker | 136 | 50 Easy, 50 Medium, 36 Hard; one historic unrated classic |
+| `public/woodpecker-masters-v1.json` | Woodpecker | 135 | 50 Easy, 50 Medium, 35 Hard; titled-player source games |
 | `public/esoteric-seed-v1.json` | Esoteric | 50 | Lichess CC0 + ChessBench original |
 
 These are development-quality seed corpora. The 500-row tactical fixture predates snapshot tracking, so its exact
@@ -58,10 +58,15 @@ plays. This adaptive rule preserves genuinely difficult material without pretend
 the broad core.
 
 Woodpecker membership is presented in editorial Easy, Medium, and Hard sections. Ratings and RD are retained as
-source provenance where Lichess supplies them, but are not the track's scoring system. The public Hard section also
-contains the unrated [Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/)
-after 45.Ra6. Its traditional 45…Qe3 drawing analysis is marked as historically sourced and disputed by later
-engine analysis rather than asserted as settled fact.
+source provenance where Lichess supplies them, but are not the track's scoring system. The
+[Deep Blue–Kasparov 1997 game-two position](https://www.kasparov.com/timeline-event/deep-blue/) after 45.Ra6 stays
+in the historical review bank rather than the exact-line leaderboard: modern analysis validates `45…Qe3`, but not
+the traditional continuation as best play throughout.
+
+`data/curated/candidates/` holds additional famous-game leads with legal UCI replay and explicit line provenance.
+Those banks are deliberately not canonical suites. `scripts/validate_historical_candidates.py` checks their
+structure and legality; `scripts/review_historical_candidates.py` can produce a pinned, fixed-node engine receipt,
+after which a human review must still approve branches and alternate solutions.
 
 Held-out contents and their 256-bit selection seed stay outside Git. Only membership-free corpus/suite manifests are
 published from `corpora/manifests/`. A Lichess held-out split prevents benchmark-specific tuning but is only
