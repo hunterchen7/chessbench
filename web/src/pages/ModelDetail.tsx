@@ -76,7 +76,7 @@ export function ModelDetail() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {mine.length > 1 && <select value={meta.run_id} onChange={(event) => setSelected(event.target.value)} className="h-8 max-w-sm rounded-md border bg-background px-2 text-xs">{mine.map((candidate) => <option key={candidate.run_id} value={candidate.run_id}>{candidate.track} · {modeInfo(candidate.condition)?.name ?? "special"} · {responseStyleInfo(candidate.condition).label} · {candidate.suite?.name ?? "no suite"}</option>)}</select>}
-        <ExportButton model={variant.key} />
+        <ExportButton model={variant.key} responseStyle={activeResponseStyle.key} />
       </div>
     </section>
 

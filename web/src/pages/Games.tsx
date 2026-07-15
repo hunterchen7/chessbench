@@ -25,7 +25,7 @@ export function Games() {
             The canonical setup keeps one chat per game and re-sends the authoritative position every turn.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2"><ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} /><ExportButton track="game" /></div>
+        <div className="flex flex-wrap items-center gap-2"><ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} /><ExportButton track="game" responseStyle={responseStyle} /></div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

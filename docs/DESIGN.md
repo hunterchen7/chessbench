@@ -112,7 +112,7 @@ GET  /api/puzzles
 GET  /api/puzzles/:id
 GET  /api/tournaments
 GET  /api/tournaments/:id
-GET  /api/export?track=&model=&run=&status=&include_private=1
+GET  /api/export?track=&model=&run=&status=&response_style=&include_private=1
 
 POST /api/ingest/run/start
 POST /api/ingest/run/item

@@ -1,36 +1,40 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Sparkles } from "lucide-react"
+import { Radio, Sparkles } from "lucide-react"
 import {
-  loadComposed,
   STIPULATION_BLURB,
   STIPULATION_LABEL,
-  type ComposedData,
   type Stipulation,
 } from "@/lib/composed"
+import { useComposedData } from "@/lib/useComposedData"
 import { pct, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
+import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
+const short = (m: string) => (m.includes("/") ? m.split("/").at(-1)! : m)
 
 export function Esoteric() {
-  const [data, setData] = useState<ComposedData | null>(null)
+  const { data, error } = useComposedData()
   const [kind, setKind] = useState<Stipulation | "all">("all")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
-
-  useEffect(() => {
-    loadComposed().then(setData)
-  }, [])
 
   const models = useMemo(() => {
     if (!data) return []
     return data.runs
       .filter((r) => r.solver !== "oracle")
       .filter((r) => responseStyleInfo(r.condition).key === responseStyle)
-      .map((r) => ({ model: r.model, condition: r.condition, solved: r.summary.solved, n: r.summary.n, rate: r.summary.solve_rate }))
+      .map((r) => ({
+        key: r.run_id ?? `${r.model}-${r.created}`,
+        model: r.model_variant?.display_name ?? r.model,
+        condition: r.condition,
+        solved: r.summary.solved,
+        n: r.summary.n,
+        rate: r.summary.solve_rate,
+        status: r.status,
+      }))
       .sort((a, b) => b.rate - a.rate)
   }, [data, responseStyle])
 
@@ -46,6 +50,7 @@ export function Esoteric() {
     return list
   }, [data, kind])
 
+  if (error) return <p className="text-sm text-destructive">Failed to load esoteric problems: {error}</p>
   if (!data) return <p className="animate-pulse text-muted-foreground">Loading esoteric problems…</p>
   if (data.problems.size === 0)
     return (
@@ -68,7 +73,11 @@ export function Esoteric() {
           series-movers, proof games, and endgame studies. Each is solver-validated, so a perfect answer exists; the
           question is whether a model can find it.
         </p></div>
-        <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
+        <div className="flex flex-wrap items-center gap-2">
+          {data.source === "api" && <Badge variant="outline" className="gap-1.5"><Radio className="size-3 text-emerald-500" /> Cloudflare live</Badge>}
+          <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
+          <ExportButton track="esoteric" responseStyle={responseStyle} />
+        </div>
       </div>
 
       {/* Solver leaderboard */}
@@ -88,9 +97,9 @@ export function Esoteric() {
             </TableHeader>
             <TableBody>
               {models.map((m, i) => (
-                <TableRow key={m.model}>
+                <TableRow key={m.key}>
                   <TableCell className="text-center font-mono text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell><div className="font-medium">{short(m.model)}</div><div className="mt-1"><ResponseStyleBadge condition={m.condition} compact /></div></TableCell>
+                  <TableCell><div className="flex flex-wrap items-center gap-2"><span className="font-medium">{short(m.model)}</span>{m.status && m.status !== "completed" && <Badge variant="outline">{m.status}</Badge>}</div><div className="mt-1"><ResponseStyleBadge condition={m.condition} compact /></div></TableCell>
                   <TableCell className="text-right tabular-nums">
                     {m.solved}/{m.n}
                   </TableCell>

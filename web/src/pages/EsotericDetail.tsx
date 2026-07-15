@@ -1,26 +1,21 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Chess } from "chess.js"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Check, Lightbulb, X } from "lucide-react"
-import { loadComposed, STIPULATION_BLURB, STIPULATION_LABEL, type ComposedData } from "@/lib/composed"
+import { ArrowLeft, Lightbulb } from "lucide-react"
+import { STIPULATION_BLURB, STIPULATION_LABEL } from "@/lib/composed"
+import { useComposedData } from "@/lib/useComposedData"
 import { uciLineToSan } from "@/lib/chess"
 import { pct } from "@/lib/format"
 import { Board } from "@/components/Board"
-import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { ComposedAttemptAudit } from "@/components/ComposedAttemptAudit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
-const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
-
 export function EsotericDetail() {
   const { id = "" } = useParams()
-  const [data, setData] = useState<ComposedData | null>(null)
+  const { data, error } = useComposedData()
   const [reveal, setReveal] = useState(false)
-
-  useEffect(() => {
-    loadComposed().then(setData)
-  }, [])
 
   const entry = data?.problems.get(id)
   const sideToMove = useMemo(() => {
@@ -32,6 +27,7 @@ export function EsotericDetail() {
     }
   }, [entry])
 
+  if (error) return <p className="text-sm text-destructive">Failed to load problem audit: {error}</p>
   if (!data) return <p className="animate-pulse text-muted-foreground">Loading…</p>
   if (!entry)
     return (
@@ -105,23 +101,7 @@ export function EsotericDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {answers.map((a, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-md border px-3 py-2">
-                  {a.solved ? (
-                    <Check className="mt-0.5 size-4 shrink-0 text-chart-2" />
-                  ) : (
-                    <X className="mt-0.5 size-4 shrink-0 text-destructive/70" />
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{short(a.model)}</span>
-                      <ResponseStyleBadge condition={a.condition} compact />
-                      {a.answer && <span className="font-mono text-sm text-muted-foreground">{a.answer}</span>}
-                    </div>
-                    {a.detail && <p className="mt-0.5 text-xs text-muted-foreground">{a.detail}</p>}
-                  </div>
-                </div>
-              ))}
+              {answers.map((answer, index) => <ComposedAttemptAudit key={answer.run_id ?? `${answer.model}-${index}`} answer={answer} />)}
               {answers.length === 0 && (
                 <p className="text-sm text-muted-foreground">No model attempts recorded for this problem.</p>
               )}

@@ -244,17 +244,24 @@ async function fetchJSON<T>(url: string): Promise<T> {
 }
 
 let cachedBase: string | null | undefined
+let cachedBaseCheckedAt = 0
+const API_RETRY_MS = 30_000
 export async function resolveApiBase(): Promise<string | null> {
-  if (cachedBase !== undefined) return cachedBase
+  const now = Date.now()
+  if (cachedBase !== undefined && (cachedBase !== null || now - cachedBaseCheckedAt < API_RETRY_MS)) return cachedBase
   const configured = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, "")
   for (const base of configured ? [configured] : ["/api"]) {
     try {
       const response = await fetch(`${base}/health`)
-      if (response.ok) return (cachedBase = base)
+      if (response.ok) {
+        cachedBaseCheckedAt = now
+        return (cachedBase = base)
+      }
     } catch {
       // Fall through to the committed static fixture bundle.
     }
   }
+  cachedBaseCheckedAt = now
   return (cachedBase = null)
 }
 
@@ -373,6 +380,7 @@ export async function loadDataset(): Promise<Dataset> {
   } catch (error) {
     if (base) {
       cachedBase = null
+      cachedBaseCheckedAt = Date.now()
       const [runs, tournaments] = await Promise.all([loadIndex(null), loadTournamentIndex(null)])
       return { runs, tournaments, apiBase: null }
     }

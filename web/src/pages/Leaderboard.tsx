@@ -146,7 +146,7 @@ export function Leaderboard() {
               <button onClick={() => setView("compare")} className={`rounded px-2.5 py-1 text-xs ${view === "compare" ? "bg-foreground text-background" : "text-muted-foreground"}`}>Compare</button>
               {MODES.map((mode) => <button key={mode.n} onClick={() => setView(String(mode.n) as typeof view)} className={`rounded px-2.5 py-1 text-xs ${view === String(mode.n) ? "bg-foreground text-background" : "text-muted-foreground"}`}>{mode.n}. {mode.name}</button>)}
             </div>
-            <ExportButton track="puzzle" />
+            <ExportButton track="puzzle" responseStyle={responseStyle} />
           </div>
         </div>
 

@@ -223,19 +223,31 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
   const model = url.searchParams.get("model")
   const runId = url.searchParams.get("run")
   const status = url.searchParams.get("status")
+  const responseStyle = url.searchParams.get("response_style")
   const wantsPrivate = url.searchParams.get("include_private") === "1"
   const allowedTracks = new Set(["puzzle", "woodpecker", "esoteric", "game"])
   const allowedStatuses = new Set(["queued", "running", "partial", "completed", "failed"])
+  const allowedResponseStyles = new Set(["move_only", "json_rationale"])
   if (track && !allowedTracks.has(track)) return error(400, "invalid track filter")
   if (status && !allowedStatuses.has(status)) return error(400, "invalid status filter")
+  if (responseStyle && !allowedResponseStyles.has(responseStyle)) {
+    return error(400, "invalid response_style filter")
+  }
   if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
 
   const clauses: string[] = []
-  const binds: string[] = []
+  const binds: Array<string | number> = []
   if (track) { clauses.push("r.track=?"); binds.push(track) }
   if (model) { clauses.push("r.variant_key=?"); binds.push(model) }
   if (runId) { clauses.push("r.run_id=?"); binds.push(runId) }
   if (status) { clauses.push("r.status=?"); binds.push(status) }
+  if (responseStyle) {
+    clauses.push(
+      "COALESCE(CAST(json_extract(r.condition_json, '$.explain') AS INTEGER), " +
+      "CASE WHEN r.condition_slug LIKE '%__json-rationale__%' THEN 1 ELSE 0 END)=?",
+    )
+    binds.push(responseStyle === "json_rationale" ? 1 : 0)
+  }
   const where = clauses.length ? ` WHERE ${clauses.join(" AND ")}` : ""
   const stmt = env.DB.prepare(`${RUN_SELECT}${where} ORDER BY r.created_at DESC`)
   const { results } = await stmt.bind(...binds).all<RunRow>()
@@ -249,13 +261,23 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
   const includeGames = !track || track === "game"
   let tournaments: unknown[] = []
   if (includeGames) {
-    const { results: docs } = await env.DB.prepare(
-      `SELECT doc_json FROM tournaments ORDER BY created DESC`,
-    ).all<{ doc_json: string }>()
+    const tournamentFilter = responseStyle
+      ? " WHERE condition_slug LIKE ?"
+      : ""
+    const tournamentStatement = env.DB.prepare(
+      `SELECT doc_json FROM tournaments${tournamentFilter} ORDER BY created DESC`,
+    )
+    const { results: docs } = responseStyle
+      ? await tournamentStatement.bind(
+          responseStyle === "json_rationale"
+            ? "%__json-rationale__%"
+            : "%__plain-text-v1__%",
+        ).all<{ doc_json: string }>()
+      : await tournamentStatement.all<{ doc_json: string }>()
     tournaments = (docs ?? []).map((row) => JSON.parse(row.doc_json))
   }
   const stamp = new Date().toISOString()
-  const suffix = [track, model, runId, status, wantsPrivate ? "owner" : null]
+  const suffix = [track, model, runId, status, responseStyle, wantsPrivate ? "owner" : null]
     .filter(Boolean)
     .join("-") || "all"
   return downloadJson(
@@ -268,7 +290,7 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
         esoteric: "sum of verifier-awarded item points",
         game: "1 win / 0.5 draw / 0 loss",
       },
-      filters: { track, model, run: runId, status },
+      filters: { track, model, run: runId, status, response_style: responseStyle },
       privacy: {
         private_suite_items: wantsPrivate ? "included for authenticated owner" : "sealed",
         aggregate_scores: "included",

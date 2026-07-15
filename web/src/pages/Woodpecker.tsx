@@ -37,7 +37,7 @@ export function Woodpecker() {
         <div className="flex flex-wrap gap-2">
           {suites.length > 1 && <select value={activeSuite} onChange={(event) => setSuite(event.target.value)} className="h-8 rounded-md border bg-background px-2 text-xs">{suites.map((name) => <option key={name}>{name}</option>)}</select>}
           <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
-          <ExportButton track="woodpecker" />
+          <ExportButton track="woodpecker" responseStyle={responseStyle} />
         </div>
       </section>
 

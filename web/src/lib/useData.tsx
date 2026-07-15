@@ -2,13 +2,58 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { loadDataset, type Dataset } from "./data"
 
 const Ctx = createContext<Dataset | null>(null)
+const ACTIVE_REFRESH_MS = 10_000
+const IDLE_REFRESH_MS = 60_000
+
+const hasLiveProgress = (data: Dataset) =>
+  data.runs.some((run) => run.status === "queued" || run.status === "running" || run.status === "partial") ||
+  data.tournaments.some((tournament) => tournament.status === "live")
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<Dataset | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadDataset().then(setData).catch((e) => setError(String(e)))
+    let active = true
+    let loaded = false
+    let timer: number | undefined
+
+    const schedule = (next: Dataset) => {
+      window.clearTimeout(timer)
+      const delay = document.visibilityState === "visible" && hasLiveProgress(next)
+        ? ACTIVE_REFRESH_MS
+        : IDLE_REFRESH_MS
+      timer = window.setTimeout(refresh, delay)
+    }
+
+    const refresh = async () => {
+      try {
+        const next = await loadDataset()
+        if (!active) return
+        loaded = true
+        setData(next)
+        setError(null)
+        schedule(next)
+      } catch (reason) {
+        if (!active) return
+        if (!loaded) setError(String(reason))
+        timer = window.setTimeout(refresh, IDLE_REFRESH_MS)
+      }
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return
+      window.clearTimeout(timer)
+      void refresh()
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange)
+    void refresh()
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+      document.removeEventListener("visibilitychange", onVisibilityChange)
+    }
   }, [])
 
   if (error)
