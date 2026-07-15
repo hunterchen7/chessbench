@@ -77,7 +77,29 @@ def test_openrouter_payload_is_strict_fail_closed_and_has_no_tools():
     assert schema["strict"] is True
 
 
-def test_unstructured_adapter_cannot_silently_run_a_schema_cell():
+def test_openrouter_json_object_payload_is_provider_enforced():
+    model = CapturingOpenRouter()
+    contract = response_format_for(
+        ResponseProtocol.JSON_OBJECT_V1, "move", explain=True
+    )
+    assert contract == {"type": "json_object"}
+    model.chat_structured(
+        [{"role": "user", "content": "Your move."}],
+        response_format=contract,
+        temperature=1.0,
+        max_tokens=99,
+    )
+    [payload] = model.payloads
+    assert payload["response_format"] == {"type": "json_object"}
+    assert payload["provider"] == {"require_parameters": True}
+    assert payload["tool_choice"] == "none"
+
+
+@pytest.mark.parametrize(
+    "protocol",
+    [ResponseProtocol.JSON_SCHEMA_V1, ResponseProtocol.JSON_OBJECT_V1],
+)
+def test_unstructured_adapter_cannot_silently_run_an_enforced_cell(protocol):
     class PlainModel:
         name = "plain"
 
@@ -97,7 +119,7 @@ def test_unstructured_adapter_cannot_silently_run_a_schema_cell():
         chat_with_response_format(
             model,
             [{"role": "user", "content": "move"}],
-            response_format=response_format("move"),
+            response_format=response_format_for(protocol, "move", explain=True),
             temperature=1.0,
             max_tokens=100,
         )
@@ -118,14 +140,26 @@ def test_unstructured_adapter_cannot_silently_run_a_schema_cell():
 
 def test_protocol_version_changes_condition_and_durable_run_identity():
     strict = mode_condition(2)
+    json_object = replace(strict, response_protocol=ResponseProtocol.JSON_OBJECT_V1)
     prompt_only = replace(strict, response_protocol=ResponseProtocol.PROMPT_JSON_V1)
     variant = ModelVariant("m", "M", "openrouter", "test/m")
     strict_run = RunSpec("puzzle", variant, strict, 1, suite_hash="same")
+    object_run = RunSpec("puzzle", variant, json_object, 1, suite_hash="same")
     prompt_run = RunSpec("puzzle", variant, prompt_only, 1, suite_hash="same")
-    assert strict.slug() != prompt_only.slug()
+    assert len({strict.slug(), json_object.slug(), prompt_only.slug()}) == 3
     assert strict.to_dict()["response_protocol"] == "json_schema_v1"
+    assert json_object.to_dict()["response_protocol"] == "json_object_v1"
     assert prompt_only.to_dict()["response_protocol"] == "prompt_json_v1"
-    assert strict_run.natural_key != prompt_run.natural_key
+    assert (
+        len(
+            {
+                strict_run.natural_key,
+                object_run.natural_key,
+                prompt_run.natural_key,
+            }
+        )
+        == 3
+    )
 
 
 def test_prompts_forbid_san_and_fences_with_exact_uci_examples():
@@ -241,3 +275,25 @@ def test_puzzle_full_line_composed_and_game_logs_record_applied_schema():
     )
     assert all(move.attempts[0].prompt for move in game.records)
     assert all(move.attempts[0].raw_response for move in game.records)
+
+
+def test_json_object_protocol_logs_applied_format_and_keeps_uci_prompt_contract():
+    puzzle = Puzzle(
+        "object",
+        "6k1/5ppp/8/8/8/7q/8/R5K1 b - - 0 1",
+        ["h3h6", "a1a8"],
+        1200,
+    )
+    condition = replace(
+        mode_condition(2), response_protocol=ResponseProtocol.JSON_OBJECT_V1
+    )
+    agent = LLMAgent(
+        ScriptedModel(lambda _messages: '{"move":"a1a8","rationale":"Back-rank mate."}')
+    )
+    result = grade_puzzle(agent, puzzle, condition)
+    assert result.solved
+    assert result.turns[0]["response_format"] == {"type": "json_object"}
+    prompt = result.turns[0]["prompt"]
+    assert isinstance(prompt, str)
+    assert "lowercase UCI coordinate notation" in prompt
+    assert "Do not use SAN" in prompt and "Markdown code fence" in prompt

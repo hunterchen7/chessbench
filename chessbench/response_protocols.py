@@ -16,6 +16,7 @@ class ResponseProtocol(str, Enum):
     """How the canonical JSON response contract is enforced."""
 
     JSON_SCHEMA_V1 = "json_schema_v1"
+    JSON_OBJECT_V1 = "json_object_v1"
     PROMPT_JSON_V1 = "prompt_json_v1"
 
 
@@ -99,6 +100,8 @@ def response_format_for(
     explain: bool,
 ) -> ResponseFormat | None:
     """Resolve the API constraint; prompt-only and move-only ablations return none."""
-    if not explain or protocol != ResponseProtocol.JSON_SCHEMA_V1:
+    if not explain or protocol == ResponseProtocol.PROMPT_JSON_V1:
         return None
+    if protocol == ResponseProtocol.JSON_OBJECT_V1:
+        return {"type": "json_object"}
     return response_format(shape)
