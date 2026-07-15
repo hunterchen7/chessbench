@@ -20,8 +20,10 @@ from typing import TypedDict, cast
 from ..response_protocols import ResponseFormat
 from ..types import Message
 
-# HTTP statuses worth retrying (rate limit + transient server errors).
-_RETRY_STATUS = {429, 500, 502, 503, 504}
+# OpenRouter explicitly documents Retry-After for these rejection states. Other
+# 5xx responses and transport failures are outcome-ambiguous: the provider may
+# have completed and charged the generation before the response was lost.
+_SAFE_RETRY_STATUS = {429, 503}
 
 
 class ModelError(RuntimeError):
@@ -85,29 +87,55 @@ class _OpenAICompatModel:
         self.total_cost: float = 0.0
 
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
-        """POST with retry+backoff on transient failures (network resets,
-        timeouts, 429/5xx). Non-retryable HTTP errors raise immediately."""
+        """POST without silently duplicating an outcome-ambiguous generation.
+
+        Only explicit 429/503 rejection responses are retried. A timeout,
+        connection reset, or other server error may have happened after model
+        inference, and OpenRouter exposes no request idempotency key, so those
+        stop the durable cell for an operator-visible resume decision.
+        """
         req = urllib.request.Request(
             f"{self._base_url}/chat/completions", data=data, headers=headers
         )
         last: Exception | None = None
         for attempt in range(self._max_retries):
+            retry_after: float | None = None
             try:
                 with urllib.request.urlopen(req, timeout=self._timeout) as resp:
                     return resp.read().decode("utf-8")
             except urllib.error.HTTPError as e:
-                if e.code not in _RETRY_STATUS:
+                if e.code not in _SAFE_RETRY_STATUS:
                     detail = e.read().decode("utf-8", "replace")
-                    raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
+                    qualifier = (
+                        " outcome may be ambiguous; automatic retry disabled;"
+                        if e.code >= 500
+                        else ""
+                    )
+                    raise ModelError(
+                        f"{self._model}: HTTP {e.code}:{qualifier} {detail}"
+                    ) from e
                 last = e
+                value = e.headers.get("Retry-After") if e.headers else None
+                if value is not None:
+                    try:
+                        retry_after = max(0.0, float(value))
+                    except ValueError:
+                        pass
             except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
-                last = (
-                    e  # ConnectionResetError, timeouts, DNS, etc. are OSError/URLError
-                )
+                raise ModelError(
+                    f"{self._model}: transport failure; outcome may be ambiguous; "
+                    "automatic retry disabled: "
+                    f"{e}"
+                ) from e
             if attempt < self._max_retries - 1:
-                time.sleep(min(8.0, 0.7 * (2**attempt)))  # 0.7, 1.4, 2.8, ...
+                delay = (
+                    min(60.0, retry_after)
+                    if retry_after is not None
+                    else min(8.0, 0.7 * (2**attempt))
+                )
+                time.sleep(delay)
         raise ModelError(
-            f"{self._model}: transient request failure after {self._max_retries} tries: {last}"
+            f"{self._model}: rejected after {self._max_retries} safe retries: {last}"
         )
 
     def _complete(

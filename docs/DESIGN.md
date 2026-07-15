@@ -96,6 +96,13 @@ transaction alone cannot cover: a second process exits before making a paid
 call. Kernel lock release on process death permits immediate recovery without a
 stale timeout. `--force` creates a distinct run and therefore a distinct lock.
 
+The OpenRouter adapter retries only explicit 429/503 rejection responses and
+honors `Retry-After`. Transport failures and other 5xx responses are not retried
+automatically because the provider may already have generated and charged the
+answer, and OpenRouter currently exposes no idempotency key for chat requests.
+The cell remains resumable, but the ambiguity is surfaced to the operator
+instead of being hidden behind a duplicate paid request.
+
 ### Cloudflare D1
 
 - `model_variants_v2`: display identity and reasoning/output budgets.
