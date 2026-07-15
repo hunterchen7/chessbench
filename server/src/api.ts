@@ -1,4 +1,5 @@
 import type { Env } from "./types"
+import { authorized } from "./auth"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
 
@@ -97,6 +98,26 @@ function publicRun(row: RunRow) {
   }
 }
 
+const isPrivateSuite = (row: RunRow) => row.suite_visibility === "private"
+
+async function runItems(env: Env, runId: string): Promise<unknown[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
+  ).bind(runId).all<{ payload_json: string }>()
+  return (results ?? []).map((item) => JSON.parse(item.payload_json))
+}
+
+function disclosure(row: RunRow, ownerAccess: boolean) {
+  if (!isPrivateSuite(row)) return { level: "public", items_included: true }
+  return ownerAccess
+    ? { level: "owner", items_included: true }
+    : {
+        level: "sealed",
+        items_included: false,
+        reason: "Private suite membership, item outcomes, prompts, and transcripts are owner-only.",
+      }
+}
+
 /** GET /api/index — lightweight, points-first manifests; no item waterfalls. */
 export async function getIndex(env: Env): Promise<Response> {
   const { results } = await env.DB.prepare(`${RUN_SELECT} ORDER BY r.created_at DESC`).all<RunRow>()
@@ -110,14 +131,20 @@ export async function getIndex(env: Env): Promise<Response> {
   })
 }
 
-/** GET /api/runs/:id — one manifest plus its item payloads. */
-export async function getRun(env: Env, id: string): Promise<Response> {
+/** GET /api/runs/:id — public items or a sealed private-suite aggregate. */
+export async function getRun(env: Env, id: string, req: Request): Promise<Response> {
   const row = await env.DB.prepare(`${RUN_SELECT} WHERE r.run_id=?`).bind(id).first<RunRow>()
   if (!row) return error(404, "run not found")
-  const { results } = await env.DB.prepare(
-    `SELECT payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
-  ).bind(id).all<{ payload_json: string }>()
-  return json({ schema: "chessbench.run.v2", ...publicRun(row), items: (results ?? []).map((r) => JSON.parse(r.payload_json)) })
+  const wantsPrivate = new URL(req.url).searchParams.get("include_private") === "1"
+  if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
+  const ownerAccess = isPrivateSuite(row) && wantsPrivate
+  const items = !isPrivateSuite(row) || ownerAccess ? await runItems(env, id) : []
+  return json({
+    schema: "chessbench.run.v2",
+    ...publicRun(row),
+    disclosure: disclosure(row, ownerAccess),
+    items,
+  })
 }
 
 /** GET /api/puzzles — the position bank with per-puzzle model solve stats. */
@@ -127,7 +154,7 @@ export async function getPuzzles(env: Env): Promise<Response> {
             COUNT(*) AS total, COALESCE(SUM(i.solved), 0) AS solved
        FROM benchmark_items_v2 i
        JOIN benchmark_runs_v2 r USING(run_id)
-      WHERE r.track='puzzle'
+      WHERE r.track='puzzle' AND COALESCE(r.suite_visibility, 'public') <> 'private'
       GROUP BY i.item_id
       ORDER BY CAST(json_extract(MAX(i.payload_json), '$.rating') AS INTEGER), i.item_id`,
   ).all<{ puzzle_id: string; payload_json: string; total: number; solved: number }>()
@@ -145,6 +172,7 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
             i.first_move_legal, i.failure_reason, i.payload_json
        FROM benchmark_items_v2 i JOIN benchmark_runs_v2 r USING(run_id)
       WHERE i.item_id=? AND r.track='puzzle'
+        AND COALESCE(r.suite_visibility, 'public') <> 'private'
       ORDER BY i.solved DESC, r.variant_key ASC`,
   ).bind(id).all<{
     run_id: string; model: string; condition_slug: string; solved: number; points: number
@@ -190,15 +218,17 @@ export async function getTournament(env: Env, id: string): Promise<Response> {
 }
 
 /** GET /api/export — download a complete or filtered, versioned JSON snapshot. */
-export async function getExport(env: Env, url: URL): Promise<Response> {
+export async function getExport(env: Env, url: URL, req: Request): Promise<Response> {
   const track = url.searchParams.get("track")
   const model = url.searchParams.get("model")
   const runId = url.searchParams.get("run")
   const status = url.searchParams.get("status")
+  const wantsPrivate = url.searchParams.get("include_private") === "1"
   const allowedTracks = new Set(["puzzle", "woodpecker", "esoteric", "game"])
   const allowedStatuses = new Set(["queued", "running", "partial", "completed", "failed"])
   if (track && !allowedTracks.has(track)) return error(400, "invalid track filter")
   if (status && !allowedStatuses.has(status)) return error(400, "invalid status filter")
+  if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
 
   const clauses: string[] = []
   const binds: string[] = []
@@ -211,10 +241,9 @@ export async function getExport(env: Env, url: URL): Promise<Response> {
   const { results } = await stmt.bind(...binds).all<RunRow>()
   const rows = results ?? []
   const runs = await Promise.all(rows.map(async (row) => {
-    const { results: items } = await env.DB.prepare(
-      `SELECT payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
-    ).bind(row.run_id).all<{ payload_json: string }>()
-    return { ...publicRun(row), items: (items ?? []).map((item) => JSON.parse(item.payload_json)) }
+    const ownerAccess = isPrivateSuite(row) && wantsPrivate
+    const items = !isPrivateSuite(row) || ownerAccess ? await runItems(env, row.run_id) : []
+    return { ...publicRun(row), disclosure: disclosure(row, ownerAccess), items }
   }))
 
   const includeGames = !track || track === "game"
@@ -226,7 +255,9 @@ export async function getExport(env: Env, url: URL): Promise<Response> {
     tournaments = (docs ?? []).map((row) => JSON.parse(row.doc_json))
   }
   const stamp = new Date().toISOString()
-  const suffix = [track, model, runId, status].filter(Boolean).join("-") || "all"
+  const suffix = [track, model, runId, status, wantsPrivate ? "owner" : null]
+    .filter(Boolean)
+    .join("-") || "all"
   return downloadJson(
     {
       schema: "chessbench.export.v2",
@@ -238,6 +269,10 @@ export async function getExport(env: Env, url: URL): Promise<Response> {
         game: "1 win / 0.5 draw / 0 loss",
       },
       filters: { track, model, run: runId, status },
+      privacy: {
+        private_suite_items: wantsPrivate ? "included for authenticated owner" : "sealed",
+        aggregate_scores: "included",
+      },
       runs,
       tournaments,
     },

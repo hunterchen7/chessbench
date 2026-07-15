@@ -26,10 +26,10 @@ export default {
       if (req.method === "GET") {
         if (seg === "health") return json({ ok: true, service: "chessbench", time: new Date().toISOString() })
         if (seg === "index" || seg === "runs") return await getIndex(env)
-        if (seg === "export") return await getExport(env, url)
+        if (seg === "export") return await getExport(env, url, req)
         if (seg === "puzzles") return await getPuzzles(env)
         if (seg.startsWith("puzzles/")) return await getPuzzle(env, rest(seg, "puzzles/"))
-        if (seg.startsWith("runs/")) return await getRun(env, rest(seg, "runs/"))
+        if (seg.startsWith("runs/")) return await getRun(env, rest(seg, "runs/"), req)
         if (seg === "tournaments") return await getTournaments(env)
         if (seg.startsWith("tournaments/")) return await getTournament(env, rest(seg, "tournaments/"))
         if (seg === "human/leaderboard") return await getHumanLeaderboard(env, url)

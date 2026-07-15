@@ -3,7 +3,7 @@
 // after every game and the web viewer can watch it live. The final Bradley-Terry
 // doc still lands via POST /api/ingest/tournament once the run completes.
 import type { Env } from "./types"
-import { authorized } from "./ingest"
+import { authorized } from "./auth"
 import { error, json } from "./http"
 
 interface GamePayload {

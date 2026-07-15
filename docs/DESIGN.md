@@ -12,6 +12,8 @@
 8. The hosted data store is exportable as versioned JSON.
 9. A published corpus has explicit provenance and license, deterministic selection, unique task positions, a
    successful verifier report, and a content hash. A suite is frozen from a corpus; it is not the source pool.
+10. A public read or export route never reveals private-suite membership, positions, item outcomes, prompts, or
+    transcripts. Owner-only disclosure requires an explicit flag and Bearer authentication.
 
 ## Corpus lifecycle
 
@@ -105,12 +107,12 @@ Read endpoints are public. Mutation endpoints require a constant-time Bearer-tok
 
 ```text
 GET  /api/index
-GET  /api/runs/:id
+GET  /api/runs/:id[?include_private=1]
 GET  /api/puzzles
 GET  /api/puzzles/:id
 GET  /api/tournaments
 GET  /api/tournaments/:id
-GET  /api/export?track=&model=&run=&status=
+GET  /api/export?track=&model=&run=&status=&include_private=1
 
 POST /api/ingest/run/start
 POST /api/ingest/run/item
@@ -131,7 +133,11 @@ The React app and API share the Worker origin. Hash routing lets Cloudflare asse
 - Games: match points, replays, legality outcomes, and collapsible exact transcripts.
 - Methods: the scoring and state contracts in plain language.
 
-The global and track-level export controls download complete, versioned JSON. Large item collections are lazy-loaded by route rather than fetched with the initial leaderboard.
+The global and track-level export controls download complete, versioned JSON. Large item collections are
+lazy-loaded by route rather than fetched with the initial leaderboard. Private-suite rows remain useful in the
+public dashboard through aggregate points, usage, progress, and suite fingerprints; their `items` arrays are empty
+and carry an explicit `sealed` disclosure marker. An authenticated owner export can include the stored item payloads
+and exact visible transcripts for audit.
 
 ## Security and data policy
 
@@ -140,3 +146,5 @@ The global and track-level export controls download complete, versioned JSON. La
 - The UI labels the parsed text as a model rationale and the complete payload as visible output; neither is
   presented as hidden reasoning.
 - Public exports contain benchmark data and provider usage, never API credentials or ingestion tokens.
+- Private-suite item payloads are excluded from `/runs`, `/puzzles`, and default exports. `include_private=1` fails
+  closed unless the request carries the Worker's owner Bearer token.

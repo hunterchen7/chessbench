@@ -47,13 +47,16 @@ The checked-in releases contain fast development seeds and the first full-dump p
 | `woodpecker-seed-v1` | 60 | 12 per band, at least two solver moves, disjoint from Standard |
 | `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
 | `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
+| `standard-lichess-v2` | 300 | 50 positions in each of six 400-point bands from the complete snapshot |
+| `woodpecker-masters-v1` | 125 | 25 per band, titled-player games and at least three solver moves |
 | `esoteric-seed-v1` | 50 | Native-verifier-passing non-study compositions with unique starting positions |
 
-The Standard and Woodpecker source positions come from the CC0 Lichess puzzle database. Public v1 was sampled
-from all 6,057,356 puzzles in the 2026-07-05 snapshot; its pinned intermediate pool retained 3,250 positions and
-has SHA-256 `c6f202da…f0097ed`. The seed uses the repository's 500-row fixture. Esoteric combines
-CC0-derived directmates with ChessBench-constructed or search-discovered positions. Studies are withheld until
-their interactive adjudication contract and provenance are frozen.
+The Standard and Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams all
+6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
+Woodpecker release is restricted to puzzles from titled-player games. The older seed uses the repository's 500-row
+fixture. Esoteric combines a checked-in development seed with private YACPDB imports and freshly generated
+compositions certified by Popeye plus the native verifier. See
+[the private-corpus MVP](docs/private-corpus-mvp.md) for the sealed release workflow.
 
 Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
 item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`
@@ -164,7 +167,10 @@ pnpm --dir server migrate:remote
 pnpm --dir server deploy
 ```
 
-The dashboard's **Export JSON** control calls `/api/export`. The endpoint supports `track`, `model`, `run`, and `status` filters and includes its scoring contract in the downloaded document.
+The dashboard's **Export JSON** control calls `/api/export`. The endpoint supports `track`, `model`, `run`, and
+`status` filters and includes its scoring contract in the downloaded document. Public exports contain complete
+public-suite items but only aggregate scores and fingerprints for private suites. The benchmark owner can request
+an audited raw export with `include_private=1` and the ingestion Bearer token.
 
 ## Verification
 

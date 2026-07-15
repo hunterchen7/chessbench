@@ -1,20 +1,7 @@
 import type { Env, RunDoc, RunFinishDoc, RunItemDoc, RunStartDoc, TournamentDoc } from "./types"
+import { authorized } from "./auth"
 import { finishRun, ingestRun, ingestTournament, startRun, upsertRunItem } from "./db"
 import { error, json } from "./http"
-
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return diff === 0
-}
-
-/** Ingestion requires a Bearer token matching the INGEST_TOKEN secret. */
-export function authorized(env: Env, req: Request): boolean {
-  if (!env.INGEST_TOKEN) return false // ingestion disabled until a token is configured
-  const m = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i)
-  return !!m && safeEqual(m[1], env.INGEST_TOKEN)
-}
 
 /** POST /api/ingest/run — body is a run document from store.py. */
 export async function postIngestRun(env: Env, req: Request): Promise<Response> {

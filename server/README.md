@@ -13,11 +13,12 @@ Read (public, permissive CORS):
 | --- | --- | --- |
 | GET | `/api/health` | liveness |
 | GET | `/api/index` | run index (mirrors `index.json`) |
-| GET | `/api/runs/:id` | full run document |
+| GET | `/api/runs/:id` | public run document; private-suite items are sealed |
 | GET | `/api/puzzles` | position bank + per-puzzle model solve stats |
 | GET | `/api/puzzles/:id` | one position + how every model answered |
 | GET | `/api/tournaments` | tournament index |
 | GET | `/api/tournaments/:id` | full tournament document |
+| GET | `/api/export` | filtered versioned JSON; private-suite items are sealed |
 | GET | `/api/human/summary?uid=` | one solver's count + Elo |
 | GET | `/api/human/leaderboard` | top human solvers by Elo |
 | POST | `/api/human/solve` | record a solve `{uid, puzzle_id, solved, handle?}` |
@@ -28,6 +29,10 @@ Ingest (Bearer `INGEST_TOKEN`):
 | --- | --- | --- |
 | POST | `/api/ingest/run` | a run document from `store.py` |
 | POST | `/api/ingest/tournament?id=<stem>` | a tournament document |
+
+The same owner token may be used with `?include_private=1` on a run-detail or export request. Without both the
+explicit flag and a valid token, private-suite membership, positions, item outcomes, prompts, and transcripts are
+never returned. Aggregate points, progress, usage, and the suite content hash remain public.
 
 ## First-time setup
 
