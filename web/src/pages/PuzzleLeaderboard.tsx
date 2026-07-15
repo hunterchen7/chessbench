@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type Mode = 1 | 2 | 3
 type ModeMap = Partial<Record<Mode, RunIndexEntry>>
@@ -30,11 +31,12 @@ const ratingText = (run?: RunIndexEntry) => {
 export function PuzzleLeaderboard() {
   const { runs } = useData()
   const [mode, setMode] = useState<Mode>(2)
+  const [suite, setSuite] = useState("")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
-  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "points", direction: "desc" })
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
-  const activeSuite = suites[0] ?? "standard-public-v1"
+  const activeSuite = suite || suites[0] || "standard-public-v1"
 
   const grouped = useMemo(() => {
     const result = new Map<string, ModeMap>()
@@ -67,7 +69,9 @@ export function PuzzleLeaderboard() {
     key,
     direction: current.key === key ? (current.direction === "desc" ? "asc" : "desc") : initial,
   }))
-  const best = rows[0]
+  const bestRating = rows.reduce<RunIndexEntry | undefined>((best, run) => (
+    (rating(run)?.rating ?? -1) > (rating(best)?.rating ?? -1) ? run : best
+  ), undefined)
   const totalCost = rows.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
 
   return (
@@ -84,7 +88,7 @@ export function PuzzleLeaderboard() {
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card><CardContent className="flex items-center gap-4 pt-6"><Trophy className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{best ? ratingText(best) : "—"}</div><div className="text-xs text-muted-foreground">top Puzzle Elo · mode {mode}</div></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-4 pt-6"><Trophy className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{bestRating ? ratingText(bestRating) : "—"}</div><div className="text-xs text-muted-foreground">top Puzzle Elo · mode {mode}</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{rows.length}</div><div className="text-xs text-muted-foreground">model-budget variants</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">240</div><div className="text-xs text-muted-foreground">canonical public puzzles</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totalCost.toFixed(2)}</div><div className="text-xs text-muted-foreground">provider-reported cost</div></div></CardContent></Card>
@@ -94,13 +98,21 @@ export function PuzzleLeaderboard() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground"><Info className="size-4" /><span><strong className="text-foreground">{activeSuite}</strong> · complete solves only affect Elo; partial line credit still earns points.</span></div>
           <div className="flex flex-wrap items-center gap-2">
+            {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
             <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
             <Tabs value={String(mode)} onValueChange={(value) => setMode(Number(value) as Mode)}><TabsList className="h-9 border bg-card p-1">{MODES.map((item) => <TabsTrigger key={item.n} value={String(item.n)} className="h-7 text-xs">{item.n}. {item.name}</TabsTrigger>)}</TabsList></Tabs>
             <ExportButton track="puzzle" responseStyle={responseStyle} />
           </div>
         </div>
 
-        <Card className="overflow-hidden border-border/70">
+        {rows.length === 0 ? <Card className="border-border/70">
+          <CardContent className="py-16 text-center sm:py-20">
+            <div className="mx-auto grid size-10 place-items-center rounded-full bg-secondary"><BarChart3 className="size-4 text-muted-foreground" /></div>
+            <div className="mt-3 font-medium">Clean slate—no published model scores yet</div>
+            <div className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">The 240-puzzle bank and exact suite hashes are registered. The first durable run will appear here item by item without changing the corpus.</div>
+            <Badge variant="outline" className="mt-3">mode {mode} · {responseStyle === "move_only" ? "move only" : "JSON + rationale"}</Badge>
+          </CardContent>
+        </Card> : <Card className="overflow-hidden border-border/70">
           <CardContent className="p-0">
             <Table>
               <TableHeader><TableRow>
@@ -125,11 +137,10 @@ export function PuzzleLeaderboard() {
                     <TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell>
                   </TableRow>
                 })}
-                {rows.length === 0 && <TableRow><TableCell colSpan={7} className="py-20 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-secondary"><BarChart3 className="size-4 text-muted-foreground" /></div><div className="mt-3 font-medium">Clean slate—no published model scores yet</div><div className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">The 240-puzzle bank and exact suite hashes are registered. The first durable run will appear here item by item without changing the corpus.</div><Badge variant="outline" className="mt-3">mode {mode} · {responseStyle === "move_only" ? "move only" : "JSON + rationale"}</Badge></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
+        </Card>}
       </section>
     </div>
   )
