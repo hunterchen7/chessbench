@@ -3,6 +3,9 @@
 Corpora are curated data releases, not run outputs. Every public corpus is self-contained and content-addressed;
 every model is eventually evaluated on the matching frozen suite.
 
+See [the authoritative suite catalog](../docs/SUITES.md) for exact execution paths, content hashes, prompt
+protocols, private suites, superseded releases, and diagnostic-only files.
+
 ## Current releases
 
 | File | Track | Items | Source |

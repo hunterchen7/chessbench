@@ -2,6 +2,9 @@
 
 ChessBench is a points-first, tool-free benchmark for language models doing chess. It evaluates four distinct capabilities:
 
+The exact canonical, previous, and diagnostic suite inventory is maintained in
+[docs/SUITES.md](docs/SUITES.md).
+
 | Track | Task | Score |
 | --- | --- | --- |
 | Standard | Solve tactical positions move by move | Up to 1 point per puzzle; correct prefixes receive fractional credit |
