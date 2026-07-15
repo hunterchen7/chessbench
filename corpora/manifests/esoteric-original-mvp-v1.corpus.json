@@ -1,0 +1,16 @@
+{
+ "schema": "chessbench.corpus_manifest.v1",
+ "name": "esoteric-original-mvp-v1",
+ "title": "ChessBench-generated esoteric MVP",
+ "version": "1.0.0",
+ "track": "esoteric",
+ "visibility": "private",
+ "item_type": "composed",
+ "items": 50,
+ "content_hash": "sha256:30d163c01159b8a60db7",
+ "validation": {
+  "valid": true,
+  "unique_ids": 50,
+  "unique_positions": 50
+ }
+}

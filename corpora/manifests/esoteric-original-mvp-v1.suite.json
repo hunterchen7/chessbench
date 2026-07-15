@@ -1,0 +1,10 @@
+{
+ "schema": "chessbench.suite_manifest.v1",
+ "name": "esoteric-original-mvp-v1",
+ "version": "1.0.0",
+ "visibility": "private",
+ "kind": "composed",
+ "source": "corpus:esoteric-original-mvp-v1@sha256:30d163c01159b8a60db7",
+ "items": 50,
+ "content_hash": "sha256:066aa9058e8ba4ae"
+}
