@@ -22,7 +22,13 @@ def post(api: str, token: str, path: str, document: dict[str, object]) -> dict[s
         f"{api.rstrip('/')}/api/{path}",
         data=json.dumps(document).encode(),
         method="POST",
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            # Cloudflare may reject urllib's default Python-urllib user agent.
+            "User-Agent": "ChessBench-Registry/1.0",
+        },
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.load(response)
