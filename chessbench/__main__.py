@@ -1023,9 +1023,10 @@ def cmd_tournament(args: argparse.Namespace) -> int:
             handle = store.start_run(spec, force=args.force)
             run_id = handle.run_id
             completed_games = store.load_game_results(handle.run_id)
+            in_progress_games = store.load_in_progress_games(handle.run_id)
             print(
                 f"durable run {handle.run_id}: {len(completed_games)}/{total_games} "
-                "games already complete"
+                f"games complete, {len(in_progress_games)} resumable"
             )
 
             if args.stream:
@@ -1058,6 +1059,53 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                 if pusher is not None:
                     pusher.on_game(record, sequence)
 
+            def start_game(
+                white: str,
+                black: str,
+                start_fen: str | None,
+                sequence: int,
+            ) -> None:
+                assert store is not None and run_id is not None
+                store.start_game(run_id, sequence, white, black, start_fen)
+
+            def persist_move(
+                white: str,
+                black: str,
+                start_fen: str | None,
+                sequence: int,
+                board,
+                records,
+            ) -> None:
+                assert store is not None and run_id is not None and records
+                store.save_game_progress(
+                    run_id,
+                    sequence,
+                    white,
+                    black,
+                    start_fen,
+                    records,
+                )
+                latest = records[-1]
+                if latest.forfeited:
+                    status = f"{latest.color} forfeits (illegal move)"
+                elif latest.uci is not None:
+                    status = f"ply {latest.ply}: {latest.san}"
+                else:
+                    status = f"{latest.color} illegal attempt {latest.illegal_attempts}"
+                print(
+                    f"  game {sequence + 1}/{total_games} {status}",
+                    flush=True,
+                )
+                if pusher is not None:
+                    pusher.on_move(
+                        white,
+                        black,
+                        start_fen,
+                        sequence,
+                        board,
+                        records,
+                    )
+
             result = round_robin(
                 entries,
                 args.games,
@@ -1066,8 +1114,10 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                 eval_engine=eval_engine,
                 openings=openings,
                 completed_games=completed_games,
+                in_progress_games=in_progress_games,
+                on_game_start=start_game,
                 on_game=persist_game,
-                on_move=pusher.on_move if pusher else None,
+                on_move=persist_move,
             )
             summary = {
                 "n_games": len(result.games),

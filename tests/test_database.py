@@ -1,5 +1,7 @@
 import sqlite3
 
+import pytest
+
 from chessbench.conditions import mode_condition
 from chessbench.database import BenchmarkStore, RunSpec
 from chessbench.report import build_report
@@ -223,6 +225,71 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         store.finalize_run(run.run_id, {"n_games": 1})
         existing = store.start_run(_generic_spec("tournament"))
         assert existing.status == "completed" and not existing.resumed
+
+
+def test_running_game_upserts_attempts_then_completes_and_charges_once(tmp_path):
+    first = MoveAttempt(
+        "white system",
+        "first prompt",
+        "banana",
+        None,
+        False,
+        prompt_tokens=5,
+        completion_tokens=2,
+        reasoning_tokens=1,
+        cost_usd=0.01,
+    )
+    second = MoveAttempt(
+        None,
+        "retry prompt",
+        '{"move":"e2e4","rationale":"center"}',
+        "e2e4",
+        True,
+        prompt_tokens=7,
+        completion_tokens=3,
+        reasoning_tokens=2,
+        cost_usd=0.02,
+    )
+    partial = MoveRecord(0, "white", None, None, False, 1, attempts=[first])
+    completed_move = MoveRecord(
+        1, "white", "e4", "e2e4", False, 1, attempts=[first, second]
+    )
+    with BenchmarkStore(tmp_path / "running.db") as store:
+        run = store.start_run(_generic_spec("tournament"))
+        assert store.start_game(run.run_id, 0, "white", "black", None)
+        assert store.save_game_progress(
+            run.run_id, 0, "white", "black", None, [partial]
+        )
+        running = store.load_in_progress_games(run.run_id)[0]
+        assert running.records == [partial]
+        assert store.run_row(run.run_id)["prompt_tokens"] == 0
+
+        assert store.save_game_progress(
+            run.run_id, 0, "white", "black", None, [completed_move]
+        )
+        running = store.load_in_progress_games(run.run_id)[0]
+        assert running.records == [completed_move]
+
+        record = GameRecord(
+            "white",
+            "black",
+            "1/2-1/2",
+            "move_cap",
+            1,
+            ["e4"],
+            [completed_move],
+            '[Result "1/2-1/2"]\n\n1. e4 1/2-1/2',
+        )
+        assert store.save_game_result(run.run_id, 0, record)
+        assert not store.save_game_result(run.run_id, 0, record)
+        assert store.load_in_progress_games(run.run_id) == {}
+        assert store.load_game_results(run.run_id)[0] == record
+        row = store.run_row(run.run_id)
+        assert row["completed_items"] == 1
+        assert row["prompt_tokens"] == 12
+        assert row["completion_tokens"] == 5
+        assert row["reasoning_tokens"] == 3
+        assert row["cost_usd"] == pytest.approx(0.03)
 
 
 def test_v2_database_migrates_generic_item_table(tmp_path):

@@ -285,6 +285,30 @@ class LLMGameAgent:
         self._system = conditions.game_system_prompt(self._condition, color)
         self._started = False
 
+    def restore(
+        self,
+        color: bool,
+        turns: list[tuple[str, str]],
+        system_prompt: str | None = None,
+    ) -> None:
+        """Restore only this player's private messages for an interrupted game.
+
+        ``turns`` is pre-filtered by color by the game runner. Opponent prompts
+        and responses are never accepted here, so resumption cannot leak one
+        model's rationale or raw output into the other model's context.
+        """
+        self.reset(color)
+        if system_prompt is not None:
+            self._system = system_prompt
+        if not turns:
+            return
+        if self._condition.context_mode != conditions.ContextMode.FRESH:
+            self._messages.append({"role": "system", "content": self._system})
+            for prompt, raw_response in turns:
+                self._messages.append({"role": "user", "content": prompt})
+                self._messages.append({"role": "assistant", "content": raw_response})
+        self._started = True
+
     def choose(self, board: chess.Board, ctx: MoveContext) -> str:
         cond = ctx.condition
         is_first = not self._started

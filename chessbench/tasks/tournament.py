@@ -63,13 +63,17 @@ def round_robin(
     eval_engine: Engine | None = None,
     openings: list[str] | None = None,
     completed_games: dict[int, GameRecord] | None = None,
+    in_progress_games: dict[int, GameRecord] | None = None,
+    on_game_start: Callable[[str, str, str | None, int], None] | None = None,
     on_game: Callable[[GameRecord, int], None] | None = None,
     on_move: Callable[[str, str, str | None, int, chess.Board, list[MoveRecord]], None]
     | None = None,
 ) -> TournamentResult:
-    """`on_game(record, idx)` fires after each completed game; `on_move(white, black,
-    start_fen, idx, board, records)` fires after each half-move. Both are best-effort
-    hooks used to stream a tournament into a persistent store as it plays."""
+    """Run or resume every pairing without replaying already-durable plies.
+
+    ``on_game_start`` creates the running row, ``on_move`` checkpoints every
+    response/attempt, and ``on_game`` atomically completes the game.
+    """
     if len({e.label for e in entries}) != len(entries):
         raise ValueError("tournament entries must have distinct labels")
     config = config or GameConfig()
@@ -81,8 +85,16 @@ def round_robin(
     cross: dict[tuple[str, str], list[int]] = {}
     games: list[GameRecord] = []
     completed_games = completed_games or {}
+    in_progress_games = in_progress_games or {}
     expected_games = len(entries) * (len(entries) - 1) // 2 * games_per_pair
-    unexpected = set(completed_games).difference(range(expected_games))
+    overlap = set(completed_games).intersection(in_progress_games)
+    if overlap:
+        raise ValueError(
+            f"games cannot be both complete and running: {sorted(overlap)}"
+        )
+    unexpected = (
+        set(completed_games).union(in_progress_games).difference(range(expected_games))
+    )
     if unexpected:
         raise ValueError(
             f"completed game indices outside this tournament: {sorted(unexpected)}"
@@ -109,6 +121,17 @@ def round_robin(
                         f"completed game {idx} does not match the expected pairing/start position"
                     )
             else:
+                resume = in_progress_games.get(idx)
+                if resume is not None and (
+                    resume.white != white.label
+                    or resume.black != black.label
+                    or resume.start_fen != start_fen
+                ):
+                    raise ValueError(
+                        f"running game {idx} does not match the expected pairing/start position"
+                    )
+                if on_game_start is not None:
+                    on_game_start(white.label, black.label, start_fen, idx)
                 mv = None
                 if on_move is not None:
 
@@ -129,6 +152,7 @@ def round_robin(
                     config,
                     eval_engine=eval_engine,
                     start_fen=start_fen,
+                    resume=resume,
                     on_move=mv,
                 )
                 record.white, record.black = (

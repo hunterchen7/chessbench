@@ -121,6 +121,11 @@ def _request_move(
     history_san: list[str],
     last_opp_san: str | None,
     prior_illegal: int = 0,
+    *,
+    initial_attempts: list[MoveAttempt] | None = None,
+    initial_illegal: int = 0,
+    initial_first_legal: bool | None = None,
+    on_illegal_attempt: Callable[[int, bool, list[MoveAttempt]], None] | None = None,
 ) -> tuple[chess.Move | None, int, bool, list[MoveAttempt]]:
     """Solicit one legal move under the condition's legality regime.
 
@@ -128,17 +133,27 @@ def _request_move(
     A None move means the side forfeits (exhausted retries, or the fatal OTB
     penalty). `prior_illegal` is this side's cumulative illegal count so far (OTB).
     """
-    illegal = 0
-    first_legal: bool | None = None
+    illegal = initial_illegal
+    first_legal = initial_first_legal
+    attempts = list(initial_attempts or [])
     feedback: str | None = None
+    if attempts and illegal:
+        previous = attempts[-1].raw_response
+        feedback = (
+            f"Illegal move '{previous}' (OTB penalty {prior_illegal + illegal}/{cond.otb_illegal_limit}); "
+            "retract and play a legal move."
+            if cond.legality == Legality.OTB
+            else f"'{previous}' is not a legal move"
+        )
     raw: str | None = None
-    attempts: list[MoveAttempt] = []
     otb = cond.legality == Legality.OTB
     max_tries = (
         None
         if otb
         else (cond.retry_attempts + 1 if cond.legality == Legality.RETRY else 1)
     )
+    if otb and prior_illegal + illegal >= cond.otb_illegal_limit:
+        return None, illegal, bool(first_legal), attempts
 
     while max_tries is None or illegal < max_tries:
         ctx = GameTurnContext(
@@ -188,14 +203,16 @@ def _request_move(
         if mv is not None:
             return mv, illegal, bool(first_legal), attempts
         illegal += 1
-        if otb and prior_illegal + illegal >= cond.otb_illegal_limit:
-            return None, illegal, bool(first_legal), attempts  # fatal OTB penalty
         feedback = (
             f"Illegal move '{raw}' (OTB penalty {prior_illegal + illegal}/{cond.otb_illegal_limit}); "
             "retract and play a legal move."
             if otb
             else f"'{raw}' is not a legal move"
         )
+        if on_illegal_attempt is not None:
+            on_illegal_attempt(illegal, bool(first_legal), list(attempts))
+        if otb and prior_illegal + illegal >= cond.otb_illegal_limit:
+            return None, illegal, bool(first_legal), attempts  # fatal OTB penalty
     return None, illegal, bool(first_legal), attempts
 
 
@@ -221,23 +238,101 @@ def play_game(
     *,
     eval_engine: Engine | None = None,
     start_fen: str | None = None,
+    resume: GameRecord | None = None,
     on_move: Callable[[chess.Board, list[MoveRecord]], None] | None = None,
 ) -> GameRecord:
+    """Play or exactly resume one game, checkpointing every paid attempt.
+
+    A running record may end with a partial ``MoveRecord`` (illegal attempts but
+    no accepted move yet). Its board state, counters, retry feedback, and each
+    player's private chat are reconstructed before another model call is made.
+    """
     config = config or GameConfig()
     board = chess.Board(start_fen) if start_fen else chess.Board()
-    for agent, color in ((white, chess.WHITE), (black, chess.BLACK)):
-        if hasattr(agent, "reset"):
-            agent.reset(color)
-
     history_san: list[str] = []
-    records: list[MoveRecord] = []
-    last_opp_san: str | None = None
+    records: list[MoveRecord] = [] if resume is None else list(resume.records)
+
+    if resume is not None:
+        if resume.start_fen != start_fen:
+            raise ValueError("resume record start position does not match the game")
+        for index, record in enumerate(records):
+            expected_color = "white" if board.turn == chess.WHITE else "black"
+            if record.color != expected_color:
+                raise ValueError(f"resume record {index} has the wrong side to move")
+            if record.uci is None:
+                if index != len(records) - 1:
+                    raise ValueError("only the final resume record may be incomplete")
+                if record.san is not None:
+                    raise ValueError("incomplete resume record cannot contain SAN")
+                continue
+            replay_move = chess.Move.from_uci(record.uci)
+            if replay_move not in board.legal_moves:
+                raise ValueError(f"resume record {index} contains an illegal move")
+            san = board.san(replay_move)
+            if record.san != san:
+                raise ValueError(
+                    f"resume record {index} SAN does not match its UCI move"
+                )
+            history_san.append(san)
+            board.push(replay_move)
+
+    def private_turns(color: str) -> list[tuple[str, str]]:
+        return [
+            (attempt.prompt, attempt.raw_response)
+            for record in records
+            if record.color == color
+            for attempt in record.attempts
+            if attempt.prompt is not None
+        ]
+
+    def private_system_prompt(color: str) -> str | None:
+        return next(
+            (
+                attempt.system_prompt
+                for record in records
+                if record.color == color
+                for attempt in record.attempts
+                if attempt.system_prompt is not None
+            ),
+            None,
+        )
+
+    for agent, color, color_name in (
+        (white, chess.WHITE, "white"),
+        (black, chess.BLACK, "black"),
+    ):
+        restore = getattr(agent, "restore", None)
+        if callable(restore):
+            restore(
+                color,
+                private_turns(color_name),
+                private_system_prompt(color_name),
+            )
+        else:
+            reset = getattr(agent, "reset", None)
+            if callable(reset):
+                reset(color)
+
     cumulative_illegal: dict[bool, int] = {
-        chess.WHITE: 0,
-        chess.BLACK: 0,
+        chess.WHITE: sum(
+            record.illegal_attempts for record in records if record.color == "white"
+        ),
+        chess.BLACK: sum(
+            record.illegal_attempts for record in records if record.color == "black"
+        ),
     }  # for OTB penalties
 
-    while True:
+    pending_index: int | None = None
+    if records and records[-1].uci is None and not records[-1].forfeited:
+        pending_index = len(records) - 1
+
+    if records and records[-1].forfeited:
+        term = "illegal_forfeit"
+        result = "0-1" if records[-1].color == "white" else "1-0"
+    else:
+        term = result = ""
+
+    while not term:
         if board.is_game_over(claim_draw=True):
             term = _termination(board)
             result = board.result(claim_draw=True)
@@ -268,30 +363,69 @@ def play_game(
         mover = white if board.turn == chess.WHITE else black
         color_str = "white" if board.turn == chess.WHITE else "black"
         side = board.turn
+        existing = records[pending_index] if pending_index is not None else None
+        initial_attempts = list(existing.attempts) if existing is not None else []
+        initial_illegal = existing.illegal_attempts if existing is not None else 0
+        prior_illegal = cumulative_illegal[side] - initial_illegal
+
+        def checkpoint_illegal(
+            illegal_count: int,
+            first_legal: bool,
+            attempts: list[MoveAttempt],
+        ) -> None:
+            nonlocal pending_index
+            partial = MoveRecord(
+                board.ply(),
+                color_str,
+                None,
+                None,
+                first_legal,
+                illegal_count,
+                forfeited=False,
+                attempts=attempts,
+            )
+            if pending_index is None:
+                records.append(partial)
+                pending_index = len(records) - 1
+            else:
+                records[pending_index] = partial
+            if on_move is not None:
+                on_move(board, records)
+
         move, illegal, first_legal, attempts = _request_move(
             mover,
             board,
             condition,
             history_san,
-            last_opp_san,
-            prior_illegal=cumulative_illegal[side],
+            history_san[-1] if history_san else None,
+            prior_illegal=prior_illegal,
+            initial_attempts=initial_attempts,
+            initial_illegal=initial_illegal,
+            initial_first_legal=(
+                existing.first_attempt_legal if existing is not None else None
+            ),
+            on_illegal_attempt=checkpoint_illegal,
         )
-        cumulative_illegal[side] += illegal
+        cumulative_illegal[side] = prior_illegal + illegal
 
         if move is None:  # forfeit by illegal move
             result = "0-1" if board.turn == chess.WHITE else "1-0"
-            records.append(
-                MoveRecord(
-                    board.ply(),
-                    color_str,
-                    None,
-                    None,
-                    first_legal,
-                    illegal,
-                    forfeited=True,
-                    attempts=attempts,
-                )
+            forfeited = MoveRecord(
+                board.ply(),
+                color_str,
+                None,
+                None,
+                first_legal,
+                illegal,
+                forfeited=True,
+                attempts=attempts,
             )
+            if pending_index is None:
+                records.append(forfeited)
+            else:
+                records[pending_index] = forfeited
+            if on_move is not None:
+                on_move(board, records)
             term = "illegal_forfeit"
             break
 
@@ -300,20 +434,22 @@ def play_game(
         eval_cp = None
         if config.eval_moves and eval_engine is not None:
             eval_cp = eval_engine.evaluate(board)
-        records.append(
-            MoveRecord(
-                board.ply(),
-                color_str,
-                san,
-                move.uci(),
-                first_legal,
-                illegal,
-                eval_cp,
-                attempts=attempts,
-            )
+        completed_move = MoveRecord(
+            board.ply(),
+            color_str,
+            san,
+            move.uci(),
+            first_legal,
+            illegal,
+            eval_cp,
+            attempts=attempts,
         )
+        if pending_index is None:
+            records.append(completed_move)
+        else:
+            records[pending_index] = completed_move
+        pending_index = None
         history_san.append(san)
-        last_opp_san = san
         if on_move is not None:
             on_move(board, records)
 

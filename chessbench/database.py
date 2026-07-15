@@ -25,7 +25,7 @@ from .variants import ModelVariant
 
 
 if TYPE_CHECKING:
-    from .tasks.games import GameRecord
+    from .tasks.games import GameRecord, MoveRecord
 
 
 SCHEMA_VERSION = 3
@@ -491,10 +491,101 @@ class BenchmarkStore:
                 self._event(run_id, "item_completed", item_id, now)
             return inserted
 
+    @staticmethod
+    def _game_identity(run_id: str, sequence: int) -> tuple[str, str]:
+        return f"{run_id}:game:{sequence}", f"game:{sequence}"
+
+    def _insert_running_game(
+        self,
+        run_id: str,
+        sequence: int,
+        white: str,
+        black: str,
+        start_fen: str | None,
+        now: str,
+    ) -> bool:
+        game_id, pairing_key = self._game_identity(run_id, sequence)
+        cursor = self._db.execute(
+            """INSERT OR IGNORE INTO game
+               (game_id, run_id, pairing_key, white_variant, black_variant, opening_key,
+                start_fen, status, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'running', ?, ?)""",
+            (
+                game_id,
+                run_id,
+                pairing_key,
+                white,
+                black,
+                "standard" if start_fen is None else start_fen,
+                start_fen,
+                now,
+                now,
+            ),
+        )
+        return cursor.rowcount == 1
+
+    def start_game(
+        self,
+        run_id: str,
+        sequence: int,
+        white: str,
+        black: str,
+        start_fen: str | None,
+    ) -> bool:
+        """Create a durable running-game row before the first provider call."""
+        now = _now()
+        with self._transaction():
+            inserted = self._insert_running_game(
+                run_id, sequence, white, black, start_fen, now
+            )
+            if inserted:
+                self._event(run_id, "game_started", f"game:{sequence}", now)
+            return inserted
+
+    def save_game_progress(
+        self,
+        run_id: str,
+        sequence: int,
+        white: str,
+        black: str,
+        start_fen: str | None,
+        records: list["MoveRecord"],
+    ) -> bool:
+        """Upsert the latest move/attempt envelope without charging run totals."""
+        if not records:
+            return self.start_game(run_id, sequence, white, black, start_fen)
+        game_id, pairing_key = self._game_identity(run_id, sequence)
+        now = _now()
+        with self._transaction():
+            self._insert_running_game(run_id, sequence, white, black, start_fen, now)
+            row = self._db.execute(
+                "SELECT status FROM game WHERE game_id=?", (game_id,)
+            ).fetchone()
+            if row is None or row["status"] == "completed":
+                return False
+            move_sequence = len(records) - 1
+            self._db.execute(
+                """INSERT INTO game_move (game_id, ply, payload_json, created_at)
+                   VALUES (?, ?, ?, ?)
+                   ON CONFLICT(game_id, ply) DO UPDATE SET
+                     payload_json=excluded.payload_json""",
+                (game_id, move_sequence, _canonical(asdict(records[-1])), now),
+            )
+            self._db.execute(
+                "UPDATE game SET updated_at=? WHERE game_id=?", (now, game_id)
+            )
+            self._event(
+                run_id,
+                "game_progress",
+                f"{pairing_key}:record:{move_sequence}",
+                now,
+            )
+            return True
+
     def save_game_result(
         self, run_id: str, sequence: int, record: "GameRecord"
     ) -> bool:
-        """Commit a completed game and both players' separate turn transcripts."""
+        """Atomically complete a running game and charge its totals exactly once."""
         game_id = f"{run_id}:game:{sequence}"
         pairing_key = f"game:{sequence}"
         now = _now()
@@ -517,57 +608,65 @@ class BenchmarkStore:
             attempt.cost_usd for move in record.records for attempt in move.attempts
         )
         with self._transaction():
-            cursor = self._db.execute(
-                """INSERT OR IGNORE INTO game
-                   (game_id, run_id, pairing_key, white_variant, black_variant, opening_key,
-                    start_fen, status, result, termination, pgn, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?)""",
+            self._insert_running_game(
+                run_id,
+                sequence,
+                record.white,
+                record.black,
+                record.start_fen,
+                now,
+            )
+            row = self._db.execute(
+                "SELECT status FROM game WHERE game_id=?", (game_id,)
+            ).fetchone()
+            if row is None or row["status"] == "completed":
+                return False
+            for move_sequence, move in enumerate(record.records):
+                self._db.execute(
+                    """INSERT INTO game_move (game_id, ply, payload_json, created_at)
+                       VALUES (?, ?, ?, ?)
+                       ON CONFLICT(game_id, ply) DO UPDATE SET
+                         payload_json=excluded.payload_json""",
+                    (game_id, move_sequence, _canonical(asdict(move)), now),
+                )
+            self._db.execute(
+                "DELETE FROM game_move WHERE game_id=? AND ply>=?",
+                (game_id, len(record.records)),
+            )
+            self._db.execute(
+                """UPDATE game SET status='completed', result=?, termination=?, pgn=?,
+                   updated_at=? WHERE game_id=?""",
+                (record.result, record.termination, record.pgn, now, game_id),
+            )
+            self._db.execute(
+                """UPDATE benchmark_run SET completed_items=completed_items+1,
+                   cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
+                   completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                   updated_at=? WHERE run_id=?""",
                 (
-                    game_id,
+                    cost_usd,
+                    prompt_tokens,
+                    completion_tokens,
+                    reasoning_tokens,
+                    now,
                     run_id,
-                    pairing_key,
-                    record.white,
-                    record.black,
-                    "standard" if record.start_fen is None else record.start_fen,
-                    record.start_fen,
-                    record.result,
-                    record.termination,
-                    record.pgn,
-                    now,
-                    now,
                 ),
             )
-            inserted = cursor.rowcount == 1
-            if inserted:
-                for move_sequence, move in enumerate(record.records):
-                    self._db.execute(
-                        """INSERT INTO game_move (game_id, ply, payload_json, created_at)
-                           VALUES (?, ?, ?, ?)""",
-                        (game_id, move_sequence, _canonical(asdict(move)), now),
-                    )
-                self._db.execute(
-                    """UPDATE benchmark_run SET completed_items=completed_items+1,
-                       cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
-                       completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
-                       updated_at=? WHERE run_id=?""",
-                    (
-                        cost_usd,
-                        prompt_tokens,
-                        completion_tokens,
-                        reasoning_tokens,
-                        now,
-                        run_id,
-                    ),
-                )
-                self._event(run_id, "game_completed", pairing_key, now)
-            return inserted
+            self._event(run_id, "game_completed", pairing_key, now)
+            return True
 
     def load_game_results(self, run_id: str) -> dict[int, "GameRecord"]:
+        return self._load_game_records(run_id, "completed")
+
+    def load_in_progress_games(self, run_id: str) -> dict[int, "GameRecord"]:
+        return self._load_game_records(run_id, "running")
+
+    def _load_game_records(self, run_id: str, status: str) -> dict[int, "GameRecord"]:
         from .tasks.games import GameRecord, MoveAttempt, MoveRecord
 
         games = self._db.execute(
-            "SELECT * FROM game WHERE run_id=? AND status='completed'",
-            (run_id,),
+            "SELECT * FROM game WHERE run_id=? AND status=?",
+            (run_id, status),
         ).fetchall()
         results: dict[int, GameRecord] = {}
         for game in games:
@@ -586,12 +685,12 @@ class BenchmarkStore:
             results[sequence] = GameRecord(
                 white=game["white_variant"],
                 black=game["black_variant"],
-                result=game["result"],
-                termination=game["termination"],
+                result=game["result"] or "",
+                termination=game["termination"] or "running",
                 plies=sum(record.san is not None for record in records),
                 moves_san=[record.san for record in records if record.san is not None],
                 records=records,
-                pgn=game["pgn"],
+                pgn=game["pgn"] or "",
                 start_fen=game["start_fen"],
             )
         return results
