@@ -56,7 +56,9 @@ class StreamPusher:
         self._min_interval = min_board_interval
         self._last_board = 0.0
 
-    def _post(self, path: str, payload: dict[str, object], *, timeout: float = 8.0) -> None:
+    def _post(
+        self, path: str, payload: dict[str, object], *, timeout: float = 8.0
+    ) -> bool:
         data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
             f"{self.base}{path}", data=data, method="POST",
@@ -65,13 +67,14 @@ class StreamPusher:
         )
         try:
             with urllib.request.urlopen(req, timeout=timeout):
-                pass
+                return True
         except (urllib.error.URLError, TimeoutError, OSError) as e:  # best-effort; never break the games
             print(f"[stream] {path} failed: {type(e).__name__}: {e}", flush=True)
+            return False
 
-    def on_game(self, record: GameRecord, idx: int) -> None:
+    def on_game(self, record: GameRecord, idx: int) -> bool:
         self._last_board = 0.0  # allow the next game's first board snapshot immediately
-        self._post("/api/ingest/game", {
+        return self._post("/api/ingest/game", {
             "tid": self.tid, "created": self.created,
             "condition_slug": self.condition_slug, "players": self.players,
             "game": _game_dict(record, idx),
@@ -80,7 +83,30 @@ class StreamPusher:
     def push_final(self, doc: dict[str, object]) -> None:
         """Land the final tournament doc (Bradley-Terry standings) so the live view
         flips to the finished, rated table."""
-        self._post(f"/api/ingest/tournament?id={self.tid}", doc, timeout=30.0)
+        delivered = self._post(
+            f"/api/ingest/tournament?id={self.tid}", doc, timeout=30.0
+        )
+        if not delivered:
+            raise RuntimeError(
+                f"final tournament '{self.tid}' remains local; rerun the same "
+                "--stream command to publish it without replaying paid games"
+            )
+
+    def replay_progress(self, record: GameRecord, idx: int) -> None:
+        """Restore the latest local in-progress board to the hosted live view."""
+        board = chess.Board(record.start_fen or chess.STARTING_FEN)
+        for move in record.records:
+            if move.uci is not None:
+                board.push_uci(move.uci)
+        self._last_board = 0.0
+        self.on_move(
+            record.white,
+            record.black,
+            record.start_fen,
+            idx,
+            board,
+            record.records,
+        )
 
     def on_move(self, white: str, black: str, start_fen: str | None, idx: int,
                 board: chess.Board, records: list[MoveRecord]) -> None:

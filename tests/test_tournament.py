@@ -153,6 +153,27 @@ def test_tournament_cli_persists_and_resumes_without_replaying_games(
     from chessbench.models.base import ScriptedModel
 
     calls: list[str] = []
+    pushers = []
+
+    class FakePusher:
+        def __init__(self, *_args, **_kwargs):
+            self.games = []
+            self.live = []
+            self.finals = 0
+            pushers.append(self)
+
+        def on_game(self, _record, sequence):
+            self.games.append(sequence)
+            return True
+
+        def on_move(self, _white, _black, _fen, sequence, _board, _records):
+            self.live.append(sequence)
+
+        def replay_progress(self, _record, sequence):
+            self.live.append(sequence)
+
+        def push_final(self, _document):
+            self.finals += 1
 
     def build_model(_provider, model_id, **_kwargs):
         def respond(messages):
@@ -165,6 +186,9 @@ def test_tournament_cli_persists_and_resumes_without_replaying_games(
         return ScriptedModel(respond, name=model_id)
 
     monkeypatch.setattr("chessbench.__main__._build_model", build_model)
+    monkeypatch.setattr("chessbench.stream.StreamPusher", FakePusher)
+    monkeypatch.setenv("CHESSBENCH_API", "https://example.invalid")
+    monkeypatch.setenv("CHESSBENCH_INGEST_TOKEN", "test-token")
     db = tmp_path / "games.db"
     saved = tmp_path / "games.json"
     argv = [
@@ -185,12 +209,21 @@ def test_tournament_cli_persists_and_resumes_without_replaying_games(
         str(db),
         "--save",
         str(saved),
+        "--stream",
+        "--tid",
+        "resume-test",
     ]
     assert main(argv) == 0
     first_call_count = len(calls)
     assert first_call_count == 4
     assert main(argv) == 0
     assert len(calls) == first_call_count
+    assert pushers[0].games == [0, 1]
+    assert pushers[0].finals == 1
+    # The second invocation makes no paid calls, but republishes the durable
+    # local games before idempotently landing the final document again.
+    assert pushers[1].games == [0, 1]
+    assert pushers[1].finals == 1
 
     with BenchmarkStore(db) as store:
         [run] = store.list_runs()

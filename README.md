@@ -197,6 +197,12 @@ python3 -m chessbench tournament \
 ```
 
 Use the same command with `--rationale` for the paired JSON + rationale game condition.
+During `--stream`, local SQLite remains authoritative and paid play continues if
+Cloudflare is temporarily unavailable. Rerunning the identical command replays
+every completed game and the latest in-progress board idempotently before play
+resumes. A failed final-document upload exits nonzero only after the complete
+local tournament JSON has been saved, so the next run publishes it without new
+model calls.
 
 ## Cloudflare sync and deployment
 

@@ -1174,6 +1174,19 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                     created=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 )
                 print(f"streaming games live to {base} as tournament '{tid}'")
+                # Cloudflare delivery is intentionally best-effort while paid
+                # play continues. Replaying the complete local ledger here
+                # closes any crash/network window from the previous process;
+                # both remote endpoints are idempotent.
+                for sequence, durable_game in sorted(completed_games.items()):
+                    pusher.on_game(durable_game, sequence)
+                for sequence, durable_game in sorted(in_progress_games.items()):
+                    pusher.replay_progress(durable_game, sequence)
+                if completed_games or in_progress_games:
+                    print(
+                        f"replayed {len(completed_games)} completed and "
+                        f"{len(in_progress_games)} in-progress game(s) to Cloudflare"
+                    )
 
             def persist_game(record, sequence: int) -> None:
                 assert store is not None and run_id is not None
