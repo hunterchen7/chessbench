@@ -19,6 +19,9 @@ class AnthropicModel:
         self._model = model
         self._api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         self._client: object | None = None
+        self.last_usage: dict[str, int] | None = None
+        self.last_cost: float = 0.0
+        self.total_cost: float = 0.0
 
     def _ensure(self) -> object:
         if self._client is None:
@@ -28,6 +31,8 @@ class AnthropicModel:
         return self._client
 
     def chat(self, messages: list[Message], *, temperature: float = 0.0, max_tokens: int = 2048) -> str:
+        self.last_usage = None
+        self.last_cost = 0.0
         client = self._ensure()
         system, rest = split_system(messages)
         kwargs: dict[str, object] = {
@@ -39,6 +44,15 @@ class AnthropicModel:
         if system:
             kwargs["system"] = system
         msg = client.messages.create(**kwargs)  # type: ignore[attr-defined]
+        usage = getattr(msg, "usage", None)
+        if usage is not None:
+            prompt_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+            completion_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+            self.last_usage = {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+            }
         return "".join(block.text for block in msg.content if getattr(block, "type", None) == "text")
 
     def generate(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 2048) -> str:

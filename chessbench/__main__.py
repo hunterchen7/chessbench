@@ -51,6 +51,37 @@ DEFAULT_COMPOSED = (
 )
 
 
+def _run_model_output_path(
+    out_dir: Path,
+    *,
+    variant_key: str,
+    condition_slug: str,
+    suite_name: str,
+    suite_hash: str,
+    run_id: str,
+) -> Path:
+    """Choose a collision-free run export while finishing legacy partials in place."""
+    import json
+    import re
+
+    legacy = out_dir / f"{variant_key}__{condition_slug}.json"
+    if legacy.is_file():
+        try:
+            with legacy.open(encoding="utf-8") as file:
+                payload = json.load(file)
+        except (json.JSONDecodeError, OSError):
+            payload = None
+        if isinstance(payload, dict) and payload.get("run_id") == run_id:
+            return legacy
+
+    suite_slug = re.sub(r"[^a-z0-9]+", "-", suite_name.lower()).strip("-")
+    suite_slug = suite_slug[:64] or "suite"
+    hash_slug = suite_hash.removeprefix("sha256:")[:16] or "unhashed"
+    return out_dir / (
+        f"{variant_key}__suite-{suite_slug}--{hash_slug}__{condition_slug}.json"
+    )
+
+
 def _usage_int(value: object) -> int:
     return int(value) if isinstance(value, (str, int, float)) else 0
 
@@ -323,6 +354,22 @@ def cmd_composed(args: argparse.Namespace) -> int:
     from .variants import ModelVariant, ReasoningConfig
 
     condition = _base_condition(args)
+    registry_entry = None
+    provider_model_id = args.model
+    if args.model and args.solver in ("anthropic", "openai", "openrouter"):
+        from .registry import get_model
+
+        try:
+            registry_entry = get_model(args.model)
+        except KeyError:
+            pass  # A raw provider model ID remains a supported expert escape hatch.
+        else:
+            if registry_entry.provider != args.solver:
+                raise SystemExit(
+                    f"registry model {args.model!r} uses {registry_entry.provider}, "
+                    f"not --solver {args.solver}"
+                )
+            provider_model_id = registry_entry.model_id
     suite = None
     if args.suite:
         from .suite import load_suite
@@ -331,11 +378,17 @@ def cmd_composed(args: argparse.Namespace) -> int:
         problems = suite.composed_problems()
     else:
         problems = load_composed(args.data)
-    solver = _build_composed_solver(args.solver, args.model, args.seed, condition)
-    model_id = args.model or solver.name
+    solver = _build_composed_solver(
+        args.solver, provider_model_id, args.seed, condition
+    )
+    model_id = provider_model_id or solver.name
+    base_key = registry_entry.label if registry_entry else model_id
+    display_name = (
+        registry_entry.label if registry_entry else model_id.rsplit("/", 1)[-1]
+    )
     variant = ModelVariant(
-        base_key=model_id,
-        display_name=model_id.rsplit("/", 1)[-1],
+        base_key=base_key,
+        display_name=display_name,
         provider=args.solver,
         model_id=model_id,
         reasoning=ReasoningConfig(
@@ -508,7 +561,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
             "schema": "chessbench.composed_run.v1",
             "run_id": handle.run_id,
             "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "model": args.model or solver.name,
+            "model": model_id,
             "solver": args.solver,
             "model_variant": variant.to_dict(),
             "suite": suite.manifest() if suite else None,
@@ -718,7 +771,6 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     )
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"{variant.key}__{condition.slug()}.json"
 
     puzzles = suite.puzzles()
     track = "woodpecker" if condition.puzzle_protocol.value == "full_line" else "puzzle"
@@ -738,6 +790,14 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         print(f"skip (completed): {variant.label} × {suite.name} × {condition.slug()}")
         store.close()
         return 0
+    out = _run_model_output_path(
+        out_dir,
+        variant_key=variant.key,
+        condition_slug=condition.slug(),
+        suite_name=suite.name,
+        suite_hash=suite.content_hash,
+        run_id=handle.run_id,
+    )
 
     print(
         f"running {variant.label} on {track} suite {suite.name} "
@@ -1402,7 +1462,11 @@ def main(argv: list[str] | None = None) -> int:
         default="oracle",
         choices=["oracle", "random", "anthropic", "openai", "openrouter"],
     )
-    c.add_argument("--model", default=None, help="model id for LLM solvers")
+    c.add_argument(
+        "--model",
+        default=None,
+        help="registry label (preferred) or raw provider model ID for LLM solvers",
+    )
     c.add_argument("--data", default=str(DEFAULT_COMPOSED))
     c.add_argument(
         "--suite",
@@ -1635,7 +1699,7 @@ def main(argv: list[str] | None = None) -> int:
         "--model", required=True, help="registry label (see `chessbench models`)"
     )
     rmp.add_argument("--suite", required=True)
-    rmp.add_argument("--out-dir", dest="out_dir", default="webapp/data/runs")
+    rmp.add_argument("--out-dir", dest="out_dir", default="web/public/data/runs")
     rmp.add_argument(
         "--db",
         default="runs/chessbench.db",

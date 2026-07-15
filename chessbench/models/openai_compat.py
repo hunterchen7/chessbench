@@ -118,6 +118,12 @@ class _OpenAICompatModel:
         *,
         response_format: ResponseFormat | None = None,
     ) -> str:
+        # Per-call audit fields must never inherit a preceding response. A
+        # provider error or a successful response without ``usage`` is still a
+        # real call, but it has no attributable usage rather than the previous
+        # call's tokens/cost.
+        self.last_usage = None
+        self.last_cost = 0.0
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {

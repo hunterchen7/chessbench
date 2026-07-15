@@ -56,6 +56,37 @@ class CapturingOpenRouter(OpenRouterModel):
         )
 
 
+def test_provider_usage_is_per_call_and_never_stale() -> None:
+    class SequencedOpenRouter(OpenRouterModel):
+        def __init__(self) -> None:
+            super().__init__("test/model", api_key="test-key")
+            self.responses = [
+                {
+                    "choices": [{"message": {"content": "e2e4"}}],
+                    "usage": {
+                        "prompt_tokens": 3,
+                        "completion_tokens": 1,
+                        "cost": 0.25,
+                    },
+                },
+                {"choices": [{"message": {"content": "e2e4"}}]},
+            ]
+
+        def _post(self, data: bytes, headers: dict[str, str]) -> str:
+            return json.dumps(self.responses.pop(0))
+
+    model = SequencedOpenRouter()
+    assert model.generate("move") == "e2e4"
+    assert model.last_usage is not None
+    assert model.last_cost == 0.25
+    assert model.total_cost == 0.25
+
+    assert model.generate("move again") == "e2e4"
+    assert model.last_usage is None
+    assert model.last_cost == 0.0
+    assert model.total_cost == 0.25
+
+
 def test_openrouter_payload_is_strict_fail_closed_and_has_no_tools():
     model = CapturingOpenRouter()
     contract = response_format("move")
