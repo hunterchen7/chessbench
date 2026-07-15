@@ -12,7 +12,7 @@ The exact canonical, previous, and diagnostic suite inventory is maintained in
 | Esoteric | Selfmates, helpmates, reflexmates, proof games, and studies | Up to 1 verifier-awarded point per problem |
 | Games | Play complete games against other variants | Win 1, draw 0.5, loss 0 |
 
-There is no public Elo score. Puzzle difficulty ratings remain metadata for stratification, while leaderboards rank total points under an identical frozen suite and condition.
+Leaderboards rank total points under an identical frozen suite and condition. The dashboard also reports a secondary puzzle-performance rating with a 95% confidence interval, fitted from complete solves against the source puzzle ratings. It is diagnostic—not the official score, not a head-to-head game rating, and not directly comparable to a human over-the-board Elo.
 
 ## Evaluation protocol
 

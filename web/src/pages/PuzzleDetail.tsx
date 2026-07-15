@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { Chess } from "chess.js"
-import { ArrowLeft, Check, ChevronDown, Lightbulb, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadPuzzle, type PuzzleEntry } from "@/lib/data"
 import { pct, responseStyleInfo } from "@/lib/format"
 import { uciLineToSan, uciToSan } from "@/lib/chess"
-import { humanRecord } from "@/lib/human"
+import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -31,8 +31,8 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   // Record a human outcome both locally (offline points) and on the backend (shared
   // leaderboard). `move` is the player's first move; the server verifies it before crediting.
-  const recordSolve = (solved: boolean, move: string | null) => {
-    humanRecord(id, solved)
+  const recordSolve = (solved: boolean, move: string | null, outcome: HumanOutcome = solved ? "solved" : "incorrect") => {
+    humanRecord(id, outcome)
     if (apiBase) void pushSolve(apiBase, id, solved, move)
   }
 
@@ -48,6 +48,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
+  const solverMoves = Math.ceil(solution.length / 2)
 
   const p = entry.position
 
@@ -75,7 +76,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
     if (uci !== expected) {
       g.undo()
       setStatus("failed")
-      recordSolve(false, uci)
+      recordSolve(false, uci, "incorrect")
       return false
     }
     let idx = ply + 1
@@ -93,13 +94,14 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
     setPly(idx)
     if (idx >= solution.length) {
       setStatus("solved")
+      setReveal(true)
       recordSolve(true, solution[0] ?? null)
     }
     return true
   }
 
   function giveUp() {
-    if (status !== "solved") recordSolve(false, null)
+    if (status !== "solved") recordSolve(false, null, "revealed")
     setStatus("failed")
     setReveal(true)
   }
@@ -117,6 +119,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
         <div className="space-y-4">
           <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} />
 
+          <div aria-live="polite">
           {status === "solved" && (
             <div className="flex items-center gap-2 rounded-md border border-chart-2/40 bg-chart-2/10 px-3 py-2 text-sm">
               <Check className="size-4 text-chart-2" /> Solved — nicely done.
@@ -128,14 +131,16 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
             </div>
           )}
           {status === "playing" && (
-            <p className="text-sm text-muted-foreground">
-              {orientation === "white" ? "White" : "Black"} to move · drag a piece to play your move.
-            </p>
+            <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/20 px-3 py-2 text-sm">
+              <span className="inline-flex items-center gap-2"><Play className="size-3.5 text-emerald-600" /> {orientation === "white" ? "White" : "Black"} to move · drag a piece to play.</span>
+              <span className="font-mono text-xs text-muted-foreground">move {Math.floor(ply / 2) + 1}/{Math.max(1, solverMoves)}</span>
+            </div>
           )}
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={reset}>
-              <RotateCcw className="size-4" /> Reset
+              <RotateCcw className="size-4" /> {status === "failed" ? "Try again" : "Reset"}
             </Button>
             <Button variant="outline" size="sm" onClick={giveUp}>
               <Lightbulb className="size-4" /> Show solution
@@ -146,12 +151,13 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
           </div>
 
           {reveal && (
-            <Card>
+            <Card className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Solution</CardTitle>
+                <CardTitle className="text-sm">Correct line</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-1.5">
                 <p className="font-mono text-sm">{solutionSan.join("  ") || solution.join(" ")}</p>
+                {solutionSan.length > 0 && <p className="font-mono text-[11px] text-muted-foreground">UCI · {solution.join(" ")}</p>}
               </CardContent>
             </Card>
           )}
@@ -161,8 +167,8 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
         <div className="space-y-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-mono text-2xl font-bold">{p.puzzle_id}</h1>
-              <Badge variant="secondary">Difficulty {p.rating}</Badge>
+              <h1 className="font-mono text-2xl font-bold">Play puzzle {p.puzzle_id}</h1>
+              <Badge variant="secondary">Rating {p.rating}</Badge>
               <Badge variant="outline" className="capitalize">
                 {p.categories.tier?.[0] ?? "—"}
               </Badge>
@@ -193,10 +199,12 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
             </CardHeader>
             <CardContent className="space-y-2">
               {entry.answers
-                .slice()
-                .sort((a, b) => Number(b.item.solved) - Number(a.item.solved))
+                .toSorted((a, b) => Number(b.item.solved) - Number(a.item.solved))
                 .map((a, i) => {
                   const san = uciToSan(startFen, a.item.answer_move)
+                  const partial = !a.item.solved && a.item.score > 0
+                  const requiredSolverMoves = a.item.solver_plies ?? Math.ceil(solution.length / 2)
+                  const correctSolverMoves = a.item.plies_correct ?? Math.round(a.item.score * requiredSolverMoves)
                   const open = expanded === i
                   const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
@@ -210,27 +218,31 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                       >
                         {a.item.solved ? (
                           <Check className="size-4 shrink-0 text-chart-2" />
+                        ) : partial ? (
+                          <Circle className="size-4 shrink-0 fill-amber-500/20 text-amber-600" />
                         ) : (
                           <X className="size-4 shrink-0 text-destructive/70" />
                         )}
                         <span className="font-medium">{model}</span>
                         <span className="font-mono text-sm text-muted-foreground">
-                          {san ?? a.item.answer_move ?? "—"}
+                          {san ?? a.item.answer_move ? `first move ${san ?? a.item.answer_move}` : "no parsed move"}
                         </span>
                         <Badge variant="outline" className="ml-auto text-xs font-normal">
                           {a.condition.split("__")[0]}
                         </Badge>
                         <ResponseStyleBadge condition={a.condition} compact />
-                        {!a.item.solved && a.item.failure_reason && (
-                          <Badge variant="secondary" className="text-xs font-normal">
-                            {a.item.failure_reason}
-                          </Badge>
-                        )}
+                        <Badge variant={a.item.solved ? "secondary" : "outline"} className="text-xs font-normal">
+                          {a.item.solved ? "full line" : partial ? `${correctSolverMoves}/${requiredSolverMoves} solver moves` : a.item.failure_reason?.replaceAll("_", " ") ?? "not solved"}
+                        </Badge>
                         {hasAudit && (
                           <ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
                         )}
                       </button>
-                      {open && hasAudit && <div className="space-y-3 border-t p-3">
+                      {open && hasAudit && <div className="space-y-3 border-t p-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                        <div className="grid gap-2 rounded-md border bg-muted/20 p-2 text-xs sm:grid-cols-2">
+                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model result</div><span className="font-mono">{san ?? a.item.answer_move ?? "—"}</span><div className="mt-1 text-muted-foreground">{a.item.solved ? "Complete line solved" : partial ? `First move was correct; later continuation failed · ${a.item.score.toFixed(2)}/1 point` : `Incorrect at solver move ${correctSolverMoves + 1}`}</div></div>
+                          <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Correct line</div><span className="font-mono">{solutionSan.join(" ") || solution.join(" ") || "—"}</span></div>
+                        </div>
                         {a.item.turns?.map((turn, turnIndex) => <details key={`${turn.solver_ply}-${turnIndex}`} className="rounded-md border bg-muted/20" open={turnIndex === 0}>
                           <summary className="cursor-pointer p-2 text-xs font-medium">Solver move {turn.solver_ply + 1} · {turn.parsed_move ?? "unparsed"}</summary>
                           <div className="space-y-2 border-t p-2 text-xs">

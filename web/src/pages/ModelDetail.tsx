@@ -1,16 +1,18 @@
 import { Fragment, useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Scale, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadRun, type Run } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
-import { uciToSan } from "@/lib/chess"
+import { uciLineToSan, uciToSan } from "@/lib/chess"
+import { puzzlePerformanceRating } from "@/lib/puzzleRating"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 function Stat({ label, value, note, icon: Icon }: { label: string; value: string; note: string; icon: typeof Scale }) {
   return <Card><CardContent className="flex items-start gap-3 pt-6"><Icon className="mt-1 size-4 text-muted-foreground" /><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</div><div className="mt-0.5 text-xs text-muted-foreground">{note}</div></div></CardContent></Card>
@@ -43,6 +45,28 @@ export function ModelDetail() {
     const items = displayRun.items.filter((item) => item.categories.tier?.includes(tier))
     return { tier, n: items.length, solved: items.filter((item) => item.solved).length, points: items.reduce((sum, item) => sum + item.score, 0) }
   }).filter((row) => row.n)
+  const byRating = Array.from(
+    displayRun.items.reduce((bands, item) => {
+      const low = Math.floor(item.rating / 400) * 400
+      const current = bands.get(low) ?? { low, n: 0, solved: 0, points: 0 }
+      current.n += 1
+      current.solved += item.solved ? 1 : 0
+      current.points += item.score
+      bands.set(low, current)
+      return bands
+    }, new Map<number, { low: number; n: number; solved: number; points: number }>()),
+  ).map(([, band]) => band).toSorted((a, b) => a.low - b.low)
+  const performance = puzzlePerformanceRating(displayRun.items)
+  const performanceValue = !run
+    ? "—"
+    : performance.bounded
+      ? Math.round(performance.rating).toLocaleString()
+      : performance.n === 0
+        ? "—"
+        : displayRun.items.every((item) => item.solved) ? "≥4,000" : "≤0"
+  const performanceNote = performance.ci95
+    ? `95% CI ${Math.round(performance.ci95[0]).toLocaleString()}–${Math.round(performance.ci95[1]).toLocaleString()}`
+    : performance.n ? "outside the calibrated 0–4,000 range" : "requires puzzle outcomes"
 
   const sameSuite = (candidate: (typeof mine)[number]) =>
     (candidate.suite?.content_hash ?? candidate.suite?.name) === (meta.suite?.content_hash ?? meta.suite?.name)
@@ -80,9 +104,10 @@ export function ModelDetail() {
       </div>
     </section>
 
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
       <Stat icon={Check} label="Complete solves" value={`${meta.summary.solved}/${meta.summary.n}`} note={pct(meta.summary.solve_rate)} />
+      {meta.track === "puzzle" && <Stat icon={Gauge} label="Puzzle performance" value={performanceValue} note={`${performanceNote} · secondary`} />}
       <Stat icon={Database} label="Legal first" value={pct(meta.summary.first_move_legal_rate)} note={meta.summary.response_format_valid_rate == null ? `${meta.progress.completed}/${meta.progress.total} durable items` : `${pct(meta.summary.response_format_valid_rate)} ${activeResponseStyle.key === "move_only" ? "parseable text" : "valid JSON"} · ${meta.progress.completed}/${meta.progress.total} durable`} />
       <Stat icon={CircleDollarSign} label="Recorded cost" value={meta.summary.cost_usd == null ? "—" : `$${meta.summary.cost_usd.toFixed(4)}`} note={`${meta.usage?.reasoning_tokens?.toLocaleString() ?? 0} reasoning tokens`} />
     </section>
@@ -94,14 +119,16 @@ export function ModelDetail() {
     {run && cumulative.length > 0 && <Card><CardHeader><CardTitle className="text-base">Points accumulation</CardTitle></CardHeader><CardContent><div className="flex h-32 items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle">{cumulative.map((point, index) => <div key={point.item} title={`${point.item}: ${point.points.toFixed(2)} points`} className="min-w-0 flex-1 bg-emerald-500/70 transition-colors hover:bg-emerald-500" style={{ height: `${Math.max(2, point.points / Math.max(1, meta.summary.max_points) * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.points.toFixed(2)} points`} />)}</div><div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>first item</span><span>{meta.summary.points.toFixed(2)} total points</span></div></CardContent></Card>}
 
     {run && <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
-      <Card><CardHeader><CardTitle className="text-base">Points by difficulty tier</CardTitle></CardHeader><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Tier</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-base">Difficulty breakdown</CardTitle></CardHeader><CardContent className="space-y-5 p-0"><div><div className="border-b px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Numeric puzzle rating</div><Table><TableHeader><TableRow><TableHead>Rating band</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byRating.map((row) => <TableRow key={row.low}><TableCell className="font-mono">{row.low}–{row.low + 399}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div><div className="border-t"><div className="border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Named tier</div><Table><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
 
-      <Card><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="flex gap-1">{(["all", "solved", "failed"] as const).map((value) => <button key={value} onClick={() => setFilter(value)} className={`rounded px-2 py-1 text-xs capitalize ${filter === value ? "bg-foreground text-background" : "text-muted-foreground"}`}>{value}</button>)}</div></CardHeader>
-        <CardContent className="max-h-[640px] overflow-auto p-0"><Table><TableHeader><TableRow><TableHead className="w-8" /><TableHead>Puzzle</TableHead><TableHead className="text-right">Points</TableHead><TableHead>Answer</TableHead><TableHead>Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
+      <Card><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
+        <CardContent className="max-h-[640px] overflow-auto p-0"><Table><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><TableHead>Puzzle</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">Points</TableHead><TableHead>Model answer</TableHead><TableHead>Correct line</TableHead><TableHead>Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
           const open = openPuzzle === item.puzzle_id
-          const answer = displayRun.track === "woodpecker" ? item.moves_played?.join(" ") : uciToSan(item.fen, item.answer_move) ?? item.answer_move
+          const answer = displayRun.track === "woodpecker" ? uciLineToSan(item.fen, item.moves_played ?? []).join(" ") : uciToSan(item.fen, item.answer_move) ?? item.answer_move
+          const correctLine = uciLineToSan(item.fen, item.solution ?? []).join(" ") || item.solution?.join(" ")
           const rationale = item.answer_rationale ?? item.answer_explanation
-          return <Fragment key={item.puzzle_id}><TableRow className={rationale ? "cursor-pointer" : undefined} onClick={() => rationale && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className="size-4 text-rose-500" />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="max-w-[260px] truncate font-mono text-xs">{answer || "—"}{rationale && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</TableCell><TableCell className="space-x-1">{item.failure_reason ? <Badge variant="outline">{item.failure_reason}</Badge> : <Badge variant="secondary">complete</Badge>}{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && rationale && <TableRow><TableCell /><TableCell colSpan={4} className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</TableCell></TableRow>}</Fragment>
+          const outcome = item.solved ? "solved" : item.score > 0 ? "partial" : item.failure_reason?.replaceAll("_", " ") ?? "incorrect"
+          return <Fragment key={item.puzzle_id}><TableRow className={rationale ? "cursor-pointer" : undefined} onClick={() => rationale && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className={`size-4 ${item.score > 0 ? "text-amber-500" : "text-rose-500"}`} />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono text-xs tabular-nums">{item.rating}</TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="max-w-[220px] truncate font-mono text-xs" title={item.score > 0 && !item.solved ? "Correct prefix; a later solver move failed" : undefined}>{answer || "—"}{item.score > 0 && !item.solved && <span className="ml-1 text-amber-600">· missed later</span>}{rationale && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</TableCell><TableCell className="max-w-[280px] truncate font-mono text-xs text-emerald-700 dark:text-emerald-300" title={correctLine}>{correctLine || "—"}</TableCell><TableCell className="space-x-1"><Badge variant={item.solved ? "secondary" : "outline"} className={item.score > 0 && !item.solved ? "border-amber-500/30 text-amber-700 dark:text-amber-300" : undefined}>{outcome}</Badge>{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && rationale && <TableRow className="animate-in fade-in-0 slide-in-from-top-1 duration-200"><TableCell /><TableCell colSpan={6} className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</TableCell></TableRow>}</Fragment>
         })}</TableBody></Table></CardContent></Card>
     </div>}
   </div>

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Check } from "lucide-react"
+import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
-import { pct } from "@/lib/format"
+import { pct, TIER_ORDER } from "@/lib/format"
 import { humanStore } from "@/lib/human"
+import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -27,14 +28,20 @@ function solveStats(entry: PuzzleEntry) {
 }
 
 const TIERS = ["all", "beginner", "novice", "intermediate", "advanced", "expert", "master"]
+type SortKey = "puzzle" | "rating" | "tier" | "models" | "you"
+
+function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): number {
+  const record = store[entry.position.puzzle_id]
+  if (!record) return 0
+  return record.solved ? 2 : 1
+}
 
 export function Puzzles() {
   const [entries, setEntries] = useState<PuzzleEntry[] | null>(null)
   useEffect(() => { void loadPuzzleIndex().then(setEntries) }, [])
-  type Sort = "rating" | "rating-desc" | "hardest" | "easiest" | "todo"
   const [tier, setTier] = useState("all")
   const [q, setQ] = useState("")
-  const [sort, setSort] = useState<Sort>("rating")
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "rating", direction: "asc" })
   const [mine, setMine] = useState<"all" | "unsolved" | "solved">("all")
   const [limit, setLimit] = useState(120)
   const store = humanStore()
@@ -55,14 +62,25 @@ export function Puzzles() {
           e.position.themes.some((t) => t.toLowerCase().includes(needle)),
       )
     }
-    list = list.slice()
-    if (sort === "rating") list.sort((a, b) => a.position.rating - b.position.rating)
-    else if (sort === "rating-desc") list.sort((a, b) => b.position.rating - a.position.rating)
-    else if (sort === "easiest") list.sort((a, b) => solveStats(b).rate - solveStats(a).rate)
-    else if (sort === "hardest") list.sort((a, b) => solveStats(a).rate - solveStats(b).rate)
-    else list.sort((a, b) => Number(!!store[a.position.puzzle_id]) - Number(!!store[b.position.puzzle_id]) || a.position.rating - b.position.rating)
-    return list
-  }, [entries, tier, q, sort, mine, store])
+    const multiplier = sort.direction === "asc" ? 1 : -1
+    return list.toSorted((a, b) => {
+      let comparison = 0
+      if (sort.key === "puzzle") comparison = a.position.puzzle_id.localeCompare(b.position.puzzle_id)
+      else if (sort.key === "rating") comparison = a.position.rating - b.position.rating
+      else if (sort.key === "tier") {
+        const aTier = a.position.categories.tier?.[0] ?? ""
+        const bTier = b.position.categories.tier?.[0] ?? ""
+        comparison = TIER_ORDER.indexOf(aTier) - TIER_ORDER.indexOf(bTier)
+      } else if (sort.key === "models") comparison = solveStats(a).rate - solveStats(b).rate
+      else comparison = userState(a, store) - userState(b, store)
+      return comparison * multiplier || a.position.rating - b.position.rating || a.position.puzzle_id.localeCompare(b.position.puzzle_id)
+    })
+  }, [entries, tier, q, sort.key, sort.direction, mine, store])
+
+  const toggleSort = (key: SortKey) => setSort((current) => ({
+    key,
+    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "models" ? "desc" : "asc",
+  }))
 
   if (!entries) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle index…</div>
 
@@ -95,18 +113,6 @@ export function Puzzles() {
             ))}
           </SelectContent>
         </Select>
-        <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-          <SelectTrigger className="w-52">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rating">Rating: low → high</SelectItem>
-            <SelectItem value="rating-desc">Rating: high → low</SelectItem>
-            <SelectItem value="hardest">Hardest for models</SelectItem>
-            <SelectItem value="easiest">Easiest for models</SelectItem>
-            <SelectItem value="todo">Your unsolved first</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={mine} onValueChange={(v) => setMine(v as typeof mine)}>
           <SelectTrigger className="w-36">
             <SelectValue />
@@ -125,12 +131,12 @@ export function Puzzles() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Puzzle</TableHead>
-                <TableHead className="text-right">Rating</TableHead>
-                <TableHead>Tier</TableHead>
+                <SortableTableHead label="Puzzle" active={sort.key === "puzzle"} direction={sort.direction} onSort={() => toggleSort("puzzle")} />
+                <SortableTableHead label="Rating" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} />
+                <SortableTableHead label="Tier" active={sort.key === "tier"} direction={sort.direction} onSort={() => toggleSort("tier")} />
                 <TableHead>Themes</TableHead>
-                <TableHead className="text-right">Models solved</TableHead>
-                <TableHead className="text-center">You</TableHead>
+                <SortableTableHead label="Run solves" active={sort.key === "models"} direction={sort.direction} align="right" onSort={() => toggleSort("models")} />
+                <SortableTableHead label="You" active={sort.key === "you"} direction={sort.direction} align="center" onSort={() => toggleSort("you")} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -173,13 +179,13 @@ export function Puzzles() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {done ? (
-                        done.solved ? (
-                          <Check className="mx-auto size-4 text-chart-2" />
-                        ) : (
-                          <span className="text-xs text-muted-foreground">tried</span>
-                        )
-                      ) : null}
+                      <Link
+                        to={`/puzzles/${e.position.puzzle_id}`}
+                        className="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                        aria-label={`${done?.solved ? "Review" : done ? "Retry" : "Play"} puzzle ${e.position.puzzle_id}`}
+                      >
+                        {done?.solved ? <><Check className="size-3.5 text-chart-2" /> review</> : done ? <><RotateCcw className="size-3.5" /> retry</> : <><Play className="size-3.5" /> play</>}
+                      </Link>
                     </TableCell>
                   </TableRow>
                 )

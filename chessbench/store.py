@@ -128,6 +128,7 @@ class RunRecord:
                 "points": round(rep.points, 4),
                 "max_points": rep.max_points,
                 "cost_usd": self.cost_usd,
+                "puzzle_performance_rating": rep.elo.to_dict(),
             },
             "themes": [
                 {"theme": t.theme, "n": t.total, "accuracy": t.accuracy}

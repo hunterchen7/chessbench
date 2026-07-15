@@ -30,6 +30,7 @@ export default function App() {
               <Route path="woodpecker" element={<Woodpecker />} />
               <Route path="games" element={<Games />} />
               <Route path="games/:file" element={<TournamentDetail />} />
+              <Route path="games/:file/:game" element={<TournamentDetail />} />
               <Route path="esoteric" element={<Esoteric />} />
               <Route path="esoteric/:id" element={<EsotericDetail />} />
               <Route path="methodology" element={<Methodology />} />

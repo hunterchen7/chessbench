@@ -1,3 +1,5 @@
+import { isModelVariant } from "@/lib/participants"
+
 const DATA = import.meta.env.BASE_URL + "data/"
 
 export interface Condition {
@@ -86,6 +88,13 @@ export interface RunSummary {
   points: number
   max_points: number
   cost_usd: number | null
+  puzzle_performance_rating?: {
+    rating: number
+    stderr: number | null
+    ci95: [number, number] | null
+    n: number
+    bounded: boolean
+  } | null
 }
 
 export interface SuiteRef {
@@ -319,6 +328,7 @@ function normalizeSummary(value: Partial<RunSummary> & Record<string, unknown>):
     points: Number(value.points ?? mean * n),
     max_points: Number(value.max_points ?? n),
     cost_usd: value.cost_usd == null ? null : Number(value.cost_usd),
+    puzzle_performance_rating: value.puzzle_performance_rating as RunSummary["puzzle_performance_rating"],
   }
 }
 
@@ -423,7 +433,7 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
       }))
     }
     const runs = await loadIndex(null)
-    const full = await Promise.all(runs.filter((run) => run.track === "puzzle").map((run) => loadRun(run.file)))
+    const full = await Promise.all(runs.filter((run) => run.track === "puzzle" && isModelVariant(run.model_variant)).map((run) => loadRun(run.file)))
     const map = new Map<string, PuzzleEntry>()
     for (const run of full) for (const item of run.items) {
       const entry = map.get(item.puzzle_id) ?? { position: item, answers: [] }

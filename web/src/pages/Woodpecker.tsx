@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { Activity, ArrowUpRight, CheckCircle2, Sigma } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 export function Woodpecker() {
   const { runs } = useData()
-  const all = useMemo(() => runs.filter((run) => run.track === "woodpecker"), [runs])
+  const all = useMemo(() => runs.filter((run) => run.track === "woodpecker" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(all.map((run) => run.suite?.name).filter(Boolean))) as string[], [all])
   const [suite, setSuite] = useState("")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")

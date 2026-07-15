@@ -109,6 +109,11 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         f"puzzles:    {rep.n}",
         f"solved:     {rep.solved}/{rep.n} = {rep.solve_rate:.1%}  (95% CI {lo:.1%}-{hi:.1%})",
         f"points:     {rep.points:.2f}/{rep.max_points} (partial credit for correct sequence plies)",
+        (
+            f"puzzleElo: {rep.elo.rating:.0f} (95% CI {rep.elo.ci95()[0]:.0f}-{rep.elo.ci95()[1]:.0f}; secondary diagnostic)"
+            if rep.elo.bounded
+            else f"puzzleElo: {'≥' if rep.solved == rep.n and rep.n else '≤'}{rep.elo.rating:.0f} (unbounded; secondary diagnostic)"
+        ),
         f"legalMove%: {rep.first_move_legal_rate:.1%} first-attempt legal  "
         f"({rep.total_illegal_attempts} illegal attempts total)",
         f"failures:   {rep.failures_wrong} wrong-move, {rep.failures_illegal} illegal",
@@ -117,7 +122,7 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         "  bucket        n    solved   acc     95% CI",
     ]
     if rep.response_format_valid_rate is not None:
-        lines.insert(7, f"validJSON%: {rep.response_format_valid_rate:.1%} ({rep.response_format_valid}/{rep.response_format_expected})")
+        lines.insert(8, f"validJSON%: {rep.response_format_valid_rate:.1%} ({rep.response_format_valid}/{rep.response_format_expected})")
     for b in rep.curve.buckets:
         clo, chi = b.ci
         lines.append(

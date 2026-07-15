@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Radio, Swords, Trophy } from "lucide-react"
+import { ArrowRight, Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { modeFromSlug, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
@@ -31,7 +31,7 @@ export function Games() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((t) => (
           <Link key={t.file} to={`/games/${encodeURIComponent(t.file)}`}>
-            <Card className={`h-full transition-colors hover:border-ring ${t.status === "live" ? "border-red-500/40" : ""}`}>
+            <Card className={`group h-full transition-all duration-200 hover:-translate-y-0.5 hover:border-ring hover:shadow-md ${t.status === "live" ? "border-red-500/40" : ""}`}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Swords className="size-4 text-muted-foreground" />
@@ -60,6 +60,10 @@ export function Games() {
                     {t.winner ? <>Winner: <span className="font-medium">{t.winner}</span></> : <span className="font-medium">Match tied</span>}
                   </div>
                 )}
+                <div className="mt-4 flex items-center justify-between border-t pt-3 text-xs font-medium text-muted-foreground transition-colors group-hover:text-foreground">
+                  <span>View standings and {t.n_games} full game{t.n_games === 1 ? "" : "s"}</span>
+                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </div>
               </CardContent>
             </Card>
           </Link>

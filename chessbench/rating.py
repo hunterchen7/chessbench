@@ -40,6 +40,18 @@ class RatingEstimate:
             return (float("-inf"), float("inf"))
         return (self.rating - 1.96 * self.stderr, self.rating + 1.96 * self.stderr)
 
+    def to_dict(self) -> dict[str, object]:
+        """JSON-safe rating estimate for persisted reports and dashboards."""
+        finite = math.isfinite(self.stderr)
+        lo, hi = self.ci95()
+        return {
+            "rating": self.rating,
+            "stderr": self.stderr if finite else None,
+            "ci95": [lo, hi] if finite else None,
+            "n": self.n,
+            "bounded": self.bounded,
+        }
+
 
 def expected_score(rating: float, opponent: float) -> float:
     """Logistic expected score of `rating` against `opponent` (Elo)."""

@@ -8,6 +8,7 @@ import {
 } from "@/lib/composed"
 import { useComposedData } from "@/lib/useComposedData"
 import { pct, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { participantKind } from "@/lib/participants"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,7 +25,7 @@ export function Esoteric() {
   const models = useMemo(() => {
     if (!data) return []
     return data.runs
-      .filter((r) => r.solver !== "oracle")
+      .filter((r) => participantKind(`${r.solver} ${r.model}`, r.model_variant?.provider) === "model")
       .filter((r) => responseStyleInfo(r.condition).key === responseStyle)
       .map((r) => ({
         key: r.run_id ?? `${r.model}-${r.created}`,
@@ -60,7 +61,7 @@ export function Esoteric() {
       </div>
     )
 
-  const nonOracle = (e: (typeof rows)[number]) => e.answers.filter((a) => a.solver !== "oracle" && responseStyleInfo(a.condition).key === responseStyle)
+  const nonOracle = (e: (typeof rows)[number]) => e.answers.filter((a) => participantKind(`${a.solver} ${a.model}`, a.model_variant?.provider) === "model" && responseStyleInfo(a.condition).key === responseStyle)
 
   return (
     <div className="space-y-8">

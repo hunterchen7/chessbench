@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, BrainCircuit, Eye, Radio, Sparkles, Trophy } from "lucide-react"
-import { loadTournament, type Tournament, type TournamentGame } from "@/lib/data"
+import { loadTournament, type Tournament } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
+import { GameExportActions } from "@/components/GameExportActions"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,12 +39,10 @@ function resultBadge(result: string) {
 }
 
 export function TournamentDetail() {
-  const { file = "" } = useParams()
+  const { file = "", game: gameParam } = useParams()
   const decoded = decodeURIComponent(file)
   const [t, setT] = useState<Tournament | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const [open, setOpen] = useState<TournamentGame | null>(null)
-  const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     setT(null)
@@ -63,22 +62,32 @@ export function TournamentDetail() {
     return () => clearInterval(id)
   }, [isLive, decoded])
 
-  useEffect(() => {
-    if (!open) return
-    const dialog = dialogRef.current
-    if (dialog && !dialog.open) dialog.showModal()
-    return () => {
-      if (dialog?.open) dialog.close()
-    }
-  }, [open])
-
-  const closeReplay = () => {
-    dialogRef.current?.close()
-    setOpen(null)
-  }
-
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
   if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
+
+  const selectedIndex = gameParam == null ? null : Number(gameParam) - 1
+  const selectedGame = selectedIndex == null || !Number.isInteger(selectedIndex) ? null : t.games[selectedIndex]
+  if (gameParam != null && !selectedGame) {
+    return <div className="space-y-3"><p>Game {gameParam} was not found in this match.</p><Link to={`/games/${encodeURIComponent(decoded)}`} className="text-sm underline">Back to match</Link></div>
+  }
+  if (selectedGame && selectedIndex != null) {
+    const title = `${short(selectedGame.white)} vs ${short(selectedGame.black)} · game ${selectedIndex + 1}`
+    return (
+      <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-1 duration-300">
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b pb-5">
+          <div>
+            <Link to={`/games/${encodeURIComponent(decoded)}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="size-4" /> All games in this match
+            </Link>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Complete board replay, PGN, move record, and two isolated model conversations.</p>
+          </div>
+          <GameExportActions game={selectedGame} name={`${decoded}-game-${selectedIndex + 1}`} />
+        </div>
+        <GameReplay game={selectedGame} condition={t.condition} variants={t.model_variants} />
+      </div>
+    )
+  }
 
   const standings = t.standings.slice().sort((a, b) => b.score - a.score || b.wins - a.wins)
   const live = t.live_game
@@ -191,15 +200,10 @@ export function TournamentDetail() {
                     {g.plies}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      className="opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
-                      aria-label={`Replay ${short(g.white)} versus ${short(g.black)}, ${g.result}`}
-                      onClick={() => setOpen(g)}
-                    >
-                      <Eye className="size-3.5" /> Replay
+                    <Button asChild variant="ghost" size="xs" className="opacity-100 sm:opacity-60 sm:group-hover:opacity-100 sm:focus-visible:opacity-100">
+                      <Link to={`/games/${encodeURIComponent(decoded)}/${i + 1}`} aria-label={`Open full game ${short(g.white)} versus ${short(g.black)}, ${g.result}`}>
+                        <Eye className="size-3.5" /> Full game
+                      </Link>
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -209,37 +213,6 @@ export function TournamentDetail() {
         </CardContent>
       </Card>
 
-      {open && (
-        <dialog
-          ref={dialogRef}
-          aria-labelledby="game-replay-title"
-          className="m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/65 backdrop:backdrop-blur-sm"
-          onCancel={(event) => {
-            event.preventDefault()
-            closeReplay()
-          }}
-        >
-          <div
-            className="flex min-h-full items-start justify-center overflow-y-auto bg-black/65 p-4 backdrop-blur-sm animate-in fade-in-0 sm:p-8"
-            onClick={closeReplay}
-          >
-            <div
-              className="w-full max-w-[min(1560px,calc(100vw-2rem))] rounded-2xl border bg-background p-4 shadow-2xl sm:p-6"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <h3 id="game-replay-title" className="text-lg font-semibold">
-                  {short(open.white)} <span className="text-muted-foreground">vs</span> {short(open.black)}
-                </h3>
-                <button autoFocus aria-label="Close game replay" className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground" onClick={closeReplay}>
-                  Close ✕
-                </button>
-              </div>
-              <GameReplay game={open} condition={t.condition} variants={t.model_variants} />
-            </div>
-          </div>
-        </dialog>
-      )}
     </div>
   )
 }

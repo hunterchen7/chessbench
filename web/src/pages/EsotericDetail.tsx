@@ -6,6 +6,7 @@ import { STIPULATION_BLURB, STIPULATION_LABEL } from "@/lib/composed"
 import { useComposedData } from "@/lib/useComposedData"
 import { uciLineToSan } from "@/lib/chess"
 import { pct } from "@/lib/format"
+import { participantKind } from "@/lib/participants"
 import { Board } from "@/components/Board"
 import { ComposedAttemptAudit } from "@/components/ComposedAttemptAudit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,7 +42,7 @@ export function EsotericDetail() {
 
   const p = entry.problem
   const solutionSan = uciLineToSan(p.fen, p.solution)
-  const answers = entry.answers.filter((a) => a.solver !== "oracle")
+  const answers = entry.answers.filter((a) => participantKind(`${a.solver} ${a.model}`, a.model_variant?.provider) === "model")
   const solvedCount = answers.filter((a) => a.solved).length
 
   return (

@@ -155,7 +155,10 @@ export async function getPuzzles(env: Env): Promise<Response> {
             COUNT(*) AS total, COALESCE(SUM(i.solved), 0) AS solved
        FROM benchmark_items_v2 i
        JOIN benchmark_runs_v2 r USING(run_id)
+       JOIN model_variants_v2 v USING(variant_key)
       WHERE r.track='puzzle' AND COALESCE(r.suite_visibility, 'public') <> 'private'
+        AND LOWER(v.provider) NOT IN ('stockfish', 'engine', 'baseline', 'oracle', 'random')
+        AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
       GROUP BY i.item_id
       ORDER BY CAST(json_extract(MAX(i.payload_json), '$.rating') AS INTEGER), i.item_id`,
   ).all<{ puzzle_id: string; payload_json: string; total: number; solved: number }>()
@@ -172,8 +175,11 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
     `SELECT i.run_id, r.variant_key AS model, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json
        FROM benchmark_items_v2 i JOIN benchmark_runs_v2 r USING(run_id)
+       JOIN model_variants_v2 v USING(variant_key)
       WHERE i.item_id=? AND r.track='puzzle'
         AND COALESCE(r.suite_visibility, 'public') <> 'private'
+        AND LOWER(v.provider) NOT IN ('stockfish', 'engine', 'baseline', 'oracle', 'random')
+        AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
       ORDER BY i.solved DESC, r.variant_key ASC`,
   ).bind(id).all<{
     run_id: string; model: string; condition_slug: string; solved: number; points: number

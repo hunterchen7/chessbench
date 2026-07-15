@@ -5,6 +5,7 @@ import { useData } from "@/lib/useData"
 import type { RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
+import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
@@ -37,7 +38,7 @@ export function Leaderboard() {
   const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
   const [humans, setHumans] = useState<HumanRow[]>([])
-  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed"), [runs])
+  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
   const [suite, setSuite] = useState("")
   const activeSuite = suite || suites[0] || ""

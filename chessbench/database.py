@@ -907,6 +907,7 @@ class BenchmarkStore:
             "response_format_valid_rate": report.response_format_valid_rate,
             "points": report.points,
             "max_points": report.max_points,
+            "puzzle_performance_rating": report.elo.to_dict(),
         }
         now = _now()
         with self._transaction():
