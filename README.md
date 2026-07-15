@@ -203,6 +203,9 @@ pnpm --dir server migrate:remote
 pnpm --dir server deploy
 ```
 
+During credential migration the Worker may also accept `INGEST_TOKEN_V2`; this lets a new local outbox client sync
+without invalidating an existing ingestion client. Keep only the credentials that are actively needed.
+
 The dashboard's **Export JSON** control calls `/api/export`. The endpoint supports `track`, `model`, `run`, and
 `status` filters and includes its scoring contract in the downloaded document. Public exports contain complete
 public-suite items but only aggregate scores and fingerprints for private suites. The benchmark owner can request

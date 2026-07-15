@@ -284,7 +284,13 @@ export async function ingestRun(env: Env, doc: RunDoc): Promise<{ run_id: string
 export async function ingestTournament(env: Env, doc: TournamentDoc, tid: string): Promise<{ tid: string }> {
   const slug = doc.condition?.slug ?? "unknown"
   const standings = doc.standings ?? []
-  const winner = standings[0]?.label ?? null
+  const first = standings[0]
+  const second = standings[1]
+  const tied =
+    typeof first?.score === "number" &&
+    typeof second?.score === "number" &&
+    first.score === second.score
+  const winner = first && !tied ? first.label : null
   await env.DB.prepare(
     `INSERT INTO tournaments (tid, created, condition_slug, n_players, n_games, winner, doc_json)
      VALUES (?, ?, ?, ?, ?, ?, ?)

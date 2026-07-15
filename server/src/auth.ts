@@ -9,7 +9,9 @@ function safeEqual(a: string, b: string): boolean {
 
 /** Owner authentication shared by mutation and sealed-data export routes. */
 export function authorized(env: Env, req: Request): boolean {
-  if (!env.INGEST_TOKEN) return false
   const match = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i)
-  return !!match && safeEqual(match[1], env.INGEST_TOKEN)
+  if (!match) return false
+  return [env.INGEST_TOKEN, env.INGEST_TOKEN_V2].some(
+    (token) => typeof token === "string" && token.length > 0 && safeEqual(match[1], token),
+  )
 }

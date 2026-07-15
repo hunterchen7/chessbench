@@ -3,6 +3,8 @@ export interface Env {
   ASSETS: Fetcher
   /** Bearer token required to POST run/tournament data. Set with `wrangler secret put INGEST_TOKEN`. */
   INGEST_TOKEN?: string
+  /** Optional migration-safe second credential; both tokens remain valid. */
+  INGEST_TOKEN_V2?: string
 }
 
 export type BenchmarkTrack = "puzzle" | "woodpecker" | "esoteric" | "game"
@@ -101,7 +103,7 @@ export interface TournamentDoc {
   schema: string
   created: string
   condition: { slug: string } & Record<string, unknown>
-  standings: { label: string }[]
+  standings: { label: string; score?: number }[]
   games: unknown[]
   crosstable: unknown[]
 }
