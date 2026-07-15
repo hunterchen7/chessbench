@@ -344,8 +344,52 @@ def list_composed_runs(directory: str | Path) -> list[dict[str, object]]:
     return out
 
 
+def _legacy_variant(
+    run: dict[str, object], condition: dict[str, object] | str | None
+) -> dict[str, object]:
+    """Materialize the model identity older run files did not embed."""
+    from .variants import ModelVariant, ReasoningConfig
+
+    model = str(run.get("model") or "unknown")
+    provider = str(run.get("provider") or "unknown")
+    effort: str | None = None
+    reasoning_tokens: int | None = None
+    max_output_tokens = 2048
+    if isinstance(condition, dict):
+        effort_value = condition.get("reasoning_effort")
+        effort = str(effort_value) if effort_value is not None else None
+        token_value = condition.get("reasoning_max_tokens")
+        if isinstance(token_value, (int, float)) and not isinstance(token_value, bool):
+            reasoning_tokens = int(token_value)
+        output_value = condition.get("max_output_tokens")
+        if isinstance(output_value, (int, float)) and not isinstance(
+            output_value, bool
+        ):
+            max_output_tokens = int(output_value)
+    try:
+        reasoning = ReasoningConfig(effort=effort, max_tokens=reasoning_tokens)
+    except ValueError:
+        reasoning = ReasoningConfig()
+    try:
+        return ModelVariant(
+            base_key=model,
+            display_name=model.rsplit("/", 1)[-1],
+            provider=provider,
+            model_id=model,
+            reasoning=reasoning,
+            max_output_tokens=max_output_tokens,
+        ).to_dict()
+    except ValueError:
+        return ModelVariant(
+            base_key=model,
+            display_name=model.rsplit("/", 1)[-1],
+            provider=provider,
+            model_id=model,
+        ).to_dict()
+
+
 def list_runs(directory: str | Path) -> list[dict[str, object]]:
-    """Lightweight index of runs in a directory (for the web app's run list)."""
+    """Rich static index preserving the same run identity as the full document."""
     out: list[dict[str, object]] = []
     for p in sorted(Path(directory).glob("*.json")):
         try:
@@ -356,15 +400,55 @@ def list_runs(directory: str | Path) -> list[dict[str, object]]:
             continue
         cond = run.get("condition")
         suite = run.get("suite")
-        out.append(
-            {
-                "file": p.name,
-                "model": run.get("model"),
-                "created": run.get("created"),
-                "kind": run.get("kind"),
-                "condition": cond.get("slug") if isinstance(cond, dict) else None,
-                "suite": suite.get("name") if isinstance(suite, dict) else None,
-                "summary": run.get("summary", {}),
-            }
+        condition_slug = (
+            cond.get("slug")
+            if isinstance(cond, dict)
+            else cond
+            if isinstance(cond, str)
+            else run.get("condition_slug")
         )
+        summary = run.get("summary")
+        if not isinstance(summary, dict):
+            summary = {}
+        variant = run.get("model_variant")
+        if not isinstance(variant, dict):
+            variant = _legacy_variant(
+                run, cond if isinstance(cond, (dict, str)) else None
+            )
+        kind = str(run.get("kind") or run.get("track") or "puzzle")
+        track = str(run.get("track") or kind)
+        status = str(run.get("status") or "completed")
+        progress = run.get("progress")
+        if not isinstance(progress, dict):
+            completed = summary.get("n", 0)
+            total = summary.get("max_points", completed)
+            progress = {"completed": completed, "total": total}
+        provider = run.get("provider") or variant.get("provider") or "unknown"
+        created = run.get("created") or run.get("created_at") or ""
+        entry: dict[str, object] = {
+            "run_id": run.get("run_id") or p.stem,
+            "file": p.name,
+            "track": track,
+            "kind": kind,
+            "status": status,
+            "model": run.get("model"),
+            "model_variant": variant,
+            "provider": provider,
+            "created": created,
+            "condition": cond,
+            "condition_slug": condition_slug,
+            "suite": suite,
+            "progress": progress,
+            "summary": summary,
+        }
+        for optional in (
+            "created_at",
+            "updated_at",
+            "completed_at",
+            "usage",
+            "error",
+        ):
+            if optional in run:
+                entry[optional] = run[optional]
+        out.append(entry)
     return out

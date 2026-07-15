@@ -1,12 +1,14 @@
 """Run-record store: json_safe, self-contained export, roundtrip, indexing."""
 
 import json
+from dataclasses import replace
 from types import SimpleNamespace
 
 import chess
 
-from chessbench.conditions import HEADLINE
+from chessbench.conditions import HEADLINE, mode_condition
 from chessbench.report import build_report
+from chessbench.response_protocols import ResponseProtocol
 from chessbench.store import (
     RunRecord,
     json_safe,
@@ -16,6 +18,7 @@ from chessbench.store import (
     save_run,
 )
 from chessbench.tasks.puzzles import Puzzle, PuzzleResult
+from chessbench.variants import ModelVariant, ReasoningConfig
 
 
 def test_json_safe_replaces_non_finite():
@@ -110,6 +113,110 @@ def test_list_runs_indexes_directory(tmp_path):
     (tmp_path / "not-a-run.json").write_text('{"schema": "other"}')
     index = list_runs(tmp_path)
     assert len(index) == 1 and index[0]["model"] == "m"
+    assert index[0]["provider"] == "openrouter"
+    assert index[0]["model_variant"]["provider"] == "openrouter"
+    assert index[0]["condition"] == HEADLINE.to_dict()
+    assert index[0]["condition_slug"] == HEADLINE.slug()
+    assert index[0]["status"] == "completed"
+    assert index[0]["progress"] == {"completed": 2, "total": 2}
+
+
+def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_path):
+    from chessbench.__main__ import cmd_export
+
+    data = tmp_path / "data"
+    runs = data / "runs"
+    runs.mkdir(parents=True)
+    report = build_report("m", HEADLINE.slug(), _results())
+
+    legacy = RunRecord(
+        "legacy/model",
+        "openrouter",
+        HEADLINE,
+        report,
+        _results(),
+        _puzzles(),
+    ).to_dict()
+    (runs / "a-legacy.json").write_text(json.dumps(legacy), encoding="utf-8")
+
+    condition = replace(
+        mode_condition(3),
+        response_protocol=ResponseProtocol.PROMPT_JSON_V1,
+        reasoning_effort="low",
+        max_output_tokens=8192,
+    )
+    variant = ModelVariant(
+        base_key="claude-haiku-4.5",
+        display_name="Claude Haiku 4.5",
+        provider="openrouter",
+        model_id="anthropic/claude-haiku-4.5",
+        reasoning=ReasoningConfig(effort="low"),
+        max_output_tokens=8192,
+    )
+    rich = RunRecord(
+        model="anthropic/claude-haiku-4.5",
+        provider="openrouter",
+        condition=condition,
+        report=report,
+        results=_results(),
+        puzzles=_puzzles(),
+        suite=None,
+        run_id="run-rich",
+        model_variant=variant.to_dict(),
+        created="2026-07-15T12:00:00+00:00",
+    ).to_dict()
+    rich.update(
+        {
+            "track": "puzzle",
+            "status": "completed",
+            "progress": {"completed": 2, "total": 2},
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 50,
+                "reasoning_tokens": 25,
+                "cost_usd": 0.01,
+            },
+            "updated_at": "2026-07-15T12:03:00+00:00",
+            "completed_at": "2026-07-15T12:03:00+00:00",
+            "error": None,
+        }
+    )
+    (runs / "z-rich.json").write_text(json.dumps(rich), encoding="utf-8")
+
+    args = SimpleNamespace(runs_dir=str(runs), out=str(data / "index.json"))
+    assert cmd_export(args) == 0
+    first = (data / "index.json").read_bytes()
+    entries = json.loads(first)["runs"]
+    assert [entry["file"] for entry in entries] == ["a-legacy.json", "z-rich.json"]
+
+    legacy_entry, rich_entry = entries
+    assert legacy_entry["model_variant"]["provider"] == "openrouter"
+    assert legacy_entry["model_variant"]["max_output_tokens"] == 2048
+    assert rich_entry == {
+        "run_id": "run-rich",
+        "file": "z-rich.json",
+        "track": "puzzle",
+        "kind": "puzzle",
+        "status": "completed",
+        "model": "anthropic/claude-haiku-4.5",
+        "model_variant": variant.to_dict(),
+        "provider": "openrouter",
+        "created": "2026-07-15T12:00:00+00:00",
+        "condition": condition.to_dict(),
+        "condition_slug": condition.slug(),
+        "suite": None,
+        "progress": {"completed": 2, "total": 2},
+        "summary": rich["summary"],
+        "updated_at": "2026-07-15T12:03:00+00:00",
+        "completed_at": "2026-07-15T12:03:00+00:00",
+        "usage": rich["usage"],
+        "error": None,
+    }
+    assert rich_entry["model_variant"]["max_output_tokens"] == 8192
+    assert rich_entry["condition"]["response_protocol"] == "prompt_json_v1"
+
+    assert cmd_export(args) == 0
+    assert (data / "index.json").read_bytes() == first
 
 
 def _composed_run(model="openai/example", solve_rate=0.5):
