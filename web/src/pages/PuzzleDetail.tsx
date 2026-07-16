@@ -194,6 +194,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                   {pct(entry.answers.filter((a) => a.item.solved).length / Math.max(1, entry.answers.length))}
                 </span>
               </CardTitle>
+              <p className="text-xs text-muted-foreground">Expand any model to inspect and copy the exact system and user messages for every solver move.</p>
             </CardHeader>
             <CardContent className="space-y-2">
               {entry.answers

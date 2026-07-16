@@ -8,9 +8,18 @@ import { cn } from "@/lib/utils"
 
 export function ExactPromptBlock({ label, text, tone = "user" }: { label: string; text: string; tone?: "system" | "user" | "schema" }) {
   const [copied, setCopied] = useState(false)
-  const copy = async () => {
-    await navigator.clipboard.writeText(text)
+  const copy = () => {
     setCopied(true)
+    void navigator.clipboard.writeText(text).catch(() => {
+      const textarea = document.createElement("textarea")
+      textarea.value = text
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body.append(textarea)
+      textarea.select()
+      document.execCommand("copy")
+      textarea.remove()
+    })
     window.setTimeout(() => setCopied(false), 1_500)
   }
 
