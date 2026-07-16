@@ -132,6 +132,9 @@ def test_selection_is_deterministic_and_honors_band_category_event_caps():
                             "difficulty_band": band,
                             "source_category": category,
                             "event": event,
+                            "white": "Alpha",
+                            "black": "Beta",
+                            "date": "2026-01-01",
                         }
                     )
 
@@ -160,6 +163,20 @@ def test_selection_is_deterministic_and_honors_band_category_event_caps():
         sum(item["source_category"] == category for item in selected) <= 5
         for category in ("world", "open")
     )
+
+
+def test_selection_rejects_incomplete_historical_headers():
+    complete = {
+        "id": "complete",
+        "difficulty_band": "hard",
+        "source_category": "world",
+        "event": "World Championship",
+        "white": "Alpha",
+        "black": "Beta",
+        "date": "1927-01-01",
+    }
+    incomplete = {**complete, "id": "incomplete", "white": "?"}
+    assert select_candidates([incomplete, complete], limit=2) == [complete]
 
 
 def test_source_catalog_accepts_list_and_sources_object(tmp_path: pathlib.Path):

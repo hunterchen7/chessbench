@@ -456,6 +456,11 @@ def select_candidates(
     counts: Counter[tuple[str, str]] = Counter()
     selected: list[dict[str, object]] = []
     for candidate in _fair_order(candidates):
+        if any(
+            str(candidate.get(field, "")).strip() in {"", "?", "Unknown", "Unknown event"}
+            for field in ("event", "white", "black", "date")
+        ) or str(candidate.get("date", "")).startswith("????"):
+            continue
         band = str(candidate["difficulty_band"])
         category = str(candidate["source_category"])
         event = str(candidate["event"])
