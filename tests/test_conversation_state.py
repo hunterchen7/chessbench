@@ -9,6 +9,30 @@ from chessbench.agents import LLMAgent, LLMGameAgent, TurnContext
 from chessbench.conditions import ContextMode, mode_condition
 from chessbench.models.base import ScriptedModel
 from chessbench.tasks.games import GameConfig, play_game
+from chessbench.tasks.puzzles import Puzzle, grade_puzzle
+
+
+class ReasoningScriptedModel(ScriptedModel):
+    def __init__(self, moves: list[str], prefix: str):
+        self.moves = moves
+        self.prefix = prefix
+        self.calls: list[list[dict[str, object]]] = []
+        self.last_reasoning: str | None = None
+        self.last_reasoning_details: list[dict[str, object]] | None = None
+        super().__init__(self._respond, name=prefix)
+
+    def _respond(self, messages):
+        self.calls.append([dict(message) for message in messages])
+        index = len(self.calls) - 1
+        self.last_reasoning = f"{self.prefix}-REASON-{index + 1}"
+        self.last_reasoning_details = [
+            {
+                "type": "reasoning.text",
+                "text": self.last_reasoning,
+                "signature": f"{self.prefix}-signature-{index + 1}",
+            }
+        ]
+        return self.moves[index]
 
 
 def test_hybrid_keeps_state_within_a_puzzle_then_resets():
@@ -52,6 +76,61 @@ def test_fresh_puzzle_context_never_accumulates_messages():
     agent.choose(chess.Board(), TurnContext(condition=condition))
     agent.choose(chess.Board(), TurnContext(condition=condition))
     assert [len(call) for call in calls] == [1, 1]
+
+
+def test_puzzle_reasoning_is_stored_and_preserved_only_within_that_puzzle():
+    puzzle = Puzzle(
+        id="reasoning-puzzle",
+        fen=chess.STARTING_FEN,
+        moves=["e2e4", "e7e5", "g1f3", "b8c6"],
+        rating=1500,
+    )
+    model = ReasoningScriptedModel(["e7e5", "b8c6"], "PUZZLE")
+    agent = LLMAgent(model)
+
+    result = grade_puzzle(agent, puzzle, mode_condition(2))
+
+    assert result.solved
+    assert result.turns[0]["reasoning"] == "PUZZLE-REASON-1"
+    assert result.turns[0]["reasoning_details"] == [
+        {
+            "type": "reasoning.text",
+            "text": "PUZZLE-REASON-1",
+            "signature": "PUZZLE-signature-1",
+        }
+    ]
+    assert model.calls[1][2]["role"] == "assistant"
+    assert model.calls[1][2]["reasoning"] == "PUZZLE-REASON-1"
+    assert (
+        model.calls[1][2]["reasoning_details"] == result.turns[0]["reasoning_details"]
+    )
+
+    agent.reset_puzzle()
+    assert agent.puzzle_conversation() == []
+
+
+def test_game_restore_keeps_reasoning_in_one_players_private_chat():
+    condition = mode_condition(2)
+    white_model = ReasoningScriptedModel(["e2e4"], "WHITE")
+    white = LLMGameAgent(white_model, condition)
+    white.restore(
+        chess.WHITE,
+        [
+            (
+                "old white prompt",
+                "g1f3",
+                "WHITE-OLD-REASON",
+                [{"type": "reasoning.text", "text": "WHITE-OLD-REASON"}],
+            )
+        ],
+        "You are playing White.",
+    )
+
+    white.choose(chess.Board(), TurnContext(condition=condition))
+
+    request = white_model.calls[0]
+    assert request[2]["reasoning"] == "WHITE-OLD-REASON"
+    assert "BLACK" not in json.dumps(request)
 
 
 def test_game_players_have_strictly_separate_conversations_but_audit_keeps_both():

@@ -70,6 +70,8 @@ class MoveContext:
     last_provider_response_raw: str | None = None
     last_http_status: int | None = None
     last_response_headers: dict[str, str] | None = None
+    last_reasoning: str | None = None
+    last_reasoning_details: list[dict[str, object]] | None = None
 
 
 def _capture_model_audit(model: object, ctx: MoveContext) -> None:
@@ -78,9 +80,7 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
     ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
     ctx.last_cost = float(getattr(model, "last_cost", 0.0))
     ctx.last_cache_discount = float(getattr(model, "last_cache_discount", 0.0))
-    ctx.last_cache_policy = str(
-        getattr(model, "last_cache_policy", "provider_default")
-    )
+    ctx.last_cache_policy = str(getattr(model, "last_cache_policy", "provider_default"))
     session = getattr(model, "last_cache_session_id", None)
     ctx.last_cache_session_id = session if isinstance(session, str) else None
     response = getattr(model, "last_provider_response", None)
@@ -95,6 +95,15 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
     ctx.last_response_headers = (
         dict(response_headers) if isinstance(response_headers, dict) else None
     )
+    reasoning = getattr(model, "last_reasoning", None)
+    ctx.last_reasoning = reasoning if isinstance(reasoning, str) else None
+    reasoning_details = getattr(model, "last_reasoning_details", None)
+    ctx.last_reasoning_details = (
+        [dict(detail) for detail in reasoning_details]
+        if isinstance(reasoning_details, list)
+        and all(isinstance(detail, dict) for detail in reasoning_details)
+        else None
+    )
     for ctx_name, model_name in (
         ("last_response_id", "last_response_id"),
         ("last_response_model", "last_response_model"),
@@ -106,6 +115,20 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
         setattr(ctx, ctx_name, value if isinstance(value, str) else None)
     error = getattr(model, "last_provider_error", None)
     ctx.last_provider_error = dict(error) if isinstance(error, dict) else error
+
+
+def _assistant_message(model: object, content: str) -> Message:
+    """Preserve provider reasoning only inside this model's private chat."""
+    message: Message = {"role": "assistant", "content": content}
+    reasoning = getattr(model, "last_reasoning", None)
+    if isinstance(reasoning, str):
+        message["reasoning"] = reasoning
+    reasoning_details = getattr(model, "last_reasoning_details", None)
+    if isinstance(reasoning_details, list) and all(
+        isinstance(detail, dict) for detail in reasoning_details
+    ):
+        message["reasoning_details"] = [dict(detail) for detail in reasoning_details]
+    return message
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -262,7 +285,7 @@ class LLMAgent:
                 # prompt instead of leaving a dangling user turn behind.
                 self._messages.pop()
                 raise
-            self._messages.append({"role": "assistant", "content": raw})
+            self._messages.append(_assistant_message(self._model, raw))
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
         _capture_model_audit(self._model, ctx)
@@ -397,7 +420,7 @@ class LLMGameAgent:
     def restore(
         self,
         color: bool,
-        turns: list[tuple[str, str]],
+        turns: list[tuple[str, str, str | None, list[dict[str, object]] | None]],
         system_prompt: str | None = None,
     ) -> None:
         """Restore only this player's private messages for an interrupted game.
@@ -413,9 +436,19 @@ class LLMGameAgent:
             return
         if self._condition.context_mode != conditions.ContextMode.FRESH:
             self._messages.append({"role": "system", "content": self._system})
-            for prompt, raw_response in turns:
+            for prompt, raw_response, reasoning, reasoning_details in turns:
                 self._messages.append({"role": "user", "content": prompt})
-                self._messages.append({"role": "assistant", "content": raw_response})
+                assistant: Message = {
+                    "role": "assistant",
+                    "content": raw_response,
+                }
+                if reasoning is not None:
+                    assistant["reasoning"] = reasoning
+                if reasoning_details is not None:
+                    assistant["reasoning_details"] = [
+                        dict(detail) for detail in reasoning_details
+                    ]
+                self._messages.append(assistant)
         self._started = True
 
     def choose(self, board: chess.Board, ctx: MoveContext) -> str:
@@ -466,7 +499,7 @@ class LLMGameAgent:
                 _capture_model_audit(self._model, ctx)
                 self._messages.pop()
                 raise
-            self._messages.append({"role": "assistant", "content": raw})
+            self._messages.append(_assistant_message(self._model, raw))
         self._started = True
 
         ctx.last_raw_response = raw

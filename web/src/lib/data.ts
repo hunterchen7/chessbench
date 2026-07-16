@@ -13,6 +13,7 @@ export interface Condition {
   response_protocol?: "plain_text_v1" | "prompt_json_v1" | "json_schema_v1" | string
   reasoning_effort?: string | null
   reasoning_max_tokens?: number | null
+  reasoning_exclude?: boolean
   max_output_tokens?: number
   cache_policy?: "disabled" | "prompt_prefix_v1" | string
   prompt_version?: string
@@ -85,6 +86,8 @@ export interface PuzzleItem extends PuzzlePosition {
     parsed_move?: string | null
     rationale?: string | null
     explanation?: string | null
+    reasoning?: string | null
+    reasoning_details?: Array<Record<string, unknown>> | null
     response_format_valid?: boolean | null
     response_format_error?: string | null
     prompt_tokens: number
@@ -337,6 +340,8 @@ export interface GameMoveAttempt {
   legal: boolean
   rationale?: string | null
   explanation?: string | null
+  reasoning?: string | null
+  reasoning_details?: Array<Record<string, unknown>> | null
   response_format_valid?: boolean | null
   response_format_error?: string | null
   prompt_tokens: number
@@ -463,9 +468,11 @@ function conditionFromSlug(slug: string): Condition {
 
 function fallbackVariant(model: string, condition: Condition, provider = "unknown"): ModelVariant {
   const display = model.includes("/") ? model.split("/").at(-1)! : model
-  const reasoning = { effort: condition.reasoning_effort, max_tokens: condition.reasoning_max_tokens, exclude: true }
+  const exclude = condition.reasoning_exclude ?? true
+  const reasoning = { effort: condition.reasoning_effort, max_tokens: condition.reasoning_max_tokens, exclude }
+  const capture = exclude ? "" : "-captured"
   return {
-    key: `${model}--${condition.reasoning_max_tokens ? `r${condition.reasoning_max_tokens}t` : `r-${condition.reasoning_effort ?? "default"}`}`,
+    key: `${model}--${condition.reasoning_max_tokens ? `r${condition.reasoning_max_tokens}t${capture}` : `r-${condition.reasoning_effort ?? "default"}${capture}`}`,
     base_key: model,
     display_name: display,
     provider,

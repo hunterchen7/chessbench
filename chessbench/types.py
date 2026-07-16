@@ -21,11 +21,18 @@ Square = chess.Square  # int 0..63
 Role = Literal["system", "user", "assistant"]
 
 
-class Message(TypedDict):
+class _RequiredMessage(TypedDict):
     """One chat message. Providers translate this to their own wire format."""
 
     role: Role
     content: str
+
+
+class Message(_RequiredMessage, total=False):
+    """Chat message plus optional provider reasoning continuity blocks."""
+
+    reasoning: str
+    reasoning_details: list[dict[str, object]]
 
 
 # --- Game outcomes ---

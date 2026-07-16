@@ -81,6 +81,7 @@ class _OpenAICompatModel:
         max_retries: int = 4,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
+        reasoning_exclude: bool = True,
         require_structured_parameters: bool = False,
         provider_preferences: dict[str, object] | None = None,
     ) -> None:
@@ -98,6 +99,7 @@ class _OpenAICompatModel:
             )
         self._reasoning_effort = reasoning_effort
         self._reasoning_max_tokens = reasoning_max_tokens
+        self._reasoning_exclude = reasoning_exclude
         self._require_structured_parameters = require_structured_parameters
         self._provider_preferences = dict(provider_preferences or {})
         self.last_usage: Usage | None = None
@@ -122,6 +124,8 @@ class _OpenAICompatModel:
         self.last_provider_response_raw: str | None = None
         self.last_http_status: int | None = None
         self.last_response_headers: dict[str, str] | None = None
+        self.last_reasoning: str | None = None
+        self.last_reasoning_details: list[dict[str, object]] | None = None
 
     def set_cache_session(self, session_id: str | None) -> None:
         """Set an opaque conversation key for provider prompt-prefix caching."""
@@ -271,6 +275,8 @@ class _OpenAICompatModel:
         self.last_provider_response_raw = None
         self.last_http_status = None
         self.last_response_headers = None
+        self.last_reasoning = None
+        self.last_reasoning_details = None
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {
@@ -301,14 +307,19 @@ class _OpenAICompatModel:
                 payload["prompt_cache_key"] = self._cache_session_id
                 self.last_cache_policy = "prompt_prefix_v1"
         if self._reasoning_effort is not None:
-            payload["reasoning"] = {"effort": self._reasoning_effort, "exclude": True}
+            payload["reasoning"] = {
+                "effort": self._reasoning_effort,
+                "exclude": self._reasoning_exclude,
+            }
         elif self._reasoning_max_tokens is not None:
             payload["reasoning"] = {
                 "max_tokens": self._reasoning_max_tokens,
-                "exclude": True,
+                "exclude": self._reasoning_exclude,
             }
             if max_tokens > 0:
-                payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
+                payload["max_tokens"] = max(
+                    max_tokens, self._reasoning_max_tokens + 512
+                )
         provider_preferences = dict(self._provider_preferences)
         if response_format is not None:
             payload["response_format"] = response_format
@@ -358,17 +369,22 @@ class _OpenAICompatModel:
                     response_provider = candidate
                     break
             endpoints = metadata.get("endpoints")
-            available = endpoints.get("available") if isinstance(endpoints, dict) else None
+            available = (
+                endpoints.get("available") if isinstance(endpoints, dict) else None
+            )
             if not isinstance(response_provider, str) and isinstance(available, list):
                 selected = next(
                     (
                         endpoint
                         for endpoint in available
-                        if isinstance(endpoint, dict) and endpoint.get("selected") is True
+                        if isinstance(endpoint, dict)
+                        and endpoint.get("selected") is True
                     ),
                     None,
                 )
-                candidate = selected.get("provider") if isinstance(selected, dict) else None
+                candidate = (
+                    selected.get("provider") if isinstance(selected, dict) else None
+                )
                 if isinstance(candidate, str):
                     response_provider = candidate
         self.last_response_provider = (
@@ -399,13 +415,20 @@ class _OpenAICompatModel:
             finish_reason if isinstance(finish_reason, str) else None
         )
         self.last_native_finish_reason = (
-            native_finish_reason
-            if isinstance(native_finish_reason, str)
-            else None
+            native_finish_reason if isinstance(native_finish_reason, str) else None
         )
         message = choice.get("message", {})
         if not isinstance(message, dict):
             message = {}
+        reasoning = message.get("reasoning")
+        if not isinstance(reasoning, str):
+            reasoning = message.get("reasoning_content")
+        self.last_reasoning = reasoning if isinstance(reasoning, str) else None
+        reasoning_details = message.get("reasoning_details")
+        if isinstance(reasoning_details, list) and all(
+            isinstance(detail, dict) for detail in reasoning_details
+        ):
+            self.last_reasoning_details = [dict(detail) for detail in reasoning_details]
         if finish_reason == "tool_calls" or message.get("tool_calls"):
             raise ModelError(f"{self._model}: provider returned a forbidden tool call")
         if "error" in choice:
@@ -526,6 +549,7 @@ class OpenRouterModel(_OpenAICompatModel):
         timeout: float = 120.0,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
+        reasoning_exclude: bool = True,
         provider_preferences: dict[str, object] | None = None,
     ) -> None:
         super().__init__(
@@ -543,6 +567,7 @@ class OpenRouterModel(_OpenAICompatModel):
             timeout=timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
+            reasoning_exclude=reasoning_exclude,
             provider_preferences=provider_preferences,
             require_structured_parameters=True,
         )

@@ -88,15 +88,20 @@ def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):
         return 0
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
-    assert cli.main([
-        "run-model",
-        "--model",
-        "model",
-        "--suite",
-        "suite.json",
-        "--request-timeout",
-        "600",
-    ]) == 0
+    assert (
+        cli.main(
+            [
+                "run-model",
+                "--model",
+                "model",
+                "--suite",
+                "suite.json",
+                "--request-timeout",
+                "600",
+            ]
+        )
+        == 0
+    )
     assert seen["request_timeout"] == 600.0
 
 
@@ -128,6 +133,41 @@ def test_model_factory_threads_openrouter_provider_preferences():
     }
 
 
+def test_model_factory_threads_reasoning_capture_to_openrouter():
+    model = cli._build_model(
+        "openrouter",
+        "minimax/minimax-m3",
+        reasoning_effort="low",
+        reasoning_exclude=False,
+    )
+
+    assert model._reasoning_exclude is False
+
+
+def test_run_model_accepts_reasoning_capture(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_run_model(args):
+        seen["capture_reasoning"] = args.capture_reasoning
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    assert (
+        cli.main(
+            [
+                "run-model",
+                "--model",
+                "minimax-m3",
+                "--suite",
+                "suite.json",
+                "--capture-reasoning",
+            ]
+        )
+        == 0
+    )
+    assert seen["capture_reasoning"] is True
+
+
 def test_run_model_accepts_recorded_provider_route(monkeypatch):
     seen: dict[str, object] = {}
 
@@ -138,17 +178,22 @@ def test_run_model_accepts_recorded_provider_route(monkeypatch):
         return 0
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
-    assert cli.main([
-        "run-model",
-        "--model",
-        "glm-5.2",
-        "--suite",
-        "suite.json",
-        "--provider-only",
-        "z-ai",
-        "--no-provider-fallbacks",
-        "--require-provider-parameters",
-    ]) == 0
+    assert (
+        cli.main(
+            [
+                "run-model",
+                "--model",
+                "glm-5.2",
+                "--suite",
+                "suite.json",
+                "--provider-only",
+                "z-ai",
+                "--no-provider-fallbacks",
+                "--require-provider-parameters",
+            ]
+        )
+        == 0
+    )
     assert seen == {"only": ["z-ai"], "fallbacks": False, "require": True}
 
 
@@ -160,14 +205,19 @@ def test_run_model_accepts_provider_native_output_limit(monkeypatch):
         return 0
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
-    assert cli.main([
-        "run-model",
-        "--model",
-        "model",
-        "--suite",
-        "suite.json",
-        "--provider-output-limit",
-        "--reasoning",
-        "low",
-    ]) == 0
+    assert (
+        cli.main(
+            [
+                "run-model",
+                "--model",
+                "model",
+                "--suite",
+                "suite.json",
+                "--provider-output-limit",
+                "--reasoning",
+                "low",
+            ]
+        )
+        == 0
+    )
     assert seen["max_output_tokens"] == 0

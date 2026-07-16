@@ -197,6 +197,7 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         temperature=args.temperature,
         reasoning_effort=getattr(args, "reasoning", None),
         reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
+        reasoning_exclude=not getattr(args, "capture_reasoning", False),
         max_output_tokens=getattr(args, "max_output_tokens", 0),
         cache_policy=CachePolicy(
             getattr(args, "cache_policy", CachePolicy.PROMPT_PREFIX_V1.value)
@@ -235,6 +236,7 @@ def _build_agent(
                 args.model or "openai/gpt-4o-mini",
                 reasoning_effort=getattr(args, "reasoning", None),
                 reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
+                reasoning_exclude=not getattr(args, "capture_reasoning", False),
             ),
             condition,
         )
@@ -398,6 +400,7 @@ def _build_composed_solver(
                 model_id,
                 reasoning_effort=condition.reasoning_effort,
                 reasoning_max_tokens=condition.reasoning_max_tokens,
+                reasoning_exclude=condition.reasoning_exclude,
             )
         )
     raise SystemExit(f"unknown solver: {spec}")
@@ -453,6 +456,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
         reasoning=ReasoningConfig(
             effort=condition.reasoning_effort,
             max_tokens=condition.reasoning_max_tokens,
+            exclude=condition.reasoning_exclude,
         ),
         max_output_tokens=condition.max_output_tokens,
     )
@@ -662,6 +666,7 @@ def _build_study_agent(
             args.model,
             reasoning_effort=condition.reasoning_effort,
             reasoning_max_tokens=condition.reasoning_max_tokens,
+            reasoning_exclude=condition.reasoning_exclude,
         ),
         condition,
     )
@@ -673,6 +678,7 @@ def _build_model(
     *,
     reasoning_effort: str | None = None,
     reasoning_max_tokens: int | None = None,
+    reasoning_exclude: bool = True,
     request_timeout: float = 120.0,
     provider_preferences: dict[str, object] | None = None,
 ) -> "Model":
@@ -688,6 +694,7 @@ def _build_model(
             timeout=request_timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
+            reasoning_exclude=reasoning_exclude,
             provider_preferences=provider_preferences,
         )
     raise SystemExit(f"unknown model provider: {spec}")
@@ -849,6 +856,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         reasoning=ReasoningConfig(
             effort=condition.reasoning_effort,
             max_tokens=condition.reasoning_max_tokens,
+            exclude=condition.reasoning_exclude,
         ),
         max_output_tokens=condition.max_output_tokens,
         provider_route=provider_route,
@@ -894,6 +902,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         entry.model_id,
         reasoning_effort=condition.reasoning_effort,
         reasoning_max_tokens=condition.reasoning_max_tokens,
+        reasoning_exclude=condition.reasoning_exclude,
         request_timeout=args.request_timeout,
         provider_preferences=provider_route.to_request(),
     )
@@ -905,8 +914,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         prompt_tokens, completion_tokens, reasoning_tokens, item_cost = (
             _turn_usage_totals(result.turns)
         )
-        cache_read, cache_write, uncached_prompt, cache_discount = (
-            _turn_cache_totals(result.turns)
+        cache_read, cache_write, uncached_prompt, cache_discount = _turn_cache_totals(
+            result.turns
         )
         store.save_puzzle_result(
             handle.run_id,
@@ -961,12 +970,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
                 "reasoning_tokens": _usage_int(row.get("reasoning_tokens")),
                 "cache_read_tokens": _usage_int(row.get("cache_read_tokens")),
                 "cache_write_tokens": _usage_int(row.get("cache_write_tokens")),
-                "uncached_prompt_tokens": _usage_int(
-                    row.get("uncached_prompt_tokens")
-                ),
-                "cache_discount_usd": _usage_float(
-                    row.get("cache_discount_usd")
-                ),
+                "uncached_prompt_tokens": _usage_int(row.get("uncached_prompt_tokens")),
+                "cache_discount_usd": _usage_float(row.get("cache_discount_usd")),
             },
             error=str(row["error"]) if row.get("error") else None,
             updated_at=str(row.get("updated_at") or ""),
@@ -1016,9 +1021,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             store.close()
         raise
     row = store.run_row(handle.run_id)
-    if (
-        args.max_new_items is not None
-        and _usage_int(row.get("completed_items")) < len(puzzles)
+    if args.max_new_items is not None and _usage_int(row.get("completed_items")) < len(
+        puzzles
     ):
         reason = f"operator stop after {args.max_new_items} new item(s)"
         store.mark_partial(handle.run_id, reason)
@@ -1028,12 +1032,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         ]
         from .report import build_report
 
-        partial_report = build_report(
-            entry.model_id, condition.slug(), durable_results
-        )
-        export_snapshot(
-            durable_results, partial_report, store.run_row(handle.run_id)
-        )
+        partial_report = build_report(entry.model_id, condition.slug(), durable_results)
+        export_snapshot(durable_results, partial_report, store.run_row(handle.run_id))
         store.close()
         print(
             f"\npartial {handle.run_id}; stopped after {args.max_new_items} new "
@@ -1205,6 +1205,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                             mid,
                             reasoning_effort=condition.reasoning_effort,
                             reasoning_max_tokens=condition.reasoning_max_tokens,
+                            reasoning_exclude=condition.reasoning_exclude,
                         ),
                         condition,
                     ),
@@ -1252,6 +1253,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                 reasoning=ReasoningConfig(
                     effort=condition.reasoning_effort,
                     max_tokens=condition.reasoning_max_tokens,
+                    exclude=condition.reasoning_exclude,
                 ),
                 max_output_tokens=condition.max_output_tokens,
             )
@@ -1429,8 +1431,7 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         default=None,
         choices=[1, 2, 3, 4, 5],
         help=(
-            "1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line, "
-            "5=deep coached"
+            "1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line, 5=deep coached"
         ),
     )
     # Individual axes default to MODE 2 (hand-holding: legal moves in UCI).
@@ -1499,6 +1500,14 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         type=int,
         default=None,
         help="exact thinking-token budget; cannot be combined with --reasoning",
+    )
+    p.add_argument(
+        "--capture-reasoning",
+        action="store_true",
+        help=(
+            "store provider-supplied reasoning separately from the scored answer "
+            "and preserve it within the model's private conversation"
+        ),
     )
     output_budget = p.add_mutually_exclusive_group()
     output_budget.add_argument(

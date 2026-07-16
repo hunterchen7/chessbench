@@ -23,6 +23,7 @@ import type {
   TournamentGame,
 } from "@/lib/data"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ProviderReasoning } from "@/components/PromptTranscript"
 import { ReasoningDisclosure } from "@/components/ai-elements/Reasoning"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -79,7 +80,7 @@ function findVariant(label: string, variants: VariantCollection, condition?: Con
     display_name: shortModel(label),
     provider,
     model_id: label,
-    reasoning: { effort, max_tokens: maxTokens, exclude: true },
+    reasoning: { effort, max_tokens: maxTokens, exclude: condition?.reasoning_exclude ?? true },
     max_output_tokens: condition?.max_output_tokens ?? 2048,
   }
 }
@@ -93,9 +94,10 @@ function modeLabel(condition?: Condition): string {
 }
 
 function reasoningLabel(condition?: Condition): string {
-  if (condition?.reasoning_max_tokens) return `${condition.reasoning_max_tokens.toLocaleString()} thinking tokens`
-  if (condition?.reasoning_effort) return `${condition.reasoning_effort} reasoning`
-  return "default reasoning"
+  const captured = condition?.reasoning_exclude === false ? " · captured" : ""
+  if (condition?.reasoning_max_tokens) return `${condition.reasoning_max_tokens.toLocaleString()} thinking tokens${captured}`
+  if (condition?.reasoning_effort) return `${condition.reasoning_effort} reasoning${captured}`
+  return `default reasoning${captured}`
 }
 
 function totalUsage(moves: IndexedMove[]) {
@@ -225,6 +227,8 @@ const AttemptExchange = memo(function AttemptExchange({
           {attempt.raw_response || "Empty response"}
         </pre>
       </div>
+
+      <ProviderReasoning reasoning={attempt.reasoning} details={attempt.reasoning_details} />
 
       <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-1.5">

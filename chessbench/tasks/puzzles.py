@@ -152,6 +152,8 @@ def _turn_record(
         "response_format_valid": ctx.last_response_format_valid,
         "response_format_error": ctx.last_response_format_error,
         "response_format": ctx.last_response_format,
+        "reasoning": ctx.last_reasoning,
+        "reasoning_details": ctx.last_reasoning_details,
         "model_error": model_error,
         "provider_error": ctx.last_provider_error,
         "request_payload": ctx.last_request_payload,

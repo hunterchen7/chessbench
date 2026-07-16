@@ -389,14 +389,57 @@ def test_provider_output_limit_omits_max_tokens_but_keeps_reasoning_effort(monke
         reasoning_effort="low",
     )
 
-    assert model.chat(
-        [{"role": "user", "content": "move"}],
-        max_tokens=0,
-    ) == "e2e4"
+    assert (
+        model.chat(
+            [{"role": "user", "content": "move"}],
+            max_tokens=0,
+        )
+        == "e2e4"
+    )
     payload = captured["payload"]
     assert isinstance(payload, dict)
     assert "max_tokens" not in payload
     assert payload["reasoning"] == {"effort": "low", "exclude": True}
+
+
+def test_captured_reasoning_is_requested_and_retained_verbatim(monkeypatch):
+    details = [
+        {
+            "type": "reasoning.text",
+            "text": "The h-pawn move forces mate.",
+            "signature": "signed-provider-block",
+            "format": "unknown",
+            "index": 0,
+        }
+    ]
+    captured = _capture_request(
+        monkeypatch,
+        {
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "message": {
+                        "content": "h5h4",
+                        "reasoning": "The h-pawn move forces mate.",
+                        "reasoning_details": details,
+                    },
+                }
+            ]
+        },
+    )
+    model = OpenRouterModel(
+        "minimax/minimax-m3",
+        api_key="test",
+        reasoning_effort="low",
+        reasoning_exclude=False,
+    )
+
+    assert model.chat([{"role": "user", "content": "move"}], max_tokens=0) == "h5h4"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["reasoning"] == {"effort": "low", "exclude": False}
+    assert model.last_reasoning == "The h-pawn move forces mate."
+    assert model.last_reasoning_details == details
 
 
 def test_provider_route_is_sent_without_tools(monkeypatch):

@@ -292,6 +292,10 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         "e2e4",
         True,
         explanation="white private",
+        reasoning="WHITE-PRIVATE-REASONING",
+        reasoning_details=[
+            {"type": "reasoning.text", "text": "WHITE-PRIVATE-REASONING"}
+        ],
         prompt_tokens=10,
         completion_tokens=4,
         reasoning_tokens=2,
@@ -334,6 +338,10 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         restored = store.load_game_results(run.run_id)[0]
         assert restored == record
         assert restored.records[0].attempts[0].prompt == "white prompt"
+        assert restored.records[0].attempts[0].reasoning == "WHITE-PRIVATE-REASONING"
+        assert restored.records[0].attempts[0].reasoning_details == [
+            {"type": "reasoning.text", "text": "WHITE-PRIVATE-REASONING"}
+        ]
         assert restored.records[1].attempts[0].prompt == "black prompt"
         row = store.run_row(run.run_id)
         assert row["completed_items"] == 1

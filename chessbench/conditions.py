@@ -117,6 +117,8 @@ class Condition:
     reasoning_max_tokens: int | None = (
         None  # exact thinking-token budget; mutually exclusive with effort
     )
+    # Capture provider-supplied thinking separately from the scored visible answer.
+    reasoning_exclude: bool = True
     # Zero means ChessBench omits max_tokens and uses the provider/model limit.
     # Numeric caps remain available as an explicit output-budget ablation.
     max_output_tokens: int = 0
@@ -173,6 +175,8 @@ class Condition:
             base += f"__reason-{self.reasoning_effort}"
         elif self.reasoning_max_tokens is not None:
             base += f"__reason-{self.reasoning_max_tokens}t"
+        if not self.reasoning_exclude:
+            base += "__reasoning-captured"
         return base
 
     def game_slug(self) -> str:
@@ -180,7 +184,7 @@ class Condition:
 
     def to_dict(self) -> dict[str, object]:
         """Canonical, JSON-safe condition manifest used in run identities."""
-        return {
+        manifest: dict[str, object] = {
             "legality": self.legality.value,
             "representation": self.representation.value,
             "notation": self.notation.value,
@@ -202,6 +206,11 @@ class Condition:
             "prompt_version": self.prompt_version,
             "slug": self.slug(),
         }
+        # Preserve historical run identities: hidden reasoning was the original
+        # default and needs no extra manifest field.
+        if not self.reasoning_exclude:
+            manifest["reasoning_exclude"] = False
+        return manifest
 
 
 # The scientific baseline condition (free-form, unaided) -- kept for the honest measurement.

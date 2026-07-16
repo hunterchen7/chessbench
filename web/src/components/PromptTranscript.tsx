@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Check, Copy, MessageSquareText } from "lucide-react"
+import { BrainCircuit, Check, Copy, MessageSquareText } from "lucide-react"
 import type { PuzzleItem } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,6 +40,28 @@ export function ExactPromptBlock({ label, text, tone = "user" }: { label: string
 
 type PromptTurn = NonNullable<PuzzleItem["turns"]>[number]
 
+export function ProviderReasoning({
+  reasoning,
+  details,
+}: {
+  reasoning?: string | null
+  details?: Array<Record<string, unknown>> | null
+}) {
+  if (!reasoning && !details?.length) return null
+  return <Accordion type="single" collapsible className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] px-3">
+    <AccordionItem value="provider-reasoning" className="border-0">
+      <AccordionTrigger className="py-2.5 text-xs">
+        <span className="flex items-center gap-2"><BrainCircuit className="size-3.5 text-violet-600 dark:text-violet-300" />Provider-supplied reasoning <Badge variant="outline" className="font-mono text-[9px]">audit only</Badge></span>
+      </AccordionTrigger>
+      <AccordionContent className="space-y-3 pb-3">
+        <p className="text-[10px] leading-relaxed text-muted-foreground">Returned by the inference provider and stored verbatim. It is not the scored answer and may be incomplete, summarized, or unavailable for some models.</p>
+        {reasoning ? <ExactPromptBlock label="Reasoning text" text={reasoning} tone="system" /> : null}
+        {details?.length ? <ExactPromptBlock label="Structured reasoning details" text={JSON.stringify(details, null, 2)} tone="schema" /> : null}
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
+}
+
 export function PromptTranscript({ turns, includeResponses = true }: { turns: PromptTurn[]; includeResponses?: boolean }) {
   if (!turns.length) return <p className="text-xs text-muted-foreground">This legacy item does not contain a turn-level prompt transcript.</p>
   return <div className="min-w-0 max-w-full overflow-hidden rounded-xl border bg-muted/15">
@@ -56,6 +78,7 @@ export function PromptTranscript({ turns, includeResponses = true }: { turns: Pr
           {turn.system_prompt ? <ExactPromptBlock label="Exact system prompt" text={turn.system_prompt} tone="system" /> : null}
           {turn.prompt ? <ExactPromptBlock label="Exact user prompt" text={turn.prompt} /> : null}
           {includeResponses ? <ExactPromptBlock label="Visible model response" text={turn.raw_response ?? "—"} tone="schema" /> : null}
+          <ProviderReasoning reasoning={turn.reasoning} details={turn.reasoning_details} />
           <div className="flex flex-wrap items-center gap-3 px-1 font-mono text-[10px] text-muted-foreground">
             <span>{turn.prompt_tokens.toLocaleString()} prompt</span><span>{turn.completion_tokens.toLocaleString()} completion</span><span>{turn.reasoning_tokens.toLocaleString()} reasoning</span>{(turn.cache_read_tokens ?? 0) > 0 ? <span className="text-emerald-700 dark:text-emerald-300">{turn.cache_read_tokens?.toLocaleString()} cached</span> : null}<span>${turn.cost_usd.toFixed(5)}</span>
           </div>

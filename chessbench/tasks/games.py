@@ -45,6 +45,10 @@ class MoveAttempt:
     response_format_valid: bool | None = None
     response_format_error: str | None = None
     response_format: dict[str, object] | None = None
+    # Provider-supplied reasoning is audit material, never part of the scored
+    # visible response and never shared with the opposing player.
+    reasoning: str | None = None
+    reasoning_details: list[dict[str, object]] | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     reasoning_tokens: int = 0
@@ -193,8 +197,19 @@ def _request_move(
                 response_format_valid=ctx.last_response_format_valid,
                 response_format_error=ctx.last_response_format_error,
                 response_format=ctx.last_response_format,
+                reasoning=ctx.last_reasoning,
+                reasoning_details=ctx.last_reasoning_details,
+                prompt_tokens=metrics.prompt_tokens,
+                completion_tokens=metrics.completion_tokens,
+                reasoning_tokens=metrics.reasoning_tokens,
+                cost_usd=metrics.cost_usd,
+                cache_read_tokens=metrics.cache_read_tokens,
+                cache_write_tokens=metrics.cache_write_tokens,
+                uncached_prompt_tokens=metrics.uncached_prompt_tokens,
+                cache_discount_usd=metrics.cache_discount_usd,
+                cache_policy=metrics.cache_policy,
+                cache_session_id=metrics.cache_session_id,
                 usage=dict(usage),
-                **metrics.to_dict(),
             )
         )
         if first_legal is None:
@@ -276,9 +291,16 @@ def play_game(
             history_san.append(san)
             board.push(replay_move)
 
-    def private_turns(color: str) -> list[tuple[str, str]]:
+    def private_turns(
+        color: str,
+    ) -> list[tuple[str, str, str | None, list[dict[str, object]] | None]]:
         return [
-            (attempt.prompt, attempt.raw_response)
+            (
+                attempt.prompt,
+                attempt.raw_response,
+                attempt.reasoning,
+                attempt.reasoning_details,
+            )
             for record in records
             if record.color == color
             for attempt in record.attempts

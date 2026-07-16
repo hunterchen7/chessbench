@@ -31,19 +31,22 @@ class ReasoningConfig:
 
     @property
     def slug(self) -> str:
+        visibility = "-captured" if not self.exclude else ""
         if self.max_tokens is not None:
-            return f"r{self.max_tokens}t"
+            return f"r{self.max_tokens}t{visibility}"
         if self.effort is not None:
-            return f"r-{self.effort}"
-        return "r-default"
+            return f"r-{self.effort}{visibility}"
+        return f"r-default{visibility}"
 
     @property
     def label(self) -> str:
         if self.max_tokens is not None:
-            return f"{self.max_tokens:,} reasoning tokens"
+            label = f"{self.max_tokens:,} reasoning tokens"
+            return label + (" (captured)" if not self.exclude else "")
         if self.effort is not None:
-            return f"{self.effort} reasoning"
-        return "provider default"
+            label = f"{self.effort} reasoning"
+            return label + (" (captured)" if not self.exclude else "")
+        return "provider default" + (" reasoning captured" if not self.exclude else "")
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -75,9 +78,7 @@ class ProviderRoute:
     def slug(self) -> str:
         parts: list[str] = []
         if self.only:
-            parts.append(
-                "only-" + "-".join(_slug(provider) for provider in self.only)
-            )
+            parts.append("only-" + "-".join(_slug(provider) for provider in self.only))
         elif self.order:
             parts.append(
                 "order-" + "-".join(_slug(provider) for provider in self.order)
@@ -133,7 +134,11 @@ class ModelVariant:
 
     @property
     def key(self) -> str:
-        output = "o-provider" if self.max_output_tokens == 0 else f"o{self.max_output_tokens}t"
+        output = (
+            "o-provider"
+            if self.max_output_tokens == 0
+            else f"o{self.max_output_tokens}t"
+        )
         base = f"{_slug(self.base_key)}--{self.reasoning.slug}--{output}"
         return (
             base
@@ -144,9 +149,7 @@ class ModelVariant:
     @property
     def label(self) -> str:
         route = (
-            ""
-            if self.provider_route.is_default
-            else f" · {self.provider_route.label}"
+            "" if self.provider_route.is_default else f" · {self.provider_route.label}"
         )
         return f"{self.display_name} · {self.reasoning.label}{route}"
 
