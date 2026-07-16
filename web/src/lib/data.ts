@@ -186,6 +186,8 @@ export interface HistoricalCandidate {
   why_famous: string
   provenance_confidence: "high" | "medium" | "contested"
   line_provenance: string
+  source_category: string
+  source_label: string
 }
 
 export interface HistoricalCandidateBank {

@@ -296,13 +296,29 @@ Recommended item fields:
 
 Release public and private manifests from the same reviewed pool, grouped by source game. Public exports can include the source link after solving. Private manifests should keep source URLs and answers server-side and expose them only after a lab run is closed. Hash the ordered item IDs, full answer graphs, and adjudicator metadata to create the corpus release ID.
 
-## Practical first curation batch
+## First large candidate build
 
-1. Add the Deep Blue position to the review queue as Hard/controversial, not directly to the scored suite.
-2. Mine every official WCC game from 1886–2024 using the Lichess index plus PGN Mentor as a cross-check.
-3. Mine the 149 CC0 Fischer/Tal classic games as a high-density famous-game seed.
-4. Mine named historical super-tournaments from PGN Mentor (New York 1924, Zurich 1953/Candidates, Hastings, Linares, Wijk aan Zee, Soviet Championships) and modern official broadcasts.
-5. Use TWIC/BritBase only as private discovery sources until permissions are clarified.
-6. Target an initial reviewed release of 150 items: 50 Easy, 50 Medium, 50 Hard, with 20% held out by source game for the private suite. The exact count is subordinate to answer stability and editorial quality.
+The 2026-07-15 private-MVP build intentionally exceeds the earlier 150-item pilot target:
+
+- 54 cataloged source packs, 53 enabled, with a known-count floor of 22,113 games;
+- 42 direct-PGN artifacts acquired and locked by SHA-256 for the first mining pass;
+- 2,702 parsed games, with one malformed score quarantined rather than repaired;
+- 500 engine-qualified positions from 500 distinct source games;
+- 400 public candidate records and 100 held-out records, split by source-game fingerprint;
+- a 400-item generated public distribution of 84 Easy, 135 Medium, and 181 Hard;
+- 26 additional hand-curated classics, including the contested Deep Blue position, for 426 public browser records in total.
+
+The generated line contract is seven UCI plies (four solver decisions). Mining used Stockfish 18 with `Threads=1`,
+50,000 fixed nodes, MultiPV 5, a cleared hash per position, at least two legal moves, and a minimum top-two gap of
+60 centipawns for checking/capturing/promoting first moves or 150 centipawns for quiet first moves. Positions begin
+at ply 20 or later. At most one position is selected per source game; event and category caps prevent one archive
+from dominating. Every record carries the source artifact SHA-256, source-game fingerprint, engine evidence, and a
+warning that the line is not a uniqueness proof.
+
+The 400 generated records are still **candidate-only**. Promotion to a scored historical suite remains blocked on
+the deeper repeated review, accepted-branch graph, canonical-suite overlap scan, rights decision, and human
+editorial approval described above. Held-out answers and source links stay under `data/private/` and are not emitted
+by the public dashboard bundle. `data/curated/historical-heldout-commitment.json` commits to the private artifact,
+ordered candidate IDs, and ordered source-game fingerprints without revealing any of them.
 
 This creates a genuinely different Woodpecker track: Lichess-derived items measure calibrated tactical solving, while historical items measure full-line calculation on memorable human positions with strong provenance and curated difficulty rather than borrowed ratings.

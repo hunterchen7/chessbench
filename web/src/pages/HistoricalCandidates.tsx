@@ -16,7 +16,7 @@ const PROVENANCE_ORDER = { high: 0, medium: 1, contested: 2 } as const
 
 type DifficultyFilter = "all" | HistoricalCandidate["difficulty_band"]
 type ProvenanceFilter = "all" | HistoricalCandidate["provenance_confidence"]
-type SortKey = "players" | "event" | "year" | "difficulty" | "provenance" | "source"
+type SortKey = "players" | "event" | "year" | "difficulty" | "collection" | "provenance" | "source"
 
 function candidateYear(candidate: HistoricalCandidate): number {
   const year = Number.parseInt(candidate.date.slice(0, 4), 10)
@@ -35,6 +35,10 @@ function playerLabel(candidate: HistoricalCandidate): string {
   return `${candidate.white} vs ${candidate.black}`
 }
 
+function categoryLabel(value: string): string {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
 function paginationPages(current: number, total: number): number[] {
   const start = Math.max(1, Math.min(current - 2, total - 4))
   const end = Math.min(total, start + 4)
@@ -45,6 +49,7 @@ function CandidateBadges({ candidate }: { candidate: HistoricalCandidate }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       <Badge variant="secondary" className="capitalize">{candidate.difficulty_band}</Badge>
+      <Badge variant="outline">{categoryLabel(candidate.source_category)}</Badge>
       <Badge variant="outline" className="capitalize">{candidate.provenance_confidence} provenance</Badge>
     </div>
   )
@@ -104,6 +109,7 @@ export function HistoricalCandidates() {
   const [query, setQuery] = useState("")
   const deferredQuery = useDeferredValue(query)
   const [difficulty, setDifficulty] = useState<DifficultyFilter>("all")
+  const [category, setCategory] = useState("all")
   const [provenance, setProvenance] = useState<ProvenanceFilter>("all")
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "year", direction: "desc" })
   const [page, setPage] = useState(1)
@@ -115,11 +121,14 @@ export function HistoricalCandidates() {
 
   useEffect(load, [load])
 
+  const categories = useMemo(() => Array.from(new Set(bank?.items.map((candidate) => candidate.source_category) ?? [])).sort(), [bank])
+
   const candidates = useMemo(() => {
     if (!bank) return []
     const needle = deferredQuery.trim().toLocaleLowerCase()
     const filtered = bank.items.filter((candidate) => {
       if (difficulty !== "all" && candidate.difficulty_band !== difficulty) return false
+      if (category !== "all" && candidate.source_category !== category) return false
       if (provenance !== "all" && candidate.provenance_confidence !== provenance) return false
       if (!needle) return true
       return [
@@ -130,6 +139,8 @@ export function HistoricalCandidates() {
         candidate.date,
         candidate.why_famous,
         candidate.line_provenance,
+        candidate.source_category,
+        candidate.source_label,
         sourceName(candidate),
         ...candidate.themes,
       ].some((value) => value.toLocaleLowerCase().includes(needle))
@@ -141,11 +152,12 @@ export function HistoricalCandidates() {
       else if (sort.key === "event") comparison = a.event.localeCompare(b.event)
       else if (sort.key === "year") comparison = candidateYear(a) - candidateYear(b)
       else if (sort.key === "difficulty") comparison = DIFFICULTY_ORDER[a.difficulty_band] - DIFFICULTY_ORDER[b.difficulty_band]
+      else if (sort.key === "collection") comparison = a.source_category.localeCompare(b.source_category)
       else if (sort.key === "provenance") comparison = PROVENANCE_ORDER[a.provenance_confidence] - PROVENANCE_ORDER[b.provenance_confidence]
       else comparison = sourceName(a).localeCompare(sourceName(b))
       return comparison * direction || candidateYear(b) - candidateYear(a) || a.id.localeCompare(b.id)
     })
-  }, [bank, deferredQuery, difficulty, provenance, sort.direction, sort.key])
+  }, [bank, category, deferredQuery, difficulty, provenance, sort.direction, sort.key])
 
   const totalPages = Math.max(1, Math.ceil(candidates.length / PAGE_SIZE))
   const activePage = Math.min(page, totalPages)
@@ -155,11 +167,12 @@ export function HistoricalCandidates() {
   }, [activePage, candidates])
   const visibleStart = candidates.length === 0 ? 0 : (activePage - 1) * PAGE_SIZE + 1
   const visibleEnd = Math.min(activePage * PAGE_SIZE, candidates.length)
-  const filterCount = Number(difficulty !== "all") + Number(provenance !== "all") + Number(Boolean(query.trim()))
+  const filterCount = Number(difficulty !== "all") + Number(category !== "all") + Number(provenance !== "all") + Number(Boolean(query.trim()))
 
   const resetFilters = () => {
     setQuery("")
     setDifficulty("all")
+    setCategory("all")
     setProvenance("all")
     setPage(1)
   }
@@ -199,7 +212,7 @@ export function HistoricalCandidates() {
           </div>
           <h1 className="text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">Historical candidate bank</h1>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Browse famous positions drawn from World Championships, Candidates events, major tournaments, and landmark human–computer games before they enter a scored suite.
+            Browse critical positions from World Championships, Candidates events, historic tournaments, classic-game collections, and landmark human–computer games before they enter a scored suite.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -240,6 +253,13 @@ export function HistoricalCandidates() {
             <SelectItem value="hard">Hard</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={category} onValueChange={(value) => { setCategory(value); setPage(1) }}>
+          <SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All collections</SelectItem>
+            {categories.map((value) => <SelectItem key={value} value={value}>{categoryLabel(value)}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={provenance} onValueChange={(value) => { setProvenance(value as ProvenanceFilter); setPage(1) }}>
           <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -270,6 +290,7 @@ export function HistoricalCandidates() {
                 <SortableTableHead label="Event" active={sort.key === "event"} direction={sort.direction} onSort={() => toggleSort("event")} />
                 <SortableTableHead label="Year" active={sort.key === "year"} direction={sort.direction} align="right" onSort={() => toggleSort("year")} />
                 <SortableTableHead label="Difficulty" active={sort.key === "difficulty"} direction={sort.direction} onSort={() => toggleSort("difficulty")} />
+                <SortableTableHead label="Collection" active={sort.key === "collection"} direction={sort.direction} onSort={() => toggleSort("collection")} />
                 <SortableTableHead label="Provenance" active={sort.key === "provenance"} direction={sort.direction} onSort={() => toggleSort("provenance")} />
                 <SortableTableHead label="Source" active={sort.key === "source"} direction={sort.direction} onSort={() => toggleSort("source")} />
               </TableRow>
@@ -285,6 +306,7 @@ export function HistoricalCandidates() {
                   <TableCell className="min-w-44 py-4 text-sm text-muted-foreground">{candidate.event}</TableCell>
                   <TableCell className="py-4 text-right font-mono text-xs tabular-nums text-muted-foreground">{candidateYear(candidate) || "—"}</TableCell>
                   <TableCell className="py-4"><Badge variant="secondary" className="capitalize">{candidate.difficulty_band}</Badge></TableCell>
+                  <TableCell className="min-w-48 py-4"><Badge variant="outline" className="font-normal">{categoryLabel(candidate.source_category)}</Badge></TableCell>
                   <TableCell className="py-4"><Badge variant="outline" className="capitalize">{candidate.provenance_confidence}</Badge></TableCell>
                   <TableCell className="max-w-52 py-4 text-xs"><SourceLink candidate={candidate} /></TableCell>
                 </TableRow>

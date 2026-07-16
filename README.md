@@ -79,12 +79,14 @@ The original [*Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.s
 trains by solving a fixed puzzle set repeatedly and faster. ChessBench borrows the one-shot full-line recall pressure,
 but does not train a model across cycles or share state between repetitions.
 
-Famous World Championship, tournament, and human–computer positions are curated separately in
-`data/curated/candidates/`. A legal played continuation is only a lead: it is not promoted to a scored exact-line
-task until its strongest defenses, alternate solutions, provenance, overlap, and editorial difficulty have been
-reviewed. The Deep Blue–Kasparov 1997 game-two position is deliberately visible in that lab but excluded from
-exact-line scoring: a pinned Stockfish review validates `45…Qe3`, while rejecting the traditional continuation as
-best play throughout. See [the historical-game source and review plan](docs/HISTORICAL_CORPUS.md).
+The historical curation lab contains 426 public candidate positions spanning 1851–2024: 26 hand-curated classics
+plus 400 engine-mined positions from distinct source games. Another 100 engine-mined positions are held out by
+source game under the ignored private-data path. The reproducible acquisition lock covers 42 direct-PGN packs and
+2,702 parsed games; every mined line is seven UCI plies, passes a fixed-node MultiPV score-gap gate, and retains its
+source-artifact SHA-256. These remain **candidates, not scored tasks**: legal replay and fixed-node stability do not
+replace best-defense, alternate-branch, overlap, and human editorial review. The Deep Blue–Kasparov 1997 game-two
+position is deliberately visible in the lab but excluded from exact-line scoring because modern review disputes the
+traditional continuation. See [the historical-game source and review plan](docs/HISTORICAL_CORPUS.md).
 
 Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
 item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`

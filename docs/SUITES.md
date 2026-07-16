@@ -81,9 +81,13 @@ The training method described in [*The Woodpecker Method* by Axel Smith and Hans
 repeats the same large puzzle set in progressively less time. ChessBench does not perform model training or carry
 state across repetitions; it borrows the full-line recall/calculation shape for a single-response evaluation.
 
-Additional famous-game positions live in the non-scoring candidate bank under `data/curated/candidates/`. Legal
-replay is necessary but insufficient for promotion: exact-line tasks also require branch-aware engine and human
-review. The complete acquisition, overlap, difficulty, and promotion policy is documented in
+The non-scoring historical bank under `data/curated/candidates/` now exposes metadata for 426 positions: 26
+hand-curated classics plus 400 engine-mined positions from different source games. A disjoint 100-position reserve
+is split by source-game fingerprint and remains under the ignored private-data path. The generated positions use
+seven-ply UCI display lines, pinned Stockfish 18 at 50,000 nodes with MultiPV 5, one position per source game, and
+distinct tactical versus quiet-move score-gap gates. Legal replay and fixed-node evidence are necessary but
+insufficient for promotion: exact-line tasks still require branch-aware engine and human review. The complete
+acquisition, overlap, difficulty, and promotion policy is documented in
 [`docs/HISTORICAL_CORPUS.md`](HISTORICAL_CORPUS.md).
 
 ### Esoteric

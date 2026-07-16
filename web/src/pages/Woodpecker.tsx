@@ -115,7 +115,7 @@ export function Woodpecker() {
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 id="historical-lab" className="text-xl font-semibold">Historical curation lab</h2>
-            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Famous World Championship, Candidates, tournament, and human–computer positions enter here first. Every line replays legally; none affects the leaderboard until its strongest defenses and acceptable branches pass separate review.</p>
+            <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">Critical positions from World Championships, Candidates events, historic tournaments, classic-game collections, and human–computer play enter here first. Every line replays legally; none affects the leaderboard until its strongest defenses and acceptable branches pass separate review.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{historical?.candidate_count ?? "…"} candidates</Badge>

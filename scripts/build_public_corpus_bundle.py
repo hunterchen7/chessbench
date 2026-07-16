@@ -125,6 +125,8 @@ def _historical_bundle() -> dict[str, object]:
                     "why_famous": item.get("why_famous", item.get("provenance_note", "")),
                     "provenance_confidence": item["provenance_confidence"],
                     "line_provenance": item["line_provenance"],
+                    "source_category": item.get("source_category", "hand_curated_classic"),
+                    "source_label": item.get("source_label", "Hand-curated historical game"),
                 }
             )
     items.sort(key=lambda item: (str(item["date"]), str(item["id"])))

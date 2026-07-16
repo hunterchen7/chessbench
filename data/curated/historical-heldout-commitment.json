@@ -1,0 +1,22 @@
+{
+  "schema_version": "chessbench.historical_heldout_commitment.v1",
+  "created": "2026-07-15",
+  "candidate_count": 100,
+  "split_unit": "source_game_fingerprint",
+  "private_artifact_sha256": "ebf9c2da57ac1965a62c18639fd8be6b8a7c9df2eb765b689225573b0460cb86",
+  "ordered_game_fingerprints_sha256": "f5dafe62ba5bd97368ed195f381ef230f5f96b32fba66db7e55a735d05034783",
+  "ordered_candidate_ids_sha256": "43a95991bbb288422509b19fcf7a807ca1fc3fbb82877927e1564b2bf19efddb",
+  "matching_public_artifact_sha256": "cc452ca03ca230c878bb2bc565f896b408c967409068fd9706f6b5da060ee05c",
+  "source_lock_sha256": "4fb614ec4f9f76669fa298d338688b7e59828f049be795ea8c26aaf881aa5fe8",
+  "engine": {
+    "name": "Stockfish 18",
+    "binary_sha256": "ae4c93fa9676ca7750d0714342fd8a5b1d018000fc6e0f6cedf112067b5ef374",
+    "nodes_per_position": 50000,
+    "multipv": 5,
+    "line_plies": 7,
+    "threads": 1,
+    "hash_mb": 64,
+    "clear_hash_before_each_position": true
+  },
+  "privacy": "The committed receipt contains no held-out ids, game fingerprints, source links, positions, or answer lines. The private artifact remains ignored and must never enter a public dashboard bundle."
+}
