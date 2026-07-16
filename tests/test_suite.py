@@ -55,7 +55,7 @@ def test_items_are_rating_stratified():
 
 def test_checked_in_composed_suite_loads_as_composed_problems():
     suite = load_suite(
-        pathlib.Path(__file__).resolve().parent.parent / "suites" / "public" / "esoteric-seed-v1.json"
+        pathlib.Path(__file__).resolve().parent.parent / "suites" / "public" / "esoteric-seed-v2.json"
     )
     problems = suite.composed_problems()
     assert suite.kind == "composed"

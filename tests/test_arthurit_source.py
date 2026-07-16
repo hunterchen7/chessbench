@@ -5,6 +5,7 @@ from chessbench.sources.arthurit import iter_arthurit_pgn, parse_stipulation
 
 def test_stipulation_parser_orders_series_before_ordinary_help():
     assert parse_stipulation("Ser-h#3") == ("series_helpmate", 3)
+    assert parse_stipulation("Ser-s#4") == ("series_selfmate", 4)
     assert parse_stipulation("s#2") == ("selfmate", 2)
     assert parse_stipulation("Problem #4") == ("directmate", 4)
 

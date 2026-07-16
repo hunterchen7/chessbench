@@ -18,18 +18,21 @@ EXPECTED = {
         "parent": "suites/public/standard-lichess-v2.json",
         "count": 14,
         "hash": "sha256:63ca1208b6c74ec6",
+        "version": "1.0.0",
     },
     "woodpecker-smoke-v1": {
         "path": "suites/public/woodpecker-smoke-v1.json",
         "parent": "suites/public/woodpecker-masters-v1.json",
         "count": 6,
         "hash": "sha256:486f9b5e854c299d",
+        "version": "1.0.0",
     },
-    "esoteric-smoke-v1": {
-        "path": "suites/public/esoteric-smoke-v1.json",
-        "parent": "suites/public/esoteric-seed-v1.json",
+    "esoteric-smoke-v2": {
+        "path": "suites/public/esoteric-smoke-v2.json",
+        "parent": "suites/public/esoteric-seed-v2.json",
         "count": 7,
-        "hash": "sha256:70fb0097ee520bae",
+        "hash": "sha256:607064f731e3dba3",
+        "version": "2.0.0",
     },
 }
 
@@ -40,7 +43,7 @@ def test_smoke_suites_have_frozen_metadata_and_documented_hashes():
         suite = load_suite(ROOT / expected["path"])
         parent = load_suite(ROOT / expected["parent"])
         assert suite.name == name
-        assert suite.version == "1.0.0"
+        assert suite.version == expected["version"]
         assert suite.visibility == "public"
         assert suite.seed == SEED
         assert len(suite.items) == expected["count"]
@@ -129,7 +132,7 @@ def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
 
 
 def test_esoteric_smoke_suite_has_one_of_every_public_genre():
-    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v1.json")
+    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v2.json")
     counts = Counter(problem.kind for problem in suite.composed_problems())
     assert len(suite.items) == 7
     assert counts == {
@@ -144,7 +147,7 @@ def test_esoteric_smoke_suite_has_one_of_every_public_genre():
 
 
 def test_esoteric_smoke_known_solutions_pass_native_graders():
-    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v1.json")
+    suite = load_suite(ROOT / "suites/public/esoteric-smoke-v2.json")
     condition = mode_condition(3)
     results = [
         grade_composed(OracleComposedSolver(), problem, condition)

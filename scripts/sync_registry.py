@@ -19,10 +19,10 @@ from chessbench.env import load_local_env  # noqa: E402
 ACTIVE_SUITE_FILES = (
     "standard-lichess-v2.json",
     "woodpecker-masters-v1.json",
-    "esoteric-seed-v1.json",
+    "esoteric-seed-v2.json",
     "standard-smoke-v1.json",
     "woodpecker-smoke-v1.json",
-    "esoteric-smoke-v1.json",
+    "esoteric-smoke-v2.json",
 )
 
 

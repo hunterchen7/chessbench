@@ -12,6 +12,16 @@
    "content_hash": "sha256:6700995ce1b69ed6ff5a"
   },
   {
+   "name": "esoteric-seed-v2",
+   "title": "Esoteric stipulations \u2014 seed v2",
+   "version": "2.0.0",
+   "track": "esoteric",
+   "visibility": "public",
+   "item_type": "composed",
+   "items": 51,
+   "content_hash": "sha256:276ff7d1975ec273dbc6"
+  },
+  {
    "name": "standard-lichess-v2",
    "title": "Standard tactics \u2014 full Lichess v2",
    "version": "1.0.0",

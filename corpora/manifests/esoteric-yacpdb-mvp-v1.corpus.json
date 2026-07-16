@@ -6,11 +6,11 @@
  "track": "esoteric",
  "visibility": "private",
  "item_type": "composed",
- "items": 400,
- "content_hash": "sha256:0f81872ba279bb177b95",
+ "items": 450,
+ "content_hash": "sha256:c725fae2aca49d42f8b6",
  "validation": {
   "valid": true,
-  "unique_ids": 400,
-  "unique_positions": 400
+  "unique_ids": 450,
+  "unique_positions": 450
  }
 }

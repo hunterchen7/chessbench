@@ -48,10 +48,11 @@ def test_helpmate_2_line_and_wrong_line():
     assert not stipulations.verify_helpmate_line(board, 2, bad)
 
 
-def test_series_directmate_and_helpmate():
+def test_series_directmate_helpmate_and_selfmate():
     from chessbench.solvers.series import (
         verify_series_directmate,
         verify_series_helpmate,
+        verify_series_selfmate,
     )
 
     dm = chess.Board("7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1")
@@ -69,6 +70,20 @@ def test_series_directmate_and_helpmate():
     )
     assert not verify_series_helpmate(
         hm, 2, [chess.Move.from_uci(u) for u in ["a7a6", "a6a5", "f6f7"]]
+    )
+
+    # Extracted from the final thematic variation of the owner-supplied s#2:
+    # 1.Rd7+ forces the sole reply 1...Nd3#, which mates White.
+    sm = chess.Board("4q3/6P1/B7/5P1p/4p3/2RR3Q/3pkPpP/3rn1Kb w - - 2 2")
+    assert verify_series_selfmate(
+        sm,
+        1,
+        [chess.Move.from_uci("d3d7"), chess.Move.from_uci("e1d3")],
+    )
+    assert not verify_series_selfmate(
+        sm,
+        1,
+        [chess.Move.from_uci("d3d7"), chess.Move.from_uci("e1f3")],
     )
 
 

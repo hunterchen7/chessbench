@@ -23,6 +23,7 @@ _SUPPORTED: dict[StipulationKind, str] = {
     "selfmate": "s#{n}",
     "reflexmate": "r#{n}",
     "helpmate": "h#{n}",
+    "series_selfmate": "ser-s#{n}",
     "series_helpmate": "ser-h#{n}",
     "series_directmate": "ser-#{n}",
 }
@@ -135,6 +136,7 @@ def extract_solution_lines(
     """Extract exact-length cooperative/series solutions from Popeye output."""
     expected = {
         "helpmate": 2 * n,
+        "series_selfmate": n + 1,
         "series_helpmate": n + 1,
         "series_directmate": n,
     }.get(kind)
@@ -154,7 +156,7 @@ def extract_solution_lines(
             tokens.append(uci)
             if kind == "helpmate":
                 turn = not turn
-            elif kind == "series_helpmate" and len(tokens) == n:
+            elif kind in {"series_helpmate", "series_selfmate"} and len(tokens) == n:
                 turn = not turn
         if len(tokens) == expected:
             solutions.add(tuple(tokens))

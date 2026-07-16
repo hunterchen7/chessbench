@@ -37,6 +37,11 @@ def test_build_input_translates_fen_knights_and_stipulation():
     assert "EndProblem" in text
 
 
+def test_build_input_supports_series_selfmate():
+    text = build_input("8/8/8/8/8/8/4N3/K6k w - - 0 1", "series_selfmate", 3)
+    assert "Stipulation ser-s#3" in text
+
+
 def test_extract_keys_reads_popeye_long_algebraic():
     assert extract_keys(OUTPUT, FEN) == ["b7g2"]
 

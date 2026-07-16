@@ -1,0 +1,397 @@
+{
+ "schema": "chessbench.esoteric_curation_artifact.v1",
+ "kind": "accepted_public",
+ "records": [
+  {
+   "schema": "chessbench.esoteric_curation_record.v1",
+   "id": "yacpdb-438993",
+   "genre": "selfmate",
+   "subtype": "orthodox-selfmate",
+   "fen": "8/6P1/B3q3/5P1p/2R1p3/3R3Q/3pkPpP/3rn1Kb w - - 0 1",
+   "side_to_move": "white",
+   "stipulation": "s#2",
+   "solution": [
+    "c4c3"
+   ],
+   "complete_solution_tree": {
+    "notation": "uci",
+    "completeness": "solver-complete",
+    "root": "c4c3",
+    "root_unique": true,
+    "adversary_replies_checked": 28,
+    "terminal_lines": [
+     [
+      "c4c3",
+      "d1a1",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "d1b1",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "d1c1",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e1c2"
+     ],
+     [
+      "c4c3",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e4d3",
+      "a6d3",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e4d3",
+      "h3d3",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e4d3",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e4e3",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6a2",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6a6",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6b3",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6b6",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6c4",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6c6",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6c8",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6d5",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6d5",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6d6",
+      "d3d6",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6d6",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6d7",
+      "d3d7",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6d7",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6e5",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e5",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3d4",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3d6",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3d7",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3d8",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3f3",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "d3g3",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6e7",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6e8",
+      "d3d7",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6f5",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6f6",
+      "d3d6",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6f6",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6f7",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6g6",
+      "d3d6",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6g8",
+      "d3d5",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "e6g8",
+      "h3h5",
+      "e1f3"
+     ],
+     [
+      "c4c3",
+      "e6h6",
+      "d3d6",
+      "e1d3"
+     ],
+     [
+      "c4c3",
+      "h5h4",
+      "h3g4",
+      "e1f3"
+     ]
+    ]
+   },
+   "variations": [
+    {
+     "label": "threat",
+     "published_notation": "1.Rcc3! ~ 2.Qxh5+ Nf3#",
+     "moves_after_key": [
+      "h3h5",
+      "e1f3"
+     ]
+    },
+    {
+     "label": "h-pawn defence",
+     "published_notation": "1...h4 2.Qg4+ Nf3#",
+     "moves": [
+      "c4c3",
+      "h5h4",
+      "h3g4",
+      "e1f3"
+     ]
+    },
+    {
+     "label": "queen f-file defences",
+     "published_notation": "1...Qxf5 (Qf7) 2.Rd5+ Nd3#",
+     "defences": [
+      "e6f5",
+      "e6f7"
+     ],
+     "continuation": [
+      "d3d5",
+      "e1d3"
+     ]
+    },
+    {
+     "label": "queen e8 defence",
+     "published_notation": "1...Qe8 2.Rd7+ Nd3#",
+     "moves": [
+      "c4c3",
+      "e6e8",
+      "d3d7",
+      "e1d3"
+     ]
+    },
+    {
+     "label": "queen sixth-rank defences",
+     "published_notation": "1...Qh6 (Qg6) 2.Rd6+ Nd3#",
+     "defences": [
+      "e6h6",
+      "e6g6"
+     ],
+     "continuation": [
+      "d3d6",
+      "e1d3"
+     ]
+    }
+   ],
+   "twins": [],
+   "intended_duals": [],
+   "solution_length": 2,
+   "difficulty_band": "medium",
+   "themes": [
+    "quiet-key",
+    "black-battery",
+    "battery-opening",
+    "square-vacation",
+    "dual-mating-mechanisms",
+    "changed-white-continuations"
+   ],
+   "central_idea": "The quiet key 1.Rcc3! preserves two distinct forced selfmating mechanisms. Queen continuations on h5/g4 compel the battery-opening ...Nf3#, while rook switchbacks off d3 compel ...Nd3#, opening the same black rook line toward the white king. Black queen and h-pawn defences select the required white continuation and mating square.",
+   "selection_rationale": "The position is a compact adversarial s#2 with a non-checking key, multiple meaningful defences, changed white continuations, and two related black battery mates. It is a strong adaptation test and was explicitly approved by the ChessBench project owner for inclusion in the public development catalogue.",
+   "composer": [
+    "Vyacheslav Georgievich Kopaev"
+   ],
+   "composer_original": [
+    "Копаев, Вячеслав Георгиевич"
+   ],
+   "publication": "Suomen Shakki",
+   "publication_date": "1996-03",
+   "publication_year": 1996,
+   "publication_identifier": "2899",
+   "tourney": "",
+   "award": "",
+   "judge": "",
+   "source_url": "https://www.yacpdb.org/#438993",
+   "database_ids": {
+    "yacpdb": 438993
+   },
+   "provenance_notes": "On 2026-07-16, an exact YACPDB diagram search for the supplied board FEN returned one match. The record gives Kopaev, Suomen Shakki, Mar 1996, identifier 2899, s#2, 9+9, and the published variations transcribed here. This confirms every occupied square in the owner's provisional transcription.",
+   "generation_method": "historical composition; recovered by exact-diagram database search",
+   "validation_engine": "Popeye",
+   "validation_version": "4.101 Darwin-25.2.0-arm-64Bit",
+   "validation_status": "verified",
+   "validation_output": {
+    "stipulation": "s#2",
+    "solved": true,
+    "keys": [
+     "c4c3"
+    ],
+    "key_count": 1,
+    "unique_key": true,
+    "output_sha256": "1f9a5e17c64946e140ba111c4e31441f991998719b6fabac1b999c4a14c938fa"
+   },
+   "independent_verification": {
+    "status": "verified",
+    "engine": "ChessBench native exhaustive selfmate verifier plus independent legal replay",
+    "result": "unique key c4c3; 28 legal adversary replies checked; 43 terminal mating lines replayed",
+    "terminal_lines_sha256": "9f69489ed11afb5db1fb7b755c55d0dad1b053c3cf9d42fef999ecc51ebf056d"
+   },
+   "visibility": "public",
+   "curator_notes": "Difficulty is medium because the key is quiet and the defence-to-continuation mapping matters, not because the stipulation is only two moves. Theme names are a ChessBench analysis of the published play. Project-owner approval for the public development catalogue was recorded on 2026-07-16.",
+   "scores": {
+    "quality": 4,
+    "originality": 3,
+    "clarity": 5,
+    "benchmark_value": 5
+   },
+   "review_status": "approved",
+   "rejection_reasons": [],
+   "rights_status": "permission-granted",
+   "rights_basis": "The ChessBench project owner explicitly directed public catalogue inclusion on 2026-07-16; the composer, publication, identifier, database record, and source URL remain attributed."
+  }
+ ]
+}

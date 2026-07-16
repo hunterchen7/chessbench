@@ -30,7 +30,7 @@ PUBLIC_RESPONSE_STYLES: tuple[ResponseStyle, ...] = (
 PUBLIC_SUITES: dict[Track, tuple[str, int]] = {
     "standard": ("suites/public/standard-lichess-v2.json", 325),
     "woodpecker": ("suites/public/woodpecker-masters-v1.json", 135),
-    "esoteric": ("suites/public/esoteric-seed-v1.json", 50),
+    "esoteric": ("suites/public/esoteric-seed-v2.json", 51),
 }
 PUBLIC_GAME_MODELS = ("gpt-5.6-luna", "claude-haiku-4.5")
 

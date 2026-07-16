@@ -53,5 +53,6 @@ def test_filter_rejects_twins_cooks_and_fairy_tokens():
 
 def test_stipulation_lengths_include_half_move_proof_games():
     assert stipulation_length("selfmate", "s#3") == 3
+    assert stipulation_length("series_selfmate", "Ser-s#7") == 7
     assert stipulation_length("proofgame", "PG 5.5") == 11
     assert stipulation_length("study", "+") == 0

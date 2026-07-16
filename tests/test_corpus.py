@@ -64,6 +64,7 @@ def test_checked_in_corpora_are_valid_and_content_addressed():
         "standard-lichess-v2",
         "woodpecker-masters-v1",
         "esoteric-seed-v1",
+        "esoteric-seed-v2",
     } <= set(corpora)
     assert all(corpus.validation["valid"] is True for corpus in corpora.values())
     assert all(corpus.content_hash.startswith("sha256:") for corpus in corpora.values())
@@ -74,8 +75,13 @@ def test_checked_in_corpora_are_valid_and_content_addressed():
         assert standard_ids.isdisjoint({p.id for p in woodpecker})
         assert all(p.num_solver_plies() >= 2 for p in woodpecker)
 
-    kinds = {problem.kind for problem in corpora["esoteric-seed-v1"].composed_problems()}
+    kinds = {problem.kind for problem in corpora["esoteric-seed-v2"].composed_problems()}
     assert {"selfmate", "reflexmate", "helpmate", "proofgame"} <= kinds
+    v2 = corpora["esoteric-seed-v2"]
+    assert len(v2.items) == 51
+    seed = next(problem for problem in v2.composed_problems() if problem.id == "yacpdb-438993")
+    assert seed.source == "yacpdb:438993"
+    assert seed.certification["validation_status"] == "verified"
 
 
 def test_public_v1_has_six_exact_rating_strata():

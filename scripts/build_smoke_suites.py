@@ -76,7 +76,7 @@ def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
 def build() -> list[tuple[Suite, pathlib.Path]]:
     standard_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
-    esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v1.json")
+    esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 
     standard = freeze_puzzle_suite(
         _band_sample(
@@ -98,15 +98,15 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     )
     esoteric = freeze_composed_suite(
         _genre_sample(esoteric_parent),
-        name="esoteric-smoke-v1",
-        version="1.0.0",
+        name="esoteric-smoke-v2",
+        version="2.0.0",
         source_label=f"suite:{esoteric_parent.name}@{esoteric_parent.content_hash}",
         seed=SEED,
     )
     return [
         (standard, ROOT / "suites/public/standard-smoke-v1.json"),
         (woodpecker, ROOT / "suites/public/woodpecker-smoke-v1.json"),
-        (esoteric, ROOT / "suites/public/esoteric-smoke-v1.json"),
+        (esoteric, ROOT / "suites/public/esoteric-smoke-v2.json"),
     ]
 
 

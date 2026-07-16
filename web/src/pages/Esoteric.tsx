@@ -72,8 +72,8 @@ export function Esoteric() {
         </h1>
         <p className="mt-1 max-w-3xl text-muted-foreground">
           Composed chess problems — the genres you never see in a normal game: selfmates, helpmates, reflexmates,
-          series-movers, proof games, and endgame studies. Each is solver-validated, so a perfect answer exists; the
-          question is whether a model can find it.
+          series-movers, and proof games. The current frozen catalogue contains {data.problems.size} solver-validated
+          tasks; the question is whether a model can find their exact answers.
         </p></div>
         <div className="flex flex-wrap items-center gap-2">
           {data.source === "api" && <Badge variant="outline" className="gap-1.5"><Radio className="size-3 text-emerald-500" /> Cloudflare live</Badge>}

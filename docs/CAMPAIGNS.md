@@ -11,8 +11,8 @@ protocol. It contains 24 independently durable cells:
 | --- | --- | --- | ---: | ---: | ---: |
 | Standard | Raw, Assisted, Coached, and Deep coached (`--mode 5`) | move-only + JSON rationale | 2 | 325 | 5,200 |
 | Woodpecker | Mode 4 full line | move-only + JSON rationale | 2 | 135 | 540 |
-| Esoteric | Mode 3 coached | move-only + JSON rationale | 2 | 50 | 200 |
-| **Total** |  |  |  |  | **5,940** |
+| Esoteric | Mode 3 coached | move-only + JSON rationale | 2 | 51 | 204 |
+| **Total** |  |  |  |  | **5,944** |
 
 The models are `openai/gpt-5.6-luna` and
 `anthropic/claude-haiku-4.5`, each addressed through OpenRouter. Response style

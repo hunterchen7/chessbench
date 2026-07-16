@@ -184,6 +184,8 @@ def validate_composed_problem(problem: ComposedProblem) -> list[str]:
         ok = series.verify_series_directmate(board, problem.n, moves)
     elif problem.kind == "series_helpmate":
         ok = series.verify_series_helpmate(board, problem.n, moves)
+    elif problem.kind == "series_selfmate":
+        ok = series.verify_series_selfmate(board, problem.n, moves)
     elif problem.kind == "proofgame":
         ok = proofgame.verify_proofgame(problem.fen, problem.solution, n_plies=problem.n)
     elif problem.kind == "study":

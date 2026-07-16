@@ -1,0 +1,142 @@
+{
+ "name": "esoteric-smoke-v2",
+ "version": "2.0.0",
+ "visibility": "public",
+ "kind": "composed",
+ "source": "suite:esoteric-seed-v2@sha256:b6e7e9fdb5c1ba36",
+ "seed": 20260715,
+ "items": [
+  {
+   "id": "dm1_000rZ",
+   "fen": "2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13",
+   "kind": "directmate",
+   "n": 1,
+   "solution": [
+    "d6h2"
+   ],
+   "goal": null,
+   "themes": [
+    "directmate",
+    "mateIn1",
+    "beginner"
+   ],
+   "source": "lichess",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "hm3_3",
+   "fen": "8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1",
+   "kind": "helpmate",
+   "n": 3,
+   "solution": [
+    "h3g4",
+    "d6f8",
+    "g4h3",
+    "e1f1",
+    "h3h2",
+    "f8d6"
+   ],
+   "goal": null,
+   "themes": [
+    "helpmate",
+    "advanced"
+   ],
+   "source": "discovered",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "pg2",
+   "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+   "kind": "proofgame",
+   "n": 2,
+   "solution": [
+    "e2e4",
+    "e7e5"
+   ],
+   "goal": null,
+   "themes": [
+    "proofgame",
+    "beginner"
+   ],
+   "source": "constructed",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "rm1_0",
+   "fen": "6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1",
+   "kind": "reflexmate",
+   "n": 1,
+   "solution": [
+    "h3h5"
+   ],
+   "goal": null,
+   "themes": [
+    "reflexmate",
+    "advanced"
+   ],
+   "source": "discovered",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "sm2_1",
+   "fen": "1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1",
+   "kind": "selfmate",
+   "n": 2,
+   "solution": [
+    "c1a1"
+   ],
+   "goal": null,
+   "themes": [
+    "selfmate",
+    "advanced"
+   ],
+   "source": "discovered",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "ser_dm2",
+   "fen": "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+   "kind": "series_directmate",
+   "n": 2,
+   "solution": [
+    "a1a7",
+    "a7a8"
+   ],
+   "goal": null,
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "source": "constructed",
+   "provenance": {},
+   "certification": {}
+  },
+  {
+   "id": "ser_hm2",
+   "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
+   "kind": "series_helpmate",
+   "n": 2,
+   "solution": [
+    "a7a6",
+    "a6a5",
+    "g6g7"
+   ],
+   "goal": null,
+   "themes": [
+    "series",
+    "seriesmover",
+    "intermediate"
+   ],
+   "source": "constructed",
+   "provenance": {},
+   "certification": {}
+  }
+ ],
+ "content_hash": "sha256:607064f731e3dba3"
+}

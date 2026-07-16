@@ -1,12 +1,11 @@
 {
- "schema": "chessbench.public_corpus.v1",
  "name": "esoteric-seed-v2",
- "title": "Esoteric stipulations \u2014 seed v2",
+ "title": "Esoteric stipulations — seed v2",
  "version": "2.0.0",
  "track": "esoteric",
  "visibility": "public",
  "description": "A development catalogue of native-verifier-checked compositions, now including a fully sourced, independently certified historical selfmate admitted through the v2 curation gate. The balanced benchmark-quality corpus remains under active review.",
- "content_hash": "sha256:276ff7d1975ec273dbc6",
+ "item_type": "composed",
  "sources": [
   {
    "id": "chessbench-original",
@@ -28,7 +27,7 @@
   },
   {
    "id": "yacpdb-owner-approved-seed",
-   "title": "YACPDB record 438993 \u2014 Kopaev, Suomen Shakki 2899",
+   "title": "YACPDB record 438993 — Kopaev, Suomen Shakki 2899",
    "url": "https://www.yacpdb.org/#438993",
    "license": "Project-owner-approved public benchmark inclusion with attribution",
    "license_url": "https://www.yacpdb.org/#438993",
@@ -36,507 +35,435 @@
    "notes": "Only records passing ChessBench's public curation gate are promoted."
   }
  ],
- "validation": {
-  "validator": "chessbench.corpus.v1",
-  "items": 51,
-  "valid": true,
-  "errors": [],
-  "unique_ids": 51,
-  "unique_positions": 51,
-  "theme_counts": {
-   "advanced": 17,
-   "backRankMate": 1,
-   "battery-opening": 1,
-   "beginner": 9,
-   "black-battery": 1,
-   "changed-white-continuations": 1,
-   "directmate": 16,
-   "dual-mating-mechanisms": 1,
-   "expert": 1,
-   "helpmate": 10,
-   "intermediate": 23,
-   "mateIn1": 6,
-   "mateIn2": 6,
-   "mateIn3": 3,
-   "medium": 1,
-   "proofgame": 7,
-   "quiet-key": 1,
-   "reflexmate": 4,
-   "selfmate": 10,
-   "series": 4,
-   "seriesmover": 4,
-   "square-vacation": 1
-  },
-  "kind_counts": {
-   "directmate": 16,
-   "helpmate": 10,
-   "proofgame": 7,
-   "reflexmate": 4,
-   "selfmate": 10,
-   "series_directmate": 3,
-   "series_helpmate": 1
-  }
+ "selection": {
+  "algorithm": "immutable-v1-base-plus-public-gate-passing-curation-records",
+  "base_corpus": "esoteric-seed-v1@sha256:6700995ce1b69ed6ff5a",
+  "curation_inputs": [
+   "data/curated/esoteric/seed-selfmate-kopaev-1996.json"
+  ],
+  "public_admission_gate": "chessbench.esoteric_curation.v1",
+  "accepted_curation_records": [
+   "yacpdb-438993"
+  ],
+  "excluded_kinds": [
+   "study"
+  ],
+  "reason": "interactive study adjudication is not yet frozen"
  },
  "items": [
   {
    "id": "dm1",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "a1a8"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "backRankMate",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_000rZ",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "2kr1b1r/p1p2pp1/2pqN3/7p/6n1/2NPB3/PPP2PPP/R2Q1RK1 b - - 0 13",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "d6h2"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_001KR",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "6k1/p1p3pp/4N3/1p6/2q1r1n1/2B5/PP4PP/3R1R1K w - - 0 29",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "f1f8"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_001cr",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "8/3B2pp/p5k1/6P1/1ppp1K2/8/1P6/8 w - - 0 39",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "d7e8"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_001gi",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "N6r/1p1k1ppp/2np4/b3p3/4P1b1/N1Q5/P4PPP/R3KB1R b KQ - 0 18",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "a5c3"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_001pC",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "r4rk1/pp3ppp/3b4/2p1pPB1/7N/2PP3n/PP4PP/R2Q2RK b - - 0 18",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "h3f2"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm1_001wb",
-   "kind": "directmate",
-   "label": "#1",
-   "n": 1,
    "fen": "r3k2r/pb1p1ppp/1b4q1/1Q2P3/8/2NP1PP1/PP4P1/R1B2R1K b kq - 0 17",
-   "goal": null,
+   "kind": "directmate",
+   "n": 1,
    "solution": [
     "g6h5"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn1",
     "beginner"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_000Zo",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "4r3/1k6/pp3P2/1b5p/3R1p2/P1R2P2/1P4PP/6K1 b - - 0 35",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "e8e1"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_000hf",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "r1bq3r/pp1nbkp1/2p1p2p/8/2BP4/1PN3P1/P3QP1P/3R1RK1 w - - 0 20",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "e2e6"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_001Wz",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "6k1/5ppp/r1p5/p1n1rP2/8/2P2N1P/2P3P1/3R2K1 w - - 0 22",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "d1d8"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_001om",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "5r1k/pp4pp/5p2/1BbQp1r1/7K/7P/1PP3P1/3R3R b - - 3 26",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "c5f2"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_001w5",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "1rb3k1/q4rP1/4p2p/3p3p/3P1P2/2P5/2QK3P/3R2R1 w - - 1 30",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "c2h7"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm2_002Mm",
-   "kind": "directmate",
-   "label": "#2",
-   "n": 2,
    "fen": "rn1qrk2/ppp3pQ/3p1pP1/3Pp3/2P1P3/8/PP3PP1/R1B1K3 w Q - 3 17",
-   "goal": null,
+   "kind": "directmate",
+   "n": 2,
    "solution": [
     "h7h8"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn2",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm3_001wR",
-   "kind": "directmate",
-   "label": "#3",
-   "n": 3,
    "fen": "6nr/p4p1p/k1p5/1p6/1QN5/2P1P3/4KPqP/8 w - - 0 27",
-   "goal": null,
+   "kind": "directmate",
+   "n": 3,
    "solution": [
     "b4a5"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn3",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm3_004kB",
-   "kind": "directmate",
-   "label": "#3",
-   "n": 3,
    "fen": "4rr1k/p1Qn2pp/3p1q2/8/8/2P5/PP3PPP/RN3RK1 b - - 0 16",
-   "goal": null,
+   "kind": "directmate",
+   "n": 3,
    "solution": [
     "f6f2"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn3",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "dm3_007en",
-   "kind": "directmate",
-   "label": "#3",
-   "n": 3,
    "fen": "rn3rk1/4pp1p/3p2pB/2q4P/3QP1b1/Pp6/1P2B3/1K1R2NR b - - 0 20",
-   "goal": null,
+   "kind": "directmate",
+   "n": 3,
    "solution": [
     "c5c2"
    ],
+   "goal": null,
    "themes": [
     "directmate",
     "mateIn3",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "lichess",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "8/3K4/8/8/8/8/3k4/2Q4N b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "d2e2",
     "c1c5",
     "e2f1",
     "c5f2"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2_0",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "8/6Q1/8/8/1K6/8/k2B4/8 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "a2b1",
     "d2c1",
     "b1a2",
     "g7b2"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2_1",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "2k5/6Q1/6K1/7N/8/8/8/8 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "c8d8",
     "g6f6",
     "d8e8",
     "g7e7"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2_2",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "8/8/8/8/6Q1/2k5/6B1/5K2 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "c3d3",
     "f1e1",
     "d3e3",
     "g4e4"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2_3",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "6Q1/8/8/8/1K6/8/1k6/6N1 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "b2b1",
     "b4a3",
     "b1a1",
     "g8a2"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm2_4",
-   "kind": "helpmate",
-   "label": "h#2",
-   "n": 2,
    "fen": "8/8/8/3k4/8/3B1K2/6Q1/8 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 2,
    "solution": [
     "d5e5",
     "f3f2",
     "e5f4",
     "g2g3"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm3_0",
-   "kind": "helpmate",
-   "label": "h#3",
-   "n": 3,
    "fen": "4Q3/8/7N/8/6K1/8/8/1k6 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 3,
    "solution": [
     "b1c2",
     "e8h8",
@@ -545,22 +472,20 @@
     "d3e4",
     "h8d4"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm3_1",
-   "kind": "helpmate",
-   "label": "h#3",
-   "n": 3,
    "fen": "7Q/4k3/8/8/8/4N3/8/4K3 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 3,
    "solution": [
     "e7f7",
     "h8f8",
@@ -569,22 +494,20 @@
     "g6h7",
     "f8g7"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm3_2",
-   "kind": "helpmate",
-   "label": "h#3",
-   "n": 3,
    "fen": "7N/3Q4/8/8/8/2k5/8/4K3 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 3,
    "solution": [
     "c3c4",
     "h8f7",
@@ -593,22 +516,20 @@
     "b4a5",
     "d7b5"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "hm3_3",
-   "kind": "helpmate",
-   "label": "h#3",
-   "n": 3,
    "fen": "8/8/3B4/8/8/7k/K7/4Q3 b - - 0 1",
-   "goal": null,
+   "kind": "helpmate",
+   "n": 3,
    "solution": [
     "h3g4",
     "d6f8",
@@ -617,85 +538,77 @@
     "h3h2",
     "f8d6"
    ],
+   "goal": null,
    "themes": [
     "helpmate",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg2",
-   "kind": "proofgame",
-   "label": "proof game in 2 plies",
-   "n": 2,
    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 2,
    "solution": [
     "e2e4",
     "e7e5"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "beginner"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg3",
-   "kind": "proofgame",
-   "label": "proof game in 3 plies",
-   "n": 3,
    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 3,
    "solution": [
     "e2e4",
     "e7e5",
     "g1f3"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "beginner"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg4",
-   "kind": "proofgame",
-   "label": "proof game in 4 plies",
-   "n": 4,
    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 4,
    "solution": [
     "e2e4",
     "e7e5",
     "g1f3",
     "b8c6"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg5",
-   "kind": "proofgame",
-   "label": "proof game in 5 plies",
-   "n": 5,
    "fen": "rnbqkb1r/pppp1ppp/4pn2/8/2PP4/2N5/PP2PPPP/R1BQKBNR b KQkq - 1 3",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 5,
    "solution": [
     "d2d4",
     "g8f6",
@@ -703,22 +616,20 @@
     "e7e6",
     "b1c3"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg6_kia",
-   "kind": "proofgame",
-   "label": "proof game in 6 plies",
-   "n": 6,
    "fen": "rnbqk2r/ppppppbp/5np1/8/8/5NP1/PPPPPPBP/RNBQK2R w KQkq - 2 4",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 6,
    "solution": [
     "g1f3",
     "g8f6",
@@ -727,22 +638,20 @@
     "f1g2",
     "f8g7"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg6_sicilian",
-   "kind": "proofgame",
-   "label": "proof game in 6 plies",
-   "n": 6,
    "fen": "rnbqkbnr/pp2pppp/3p4/8/3pP3/5N2/PPP2PPP/RNBQKB1R w KQkq - 0 4",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 6,
    "solution": [
     "e2e4",
     "c7c5",
@@ -751,22 +660,20 @@
     "d2d4",
     "c5d4"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "pg7_ruy",
-   "kind": "proofgame",
-   "label": "proof game in 7 plies",
-   "n": 7,
    "fen": "r1bqkbnr/1ppp1ppp/p1n5/4p3/B3P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 1 4",
-   "goal": null,
+   "kind": "proofgame",
+   "n": 7,
    "solution": [
     "e2e4",
     "e7e5",
@@ -776,360 +683,325 @@
     "a7a6",
     "b5a4"
    ],
+   "goal": null,
    "themes": [
     "proofgame",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "rm1_0",
-   "kind": "reflexmate",
-   "label": "r#1",
-   "n": 1,
    "fen": "6Q1/5q2/8/8/8/7R/2r5/5k1K w - - 0 1",
-   "goal": null,
+   "kind": "reflexmate",
+   "n": 1,
    "solution": [
     "h3h5"
    ],
+   "goal": null,
    "themes": [
     "reflexmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "rm1_1",
-   "kind": "reflexmate",
-   "label": "r#1",
-   "n": 1,
    "fen": "6q1/8/1R6/4Q3/8/1r6/5K2/3k4 w - - 0 1",
-   "goal": null,
+   "kind": "reflexmate",
+   "n": 1,
    "solution": [
     "f2f1"
    ],
+   "goal": null,
    "themes": [
     "reflexmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "rm1_2",
-   "kind": "reflexmate",
-   "label": "r#1",
-   "n": 1,
    "fen": "8/2r2k2/K7/8/4q3/8/8/1R4Q1 w - - 0 1",
-   "goal": null,
+   "kind": "reflexmate",
+   "n": 1,
    "solution": [
     "b1b6"
    ],
+   "goal": null,
    "themes": [
     "reflexmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "rm1_3",
-   "kind": "reflexmate",
-   "label": "r#1",
-   "n": 1,
    "fen": "8/8/7K/2q5/7k/8/R7/Q6r w - - 0 1",
-   "goal": null,
+   "kind": "reflexmate",
+   "n": 1,
    "solution": [
     "a1g7"
    ],
+   "goal": null,
    "themes": [
     "reflexmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "ser_dm2",
-   "kind": "series_directmate",
-   "label": "ser-#2",
-   "n": 2,
    "fen": "7k/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
-   "goal": null,
+   "kind": "series_directmate",
+   "n": 2,
    "solution": [
     "a1a7",
     "a7a8"
    ],
+   "goal": null,
    "themes": [
     "series",
     "seriesmover",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "ser_dm3",
-   "kind": "series_directmate",
-   "label": "ser-#3",
-   "n": 3,
    "fen": "7k/5ppp/8/8/8/8/8/1R4K1 w - - 0 1",
-   "goal": null,
+   "kind": "series_directmate",
+   "n": 3,
    "solution": [
     "b1a1",
     "a1a7",
     "a7a8"
    ],
+   "goal": null,
    "themes": [
     "series",
     "seriesmover",
     "advanced"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "ser_dm4",
-   "kind": "series_directmate",
-   "label": "ser-#4",
-   "n": 4,
    "fen": "7k/5ppp/8/8/8/8/8/2R3K1 w - - 0 1",
-   "goal": null,
+   "kind": "series_directmate",
+   "n": 4,
    "solution": [
     "c1c2",
     "c2a2",
     "a2a7",
     "a7a8"
    ],
+   "goal": null,
    "themes": [
     "series",
     "seriesmover",
     "expert"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "ser_hm2",
-   "kind": "series_helpmate",
-   "label": "ser-h#2",
-   "n": 2,
    "fen": "7k/p7/5KQ1/8/8/8/8/8 b - - 0 1",
-   "goal": null,
+   "kind": "series_helpmate",
+   "n": 2,
    "solution": [
     "a7a6",
     "a6a5",
     "g6g7"
    ],
+   "goal": null,
    "themes": [
     "series",
     "seriesmover",
     "intermediate"
    ],
-   "answer_shape": "line",
    "source": "constructed",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "8/1Q6/8/4R3/3p4/8/1q6/5k1K w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "b7g2"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_0",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "8/8/8/4q2Q/4rk1K/7R/8/8 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "h5g5"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_1",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "6R1/2Q5/2r5/8/8/7k/2q5/7K w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "c7h2"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_2",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "k6K/r7/q7/8/6Q1/8/7R/8 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "g4c8"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_3",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "8/8/8/8/8/R6Q/5k1K/4rq2 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "h3g2"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_4",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "5r2/1R6/3q3Q/8/8/8/2k1K3/8 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "h6d2"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm1_5",
-   "kind": "selfmate",
-   "label": "s#1",
-   "n": 1,
    "fen": "1q1Rr3/6Q1/8/8/8/8/K1k5/8 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 1,
    "solution": [
     "g7b2"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "intermediate"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm2_0",
-   "kind": "selfmate",
-   "label": "s#2",
-   "n": 2,
    "fen": "7k/4r3/5R1K/3q4/8/8/8/1Q6 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 2,
    "solution": [
     "f6f8"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "sm2_1",
-   "kind": "selfmate",
-   "label": "s#2",
-   "n": 2,
    "fen": "1q6/8/1Q6/8/8/3r4/k1K5/2R5 w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 2,
    "solution": [
     "c1a1"
    ],
+   "goal": null,
    "themes": [
     "selfmate",
     "advanced"
    ],
-   "answer_shape": "key",
    "source": "discovered",
    "provenance": {},
    "certification": {}
   },
   {
    "id": "yacpdb-438993",
-   "kind": "selfmate",
-   "label": "s#2",
-   "n": 2,
    "fen": "8/6P1/B3q3/5P1p/2R1p3/3R3Q/3pkPpP/3rn1Kb w - - 0 1",
-   "goal": null,
+   "kind": "selfmate",
+   "n": 2,
    "solution": [
     "c4c3"
    ],
+   "goal": null,
    "themes": [
     "quiet-key",
     "black-battery",
@@ -1140,7 +1012,6 @@
     "selfmate",
     "medium"
    ],
-   "answer_shape": "key",
    "source": "yacpdb:438993",
    "provenance": {
     "composer": [
@@ -1497,5 +1368,48 @@
     }
    }
   }
- ]
+ ],
+ "validation": {
+  "validator": "chessbench.corpus.v1",
+  "items": 51,
+  "valid": true,
+  "errors": [],
+  "unique_ids": 51,
+  "unique_positions": 51,
+  "theme_counts": {
+   "advanced": 17,
+   "backRankMate": 1,
+   "battery-opening": 1,
+   "beginner": 9,
+   "black-battery": 1,
+   "changed-white-continuations": 1,
+   "directmate": 16,
+   "dual-mating-mechanisms": 1,
+   "expert": 1,
+   "helpmate": 10,
+   "intermediate": 23,
+   "mateIn1": 6,
+   "mateIn2": 6,
+   "mateIn3": 3,
+   "medium": 1,
+   "proofgame": 7,
+   "quiet-key": 1,
+   "reflexmate": 4,
+   "selfmate": 10,
+   "series": 4,
+   "seriesmover": 4,
+   "square-vacation": 1
+  },
+  "kind_counts": {
+   "directmate": 16,
+   "helpmate": 10,
+   "proofgame": 7,
+   "reflexmate": 4,
+   "selfmate": 10,
+   "series_directmate": 3,
+   "series_helpmate": 1
+  }
+ },
+ "content_hash": "sha256:276ff7d1975ec273dbc6",
+ "schema": "chessbench.corpus.v1"
 }

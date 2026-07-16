@@ -49,14 +49,15 @@ PuzzleFailure = Literal["illegal", "wrong_move"]
 
 # --- Composed-problem stipulations ---
 # Directmate #n, selfmate s#n, helpmate h#n, reflexmate r#n, series-helpmate
-# ser-h#n, series-directmate ser-#n, proof game (reach a target in n moves), and
-# endgame studies (win/draw vs best defense).
+# ser-h#n, series-selfmate ser-s#n, series-directmate ser-#n, proof game
+# (reach a target in n moves), and endgame studies (win/draw vs best defense).
 
 StipulationKind = Literal[
     "directmate",
     "selfmate",
     "helpmate",
     "reflexmate",
+    "series_selfmate",
     "series_helpmate",
     "series_directmate",
     "proofgame",

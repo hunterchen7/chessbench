@@ -16,10 +16,16 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
 | `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
 | `public/woodpecker-masters-v1.json` | Woodpecker | 135 | 50 Easy, 50 Medium, 35 Hard; titled-player source games |
-| `public/esoteric-seed-v1.json` | Esoteric | 50 | Lichess CC0 + ChessBench original |
+| `public/esoteric-seed-v2.json` | Esoteric | 51 | v1 sources + one owner-approved, attributed YACPDB composition |
 
 These are development-quality seed corpora. The 500-row tactical fixture predates snapshot tracking, so its exact
-upstream release date is unknown and honestly recorded that way. It must not be renamed as the headline corpus.
+upstream release date is unknown and honestly recorded that way. The immutable Esoteric v1 remains available for
+old runs; v2 is the active catalogue and runnable suite.
+
+The next esoteric release uses the separate evidence schema, admission gates,
+and scoring rubric in [Esoteric corpus curation](../docs/ESOTERIC_CORPUS.md).
+Solver-valid private MVP records are candidate material until that review is
+complete; they are not counted as the benchmark-quality public target.
 
 “Woodpecker” describes the full-line recall/calculation protocol. No positions or solution text were copied from
 the copyrighted *Woodpecker Method* book; this collection uses CC0 Lichess positions.

@@ -85,6 +85,7 @@ _GENRE_LABEL: dict[StipulationKind, str] = {
     "selfmate": "selfmate",
     "reflexmate": "reflexmate",
     "helpmate": "helpmate",
+    "series_selfmate": "series",
     "series_helpmate": "series",
     "series_directmate": "series",
     "proofgame": "retrograde",

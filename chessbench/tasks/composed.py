@@ -48,6 +48,7 @@ _ANSWER_SHAPE: dict[StipulationKind, AnswerShape] = {
     "selfmate": "key",
     "reflexmate": "key",
     "helpmate": "line",
+    "series_selfmate": "line",
     "series_helpmate": "line",
     "series_directmate": "line",
     "proofgame": "line",
@@ -59,6 +60,7 @@ _LABEL: dict[StipulationKind, str] = {
     "selfmate": "s#{n}",
     "reflexmate": "r#{n}",
     "helpmate": "h#{n}",
+    "series_selfmate": "ser-s#{n}",
     "series_helpmate": "ser-h#{n}",
     "series_directmate": "ser-#{n}",
     "proofgame": "proof game in {n} plies",
@@ -123,6 +125,9 @@ _STIPULATION_HELP: dict[StipulationKind, str] = {
     "immediately whenever it is able to.",
     "helpmate": "Both sides COOPERATE to checkmate the side to move in exactly {n} moves. Give the full line as "
     "{plies} moves (the side to move first, then alternating).",
+    "series_selfmate": "The side to move plays {n} consecutive moves (the opponent does not move), after which "
+    "every legal opponent reply must mate the series side. Give the series and one compelled "
+    "mating reply.",
     "series_helpmate": "The side to move plays {n} consecutive moves (the opponent does not move), then the "
     "opponent delivers mate. Give the full move sequence.",
     "series_directmate": "The side to move plays {n} consecutive moves (giving check only on the last), ending "
@@ -339,7 +344,7 @@ def _grade_line(
             problem.id, problem.kind, ok, 1.0 if ok else 0.0, first_legal, detail, raw
         )
 
-    if problem.kind in ("series_directmate", "series_helpmate"):
+    if problem.kind in ("series_directmate", "series_helpmate", "series_selfmate"):
         return _grade_series(problem, board, raw)
 
     line = board_utils.parse_model_line_response(board, raw).moves
@@ -358,7 +363,7 @@ def _grade_series(
     problem: ComposedProblem, board: chess.Board, raw: str
 ) -> ComposedResult:
     """Series-movers need a bespoke parse: the opponent passes, so all the series
-    moves are by the side to move (plus, for series-helpmate, one opponent mate)."""
+    moves are by the side to move (plus, for series help/selfmate, one opponent mate)."""
     side = board.turn
     n = problem.n
     total = n if problem.kind == "series_directmate" else n + 1
@@ -378,6 +383,8 @@ def _grade_series(
     first_legal = bool(moves)
     if problem.kind == "series_directmate":
         ok = series.verify_series_directmate(board, n, moves)
+    elif problem.kind == "series_selfmate":
+        ok = series.verify_series_selfmate(board, n, moves)
     else:
         ok = series.verify_series_helpmate(board, n, moves)
     detail = (

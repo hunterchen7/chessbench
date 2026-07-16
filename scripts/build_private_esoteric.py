@@ -31,6 +31,7 @@ KINDS: tuple[StipulationKind, ...] = (
     "selfmate",
     "reflexmate",
     "helpmate",
+    "series_selfmate",
     "series_helpmate",
     "series_directmate",
     "proofgame",
@@ -203,21 +204,19 @@ def normalize(
         )
         if not solution:
             return None
-    elif kind == "series_helpmate":
+    elif kind in {"series_helpmate", "series_selfmate"}:
         expected = n + 1
         intended = _series_line(entry, board, expected)
         candidates = [intended] + [
             [chess.Move.from_uci(token) for token in line]
             for line in certificate.solutions
         ]
-        moves = next(
-            (
-                line
-                for line in candidates
-                if series.verify_series_helpmate(board, n, line)
-            ),
-            [],
+        verifier = (
+            series.verify_series_selfmate
+            if kind == "series_selfmate"
+            else series.verify_series_helpmate
         )
+        moves = next((line for line in candidates if verifier(board, n, line)), [])
         if not moves:
             return None
         solution = [move.uci() for move in moves]

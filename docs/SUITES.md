@@ -14,7 +14,7 @@ These are the suites to use for new model evaluations.
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
-| Esoteric | `suites/public/esoteric-seed-v1.json` | Public | 50 | `sha256:aedbc34a91a528ae` | Genre-specific key, full-line, or interactive verifier |
+| Esoteric | `suites/public/esoteric-seed-v2.json` | Public | 51 | `sha256:b6e7e9fdb5c1ba36` | Genre-specific key or full-line verifier; exact dashboard catalogue membership |
 | Esoteric | `suites/private/esoteric-yacpdb-mvp-v1.json` | Private MVP | 450 | `sha256:6b3af48d566249c2` | 50 problems in each of nine mechanical categories |
 | Esoteric | `suites/private/esoteric-original-mvp-v1.json` | Private generated | 50 | `sha256:066aa9058e8ba4ae` | 10 newly generated problems in each of five genres |
 
@@ -97,13 +97,15 @@ acquisition, overlap, difficulty, and promotion policy is documented in
 
 ### Esoteric
 
-The public `esoteric-seed-v1` development suite contains 50 verifier-checked compositions:
+The public `esoteric-seed-v2` development suite contains 51 verifier-checked compositions. It preserves the 50
+v1 tasks and adds the fully sourced Kopaev selfmate `yacpdb-438993`, with a Popeye certificate, exhaustive native
+verification, complete solution tree, publication provenance, and explicit project-owner approval:
 
 | Genre | Items |
 | --- | ---: |
 | Directmate | 16 |
 | Helpmate | 10 |
-| Selfmate | 9 |
+| Selfmate | 10 |
 | Proof game | 7 |
 | Reflexmate | 4 |
 | Series directmate | 3 |
@@ -177,7 +179,7 @@ parents. They test paid provider calls and every public suite grader without cla
 | --- | ---: | --- | --- |
 | `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Two puzzles in each core band plus the 3000+ frontier |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
-| `suites/public/esoteric-smoke-v1.json` | 7 | `sha256:70fb0097ee520bae` | One problem in every public esoteric genre |
+| `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 
 ## Initial model smoke-test plan
 
@@ -191,7 +193,7 @@ early-stop rule.
 | --- | --- | --- | ---: |
 | Standard | `standard-smoke-v1` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
-| Esoteric | `esoteric-smoke-v1` | Mode 3 | 7 genre-specific attempts |
+| Esoteric | `esoteric-smoke-v2` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, 3, and 5 | 2 games per method, colors alternating |
 
 This is 69 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain

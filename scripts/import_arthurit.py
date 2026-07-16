@@ -75,6 +75,17 @@ def normalize(
             ),
             [],
         )
+    elif record.kind == "series_selfmate":
+        solution = next(
+            (
+                line
+                for line in certificate.solutions
+                if series.verify_series_selfmate(
+                    board, record.n, [chess.Move.from_uci(token) for token in line]
+                )
+            ),
+            [],
+        )
     if not solution:
         return None
     return ComposedProblem(

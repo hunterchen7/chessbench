@@ -13,6 +13,7 @@ import chess.pgn
 from ..types import StipulationKind
 
 _STIPULATIONS: tuple[tuple[re.Pattern[str], StipulationKind], ...] = (
+    (re.compile(r"ser\s*-\s*s#\s*(\d+)", re.IGNORECASE), "series_selfmate"),
     (re.compile(r"ser\s*-\s*h#\s*(\d+)", re.IGNORECASE), "series_helpmate"),
     (re.compile(r"ser\s*-\s*#\s*(\d+)", re.IGNORECASE), "series_directmate"),
     (re.compile(r"(?<![a-z])s#\s*(\d+)", re.IGNORECASE), "selfmate"),

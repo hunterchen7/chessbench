@@ -1,0 +1,96 @@
+{
+ "schema": "chessbench.esoteric_curation_status.v1",
+ "items": 401,
+ "exact_counts": {
+  "accepted_public": 1,
+  "reserved_private": 0,
+  "rejected": 0,
+  "pending": 210,
+  "invalid": 190,
+  "candidate_pool": 401
+ },
+ "by_genre": {
+  "selfmate": {
+   "accepted_public": 1,
+   "public_target": 50,
+   "public_gap": 49,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "reflexmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "helpmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "series_selfmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "series_helpmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "seriesmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "retro_proofgame": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  },
+  "artistic_directmate": {
+   "accepted_public": 0,
+   "public_target": 50,
+   "public_gap": 50,
+   "reserved_private": 0,
+   "reserve_target": 10,
+   "reserve_gap": 10,
+   "rejected": 0,
+   "pending_or_invalid": 50
+  }
+ },
+ "targets_met": false,
+ "note": "Aggregate curation status only; private membership is omitted."
+}

@@ -9,7 +9,7 @@ const STATIC_CORPUS = import.meta.env.BASE_URL + "data/corpora/esoteric.json"
 
 export type Stipulation =
   | "directmate" | "selfmate" | "reflexmate" | "helpmate"
-  | "series_helpmate" | "series_directmate" | "proofgame" | "study"
+  | "series_selfmate" | "series_helpmate" | "series_directmate" | "proofgame" | "study"
 
 export interface ComposedTurnUsage {
   prompt_tokens?: number
@@ -138,6 +138,7 @@ export const STIPULATION_LABEL: Record<Stipulation, string> = {
   selfmate: "Selfmate",
   reflexmate: "Reflexmate",
   helpmate: "Helpmate",
+  series_selfmate: "Series selfmate",
   series_helpmate: "Series helpmate",
   series_directmate: "Series directmate",
   proofgame: "Proof game",
@@ -149,6 +150,7 @@ export const STIPULATION_BLURB: Record<Stipulation, string> = {
   selfmate: "White forces Black to deliver mate against Black's will.",
   reflexmate: "Like a selfmate, but either side must mate if able to.",
   helpmate: "Both sides cooperate to checkmate Black in N moves.",
+  series_selfmate: "White plays N consecutive moves so every legal Black reply mates White.",
   series_helpmate: "Black plays N consecutive moves, then White mates in one.",
   series_directmate: "White plays N consecutive moves (no Black replies) to mate.",
   proofgame: "Find the exact game that reaches this position in N plies.",

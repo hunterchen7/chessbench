@@ -24,10 +24,15 @@ python3 scripts/import_yacpdb.py --per-kind 250 --max-pages 100
 python3 scripts/build_private_esoteric.py --popeye /path/to/popeye --per-kind 50
 ```
 
-The current private build retains exactly 50 independently checked records in each of eight categories: directmate,
-selfmate, reflexmate, helpmate, series helpmate, series directmate, proof game, and study. Key/line categories are
-replayed by the native verifier; six Popeye-supported genres additionally carry a Popeye 4.101 output certificate.
+The current private build retains exactly 50 independently checked records in each of nine categories: directmate,
+selfmate, reflexmate, helpmate, series selfmate, series helpmate, series directmate, proof game, and study. Key/line
+categories are replayed by the native verifier; seven Popeye-supported genres additionally carry a Popeye 4.101 output certificate.
 Study outcomes remain source-claimed until the interactive/tablebase adjudicator is frozen.
+
+This remains a mechanical candidate pool. Run `scripts/bootstrap_esoteric_review.py`
+to migrate it into the richer evidence records described in
+[the esoteric curation rubric](ESOTERIC_CORPUS.md); no record becomes a public
+quality-set member merely because it appears in this MVP.
 
 ## ChessBench-generated originals
 

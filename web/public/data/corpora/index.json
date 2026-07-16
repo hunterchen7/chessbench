@@ -20,10 +20,10 @@
   {
    "track": "esoteric",
    "file": "esoteric.json",
-   "name": "esoteric-seed-v1",
-   "title": "Esoteric stipulations \u2014 seed v1",
-   "items": 50,
-   "content_hash": "sha256:6700995ce1b69ed6ff5a"
+   "name": "esoteric-seed-v2",
+   "title": "Esoteric stipulations \u2014 seed v2",
+   "items": 51,
+   "content_hash": "sha256:276ff7d1975ec273dbc6"
   }
  ]
 }

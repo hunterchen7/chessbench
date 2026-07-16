@@ -24,6 +24,7 @@ QUERIES: dict[StipulationKind, str] = {
     "selfmate": 'Stip("^s#[1-3]$") AND NOT Fairy',
     "reflexmate": 'Stip("^r#[1-4]$") AND NOT Fairy',
     "helpmate": 'Stip("^h#2$") AND NOT Fairy',
+    "series_selfmate": 'Stip("^Ser-s#[2-9]$") AND NOT Fairy',
     "series_helpmate": 'Stip("Ser-h#[2-6]") AND NOT Fairy',
     "series_directmate": 'Stip("Ser-#.*") AND NOT Fairy',
     "proofgame": 'Stip("^S?PG.*") AND NOT Fairy',
@@ -36,6 +37,7 @@ _STIPULATION = {
     "selfmate": re.compile(r"^s#(\d+)$", re.IGNORECASE),
     "reflexmate": re.compile(r"^r#(\d+)$", re.IGNORECASE),
     "helpmate": re.compile(r"^h#(\d+)$", re.IGNORECASE),
+    "series_selfmate": re.compile(r"^ser-s#(\d+)$", re.IGNORECASE),
     "series_helpmate": re.compile(r"^ser-h#(\d+)$", re.IGNORECASE),
     "series_directmate": re.compile(r"^ser-#(\d+)$", re.IGNORECASE),
 }
