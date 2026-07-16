@@ -85,6 +85,21 @@ def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
         assert store.run_row(first.run_id)["cost_usd"] == 0.01
 
 
+def test_find_run_is_read_only_for_partial_exports(tmp_path):
+    with BenchmarkStore(tmp_path / "bench.db") as store:
+        run = store.start_run(_spec())
+        store.mark_partial(run.run_id, "operator pause")
+
+        found = store.find_run(_spec())
+
+        assert found is not None
+        assert found.run_id == run.run_id
+        assert found.status == "partial"
+        row = store.run_row(run.run_id)
+        assert row["status"] == "partial"
+        assert row["error"] == "operator pause"
+
+
 def test_failed_run_is_retained_but_replaced_by_a_clean_run(tmp_path):
     with BenchmarkStore(tmp_path / "bench.db") as store:
         invalid = store.start_run(_spec())

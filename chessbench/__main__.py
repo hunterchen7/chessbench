@@ -63,6 +63,7 @@ def _run_model_output_path(
     run_id: str,
 ) -> Path:
     """Choose a collision-free run export while finishing legacy partials in place."""
+    import hashlib
     import json
     import re
 
@@ -79,9 +80,18 @@ def _run_model_output_path(
     suite_slug = re.sub(r"[^a-z0-9]+", "-", suite_name.lower()).strip("-")
     suite_slug = suite_slug[:64] or "suite"
     hash_slug = suite_hash.removeprefix("sha256:")[:16] or "unhashed"
-    return out_dir / (
-        f"{variant_key}__suite-{suite_slug}--{hash_slug}__{condition_slug}.json"
-    )
+    filename = f"{variant_key}__suite-{suite_slug}--{hash_slug}__{condition_slug}.json"
+    # Provider-route and reasoning-capture identities can make the descriptive
+    # name exceed common 255-byte filesystem limits. Keep readable identity
+    # fragments and hash the complete name so distinct configurations cannot
+    # collide.
+    if len(filename.encode("utf-8")) > 240:
+        config_hash = hashlib.sha256(filename.encode("utf-8")).hexdigest()[:16]
+        filename = (
+            f"{variant_key[:96]}__suite-{suite_slug[:48]}--{hash_slug}"
+            f"__cfg-{config_hash}.json"
+        )
+    return out_dir / filename
 
 
 def _usage_int(value: object) -> int:
@@ -877,13 +887,21 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         suite_visibility=suite.visibility,
     )
     store = BenchmarkStore(args.db)
-    handle = store.start_run(spec, force=args.force)
-    if handle.status == "completed" and not args.force:
+    handle = (
+        store.find_run(spec)
+        if args.export_only
+        else store.start_run(spec, force=args.force)
+    )
+    if handle is None:
+        store.close()
+        raise SystemExit("no durable run matches this model, suite, and condition")
+    if handle.status == "completed" and not args.force and not args.export_only:
         print(f"skip (completed): {variant.label} × {suite.name} × {condition.slug()}")
         store.close()
         _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
         return 0
-    store.acquire_run_lock(handle.run_id)
+    if not args.export_only:
+        store.acquire_run_lock(handle.run_id)
     out = _run_model_output_path(
         out_dir,
         variant_key=variant.key,
@@ -894,21 +912,11 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     )
 
     print(
-        f"running {variant.label} on {track} suite {suite.name} "
+        f"{'exporting' if args.export_only else 'running'} {variant.label} "
+        f"on {track} suite {suite.name} "
         f"[{condition.slug()}] ({len(puzzles)} puzzles, {handle.completed_items} already durable)..."
     )
-    model = _build_model(
-        entry.provider,
-        entry.model_id,
-        reasoning_effort=condition.reasoning_effort,
-        reasoning_max_tokens=condition.reasoning_max_tokens,
-        reasoning_exclude=condition.reasoning_exclude,
-        request_timeout=args.request_timeout,
-        provider_preferences=provider_route.to_request(),
-    )
-    agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
     completed = store.load_puzzle_results(handle.run_id)
-    checkpoints = store.load_puzzle_checkpoints(handle.run_id)
 
     def persist(seq: int, puzzle, result) -> None:
         prompt_tokens, completion_tokens, reasoning_tokens, item_cost = (
@@ -980,6 +988,35 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             ),
         )
         save_run(record, out)
+
+    if args.export_only:
+        durable_results = [
+            completed[puzzle.id] for puzzle in puzzles if puzzle.id in completed
+        ]
+        from .report import build_report
+
+        snapshot_report = build_report(
+            entry.model_id, condition.slug(), durable_results
+        )
+        export_snapshot(durable_results, snapshot_report, store.run_row(handle.run_id))
+        store.close()
+        print(
+            f"exported {len(durable_results)}/{len(puzzles)} durable item(s) "
+            f"without inference -> {out}"
+        )
+        return 0
+
+    model = _build_model(
+        entry.provider,
+        entry.model_id,
+        reasoning_effort=condition.reasoning_effort,
+        reasoning_max_tokens=condition.reasoning_max_tokens,
+        reasoning_exclude=condition.reasoning_exclude,
+        request_timeout=args.request_timeout,
+        provider_preferences=provider_route.to_request(),
+    )
+    agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
+    checkpoints = store.load_puzzle_checkpoints(handle.run_id)
 
     try:
         report, results = run_puzzles(
@@ -1912,6 +1949,11 @@ def main(argv: list[str] | None = None) -> int:
             "stop cleanly after N newly evaluated items; completed items remain "
             "durable and the same run resumes later"
         ),
+    )
+    rmp.add_argument(
+        "--export-only",
+        action="store_true",
+        help="rebuild this run's dashboard JSON from SQLite without model inference",
     )
     provider_order = rmp.add_mutually_exclusive_group()
     provider_order.add_argument(

@@ -66,6 +66,24 @@ def test_unrelated_or_malformed_legacy_output_is_never_overwritten(tmp_path):
     assert output_path(tmp_path) != legacy
 
 
+def test_long_auditable_identity_uses_a_deterministic_bounded_filename(tmp_path):
+    kwargs = {
+        "variant_key": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-required-params",
+        "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+        "suite_name": "standard-lichess-v3",
+        "suite_hash": "sha256:196077b0a7370043",
+        "run_id": "durable-run",
+    }
+
+    first = cli._run_model_output_path(tmp_path, **kwargs)
+    second = cli._run_model_output_path(tmp_path, **kwargs)
+
+    assert first == second
+    assert len(first.name.encode("utf-8")) <= 240
+    assert "suite-standard-lichess-v3--196077b0a7370043" in first.name
+    assert "__cfg-" in first.name
+
+
 def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypatch):
     seen: dict[str, object] = {}
 
@@ -78,6 +96,34 @@ def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypat
     assert cli.main(["run-model", "--model", "model", "--suite", "suite.json"]) == 0
     assert seen["out_dir"] == "web/public/data/runs"
     assert seen["max_output_tokens"] == 0
+
+
+def test_run_model_accepts_export_only_without_changing_condition(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_run_model(args):
+        seen["export_only"] = args.export_only
+        seen["capture_reasoning"] = args.capture_reasoning
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    assert (
+        cli.main(
+            [
+                "run-model",
+                "--model",
+                "minimax-m3",
+                "--suite",
+                "suite.json",
+                "--reasoning",
+                "low",
+                "--capture-reasoning",
+                "--export-only",
+            ]
+        )
+        == 0
+    )
+    assert seen == {"export_only": True, "capture_reasoning": True}
 
 
 def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):

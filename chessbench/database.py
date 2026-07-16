@@ -417,6 +417,24 @@ class BenchmarkStore:
         else:
             self._db.execute("COMMIT")
 
+    def find_run(self, spec: RunSpec) -> RunHandle | None:
+        """Return the current durable run without changing status or history."""
+        row = self._db.execute(
+            """SELECT run_id, status, completed_items
+               FROM benchmark_run
+               WHERE natural_key = ? AND status != 'failed'
+               ORDER BY created_at DESC LIMIT 1""",
+            (spec.natural_key,),
+        ).fetchone()
+        if row is None:
+            return None
+        return RunHandle(
+            row["run_id"],
+            row["status"],
+            row["completed_items"],
+            row["status"] != "completed",
+        )
+
     def start_run(self, spec: RunSpec, *, force: bool = False) -> RunHandle:
         now = _now()
         natural_key = spec.natural_key
