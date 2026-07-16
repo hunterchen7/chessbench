@@ -22,6 +22,18 @@ from chessbench.tasks.puzzles import Puzzle  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SEED = 20260715
+STANDARD_V4_BANDS = (
+    (600, 899),
+    (900, 1199),
+    (1200, 1499),
+    (1500, 1799),
+    (1800, 2099),
+    (2100, 2399),
+    (2400, 2599),
+    (2600, 2799),
+    (2800, 2999),
+    (3000, 3199),
+)
 
 
 def _priority(item_id: str) -> str:
@@ -80,7 +92,10 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
     esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 
-    bands = (*tuple((start, start + 399) for start in range(600, 3000, 400)), (3000, 3199))
+    bands = (
+        *tuple((start, start + 399) for start in range(600, 3000, 400)),
+        (3000, 3199),
+    )
     standard_v1 = freeze_puzzle_suite(
         sorted(
             _band_sample(standard_v1_parent, bands, 2),
@@ -103,7 +118,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     )
     standard_v3 = freeze_puzzle_suite(
         sorted(
-            _band_sample(standard_v3_parent, bands, 2),
+            _band_sample(standard_v3_parent, STANDARD_V4_BANDS, 2),
             key=lambda puzzle: (puzzle.rating, puzzle.id),
         ),
         name="standard-smoke-v3",

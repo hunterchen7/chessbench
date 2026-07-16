@@ -5,9 +5,9 @@
    "track": "standard",
    "file": "standard.json",
    "name": "standard-lichess-v4",
-   "title": "Standard tactics \u2014 250-item frontier v4",
+   "title": "Standard tactics \u2014 ten-band balanced v4",
    "items": 250,
-   "content_hash": "sha256:83541ce47a057be99f8c"
+   "content_hash": "sha256:325b6f4e81bbfdad5e37"
   },
   {
    "track": "woodpecker",

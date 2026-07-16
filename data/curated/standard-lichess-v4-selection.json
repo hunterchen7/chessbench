@@ -1,79 +1,70 @@
 {
- "name": "standard-lichess-v4",
- "title": "Standard tactics — ten-band balanced v4",
- "version": "4.0.0",
- "track": "standard",
- "visibility": "public",
- "description": "A 250-item rating-ordered Standard suite with 25 puzzles in each of ten bands and an explicit within-band mixture of puzzle families.",
- "item_type": "puzzle",
- "sources": [
-  {
-   "id": "lichess-puzzles",
-   "title": "Lichess open puzzle database",
-   "url": "https://database.lichess.org/#puzzles",
-   "license": "CC0-1.0",
-   "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-   "snapshot": "2026-07-05",
-   "notes": "Every retained Woodpecker item links to its originating titled-player game."
-  }
+ "schema": "chessbench.standard_v4_selection.v1",
+ "snapshot": "2026-07-05",
+ "source": "lichess_db_puzzle_2026-07-05.csv.zst",
+ "source_sha256": "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247e",
+ "seed": "20260716-ten-band",
+ "rating_bands": [
+  [
+   600,
+   900
+  ],
+  [
+   900,
+   1200
+  ],
+  [
+   1200,
+   1500
+  ],
+  [
+   1500,
+   1800
+  ],
+  [
+   1800,
+   2100
+  ],
+  [
+   2100,
+   2400
+  ],
+  [
+   2400,
+   2600
+  ],
+  [
+   2600,
+   2800
+  ],
+  [
+   2800,
+   3000
+  ],
+  [
+   3000,
+   3200
+  ]
  ],
- "selection": {
-  "snapshot": "2026-07-05",
-  "source": "lichess_db_puzzle_2026-07-05.csv.zst",
-  "source_sha256": "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247e",
-  "seed": "20260716-ten-band",
-  "rating_bands": [
-   [
-    600,
-    900
-   ],
-   [
-    900,
-    1200
-   ],
-   [
-    1200,
-    1500
-   ],
-   [
-    1500,
-    1800
-   ],
-   [
-    1800,
-    2100
-   ],
-   [
-    2100,
-    2400
-   ],
-   [
-    2400,
-    2600
-   ],
-   [
-    2600,
-    2800
-   ],
-   [
-    2800,
-    3000
-   ],
-   [
-    3000,
-    3200
-   ]
-  ],
-  "items_per_band": 25,
-  "primary_family_precedence": [
-   "mate",
-   "defensive",
-   "quiet",
-   "pawn_promotion",
-   "endgame",
-   "tactical"
-  ],
-  "base_family_targets": {
+ "items_per_band": 25,
+ "primary_family_precedence": [
+  "mate",
+  "defensive",
+  "quiet",
+  "pawn_promotion",
+  "endgame",
+  "tactical"
+ ],
+ "base_family_targets": {
+  "mate": 4,
+  "defensive": 4,
+  "quiet": 4,
+  "pawn_promotion": 4,
+  "endgame": 4,
+  "tactical": 5
+ },
+ "family_counts": {
+  "600-899": {
    "mate": 4,
    "defensive": 4,
    "quiet": 4,
@@ -81,126 +72,116 @@
    "endgame": 4,
    "tactical": 5
   },
-  "family_counts": {
-   "600-899": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "900-1199": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "1200-1499": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "1500-1799": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "1800-2099": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "2100-2399": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "2400-2599": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "2600-2799": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "2800-2999": {
-    "mate": 4,
-    "defensive": 4,
-    "quiet": 4,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 5
-   },
-   "3000-3199": {
-    "mate": 1,
-    "defensive": 5,
-    "quiet": 5,
-    "pawn_promotion": 4,
-    "endgame": 4,
-    "tactical": 6
-   }
+  "900-1199": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
   },
-  "eligible_counts": {
-   "1500-1799": 478147,
-   "1200-1499": 487442,
-   "2100-2399": 187664,
-   "600-899": 84017,
-   "1800-2099": 345040,
-   "900-1199": 422343,
-   "2400-2599": 41119,
-   "2600-2799": 16073,
-   "2800-2999": 1571,
-   "3000-3199": 144
+  "1200-1499": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
   },
-  "core_quality_gate": "plays>500;rd<100;popularity>=90;game_url",
-  "frontier_quality_gate": "plays>500;rd<110;popularity>=85;game_url",
-  "excluded_releases": [
-   {
-    "name": "standard-heldout-v1",
-    "content_hash": "sha256:f14812b7f258972236a2"
-   },
-   {
-    "name": "woodpecker-masters-heldout-v1",
-    "content_hash": "sha256:1f12d8179825576cb7b7"
-   },
-   {
-    "name": "woodpecker-masters-v1",
-    "content_hash": "sha256:c411950e6bc1d935879d"
-   },
-   {
-    "name": "woodpecker-public-v1",
-    "content_hash": "sha256:ababdbdcc2b42b75dd00"
-   },
-   {
-    "name": "woodpecker-seed-v1",
-    "content_hash": "sha256:44e52b3476cebad1106b"
-   }
-  ],
-  "one_puzzle_per_source_game": true
+  "1500-1799": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "1800-2099": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "2100-2399": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "2400-2599": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "2600-2799": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "2800-2999": {
+   "mate": 4,
+   "defensive": 4,
+   "quiet": 4,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 5
+  },
+  "3000-3199": {
+   "mate": 1,
+   "defensive": 5,
+   "quiet": 5,
+   "pawn_promotion": 4,
+   "endgame": 4,
+   "tactical": 6
+  }
  },
+ "eligible_counts": {
+  "1500-1799": 478147,
+  "1200-1499": 487442,
+  "2100-2399": 187664,
+  "600-899": 84017,
+  "1800-2099": 345040,
+  "900-1199": 422343,
+  "2400-2599": 41119,
+  "2600-2799": 16073,
+  "2800-2999": 1571,
+  "3000-3199": 144
+ },
+ "core_quality_gate": "plays>500;rd<100;popularity>=90;game_url",
+ "frontier_quality_gate": "plays>500;rd<110;popularity>=85;game_url",
+ "excluded_releases": [
+  {
+   "name": "standard-heldout-v1",
+   "content_hash": "sha256:f14812b7f258972236a2"
+  },
+  {
+   "name": "woodpecker-masters-heldout-v1",
+   "content_hash": "sha256:1f12d8179825576cb7b7"
+  },
+  {
+   "name": "woodpecker-masters-v1",
+   "content_hash": "sha256:c411950e6bc1d935879d"
+  },
+  {
+   "name": "woodpecker-public-v1",
+   "content_hash": "sha256:ababdbdcc2b42b75dd00"
+  },
+  {
+   "name": "woodpecker-seed-v1",
+   "content_hash": "sha256:44e52b3476cebad1106b"
+  }
+ ],
+ "one_puzzle_per_source_game": true,
  "items": [
   {
    "id": "ZpGgA",
@@ -7305,88 +7286,5 @@
    "alternates": [],
    "difficulty_band": ""
   }
- ],
- "validation": {
-  "validator": "chessbench.corpus.v1",
-  "items": 250,
-  "valid": true,
-  "errors": [],
-  "unique_ids": 250,
-  "unique_positions": 250,
-  "theme_counts": {
-   "advancedPawn": 61,
-   "advantage": 65,
-   "attackingF2F7": 3,
-   "attraction": 11,
-   "bishopEndgame": 6,
-   "blindSwineMate": 1,
-   "capturingDefender": 1,
-   "castling": 1,
-   "clearance": 5,
-   "collinearMove": 1,
-   "crushing": 145,
-   "defensiveMove": 41,
-   "deflection": 9,
-   "discoveredAttack": 12,
-   "discoveredCheck": 12,
-   "doubleCheck": 6,
-   "enPassant": 2,
-   "endgame": 147,
-   "epauletteMate": 1,
-   "exposedKing": 11,
-   "fork": 24,
-   "hangingPiece": 8,
-   "interference": 2,
-   "intermezzo": 5,
-   "kingsideAttack": 12,
-   "knightEndgame": 7,
-   "long": 73,
-   "master": 36,
-   "masterVsMaster": 7,
-   "mate": 37,
-   "mateIn1": 5,
-   "mateIn2": 13,
-   "mateIn3": 7,
-   "mateIn4": 6,
-   "mateIn5": 6,
-   "middlegame": 94,
-   "oneMove": 5,
-   "opening": 9,
-   "operaMate": 2,
-   "pawnEndgame": 26,
-   "pillsburysMate": 5,
-   "pin": 16,
-   "promotion": 20,
-   "queenEndgame": 2,
-   "queenRookEndgame": 2,
-   "queensideAttack": 1,
-   "quietMove": 38,
-   "rookEndgame": 20,
-   "sacrifice": 26,
-   "short": 98,
-   "skewer": 3,
-   "trappedPiece": 3,
-   "veryLong": 71,
-   "zugzwang": 13
-  },
-  "rating": {
-   "min": 641,
-   "max": 3120,
-   "mean": 2005.46
-  },
-  "solver_plies": {
-   "1": 5,
-   "2": 99,
-   "3": 74,
-   "4": 33,
-   "5": 15,
-   "6": 11,
-   "7": 7,
-   "8": 4,
-   "9": 1,
-   "17": 1
-  }
- },
- "content_hash": "sha256:325b6f4e81bbfdad5e37",
- "schema": "chessbench.corpus.v1"
+ ]
 }

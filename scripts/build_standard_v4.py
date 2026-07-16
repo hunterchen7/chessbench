@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Build the 250-item Standard v4 suite with a larger calibrated frontier.
-
-The v3 release is immutable because completed runs already refer to its content
-hash.  V4 keeps a deterministic, progressively harder 200-item core and raises
-the 3000--3199 frontier from 25 to 50 positions.  The extra frontier positions
-are frozen in a small curation receipt so ordinary rebuilds do not need to scan
-the six-million-row Lichess snapshot.
-"""
+"""Build the working ten-band, type-balanced 250-item Standard v4 release."""
 
 from __future__ import annotations
 
@@ -14,6 +7,7 @@ import argparse
 import hashlib
 import json
 import sys
+from collections import Counter, defaultdict
 from dataclasses import asdict
 from pathlib import Path
 
@@ -30,42 +24,77 @@ from chessbench.corpus import (  # noqa: E402
 )
 from chessbench.sources.lichess import (  # noqa: E402
     iter_lichess_puzzles,
+    standard_candidate,
     standard_frontier_candidate,
 )
-from chessbench.suite import (  # noqa: E402
-    Suite,
-    freeze_puzzle_suite,
-    load_suite,
-    save_suite,
-)
+from chessbench.suite import Suite, freeze_puzzle_suite, save_suite  # noqa: E402
 from chessbench.tasks.puzzles import Puzzle  # noqa: E402
 
 
-PARENT_CORPUS = ROOT / "corpora/public/standard-lichess-v2.json"
-PARENT_SUITE = ROOT / "suites/public/standard-lichess-v3.json"
+CORPUS_PARENT = ROOT / "corpora/public/standard-lichess-v2.json"
 TARGET_CORPUS = ROOT / "corpora/public/standard-lichess-v4.json"
 TARGET_SUITE = ROOT / "suites/public/standard-lichess-v4.json"
-FRONTIER_RECEIPT = ROOT / "data/curated/standard-lichess-v4-frontier-additions.json"
+SELECTION_RECEIPT = ROOT / "data/curated/standard-lichess-v4-selection.json"
 DEFAULT_SOURCE = ROOT / "data/lichess_db_puzzle_2026-07-05.csv.zst"
 
-SEED = "20260716"
+SEED = "20260716-ten-band"
 SOURCE_SHA256 = "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247e"
-CORE_QUOTAS = (
-    (600, 1000, 30),
-    (1000, 1400, 30),
-    (1400, 1800, 30),
-    (1800, 2200, 35),
-    (2200, 2600, 35),
-    (2600, 3000, 40),
+RATING_BANDS = (
+    (600, 900),
+    (900, 1200),
+    (1200, 1500),
+    (1500, 1800),
+    (1800, 2100),
+    (2100, 2400),
+    (2400, 2600),
+    (2600, 2800),
+    (2800, 3000),
+    (3000, 3200),
 )
-FRONTIER_LOW = 3000
-FRONTIER_HIGH = 3200
-RETAINED_FRONTIER = 25
-ADDED_FRONTIER = 25
+ITEMS_PER_BAND = 25
+FAMILY_TARGETS = {
+    "mate": 4,
+    "defensive": 4,
+    "quiet": 4,
+    "pawn_promotion": 4,
+    "endgame": 4,
+    "tactical": 5,
+}
+FAMILY_ORDER = tuple(FAMILY_TARGETS)
+REDISTRIBUTION_ORDER = (
+    "tactical",
+    "defensive",
+    "quiet",
+    "endgame",
+    "pawn_promotion",
+    "mate",
+)
 
 
-def _priority(item_id: str, namespace: str) -> str:
-    return hashlib.sha256(f"{namespace}:{SEED}:{item_id}".encode("utf-8")).hexdigest()
+def puzzle_family(puzzle: Puzzle) -> str:
+    """Assign one auditable primary family despite overlapping Lichess themes."""
+    themes = set(puzzle.themes)
+    if "mate" in themes:
+        return "mate"
+    if themes & {"defensiveMove", "equality"}:
+        return "defensive"
+    if themes & {"quietMove", "zugzwang"}:
+        return "quiet"
+    if themes & {"promotion", "advancedPawn", "underPromotion"}:
+        return "pawn_promotion"
+    if "endgame" in themes:
+        return "endgame"
+    return "tactical"
+
+
+def _priority(item_id: str, band: tuple[int, int], family: str) -> str:
+    low, high = band
+    payload = f"standard-lichess-v4:{SEED}:{low}-{high}:{family}:{item_id}"
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _game_key(puzzle: Puzzle) -> str:
+    return puzzle.game_url.split("#", 1)[0]
 
 
 def _file_sha256(path: Path) -> str:
@@ -76,100 +105,168 @@ def _file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _select_core(parent: Suite) -> list[Puzzle]:
-    selected: list[Puzzle] = []
-    for low, high, count in CORE_QUOTAS:
-        candidates = [
-            puzzle for puzzle in parent.puzzles() if low <= puzzle.rating < high
-        ]
-        if len(candidates) < count:
+def _blocked_sources() -> tuple[set[str], set[str], list[dict[str, str]]]:
+    """Protect sibling tracks and evaluator-held Standard material."""
+    blocked_ids: set[str] = set()
+    blocked_games: set[str] = set()
+    releases: list[dict[str, str]] = []
+    paths = [
+        *(ROOT / "corpora/public").glob("woodpecker*.json"),
+        *(ROOT / "corpora/private").glob("woodpecker*.json"),
+        *(ROOT / "corpora/private").glob("standard-heldout*.json"),
+    ]
+    for path in sorted(paths):
+        corpus = load_corpus(path)
+        for puzzle in corpus.puzzles():
+            blocked_ids.add(puzzle.id)
+            blocked_games.add(_game_key(puzzle))
+        releases.append({"name": corpus.name, "content_hash": corpus.content_hash})
+    return blocked_ids, blocked_games, releases
+
+
+def _adapt_targets(grouped: dict[str, list[Puzzle]]) -> dict[str, int]:
+    targets = {
+        family: min(target, len(grouped[family]))
+        for family, target in FAMILY_TARGETS.items()
+    }
+    deficit = ITEMS_PER_BAND - sum(targets.values())
+    while deficit:
+        progressed = False
+        for family in REDISTRIBUTION_ORDER:
+            if targets[family] >= len(grouped[family]):
+                continue
+            targets[family] += 1
+            deficit -= 1
+            progressed = True
+            if deficit == 0:
+                break
+        if not progressed:
+            raise ValueError("band does not contain 25 family-diverse candidates")
+    return targets
+
+
+def _select_band(
+    candidates: list[Puzzle], band: tuple[int, int]
+) -> tuple[list[Puzzle], dict[str, int]]:
+    grouped: dict[str, list[Puzzle]] = defaultdict(list)
+    for puzzle in candidates:
+        grouped[puzzle_family(puzzle)].append(puzzle)
+    targets = _adapt_targets(grouped)
+    chosen: list[Puzzle] = []
+    used_games: set[str] = set()
+    for family in FAMILY_ORDER:
+        ranked = sorted(
+            grouped[family],
+            key=lambda puzzle: (_priority(puzzle.id, band, family), puzzle.id),
+        )
+        available = [puzzle for puzzle in ranked if _game_key(puzzle) not in used_games]
+        need = targets[family]
+        if len(available) < need:
             raise ValueError(
-                f"v3 band {low}-{high - 1} has {len(candidates)} items; need {count}"
+                f"band {band} family {family} has {len(available)} source games; need {need}"
             )
-        candidates.sort(
-            key=lambda puzzle: (
-                _priority(puzzle.id, "standard-lichess-v4-core"),
-                puzzle.id,
-            )
-        )
-        selected.extend(candidates[:count])
-    return selected
+        selected = available[:need]
+        chosen.extend(selected)
+        used_games.update(_game_key(puzzle) for puzzle in selected)
+    return chosen, targets
 
 
-def _load_frontier_additions() -> list[Puzzle]:
-    document = json.loads(FRONTIER_RECEIPT.read_text(encoding="utf-8"))
-    if document.get("schema") != "chessbench.standard_frontier_additions.v1":
-        raise ValueError("unexpected Standard v4 frontier receipt schema")
+def refresh_selection(source: Path) -> dict[str, object]:
+    if _file_sha256(source) != SOURCE_SHA256:
+        raise ValueError(f"source snapshot hash does not match {SOURCE_SHA256}")
+    blocked_ids, blocked_games, releases = _blocked_sources()
+    candidates: dict[tuple[int, int], list[Puzzle]] = defaultdict(list)
+    eligible_counts: Counter[str] = Counter()
+    for puzzle in iter_lichess_puzzles(source):
+        if puzzle.id in blocked_ids or _game_key(puzzle) in blocked_games:
+            continue
+        if not (standard_candidate(puzzle) or standard_frontier_candidate(puzzle)):
+            continue
+        for band in RATING_BANDS:
+            if band[0] <= puzzle.rating < band[1]:
+                candidates[band].append(puzzle)
+                eligible_counts[f"{band[0]}-{band[1] - 1}"] += 1
+                break
+
+    selected: list[Puzzle] = []
+    family_counts: dict[str, dict[str, int]] = {}
+    used_games: set[str] = set()
+    for band in RATING_BANDS:
+        available = [
+            puzzle for puzzle in candidates[band] if _game_key(puzzle) not in used_games
+        ]
+        band_items, targets = _select_band(available, band)
+        selected.extend(band_items)
+        used_games.update(_game_key(puzzle) for puzzle in band_items)
+        family_counts[f"{band[0]}-{band[1] - 1}"] = targets
+    selected.sort(key=lambda puzzle: (puzzle.rating, puzzle.id))
+    return {
+        "schema": "chessbench.standard_v4_selection.v1",
+        "snapshot": "2026-07-05",
+        "source": source.name,
+        "source_sha256": SOURCE_SHA256,
+        "seed": SEED,
+        "rating_bands": [list(band) for band in RATING_BANDS],
+        "items_per_band": ITEMS_PER_BAND,
+        "primary_family_precedence": list(FAMILY_ORDER),
+        "base_family_targets": FAMILY_TARGETS,
+        "family_counts": family_counts,
+        "eligible_counts": dict(eligible_counts),
+        "core_quality_gate": "plays>500;rd<100;popularity>=90;game_url",
+        "frontier_quality_gate": "plays>500;rd<110;popularity>=85;game_url",
+        "excluded_releases": releases,
+        "one_puzzle_per_source_game": True,
+        "items": [asdict(puzzle) for puzzle in selected],
+    }
+
+
+def _load_selection() -> tuple[list[Puzzle], dict[str, object]]:
+    document = json.loads(SELECTION_RECEIPT.read_text(encoding="utf-8"))
+    if document.get("schema") != "chessbench.standard_v4_selection.v1":
+        raise ValueError("unexpected Standard v4 selection receipt schema")
     if document.get("source_sha256") != SOURCE_SHA256 or document.get("seed") != SEED:
-        raise ValueError(
-            "Standard v4 frontier receipt provenance does not match the builder"
-        )
+        raise ValueError("Standard v4 selection provenance does not match the builder")
     puzzles = [Puzzle(**item) for item in document.get("items", [])]
-    if (
-        len(puzzles) != ADDED_FRONTIER
-        or len({puzzle.id for puzzle in puzzles}) != ADDED_FRONTIER
-    ):
-        raise ValueError(
-            f"frontier receipt must contain {ADDED_FRONTIER} unique puzzles"
+    if len(puzzles) != 250 or len({puzzle.id for puzzle in puzzles}) != 250:
+        raise ValueError("Standard v4 selection must contain 250 unique puzzles")
+    if len({_game_key(puzzle) for puzzle in puzzles}) != 250:
+        raise ValueError("Standard v4 selection must use one puzzle per source game")
+    actual_families: dict[str, dict[str, int]] = {}
+    for low, high in RATING_BANDS:
+        band_items = [puzzle for puzzle in puzzles if low <= puzzle.rating < high]
+        if len(band_items) != ITEMS_PER_BAND:
+            raise ValueError(f"band {low}-{high - 1} must contain 25 puzzles")
+        actual_families[f"{low}-{high - 1}"] = dict(
+            sorted(Counter(puzzle_family(puzzle) for puzzle in band_items).items())
         )
-    if not all(standard_frontier_candidate(puzzle) for puzzle in puzzles):
-        raise ValueError(
-            "frontier receipt contains an item outside the v4 quality gate"
-        )
-    return puzzles
+    expected_families = {
+        key: dict(sorted(value.items()))
+        for key, value in document.get("family_counts", {}).items()
+    }
+    if actual_families != expected_families:
+        raise ValueError("Standard v4 family counts do not match the selection receipt")
+    return puzzles, document
 
 
 def build() -> tuple[Corpus, Suite]:
-    parent_corpus = load_corpus(PARENT_CORPUS)
-    parent_suite = load_suite(PARENT_SUITE)
-    core = _select_core(parent_suite)
-    retained = [
-        puzzle
-        for puzzle in parent_suite.puzzles()
-        if FRONTIER_LOW <= puzzle.rating < FRONTIER_HIGH
-    ]
-    if len(retained) != RETAINED_FRONTIER:
-        raise ValueError(
-            f"v3 must contain {RETAINED_FRONTIER} frontier puzzles; found {len(retained)}"
-        )
-    additions = _load_frontier_additions()
-    ids = {puzzle.id for puzzle in [*core, *retained]}
-    overlap = ids & {puzzle.id for puzzle in additions}
-    if overlap:
-        raise ValueError(
-            f"new frontier additions overlap v3 membership: {sorted(overlap)}"
-        )
-
-    puzzles = sorted(
-        [*core, *retained, *additions],
-        key=lambda puzzle: (puzzle.rating, puzzle.id),
-    )
+    puzzles, receipt = _load_selection()
+    parent_corpus = load_corpus(CORPUS_PARENT)
     corpus = Corpus(
         name="standard-lichess-v4",
-        title="Standard tactics — 250-item frontier v4",
+        title="Standard tactics — ten-band balanced v4",
         version="4.0.0",
         track="standard",
         visibility="public",
         description=(
-            "A 250-item rating-ordered Standard suite with a 200-item calibrated "
-            "core and 50 high-end Lichess frontier puzzles."
+            "A 250-item rating-ordered Standard suite with 25 puzzles in each of "
+            "ten bands and an explicit within-band mixture of puzzle families."
         ),
         item_type="puzzle",
         sources=parent_corpus.sources,
         selection={
-            "algorithm": "stable-hash core downsample plus retained and expanded frontier",
-            "seed": SEED,
-            "core_parent": f"suite:{parent_suite.name}@{parent_suite.content_hash}",
-            "core_rating_bands": [[low, high] for low, high, _ in CORE_QUOTAS],
-            "core_items_per_band": [count for _, _, count in CORE_QUOTAS],
-            "core_quality_gate": "plays>500;rd<100;popularity>=90;game_url",
-            "frontier_band": [FRONTIER_LOW, FRONTIER_HIGH],
-            "frontier_items": RETAINED_FRONTIER + ADDED_FRONTIER,
-            "frontier_retained_from_v3": RETAINED_FRONTIER,
-            "frontier_added_from_full_snapshot": ADDED_FRONTIER,
-            "frontier_quality_gate": "plays>500;rd<110;popularity>=85;game_url",
-            "source_sha256": SOURCE_SHA256,
-            "ordering": "rating-asc,id-asc",
+            key: value
+            for key, value in receipt.items()
+            if key not in {"schema", "items"}
         },
         items=[asdict(puzzle) for puzzle in puzzles],
     )
@@ -180,63 +277,9 @@ def build() -> tuple[Corpus, Suite]:
         version=corpus.version,
         visibility=corpus.visibility,
         source_label=f"corpus:{corpus.name}@{corpus.content_hash}",
-        seed=int(SEED),
+        seed=20260716,
     )
     return corpus, suite
-
-
-def _release_ids() -> tuple[set[str], list[dict[str, str]]]:
-    excluded: set[str] = set()
-    releases: list[dict[str, str]] = []
-    for directory in (ROOT / "corpora/public", ROOT / "corpora/private"):
-        if not directory.exists():
-            continue
-        paths = sorted(
-            [*directory.glob("standard*.json"), *directory.glob("woodpecker*.json")]
-        )
-        for path in paths:
-            if path == TARGET_CORPUS:
-                continue
-            corpus = load_corpus(path)
-            if corpus.item_type != "puzzle":
-                continue
-            excluded.update(puzzle.id for puzzle in corpus.puzzles())
-            releases.append({"name": corpus.name, "content_hash": corpus.content_hash})
-    return excluded, releases
-
-
-def refresh_frontier(source: Path) -> dict[str, object]:
-    if _file_sha256(source) != SOURCE_SHA256:
-        raise ValueError(f"source snapshot hash does not match {SOURCE_SHA256}")
-    excluded, releases = _release_ids()
-    candidates = [
-        puzzle
-        for puzzle in iter_lichess_puzzles(source)
-        if puzzle.id not in excluded and standard_frontier_candidate(puzzle)
-    ]
-    candidates.sort(
-        key=lambda puzzle: (
-            _priority(puzzle.id, "standard-lichess-v4-frontier"),
-            puzzle.id,
-        )
-    )
-    if len(candidates) < ADDED_FRONTIER:
-        raise ValueError(
-            f"only {len(candidates)} disjoint frontier candidates; need {ADDED_FRONTIER}"
-        )
-    chosen = candidates[:ADDED_FRONTIER]
-    return {
-        "schema": "chessbench.standard_frontier_additions.v1",
-        "snapshot": "2026-07-05",
-        "source": source.name,
-        "source_sha256": SOURCE_SHA256,
-        "seed": SEED,
-        "namespace": "standard-lichess-v4-frontier",
-        "quality_gate": "rating=3000-3199;plays>500;rd<110;popularity>=85;game_url",
-        "eligible_after_disjointness": len(candidates),
-        "excluded_releases": releases,
-        "items": [asdict(puzzle) for puzzle in chosen],
-    }
 
 
 def write_release(corpus: Corpus, suite: Suite) -> None:
@@ -254,15 +297,11 @@ def write_release(corpus: Corpus, suite: Suite) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
-    parser.add_argument(
-        "--refresh-frontier",
-        action="store_true",
-        help="rescan the pinned Lichess snapshot and rewrite the 25-item addition receipt",
-    )
+    parser.add_argument("--refresh-selection", action="store_true")
     args = parser.parse_args()
-    if args.refresh_frontier:
-        receipt = refresh_frontier(args.source)
-        FRONTIER_RECEIPT.write_text(
+    if args.refresh_selection:
+        receipt = refresh_selection(args.source)
+        SELECTION_RECEIPT.write_text(
             json.dumps(receipt, indent=1, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )

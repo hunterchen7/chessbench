@@ -30,8 +30,8 @@ EXPECTED = {
     "standard-smoke-v3": {
         "path": "suites/public/standard-smoke-v3.json",
         "parent": "suites/public/standard-lichess-v4.json",
-        "count": 14,
-        "hash": "sha256:73068832973411d1",
+        "count": 20,
+        "hash": "sha256:65463c83a64a0cfe",
         "version": "3.0.0",
     },
     "woodpecker-smoke-v1": {
@@ -78,12 +78,13 @@ def test_smoke_suites_are_exact_ordered_subsets_of_canonical_parents():
             else {problem.id: asdict(problem) for problem in parent.composed_problems()}
         )
         ids = [str(item["id"]) for item in suite.items]
-        if suite.name in {"standard-smoke-v2", "standard-smoke-v3"}:
+        if suite.name in {
+            "standard-smoke-v2",
+            "standard-smoke-v3",
+        }:
             assert [
                 (int(item["rating"]), str(item["id"])) for item in suite.items
-            ] == sorted(
-                (int(item["rating"]), str(item["id"])) for item in suite.items
-            )
+            ] == sorted((int(item["rating"]), str(item["id"])) for item in suite.items)
         elif suite.kind == "puzzle":
             assert ids == sorted(ids)
         else:
@@ -123,20 +124,23 @@ def test_every_smoke_puzzle_solution_line_is_legal():
 def test_standard_smoke_suite_is_small_and_rating_balanced():
     suite = load_suite(ROOT / "suites/public/standard-smoke-v3.json")
     puzzles = suite.puzzles()
-    assert len(puzzles) == 14
-    assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 45
+    assert len(puzzles) == 20
+    assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 69
     assert [
-        sum(lo <= puzzle.rating <= lo + 399 for puzzle in puzzles)
-        for lo in range(600, 3200, 400)
-    ] == [
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-        2,
-    ]
+        sum(low <= puzzle.rating <= high for puzzle in puzzles)
+        for low, high in (
+            (600, 899),
+            (900, 1199),
+            (1200, 1499),
+            (1500, 1799),
+            (1800, 2099),
+            (2100, 2399),
+            (2400, 2599),
+            (2600, 2799),
+            (2800, 2999),
+            (3000, 3199),
+        )
+    ] == [2] * 10
 
 
 def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
@@ -149,7 +153,9 @@ def test_woodpecker_smoke_suite_is_small_and_requires_long_lines():
         "hard": 2,
     }
     assert all(len(puzzle.moves[1::2]) >= 3 for puzzle in puzzles)
-    assert "historic-deep-blue-kasparov-1997-g2" not in {puzzle.id for puzzle in puzzles}
+    assert "historic-deep-blue-kasparov-1997-g2" not in {
+        puzzle.id for puzzle in puzzles
+    }
     assert all(puzzle.game_url.startswith("https://") for puzzle in puzzles)
 
 

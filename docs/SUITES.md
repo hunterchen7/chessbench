@@ -10,7 +10,7 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v4.json` | Public | 250 | `sha256:45b23614e01975f0` | Rating ascending, ID tie-break; four Standard methods × both response styles |
+| Standard | `suites/public/standard-lichess-v4.json` | Public | 250 | `sha256:f14685f412bbcbd7` | Ten rating bands × 25; type-balanced; rating ascending; four methods × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
@@ -20,22 +20,23 @@ These are the suites to use for new model evaluations.
 
 ### Standard
 
-`standard-lichess-v4` is the 250-item canonical public release. Its 200-item core uses deterministic quotas of
-30, 30, 30, 35, 35, and 40 puzzles in the six 400-point bands from 600–999 through 2600–2999, modestly emphasizing
-the harder calibrated bands. Core items have more than 500 Lichess plays, RD below 100, popularity of at least 90,
-and a source-game URL.
+The working `standard-lichess-v4` release contains exactly 25 tasks in each of ten human-readable difficulty bands:
+600–899, 900–1199, 1200–1499, 1500–1799, 1800–2099, 2100–2399, 2400–2599, 2600–2799, 2800–2999, and 3000–3199.
+The narrower upper bands preserve more resolution where model performance begins to fail. Execution remains rating
+ascending with puzzle ID as the deterministic tie-breaker.
 
-The remaining 50 positions are rated 3000–3199: all 25 v3 frontier tasks plus 25 additional positions selected from
-the complete 2026-07-05 Lichess snapshot. They retain the >500-play rule while allowing RD below 110 and popularity
-of at least 85. The scan found 119 eligible candidates after excluding every existing public and evaluator-held
-puzzle release. Every v4 position comes from a distinct source game. Frontier membership is reported separately;
-its 20% suite share is an intentional high-end stress test, not a claim that the source distribution contains 20%
-frontier puzzles.
+Within each band, selection aims for four mate, four defensive, four quiet, four pawn/promotion, four endgame, and
+five general tactical positions. Because Lichess themes overlap, the builder assigns one primary family using a
+documented precedence order. Diversity never bypasses the source-quality gates: core items require more than 500
+plays, RD below 100, popularity of at least 90, and a source-game URL; 3000–3199 items keep the play and URL rules
+while allowing RD below 110 and popularity of at least 85. When a qualified family is scarce, the target adapts.
+The frontier contains the only eligible mate plus five defensive, five quiet, four pawn/promotion, four endgame,
+and six general tactical tasks. Every v4 task comes from a distinct source game and is disjoint by source game from
+the Woodpecker and evaluator-held Standard releases.
 
-Execution remains rating ascending with puzzle ID as the deterministic tie-breaker, making points and Puzzle Elo
-trajectories progress from easier to harder tasks. V3 remains immutable because existing runs refer to its 325-item
-content hash. The current held-out v1 certification suite also remains frozen at 325 until a separately versioned
-250-item private release is curated; public and private results must never be pooled by name alone.
+V3 remains immutable because historical runs refer to its 325-item content hash. V4 is still the working MVP suite;
+its name will not be incremented again until a deliberately stable release is cut. The held-out v1 certification
+suite remains frozen at 325 in the meantime, and public/private results must never be pooled by name alone.
 The model is asked for one solver move at a time. The forced reply is applied by the harness, and state may continue
 within that puzzle only. No state crosses puzzle boundaries.
 
@@ -191,7 +192,7 @@ parents. They test paid provider calls and every public suite grader without cla
 | --- | ---: | --- | --- |
 | `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Historical Standard v2-derived smoke suite, frozen in ID order |
 | `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Historical Standard v3-derived smoke suite, rating-ascending |
-| `suites/public/standard-smoke-v3.json` | 14 | `sha256:73068832973411d1` | Active Standard v4-derived smoke suite, rating-ascending |
+| `suites/public/standard-smoke-v3.json` | 20 | `sha256:65463c83a64a0cfe` | Active Standard v4-derived smoke suite; two tasks per rating band |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 
@@ -205,13 +206,13 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v3` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
+| Standard | `standard-smoke-v3` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 80 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
 | Esoteric | `esoteric-smoke-v2` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, 3, and 5 | 2 games per method, colors alternating |
 
-This is 69 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain
-45 possible solver turns; the puzzle and composition portion makes at most 193 model requests per model (386 total)
+This is 93 puzzle/composition evaluations per model. Because Standard is move-by-move, its 20 fixtures contain
+69 possible solver turns; the puzzle and composition portion makes at most 289 model requests per model (578 total)
 if every Standard line reaches every turn, plus however many turns the eight games require. Games use `hybrid`
 context, a 200-ply ceiling, and two independent player conversations. Each player receives the authoritative current
 position and public move history but never the other player's raw response or rationale.
