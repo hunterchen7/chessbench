@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "corpus:standard-public-v1@sha256:16f9f90ec25f16440b86",
+ "description": "A 240-position public tactical benchmark sampled across human-calibrated Lichess rating buckets. It provides a reproducible Standard track with source ratings, themes, and game provenance.",
  "seed": 20260714,
  "items": [
   {

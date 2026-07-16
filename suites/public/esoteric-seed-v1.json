@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "composed",
  "source": "corpus:esoteric-seed-v1@sha256:6700995ce1b69ed6ff5a",
+ "description": "A 50-problem exact-answer benchmark spanning directmates, selfmates, reflexmates, helpmates, series movers, and proof games. Every stored solution passes its native stipulation verifier.",
  "seed": 20260714,
  "items": [
   {

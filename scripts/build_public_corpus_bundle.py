@@ -19,11 +19,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from chessbench.categories import categorize_puzzle
-from chessbench.tasks.composed import ComposedProblem
+from chessbench.categories import categorize_puzzle  # noqa: E402
+from chessbench.tasks.composed import ComposedProblem  # noqa: E402
 
 DEFAULT_OUT = ROOT / "web" / "public" / "data" / "corpora"
 HISTORICAL_CANDIDATES = ROOT / "data" / "curated" / "candidates"
+PUBLIC_SUITES = ROOT / "suites" / "public"
 
 RELEASES = {
     "standard": ROOT / "corpora" / "public" / "standard-lichess-v4.json",
@@ -122,11 +123,17 @@ def _historical_bundle() -> dict[str, object]:
                     "themes": item.get("themes", []),
                     "source_url": item["source_url"],
                     "historical_context_url": item.get("historical_context_url", ""),
-                    "why_famous": item.get("why_famous", item.get("provenance_note", "")),
+                    "why_famous": item.get(
+                        "why_famous", item.get("provenance_note", "")
+                    ),
                     "provenance_confidence": item["provenance_confidence"],
                     "line_provenance": item["line_provenance"],
-                    "source_category": item.get("source_category", "hand_curated_classic"),
-                    "source_label": item.get("source_label", "Hand-curated historical game"),
+                    "source_category": item.get(
+                        "source_category", "hand_curated_classic"
+                    ),
+                    "source_label": item.get(
+                        "source_label", "Hand-curated historical game"
+                    ),
                 }
             )
     items.sort(key=lambda item: (str(item["date"]), str(item["id"])))
@@ -141,6 +148,27 @@ def _historical_bundle() -> dict[str, object]:
         "difficulty": counts,
         "items": items,
     }
+
+
+def _suite_catalog() -> dict[str, object]:
+    suites: list[dict[str, object]] = []
+    for path in sorted(PUBLIC_SUITES.glob("*.json")):
+        suite = _read(path)
+        description = str(suite.get("description", "")).strip()
+        if not description:
+            raise ValueError(f"{path.relative_to(ROOT)} is missing a suite description")
+        suites.append(
+            {
+                "name": suite["name"],
+                "version": suite["version"],
+                "kind": suite["kind"],
+                "visibility": suite["visibility"],
+                "items": len(suite.get("items", [])),  # type: ignore[arg-type]
+                "content_hash": suite["content_hash"],
+                "description": description,
+            }
+        )
+    return {"schema": "chessbench.suite_catalog.v1", "suites": suites}
 
 
 def main() -> int:
@@ -167,14 +195,22 @@ def main() -> int:
         print(f"{track}: {len(bundle['items'])} items -> {target}")  # type: ignore[arg-type]
 
     (args.out / "index.json").write_text(
-        json.dumps({"schema": "chessbench.public_corpus_index.v1", "corpora": index}, indent=1) + "\n",
+        json.dumps(
+            {"schema": "chessbench.public_corpus_index.v1", "corpora": index}, indent=1
+        )
+        + "\n",
         encoding="utf-8",
     )
     historical = _historical_bundle()
     (args.out / "historical.json").write_text(
         json.dumps(historical, indent=1) + "\n", encoding="utf-8"
     )
+    suites = _suite_catalog()
+    (args.out.parent / "suites.json").write_text(
+        json.dumps(suites, indent=1) + "\n", encoding="utf-8"
+    )
     print(f"historical: {historical['candidate_count']} candidate-only positions")
+    print(f"suites: {len(suites['suites'])} described releases")  # type: ignore[arg-type]
     return 0
 
 

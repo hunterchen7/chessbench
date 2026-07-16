@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "corpus:standard-lichess-v2@sha256:5732b7cefa909aac3fa5",
+ "description": "A 325-position Lichess tactical benchmark covering a broad range of human-calibrated puzzle ratings and motifs. Every position meets the release's solve-count, rating-deviation, popularity, and source-game requirements.",
  "seed": 0,
  "items": [
   {

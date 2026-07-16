@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "corpus:woodpecker-public-v1@sha256:ababdbdcc2b42b75dd00",
+ "description": "A 120-position one-shot calculation benchmark built from longer Lichess tactical lines. Models return the complete variation, including forced opponent replies, and receive prefix credit for correct solver moves.",
  "seed": 20260714,
  "items": [
   {

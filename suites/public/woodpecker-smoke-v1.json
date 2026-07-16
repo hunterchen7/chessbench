@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "suite:woodpecker-masters-v1@sha256:20e309892363e42e",
+ "description": "A six-position full-line calculation preflight with two puzzles from each Easy, Medium, and Hard section. It validates one-shot variation parsing and prefix scoring.",
  "seed": 20260715,
  "items": [
   {

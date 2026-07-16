@@ -31,6 +31,7 @@ export interface SuiteDoc {
   kind: "puzzle" | "composed"
   track?: "puzzle" | "woodpecker" | "esoteric"
   source?: string
+  description?: string
   content_hash: string
   items: Array<Record<string, unknown>>
 }

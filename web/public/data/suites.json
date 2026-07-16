@@ -1,0 +1,167 @@
+{
+ "schema": "chessbench.suite_catalog.v1",
+ "suites": [
+  {
+   "name": "esoteric-seed-v1",
+   "version": "1.0.0",
+   "kind": "composed",
+   "visibility": "public",
+   "items": 50,
+   "content_hash": "sha256:aedbc34a91a528ae",
+   "description": "A 50-problem exact-answer benchmark spanning directmates, selfmates, reflexmates, helpmates, series movers, and proof games. Every stored solution passes its native stipulation verifier."
+  },
+  {
+   "name": "esoteric-seed-v2",
+   "version": "2.0.0",
+   "kind": "composed",
+   "visibility": "public",
+   "items": 51,
+   "content_hash": "sha256:b6e7e9fdb5c1ba36",
+   "description": "A 51-problem exact-answer benchmark spanning directmates, selfmates, reflexmates, helpmates, series movers, and proof games. Every stored solution is verifier-checked, and sourced historical compositions pass an explicit public-admission gate."
+  },
+  {
+   "name": "esoteric-smoke-v1",
+   "version": "1.0.0",
+   "kind": "composed",
+   "visibility": "public",
+   "items": 7,
+   "content_hash": "sha256:70fb0097ee520bae",
+   "description": "A seven-problem esoteric preflight containing one verifier-checked example of every active stipulation. It tests exact-answer parsing and grading without running the full catalogue."
+  },
+  {
+   "name": "esoteric-smoke-v2",
+   "version": "2.0.0",
+   "kind": "composed",
+   "visibility": "public",
+   "items": 7,
+   "content_hash": "sha256:607064f731e3dba3",
+   "description": "A seven-problem esoteric preflight containing one native-verifier-checked example of every active stipulation. It tests exact-answer protocols without running the full catalogue."
+  },
+  {
+   "name": "standard-lichess-v2",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 325,
+   "content_hash": "sha256:611c4c22e955ece8",
+   "description": "A 325-position Lichess tactical benchmark covering a broad range of human-calibrated puzzle ratings and motifs. Every position meets the release's solve-count, rating-deviation, popularity, and source-game requirements."
+  },
+  {
+   "name": "standard-lichess-v3",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 325,
+   "content_hash": "sha256:a8cd0d9483229abe",
+   "description": "A 325-position Lichess tactical benchmark spanning beginner through frontier difficulty. Rating-ascending order makes the point where a model begins to falter visible within each run."
+  },
+  {
+   "name": "standard-lichess-v4",
+   "version": "4.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 250,
+   "content_hash": "sha256:f14685f412bbcbd7",
+   "description": "A 250-position, rating-ordered Lichess tactical benchmark with exactly 25 puzzles in each of ten difficulty bands. Each band targets a diverse mix of mating, defensive, quiet, pawn, endgame, and tactical ideas while retaining strict calibration and provenance gates."
+  },
+  {
+   "name": "standard-public-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 240,
+   "content_hash": "sha256:5520347416337d14",
+   "description": "A 240-position public tactical benchmark sampled across human-calibrated Lichess rating buckets. It provides a reproducible Standard track with source ratings, themes, and game provenance."
+  },
+  {
+   "name": "standard-seed-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 100,
+   "content_hash": "sha256:a4d6750bdb729857",
+   "description": "A 100-position seed benchmark for validating Standard puzzle selection, prompting, grading, and persistence. It spans multiple rating buckets and tactical motifs in a compact public release."
+  },
+  {
+   "name": "standard-smoke-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 14,
+   "content_hash": "sha256:63ca1208b6c74ec6",
+   "description": "A 14-position Standard preflight suite sampled across the full rating range. It exercises every puzzle prompt and persistence path before a paid full-suite run."
+  },
+  {
+   "name": "standard-smoke-v2",
+   "version": "2.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 14,
+   "content_hash": "sha256:67c948d7899cfe43",
+   "description": "A 14-position rating-ordered Standard preflight suite spanning the calibrated difficulty range. It validates multi-turn puzzle execution, grading, and durable writes at low cost."
+  },
+  {
+   "name": "standard-smoke-v3",
+   "version": "3.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 20,
+   "content_hash": "sha256:65463c83a64a0cfe",
+   "description": "A 20-position Standard preflight suite with two puzzles from each of the ten active rating bands. It is the smallest run that checks the current suite's full difficulty ladder."
+  },
+  {
+   "name": "tactical-lichess-v1",
+   "version": "1",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 66,
+   "content_hash": "sha256:14f9991dc0aecab2",
+   "description": "A 66-position legacy Lichess tactics suite used to prove the original puzzle runner. It preserves a small reproducibility fixture for early ChessBench experiments."
+  },
+  {
+   "name": "tactical-public-v1",
+   "version": "1",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 96,
+   "content_hash": "sha256:dbc5236e81094e35",
+   "description": "A 96-position legacy public tactics suite spanning multiple rating buckets. It preserves the task set used by the first points-based puzzle experiments."
+  },
+  {
+   "name": "woodpecker-masters-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 135,
+   "content_hash": "sha256:20e309892363e42e",
+   "description": "A 135-position full-line calculation benchmark drawn from titled-player games. Models must return each complete forced UCI variation in one response, with positions editorially divided into Easy, Medium, and Hard sections."
+  },
+  {
+   "name": "woodpecker-public-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 120,
+   "content_hash": "sha256:f66bc33d2d4d7897",
+   "description": "A 120-position one-shot calculation benchmark built from longer Lichess tactical lines. Models return the complete variation, including forced opponent replies, and receive prefix credit for correct solver moves."
+  },
+  {
+   "name": "woodpecker-seed-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 60,
+   "content_hash": "sha256:21c6ae46eb9ccc4f",
+   "description": "A 60-position seed suite for one-shot full-variation calculation. It validates longer-line prompting, UCI sequence parsing, and prefix scoring across multiple difficulty levels."
+  },
+  {
+   "name": "woodpecker-smoke-v1",
+   "version": "1.0.0",
+   "kind": "puzzle",
+   "visibility": "public",
+   "items": 6,
+   "content_hash": "sha256:486f9b5e854c299d",
+   "description": "A six-position full-line calculation preflight with two puzzles from each Easy, Medium, and Hard section. It validates one-shot variation parsing and prefix scoring."
+  }
+ ]
+}

@@ -277,6 +277,12 @@ def build() -> tuple[Corpus, Suite]:
         version=corpus.version,
         visibility=corpus.visibility,
         source_label=f"corpus:{corpus.name}@{corpus.content_hash}",
+        description=(
+            "A 250-position, rating-ordered Lichess tactical benchmark with exactly "
+            "25 puzzles in each of ten difficulty bands. Each band targets a diverse "
+            "mix of mating, defensive, quiet, pawn, endgame, and tactical ideas while "
+            "retaining strict calibration and provenance gates."
+        ),
         seed=20260716,
     )
     return corpus, suite

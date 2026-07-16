@@ -11,6 +11,7 @@ import { pct, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
 import { participantKind } from "@/lib/participants"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { SuiteDescriptor } from "@/components/SuiteDescriptor"
 import { StipulationTooltip } from "@/components/StipulationTooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -81,6 +82,8 @@ export function Esoteric() {
           <ExportButton track="esoteric" responseStyle={responseStyle} />
         </div>
       </div>
+
+      <SuiteDescriptor name="esoteric-seed-v2" />
 
       <p className="-mt-5 flex items-center gap-1.5 text-xs text-muted-foreground"><CircleHelp className="size-3.5" /> Click or focus any genre label for its exact stipulation.</p>
 

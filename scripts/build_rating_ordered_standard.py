@@ -24,6 +24,11 @@ def build() -> Suite:
         source_label=(
             f"suite:{source.name}@{source.content_hash};ordering=rating-asc,id-asc"
         ),
+        description=(
+            "A 325-position Lichess tactical benchmark spanning beginner through "
+            "frontier difficulty. Rating-ascending order makes the point where a "
+            "model begins to falter visible within each run."
+        ),
         seed=source.seed,
     )
 

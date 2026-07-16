@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "composed",
  "source": "suite:esoteric-seed-v2@sha256:b6e7e9fdb5c1ba36",
+ "description": "A seven-problem esoteric preflight containing one native-verifier-checked example of every active stipulation. It tests exact-answer protocols without running the full catalogue.",
  "seed": 20260715,
  "items": [
   {

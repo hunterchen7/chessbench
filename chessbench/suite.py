@@ -42,6 +42,8 @@ class Suite:
     seed: int
     items: list[dict[str, object]] = field(default_factory=list)  # frozen item dicts
     content_hash: str = ""
+    # Editorial copy describes a release but does not alter the benchmark task.
+    description: str = ""
 
     def puzzles(self) -> list[Puzzle]:
         if self.kind != "puzzle":
@@ -54,7 +56,11 @@ class Suite:
         return [ComposedProblem(**it) for it in self.items]  # type: ignore[arg-type]
 
     def compute_hash(self) -> str:
-        payload = {k: v for k, v in asdict(self).items() if k != "content_hash"}
+        payload = {
+            k: v
+            for k, v in asdict(self).items()
+            if k not in {"content_hash", "description"}
+        }
         blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
@@ -67,6 +73,7 @@ class Suite:
             "visibility": self.visibility,
             "kind": self.kind,
             "source": self.source,
+            "description": self.description,
             "items": len(self.items),
             "content_hash": self.content_hash or self.compute_hash(),
         }
@@ -100,8 +107,13 @@ def build_puzzle_suite(
     chosen.sort(key=lambda p: p.id)
 
     suite = Suite(
-        name=name, version=version, visibility=visibility, kind="puzzle",
-        source=source_label, seed=seed, items=[asdict(p) for p in chosen],
+        name=name,
+        version=version,
+        visibility=visibility,
+        kind="puzzle",
+        source=source_label,
+        seed=seed,
+        items=[asdict(p) for p in chosen],
     )
     suite.content_hash = suite.compute_hash()
     return suite
@@ -114,6 +126,7 @@ def freeze_puzzle_suite(
     version: str = "1",
     visibility: Visibility = "public",
     source_label: str,
+    description: str = "",
     seed: int = 0,
 ) -> Suite:
     """Freeze an already-curated puzzle corpus without sampling it again."""
@@ -123,6 +136,7 @@ def freeze_puzzle_suite(
         visibility=visibility,
         kind="puzzle",
         source=source_label,
+        description=description,
         seed=seed,
         items=[asdict(puzzle) for puzzle in puzzles],
     )
@@ -137,6 +151,7 @@ def freeze_composed_suite(
     version: str = "1",
     visibility: Visibility = "public",
     source_label: str,
+    description: str = "",
     seed: int = 0,
 ) -> Suite:
     """Freeze a validated esoteric corpus as a runnable composed suite."""
@@ -146,6 +161,7 @@ def freeze_composed_suite(
         visibility=visibility,
         kind="composed",
         source=source_label,
+        description=description,
         seed=seed,
         items=[asdict(problem) for problem in problems],
     )

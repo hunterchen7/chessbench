@@ -92,11 +92,19 @@ def _selection(
 
 def build(args: argparse.Namespace) -> list[Corpus]:
     puzzles = load_puzzles(args.tactical_source)
-    source_pool_sha256 = hashlib.sha256(pathlib.Path(args.tactical_source).read_bytes()).hexdigest()
-    bands = [*DEFAULT_BANDS, (2600, 3000)] if args.include_master else list(DEFAULT_BANDS)
+    source_pool_sha256 = hashlib.sha256(
+        pathlib.Path(args.tactical_source).read_bytes()
+    ).hexdigest()
+    bands = (
+        [*DEFAULT_BANDS, (2600, 3000)] if args.include_master else list(DEFAULT_BANDS)
+    )
     standard_name = f"standard-{args.release}"
     woodpecker_name = f"woodpecker-{args.release}"
-    candidate_problems = [problem for problem in load_composed(args.composed_source) if problem.kind != "study"]
+    candidate_problems = [
+        problem
+        for problem in load_composed(args.composed_source)
+        if problem.kind != "study"
+    ]
     # One source position appears as ser-h#2, ser-h#3, and ser-h#4.  Keep the
     # shortest stipulation so no two corpus items begin from the same state.
     problems = []
@@ -191,7 +199,10 @@ def build(args: argparse.Namespace) -> list[Corpus]:
                 "position_deduplication": "first lowest-n item per first-four-field FEN",
                 "tactical_source_pool_sha256": source_pool_sha256,
             },
-            items=[asdict(problem) for problem in sorted(problems, key=lambda problem: problem.id)],
+            items=[
+                asdict(problem)
+                for problem in sorted(problems, key=lambda problem: problem.id)
+            ],
         )
         corpora.append(esoteric)
     corpus_dir = pathlib.Path(args.corpus_dir)
@@ -205,6 +216,7 @@ def build(args: argparse.Namespace) -> list[Corpus]:
             name=standard.name,
             version=standard.version,
             source_label=f"corpus:{standard.name}@{standard.content_hash}",
+            description=standard.description,
             seed=args.seed,
         ),
         freeze_puzzle_suite(
@@ -212,6 +224,7 @@ def build(args: argparse.Namespace) -> list[Corpus]:
             name=woodpecker.name,
             version=woodpecker.version,
             source_label=f"corpus:{woodpecker.name}@{woodpecker.content_hash}",
+            description=woodpecker.description,
             seed=args.seed,
         ),
     ]
@@ -222,6 +235,7 @@ def build(args: argparse.Namespace) -> list[Corpus]:
                 name=esoteric.name,
                 version=esoteric.version,
                 source_label=f"corpus:{esoteric.name}@{esoteric.content_hash}",
+                description=esoteric.description,
                 seed=args.seed,
             )
         )
@@ -241,17 +255,33 @@ def build(args: argparse.Namespace) -> list[Corpus]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tactical-source", default=str(ROOT / "data" / "sample_puzzles.csv"))
-    parser.add_argument("--composed-source", default=str(ROOT / "data" / "composed_problems.json"))
+    parser.add_argument(
+        "--tactical-source", default=str(ROOT / "data" / "sample_puzzles.csv")
+    )
+    parser.add_argument(
+        "--composed-source", default=str(ROOT / "data" / "composed_problems.json")
+    )
     parser.add_argument("--corpus-dir", default=str(ROOT / "corpora" / "public"))
     parser.add_argument("--suite-dir", default=str(ROOT / "suites" / "public"))
-    parser.add_argument("--lichess-snapshot", default="local 500-row seed fixture; upstream date unknown")
-    parser.add_argument("--release", default="seed-v1",
-                        help="suffix for Standard/Woodpecker corpus names, e.g. public-v1")
-    parser.add_argument("--include-master", action="store_true",
-                        help="add a sixth 2600-2999 rating band (requires a large source pool)")
-    parser.add_argument("--skip-esoteric", action="store_true",
-                        help="build only Standard and Woodpecker, preserving the existing Esoteric release")
+    parser.add_argument(
+        "--lichess-snapshot",
+        default="local 500-row seed fixture; upstream date unknown",
+    )
+    parser.add_argument(
+        "--release",
+        default="seed-v1",
+        help="suffix for Standard/Woodpecker corpus names, e.g. public-v1",
+    )
+    parser.add_argument(
+        "--include-master",
+        action="store_true",
+        help="add a sixth 2600-2999 rating band (requires a large source pool)",
+    )
+    parser.add_argument(
+        "--skip-esoteric",
+        action="store_true",
+        help="build only Standard and Woodpecker, preserving the existing Esoteric release",
+    )
     parser.add_argument("--standard-per-band", type=int, default=20)
     parser.add_argument("--woodpecker-per-band", type=int, default=12)
     parser.add_argument("--seed", type=int, default=20260714)

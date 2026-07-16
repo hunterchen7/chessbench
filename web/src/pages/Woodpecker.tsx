@@ -8,6 +8,7 @@ import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { SuiteDescriptor } from "@/components/SuiteDescriptor"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -63,6 +64,8 @@ export function Woodpecker() {
           <ExportButton track="woodpecker" responseStyle={responseStyle} />
         </div>
       </section>
+
+      <SuiteDescriptor name={activeSuite || corpus?.name || "woodpecker-masters-v1"} />
 
       <Card className="overflow-hidden border-violet-500/20 bg-violet-500/[0.035]">
         <CardContent className="grid gap-5 pt-6 md:grid-cols-[auto_1fr_1fr] md:items-start">

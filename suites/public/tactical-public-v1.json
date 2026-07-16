@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "lichess",
+ "description": "A 96-position legacy public tactics suite spanning multiple rating buckets. It preserves the task set used by the first points-based puzzle experiments.",
  "seed": 0,
  "items": [
   {

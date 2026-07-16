@@ -169,6 +169,12 @@ def build(
         name=corpus.name,
         version=corpus.version,
         source_label=f"corpus:{corpus.name}@{corpus.content_hash}",
+        description=(
+            "A 51-problem exact-answer benchmark spanning directmates, selfmates, "
+            "reflexmates, helpmates, series movers, and proof games. Every stored "
+            "solution is verifier-checked, and sourced historical compositions pass "
+            "an explicit public-admission gate."
+        ),
         seed=SEED,
     )
     save_suite(suite, suite_out)

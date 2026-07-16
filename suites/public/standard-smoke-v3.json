@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "suite:standard-lichess-v4@sha256:f14685f412bbcbd7",
+ "description": "A 20-position Standard preflight suite with two puzzles from each of the ten active rating bands. It is the smallest run that checks the current suite's full difficulty ladder.",
  "seed": 20260715,
  "items": [
   {

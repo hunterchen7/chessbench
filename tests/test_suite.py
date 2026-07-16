@@ -6,7 +6,12 @@ import pathlib
 
 import pytest
 
-from chessbench.suite import build_puzzle_suite, load_suite, save_suite, save_suite_manifest
+from chessbench.suite import (
+    build_puzzle_suite,
+    load_suite,
+    save_suite,
+    save_suite_manifest,
+)
 from chessbench.tasks.puzzles import load_puzzles
 
 SAMPLE = pathlib.Path(__file__).resolve().parent.parent / "data" / "sample_puzzles.csv"
@@ -29,6 +34,14 @@ def test_different_seed_changes_selection():
     assert a.content_hash != b.content_hash
 
 
+def test_description_is_published_metadata_not_task_identity():
+    a = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=0)
+    b = build_puzzle_suite(_source(), name="t", per_bucket=5, seed=0)
+    b.description = "A standalone explanation of this exact suite."
+    assert a.content_hash == b.compute_hash()
+    assert b.manifest()["description"] == b.description
+
+
 def test_roundtrip_and_tamper_guard(tmp_path):
     suite = build_puzzle_suite(_source(), name="t", per_bucket=3, seed=0)
     path = tmp_path / "suite.json"
@@ -47,7 +60,9 @@ def test_roundtrip_and_tamper_guard(tmp_path):
 
 
 def test_items_are_rating_stratified():
-    suite = build_puzzle_suite(_source(), name="t", per_bucket=4, seed=0, lo=600, hi=2800, width=200)
+    suite = build_puzzle_suite(
+        _source(), name="t", per_bucket=4, seed=0, lo=600, hi=2800, width=200
+    )
     ratings = [int(it["rating"]) for it in suite.items]
     assert all(600 <= r < 2800 for r in ratings)
     assert len(set(it["id"] for it in suite.items)) == len(suite.items)  # no duplicates
@@ -55,7 +70,10 @@ def test_items_are_rating_stratified():
 
 def test_checked_in_composed_suite_loads_as_composed_problems():
     suite = load_suite(
-        pathlib.Path(__file__).resolve().parent.parent / "suites" / "public" / "esoteric-seed-v2.json"
+        pathlib.Path(__file__).resolve().parent.parent
+        / "suites"
+        / "public"
+        / "esoteric-seed-v2.json"
     )
     problems = suite.composed_problems()
     assert suite.kind == "composed"
@@ -63,6 +81,13 @@ def test_checked_in_composed_suite_loads_as_composed_problems():
     assert any(problem.kind == "selfmate" for problem in problems)
     with pytest.raises(ValueError, match="not puzzle"):
         suite.puzzles()
+
+
+def test_every_public_suite_has_a_standalone_description():
+    root = pathlib.Path(__file__).resolve().parent.parent / "suites" / "public"
+    suites = [load_suite(path) for path in root.glob("*.json")]
+    assert suites
+    assert all(len(suite.description.split()) >= 12 for suite in suites)
 
 
 def test_private_suite_requires_private_directory_and_manifest_redacts(tmp_path):

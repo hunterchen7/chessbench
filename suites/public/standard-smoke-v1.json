@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "suite:standard-lichess-v2@sha256:611c4c22e955ece8",
+ "description": "A 14-position Standard preflight suite sampled across the full rating range. It exercises every puzzle prompt and persistence path before a paid full-suite run.",
  "seed": 20260715,
  "items": [
   {

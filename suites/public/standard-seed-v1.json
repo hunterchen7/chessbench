@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "corpus:standard-seed-v1@sha256:f0d48f423f4333f033d4",
+ "description": "A 100-position seed benchmark for validating Standard puzzle selection, prompting, grading, and persistence. It spans multiple rating buckets and tactical motifs in a compact public release.",
  "seed": 20260714,
  "items": [
   {

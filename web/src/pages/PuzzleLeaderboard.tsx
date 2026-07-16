@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { ArrowRight, BarChart3, Check, CircleDollarSign, Database, Filter, Info, Layers3 } from "lucide-react"
 import { useData } from "@/lib/useData"
-import type { ModelVariant, RunIndexEntry } from "@/lib/data"
+import { loadSuiteCatalog, type ModelVariant, type RunIndexEntry, type SuiteCatalog } from "@/lib/data"
 import { isModelVariant } from "@/lib/participants"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { SuiteDescriptor } from "@/components/SuiteDescriptor"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent } from "@/components/ui/card"
@@ -72,12 +73,32 @@ function runDetailPath(run: RunIndexEntry) {
 export function PuzzleLeaderboard() {
   const { runs } = useData()
   const navigate = useNavigate()
-  const [suite, setSuite] = useState("")
-  const [visibleModes, setVisibleModes] = useState<Mode[]>(MODES.map((mode) => mode.n))
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [suiteCatalog, setSuiteCatalog] = useState<SuiteCatalog | null>(null)
+  const updateSearchParams = useCallback((update: (next: URLSearchParams) => void) => setSearchParams((current) => {
+    const next = new URLSearchParams(current)
+    update(next)
+    return next
+  }, { replace: true }), [setSearchParams])
+  useEffect(() => {
+    let active = true
+    void loadSuiteCatalog().then((next) => {
+      if (active) setSuiteCatalog(next)
+    }).catch(() => {
+      if (active) setSuiteCatalog({ schema: "chessbench.suite_catalog.v1", suites: [] })
+    })
+    return () => { active = false }
+  }, [])
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
-  const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
-  const activeSuite = suite || suites[0] || "standard-lichess-v4"
-  const suiteRuns = useMemo(() => standard.filter((run) => !suites.length || run.suite?.name === activeSuite), [standard, suites.length, activeSuite])
+  const suites = useMemo(() => (suiteCatalog?.suites ?? [])
+    .filter((entry) => /^standard-lichess-v\d+$/.test(entry.name))
+    .toSorted((a, b) => Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0)), [suiteCatalog])
+  const requestedSuite = searchParams.get("suite")
+  const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : suites[0]?.name || "standard-lichess-v4"
+  const requestedModes = searchParams.get("modes")?.split(",").map(Number).filter((value): value is Mode => MODES.some((mode) => mode.n === value)) ?? []
+  const visibleModes = requestedModes.length ? MODES.map((mode) => mode.n).filter((mode) => requestedModes.includes(mode)) : MODES.map((mode) => mode.n)
+  const openModels = searchParams.getAll("open")
+  const suiteRuns = useMemo(() => standard.filter((run) => run.suite?.name === activeSuite), [standard, activeSuite])
 
   const rows = useMemo(() => {
     const grouped = new Map<string, ModelRow>()
@@ -103,10 +124,20 @@ export function PuzzleLeaderboard() {
     cost: suiteRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }), [suiteRuns])
 
-  const toggleMode = (mode: Mode) => setVisibleModes((current) => {
-    if (current.includes(mode)) return current.length === 1 ? current : current.filter((item) => item !== mode)
-    return MODES.map((item) => item.n).filter((item) => current.includes(item) || item === mode)
+  const setSuite = (value: string) => updateSearchParams((next) => next.set("suite", value))
+  const setOpenModels = (values: string[]) => updateSearchParams((next) => {
+    next.delete("open")
+    values.forEach((value) => next.append("open", value))
   })
+  const toggleMode = (mode: Mode) => {
+    const nextModes = visibleModes.includes(mode)
+      ? visibleModes.length === 1 ? visibleModes : visibleModes.filter((item) => item !== mode)
+      : MODES.map((item) => item.n).filter((item) => visibleModes.includes(item) || item === mode)
+    updateSearchParams((next) => {
+      if (nextModes.length === MODES.length) next.delete("modes")
+      else next.set("modes", nextModes.join(","))
+    })
+  }
   const matrixColumns = `minmax(250px, 1.4fr) repeat(${visibleModes.length}, minmax(185px, .85fr)) minmax(120px, .65fr)`
   const matrixMinWidth = 390 + visibleModes.length * 195
 
@@ -120,8 +151,23 @@ export function PuzzleLeaderboard() {
             Compare every model across four board-information and coaching methods. Points decide performance within a run; Puzzle Elo estimates the human puzzle rating at which the model would score about 50%.
           </p>
         </div>
-        <PuzzleNav count={325} />
+        <div className="grid gap-3 lg:justify-items-end">
+          <div className="w-full lg:w-64">
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Benchmark suite</div>
+            <Select value={activeSuite} onValueChange={setSuite}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {suites.map((entry, index) => <SelectItem key={entry.name} value={entry.name}>
+                  {entry.name} · {entry.items}{index === 0 ? " · latest" : ""}
+                </SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <PuzzleNav count={250} />
+        </div>
       </section>
+
+      <SuiteDescriptor name={activeSuite} />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models.toLocaleString()}</div><div className="text-xs text-muted-foreground">model configurations</div></div></CardContent></Card>
@@ -134,7 +180,6 @@ export function PuzzleLeaderboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex max-w-2xl items-start gap-2 text-sm text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" /><span><strong className="text-foreground">{activeSuite}</strong> · cells show every available response style. Expand a model for points, solves, legality, cost, and run dates.</span></div>
           <div className="flex flex-wrap items-center gap-2">
-            {suites.length > 1 ? <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select> : null}
             <div className="flex min-h-9 max-w-full flex-wrap items-center gap-1 rounded-lg border bg-card p-1 shadow-xs" aria-label="Visible method columns">
               <span className="flex items-center gap-1 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><Filter className="size-3" /> Columns</span>
               {MODES.map((item) => {
@@ -169,7 +214,7 @@ export function PuzzleLeaderboard() {
                     <div className="text-right text-xs font-medium text-muted-foreground">Visible runs</div>
                   </div>
                 </div>
-                <Accordion type="multiple">
+                <Accordion type="multiple" value={openModels} onValueChange={setOpenModels}>
                   {rows.map((row) => {
                     const visibleRuns = row.runs.filter((run) => {
                       const info = modeInfo(run.condition)

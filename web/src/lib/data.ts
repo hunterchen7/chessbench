@@ -215,6 +215,29 @@ export interface PublicCorpus<T> {
   items: T[]
 }
 
+export interface SuiteCatalogEntry {
+  name: string
+  version: string
+  kind: "puzzle" | "composed"
+  visibility: "public" | "private"
+  items: number
+  content_hash: string
+  description: string
+}
+
+export interface SuiteCatalog {
+  schema: "chessbench.suite_catalog.v1"
+  suites: SuiteCatalogEntry[]
+}
+
+let suiteCatalogRequest: Promise<SuiteCatalog> | null = null
+export function loadSuiteCatalog(): Promise<SuiteCatalog> {
+  return suiteCatalogRequest ??= fetchJSON<SuiteCatalog>(`${DATA}suites.json`).catch((error) => {
+    suiteCatalogRequest = null
+    throw error
+  })
+}
+
 export async function loadPublicCorpus<T>(track: "standard" | "woodpecker" | "esoteric"): Promise<PublicCorpus<T>> {
   return fetchJSON<PublicCorpus<T>>(`${DATA}corpora/${track}.json`)
 }

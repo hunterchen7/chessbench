@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "suite:standard-lichess-v3@sha256:a8cd0d9483229abe",
+ "description": "A 14-position rating-ordered Standard preflight suite spanning the calibrated difficulty range. It validates multi-turn puzzle execution, grading, and durable writes at low cost.",
  "seed": 20260715,
  "items": [
   {

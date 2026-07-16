@@ -104,6 +104,11 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         name="standard-smoke-v1",
         version="1.0.0",
         source_label=f"suite:{standard_v1_parent.name}@{standard_v1_parent.content_hash}",
+        description=(
+            "A 14-position Standard preflight suite sampled across the full rating "
+            "range. It exercises every puzzle prompt and persistence path before a "
+            "paid full-suite run."
+        ),
         seed=SEED,
     )
     standard_v2 = freeze_puzzle_suite(
@@ -114,6 +119,11 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         name="standard-smoke-v2",
         version="2.0.0",
         source_label=f"suite:{standard_v2_parent.name}@{standard_v2_parent.content_hash}",
+        description=(
+            "A 14-position rating-ordered Standard preflight suite spanning the "
+            "calibrated difficulty range. It validates multi-turn puzzle execution, "
+            "grading, and durable writes at low cost."
+        ),
         seed=SEED,
     )
     standard_v3 = freeze_puzzle_suite(
@@ -124,6 +134,11 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         name="standard-smoke-v3",
         version="3.0.0",
         source_label=f"suite:{standard_v3_parent.name}@{standard_v3_parent.content_hash}",
+        description=(
+            "A 20-position Standard preflight suite with two puzzles from each of "
+            "the ten active rating bands. It is the smallest run that checks the "
+            "current suite's full difficulty ladder."
+        ),
         seed=SEED,
     )
     woodpecker = freeze_puzzle_suite(
@@ -131,6 +146,11 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         name="woodpecker-smoke-v1",
         version="1.0.0",
         source_label=f"suite:{woodpecker_parent.name}@{woodpecker_parent.content_hash}",
+        description=(
+            "A six-position full-line calculation preflight with two puzzles from "
+            "each Easy, Medium, and Hard section. It validates one-shot variation "
+            "parsing and prefix scoring."
+        ),
         seed=SEED,
     )
     esoteric = freeze_composed_suite(
@@ -138,6 +158,11 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         name="esoteric-smoke-v2",
         version="2.0.0",
         source_label=f"suite:{esoteric_parent.name}@{esoteric_parent.content_hash}",
+        description=(
+            "A seven-problem esoteric preflight containing one native-verifier-checked "
+            "example of every active stipulation. It tests exact-answer protocols "
+            "without running the full catalogue."
+        ),
         seed=SEED,
     )
     return [

@@ -4,6 +4,7 @@
  "visibility": "public",
  "kind": "puzzle",
  "source": "corpus:woodpecker-masters-v1@sha256:c411950e6bc1d935879d",
+ "description": "A 135-position full-line calculation benchmark drawn from titled-player games. Models must return each complete forced UCI variation in one response, with positions editorially divided into Easy, Medium, and Hard sections.",
  "seed": 0,
  "items": [
   {
