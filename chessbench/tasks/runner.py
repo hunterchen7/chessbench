@@ -88,7 +88,7 @@ def run_puzzles(
     log_f = open(log_path, "w", encoding="utf-8") if log_path else None
     resume_f = open(resume_path, "a", encoding="utf-8") if resume_path else None
     consecutive_errors = 0
-    new_items = 0
+    issued_items = 0
     try:
         start = time.time()
         for i, p in enumerate(puzzles, 1):
@@ -96,12 +96,16 @@ def run_puzzles(
             if (
                 not cached
                 and max_new_items is not None
-                and new_items >= max_new_items
+                and issued_items >= max_new_items
             ):
                 break
             if cached:
                 res = done[p.id]
             else:
+                # Count the paid attempt before issuing it. Provider failures
+                # must still consume the operational boundary so a one-call
+                # preflight can never spill into a second request.
+                issued_items += 1
                 try:
                     checkpoint_hook = (
                         partial(on_checkpoint, i - 1, p)
@@ -139,8 +143,6 @@ def run_puzzles(
                 resume_f.flush()  # durable per-puzzle so a kill loses nothing
             if on_result and not cached:
                 on_result(i - 1, p, res)
-            if not cached:
-                new_items += 1
             if progress_every and i % progress_every == 0:
                 rate = sum(r.solved for r in results) / len(results)
                 print(

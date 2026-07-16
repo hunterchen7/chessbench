@@ -282,6 +282,26 @@ def test_runner_can_stop_before_issuing_more_paid_items():
     assert len(model.calls) == 1
 
 
+def test_runner_paid_boundary_counts_provider_failures():
+    second = replace(ONE_MOVE, id="one-checkpoint-2")
+    model = UsageScriptedModel(
+        [
+            ModelError("provider failed"),
+            AssertionError("second provider call must not be issued"),
+        ]
+    )
+
+    with pytest.raises(RuntimeError, match="provider calls failed"):
+        run_puzzles(
+            LLMAgent(model),
+            [ONE_MOVE, second],
+            HEADLINE,
+            max_new_items=1,
+        )
+
+    assert len(model.calls) == 1
+
+
 def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):
     path = tmp_path / "migrate-v3.db"
     with BenchmarkStore(path):
