@@ -2,17 +2,17 @@
 
 ## Public low-reasoning campaign
 
-The first headline campaign fixes both models to low reasoning, an 8,192-token
-maximum output envelope, temperature 1, UCI notation, hybrid within-task
+The headline campaign fixes both models to low reasoning, the provider-native
+output allowance (no ChessBench completion cap), temperature 1, UCI notation, hybrid within-task
 conversation state, and the provider-compatible `prompt_json_v1` response
-protocol. It contains 20 independently durable cells:
+protocol. It contains 24 independently durable cells:
 
 | Track | Information mode | Response styles | Models | Items per cell | Evaluations |
 | --- | --- | --- | ---: | ---: | ---: |
-| Standard | Modes 1, 2, and 3 | move-only + JSON rationale | 2 | 325 | 3,900 |
+| Standard | Raw, Assisted, Coached, and Deep coached (`--mode 5`) | move-only + JSON rationale | 2 | 325 | 5,200 |
 | Woodpecker | Mode 4 full line | move-only + JSON rationale | 2 | 135 | 540 |
 | Esoteric | Mode 3 coached | move-only + JSON rationale | 2 | 50 | 200 |
-| **Total** |  |  |  |  | **4,640** |
+| **Total** |  |  |  |  | **5,940** |
 
 The models are `openai/gpt-5.6-luna` and
 `anthropic/claude-haiku-4.5`, each addressed through OpenRouter. Response style
@@ -33,8 +33,8 @@ python3 scripts/run_public_campaign.py --sync
 
 Before creating a new run row, the launcher checks the current OpenRouter key
 and refuses to start below $1 remaining. This avoids empty 0/N partial cells;
-use `--minimum-credits` to raise the floor. Smoke-derived extrapolation puts the
-complete campaign near $40, so funding roughly $45 leaves a reasonable margin.
+use `--minimum-credits` to raise the floor. Estimate cost from recent completed
+cells immediately before launch because provider pricing and unbounded completion usage can change.
 `--skip-credit-check` is available for an intentionally unlimited or proxied
 credential whose balance endpoint is unavailable.
 
@@ -70,7 +70,7 @@ python3 -m chessbench run-model \
   --move-only \
   --response-protocol prompt_json_v1 \
   --reasoning low \
-  --max-output-tokens 8192 \
+  --provider-output-limit \
   --max-new-items 1
 ```
 
@@ -83,11 +83,11 @@ Compatibility models are harness proofs, not headline comparison models.
 
 ## Public game response-style campaign
 
-Games use a separate six-condition matrix because the number of paid turns per
-game is variable. It crosses Modes 1–3 with move-only and JSON+rationale, using
+Games use a separate eight-condition matrix because the number of paid turns per
+game is variable. It crosses all four prompt methods with move-only and JSON+rationale, using
 two games per condition so each model receives White once. Every game starts
 from the standard initial position, uses separate private conversations, hybrid
-within-game context, low reasoning, and the same 8,192-token output identity.
+within-game context, low reasoning, and the same provider-native output policy.
 
 ```bash
 python3 scripts/run_public_game_campaign.py --dry-run

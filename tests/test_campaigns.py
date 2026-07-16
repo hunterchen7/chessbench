@@ -18,16 +18,16 @@ from chessbench.campaigns import (
 def test_public_campaign_is_complete_and_unique() -> None:
     cells = public_low_reasoning_campaign()
 
-    assert len(cells) == 20
+    assert len(cells) == 24
     assert len({cell.key for cell in cells}) == len(cells)
-    assert sum(cell.item_count for cell in cells) == 4640
+    assert sum(cell.item_count for cell in cells) == 5940
     assert Counter(cell.track for cell in cells) == {
-        "standard": 12,
+        "standard": 16,
         "woodpecker": 4,
         "esoteric": 4,
     }
     assert Counter(cell.model_label for cell in cells) == {
-        model: 10 for model in PUBLIC_MODELS
+        model: 12 for model in PUBLIC_MODELS
     }
 
 
@@ -38,8 +38,8 @@ def test_public_campaign_pins_protocol_and_response_style() -> None:
         command = cell.command(python="python")
         assert "--reasoning" in command
         assert command[command.index("--reasoning") + 1] == "low"
-        assert "--max-output-tokens" in command
-        assert command[command.index("--max-output-tokens") + 1] == "8192"
+        assert "--provider-output-limit" in command
+        assert "--max-output-tokens" not in command
         assert "--response-protocol" in command
         assert command[command.index("--response-protocol") + 1] == "prompt_json_v1"
         assert ("--move-only" in command) != ("--rationale" in command)
@@ -52,7 +52,7 @@ def test_public_campaign_pins_protocol_and_response_style() -> None:
             if cell.model_label == model
         } == {
             (mode, style)
-            for mode in (1, 2, 3)
+            for mode in (1, 2, 3, 5)
             for style in ("move_only", "json_rationale")
         }
 
@@ -77,11 +77,11 @@ def test_esoteric_campaign_uses_registry_identity_and_distinct_exports() -> None
 
 def test_public_game_campaign_crosses_modes_styles_and_colors() -> None:
     cells = public_low_reasoning_game_campaign()
-    assert len(cells) == 6
-    assert sum(cell.games_per_pair for cell in cells) == 12
+    assert len(cells) == 8
+    assert sum(cell.games_per_pair for cell in cells) == 16
     assert {(cell.mode, cell.response_style) for cell in cells} == {
         (mode, style)
-        for mode in (1, 2, 3)
+        for mode in (1, 2, 3, 5)
         for style in ("move_only", "json_rationale")
     }
 
@@ -101,7 +101,7 @@ def test_public_game_campaign_crosses_modes_styles_and_colors() -> None:
         if cell.mode == 1 and cell.response_style == "json_rationale"
     )
     assert rationale.output_stem() == (
-        "luna-vs-haiku--mode-1--r-low--o8192--prompt-json-v1"
+        "luna-vs-haiku--mode-1--r-low--o-provider--prompt-json-v1"
     )
 
 

@@ -212,11 +212,11 @@ python3 -m chessbench run-model --model my-model --suite suites/headline.json --
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2 --rationale
 ```
 
-For the full Standard 3 × 2 matrix, repeat that pair under Modes 1, 2, and 3. The complete condition slug records
+For the full Standard 4 × 2 matrix, repeat that pair under Modes 1, 2, 3, and 5. The complete condition slug records
 `plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
 
-The frozen Luna/Haiku low-reasoning public campaign contains 20 durable cells
-and 4,640 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
+The frozen Luna/Haiku low-reasoning public campaign contains 24 durable cells
+and 5,940 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
 exact matrix, dry-run validation, and resumable launcher are documented in
 [`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
 The paired public game campaign adds six color-balanced conditions across Modes

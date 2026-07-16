@@ -124,8 +124,8 @@ Games are a track, but not currently a frozen suite JSON. A game experiment is f
 condition, seed, games per pairing, maximum plies, and opening policy. The built-in optional opening book contains
 10 starting positions and colors alternate. The canonical context policy is `hybrid`; legality policy is recorded
 as `free_form`, `retry`, `legal_list`, or `otb`. Scoring is 1 point for a win, 0.5 for a draw, and 0 for a loss.
-Response style is recorded separately from the Mode 1–3 board-information preset, enabling the same 3 × 2 game
-ablation without changing mode numbers.
+Response style is recorded separately from the four Standard prompt methods, enabling the same 4 × 2 game
+ablation without conflating response format with prompt assistance.
 
 ### Canonical response-style commands
 
@@ -189,25 +189,25 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v1` | Modes 1, 2, and 3; `json_rationale` first pass | 42 puzzle attempts |
+| Standard | `standard-smoke-v1` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
 | Esoteric | `esoteric-smoke-v1` | Mode 3 | 7 genre-specific attempts |
-| Games | Normal starting position; no opening book | Modes 1, 2, and 3 | 2 games per mode, colors alternating |
+| Games | Normal starting position; no opening book | Modes 1, 2, 3, and 5 | 2 games per method, colors alternating |
 
-This is 55 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain
-40 possible solver turns; the puzzle and composition portion makes at most 133 model requests per model (266 total)
-if every Standard line reaches every turn, plus however many turns the six games require. Games use `hybrid`
+This is 69 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain
+40 possible solver turns; the puzzle and composition portion makes at most 173 model requests per model (346 total)
+if every Standard line reaches every turn, plus however many turns the eight games require. Games use `hybrid`
 context, a 200-ply ceiling, and two independent player conversations. Each player receives the authoritative current
 position and public move history but never the other player's raw response or rationale.
 
-For this match matrix, Mode 1 uses `free_form`, so one illegal move forfeits; Modes 2 and 3 provide the legal-move
+For this match matrix, Mode 1 uses `free_form`, so one illegal move forfeits; Modes 2, 3, and 5 provide the legal-move
 list. The separate `retry` and `otb` legality policies remain explicit game ablations and are not silently mixed into
 these six games.
 
-After that compatibility pass, repeat Standard Modes 1–3 with `--move-only` to fill the other three cells before
-reporting response-style effects. Treat this as a paired ablation, never as three additional information modes.
+After that compatibility pass, repeat all four Standard methods with `--move-only` to fill the other four cells before
+reporting response-style effects. Treat this as a paired ablation, never as additional prompt methods.
 
 As a durability check, interrupt and resume at least one suite run and verify that already-persisted item IDs are
 skipped in canonical suite order. Only after every smoke cell passes should the same two variants continue through
-the full public matrix: Standard under Modes 1–3, Woodpecker under Mode 4, and Esoteric under Mode 3. Held-out suites
+the full public matrix: Standard under Modes 1, 2, 3, and 5, Woodpecker under Mode 4, and Esoteric under Mode 3. Held-out suites
 are last, and their item payloads remain sealed in public dashboard reads and exports.

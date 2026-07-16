@@ -80,14 +80,15 @@ class CampaignCell:
     mode: int
     response_style: ResponseStyle
     reasoning: str = "low"
-    max_output_tokens: int = 8192
+    max_output_tokens: int = 0
     response_protocol: str = "prompt_json_v1"
 
     @property
     def key(self) -> str:
         return (
             f"{self.model_label}:{self.track}:mode-{self.mode}:"
-            f"{self.response_style}:r-{self.reasoning}:o-{self.max_output_tokens}"
+            f"{self.response_style}:r-{self.reasoning}:"
+            f"o-{self.max_output_tokens or 'provider'}"
         )
 
     def command(
@@ -113,9 +114,12 @@ class CampaignCell:
             self.response_protocol,
             "--reasoning",
             self.reasoning,
-            "--max-output-tokens",
-            str(self.max_output_tokens),
         ]
+        common.extend(
+            ["--max-output-tokens", str(self.max_output_tokens)]
+            if self.max_output_tokens
+            else ["--provider-output-limit"]
+        )
         if self.track != "esoteric":
             return [
                 python,
@@ -134,7 +138,7 @@ class CampaignCell:
             [
                 _slug(self.model_label),
                 f"r-{self.reasoning}",
-                f"o{self.max_output_tokens}",
+                f"o-{self.max_output_tokens or 'provider'}",
                 self.response_protocol.replace("_", "-"),
                 f"mode-{self.mode}",
                 self.response_style.replace("_", "-"),
@@ -166,23 +170,24 @@ class GameCampaignCell:
     games_per_pair: int = 2
     max_plies: int = 200
     reasoning: str = "low"
-    max_output_tokens: int = 8192
+    max_output_tokens: int = 0
     response_protocol: str = "prompt_json_v1"
 
     @property
     def key(self) -> str:
         return (
             f"games:mode-{self.mode}:{self.response_style}:"
-            f"r-{self.reasoning}:o-{self.max_output_tokens}"
+            f"r-{self.reasoning}:o-{self.max_output_tokens or 'provider'}"
         )
 
     def output_stem(self) -> str:
         base = (
             f"luna-vs-haiku--mode-{self.mode}--r-{self.reasoning}--"
-            f"o{self.max_output_tokens}--{self.response_protocol.replace('_', '-')}"
+            f"o-{self.max_output_tokens or 'provider'}--"
+            f"{self.response_protocol.replace('_', '-')}"
         )
-        # Preserve the already-published rationale filenames/natural keys while
-        # making the paired move-only artifacts unambiguous.
+        # Keep the response style unambiguous while exposing the output-budget
+        # policy in the artifact name.
         return base if self.response_style == "json_rationale" else base + "--move-only"
 
     def command(
@@ -220,8 +225,6 @@ class GameCampaignCell:
             self.response_protocol,
             "--reasoning",
             self.reasoning,
-            "--max-output-tokens",
-            str(self.max_output_tokens),
             "--context-mode",
             "hybrid",
             "--notation",
@@ -235,6 +238,11 @@ class GameCampaignCell:
             "--save",
             str(Path(data_root) / "tournaments" / f"{stem}.json"),
         ]
+        command.extend(
+            ["--max-output-tokens", str(self.max_output_tokens)]
+            if self.max_output_tokens
+            else ["--provider-output-limit"]
+        )
         if publish:
             command.extend(["--stream", "--tid", stem])
         return command
@@ -245,13 +253,13 @@ def public_low_reasoning_campaign(
 ) -> list[CampaignCell]:
     """The complete public low-reasoning response-style comparison.
 
-    Standard uses all three board-information modes. Woodpecker remains its
+    Standard uses all four prompt methods. Woodpecker remains its
     full-line Mode 4 track. Esoteric uses coached Mode 3. Every track is paired
     across move-only and visible-rationale response styles.
     """
     cells: list[CampaignCell] = []
     for model in models:
-        for mode in (1, 2, 3):
+        for mode in (1, 2, 3, 5):
             for style in PUBLIC_RESPONSE_STYLES:
                 suite, count = PUBLIC_SUITES["standard"]
                 cells.append(
@@ -267,9 +275,9 @@ def public_low_reasoning_campaign(
 
 
 def public_low_reasoning_game_campaign() -> list[GameCampaignCell]:
-    """Three information modes crossed with the move-only response ablation."""
+    """Four prompt methods crossed with both response styles."""
     return [
         GameCampaignCell(mode, style)
-        for mode in (1, 2, 3)
+        for mode in (1, 2, 3, 5)
         for style in PUBLIC_RESPONSE_STYLES
     ]
