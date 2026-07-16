@@ -89,6 +89,7 @@ def discover_positions(
     *,
     min_ply: int,
     scan_limit: int | None,
+    scan_offset: int = 0,
     excluded_positions: set[str] | None = None,
 ) -> list[Position]:
     """Discover unique shown positions, retaining a stable hash sample.
@@ -102,6 +103,8 @@ def discover_positions(
         raise ValueError("min_ply must be positive")
     if scan_limit is not None and scan_limit < 1:
         raise ValueError("scan_limit must be positive")
+    if scan_offset < 0:
+        raise ValueError("scan_offset must be non-negative")
 
     found: list[Position] = []
     heap: list[tuple[int, int, Position]] = []
@@ -155,14 +158,16 @@ def discover_positions(
                     sequence += 1
                     rank = int(rank_hex, 16)
                     entry = (-rank, -sequence, position)
-                    if len(heap) < scan_limit:
+                    sample_size = scan_limit + scan_offset
+                    if len(heap) < sample_size:
                         heapq.heappush(heap, entry)
                     elif rank < -heap[0][0]:
                         heapq.heapreplace(heap, entry)
 
     if scan_limit is not None:
         found = [entry[2] for entry in heap]
-    return sorted(found, key=lambda item: (item.selection_key, item.shown_fen_key))
+    found = sorted(found, key=lambda item: (item.selection_key, item.shown_fen_key))
+    return found[scan_offset : scan_offset + scan_limit if scan_limit is not None else None]
 
 
 def _score_cp(info: Mapping[str, object], turn: chess.Color) -> int | None:
@@ -530,6 +535,7 @@ def mine(
     min_ply: int,
     scan_limit: int | None,
     limit: int | None,
+    scan_offset: int = 0,
     band_quotas: Mapping[str, int] | None = None,
     category_quotas: Mapping[str, int] | None = None,
     event_quotas: Mapping[str, int] | None = None,
@@ -541,6 +547,7 @@ def mine(
     min_top_two_gap_cp: int = 80,
     quiet_min_top_two_gap_cp: int = 180,
     excluded_positions: set[str] | None = None,
+    seed_candidates: Sequence[dict[str, object]] = (),
 ) -> dict[str, object]:
     if nodes < 1 or multipv < 1:
         raise ValueError("nodes and multipv must be positive")
@@ -555,9 +562,10 @@ def mine(
         sources,
         min_ply=min_ply,
         scan_limit=scan_limit,
+        scan_offset=scan_offset,
         excluded_positions=excluded_positions,
     )
-    candidates = [
+    newly_qualified = [
         candidate
         for position in positions
         if (
@@ -573,6 +581,7 @@ def mine(
         )
         is not None
     ]
+    candidates = [dict(candidate) for candidate in seed_candidates] + newly_qualified
     selected = select_candidates(
         candidates,
         limit=limit,
@@ -602,7 +611,10 @@ def mine(
             "quiet_move_minimum_top_two_gap_cp": quiet_min_top_two_gap_cp,
             "positive_mate_score_also_qualifies": True,
             "min_source_game_ply": min_ply,
+            "scan_offset": scan_offset,
             "positions_reviewed": len(positions),
+            "seed_candidates": len(seed_candidates),
+            "new_candidates_qualified": len(newly_qualified),
             "engine_settings": settings,
             "determinism": "content-hash sampling; Threads=1 when supported; hash cleared per position when supported",
             "caution": CAUTION,
@@ -687,6 +699,17 @@ def load_excluded_positions(paths: Sequence[pathlib.Path]) -> set[str]:
                 board.push(setup)
                 excluded.add(_shown_key(board))
     return excluded
+
+
+def load_candidate_items(paths: Sequence[pathlib.Path]) -> list[dict[str, object]]:
+    candidates: list[dict[str, object]] = []
+    for path in paths:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        items = document.get("candidates", []) if isinstance(document, dict) else []
+        if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+            raise ValueError(f"{path}: candidates must be an object array")
+        candidates.extend(dict(item) for item in items)
+    return candidates
 
 
 def document_for_split(
@@ -817,7 +840,20 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--line-plies", type=int, default=5)
     parser.add_argument("--min-ply", type=int, default=16)
     parser.add_argument("--scan-limit", type=int, default=5_000)
+    parser.add_argument(
+        "--scan-offset",
+        type=int,
+        default=0,
+        help="skip this many earlier content-hash-sampled positions for resumable batches",
+    )
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--seed-candidates",
+        action="append",
+        type=pathlib.Path,
+        default=[],
+        help="merge already-mined candidate documents before deterministic selection",
+    )
     parser.add_argument("--heldout-count", type=int, default=0)
     parser.add_argument("--min-top-two-gap-cp", type=int, default=80)
     parser.add_argument("--quiet-min-top-two-gap-cp", type=int, default=180)
@@ -884,7 +920,10 @@ def main(
         band_quotas = _parse_quotas(args.band_quota, allowed=set(DIFFICULTIES))
         category_quotas = _parse_quotas(args.category_quota)
         event_quotas = _parse_quotas(args.event_quota)
-        excluded_positions = load_excluded_positions(args.exclude_candidates)
+        seed_candidates = load_candidate_items(args.seed_candidates)
+        excluded_positions = load_excluded_positions(
+            [*args.exclude_candidates, *args.seed_candidates]
+        )
         with engine_factory(str(args.engine)) as engine:  # type: ignore[attr-defined]
             document = mine(
                 sources,
@@ -895,6 +934,7 @@ def main(
                 line_plies=args.line_plies,
                 min_ply=args.min_ply,
                 scan_limit=args.scan_limit,
+                scan_offset=args.scan_offset,
                 limit=args.limit,
                 band_quotas=band_quotas,
                 category_quotas=category_quotas,
@@ -907,6 +947,7 @@ def main(
                 min_top_two_gap_cp=args.min_top_two_gap_cp,
                 quiet_min_top_two_gap_cp=args.quiet_min_top_two_gap_cp,
                 excluded_positions=excluded_positions,
+                seed_candidates=seed_candidates,
             )
     except (OSError, ValueError, chess.engine.EngineError) as exc:
         parser.error(str(exc))
