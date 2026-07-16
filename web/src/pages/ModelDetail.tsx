@@ -13,10 +13,11 @@ import { ExportButton } from "@/components/ExportButton"
 import { ExactPromptBlock, PromptTranscript } from "@/components/PromptTranscript"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 function suiteIdentity(run: RunIndexEntry) {
@@ -347,10 +348,24 @@ export function ModelDetail() {
         <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-[minmax(0,420px)_1fr]">
           <div className="space-y-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run configuration</div>
-            <Select value={meta.run_id} onValueChange={selectRun}>
-              <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-              <SelectContent align="start">{activeSuiteGroup.runs.toSorted((a, b) => (modeInfo(a.condition)?.displayN ?? 99) - (modeInfo(b.condition)?.displayN ?? 99) || responseStyleInfo(a.condition).label.localeCompare(responseStyleInfo(b.condition).label)).map((candidate) => <SelectItem key={candidate.run_id} value={candidate.run_id}>{runConfigurationLabel(candidate)} · {candidate.status}</SelectItem>)}</SelectContent>
-            </Select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 w-full cursor-pointer justify-between gap-3 bg-background px-3 font-normal" aria-label="Choose run configuration">
+                  <span className="min-w-0 truncate text-left"><span className="font-medium">{runConfigurationLabel(meta)}</span><span className="text-muted-foreground"> · {meta.status}</span></span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-72 max-w-[calc(100vw-2rem)]">
+                <DropdownMenuLabel>Choose a run configuration</DropdownMenuLabel>
+                {activeSuiteGroup.runs.toSorted((a, b) => (modeInfo(a.condition)?.displayN ?? 99) - (modeInfo(b.condition)?.displayN ?? 99) || responseStyleInfo(a.condition).label.localeCompare(responseStyleInfo(b.condition).label)).map((candidate) => {
+                  const active = candidate.run_id === meta.run_id
+                  return <DropdownMenuItem key={candidate.run_id} onSelect={() => selectRun(candidate.run_id)} className="items-start py-2.5">
+                    <Check className={cn("mt-0.5 size-4 shrink-0", active ? "text-emerald-600 opacity-100" : "opacity-0")} />
+                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{runConfigurationLabel(candidate)}</span><span className="mt-0.5 block text-[11px] text-muted-foreground">{candidate.status} · {candidate.progress.completed}/{candidate.progress.total} durable items</span></span>
+                  </DropdownMenuItem>
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" /><span>Puzzles are isolated from one another. Conversation state persists only between moves of the same puzzle.</span></div>
         </div>
