@@ -1076,8 +1076,9 @@ def cmd_export(args: argparse.Namespace) -> int:
     runs = list_runs(args.runs_dir)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump(
-            json_safe({"schema": "chessbench.index.v1", "runs": runs}), f, indent=1
+            json_safe({"schema": "chessbench.index.v2", "runs": runs}), f, indent=1
         )
+        f.write("\n")
     print(f"indexed {len(runs)} run(s) -> {args.out}")
 
     cdir = Path(args.runs_dir).parent / "composed"
@@ -1094,6 +1095,7 @@ def cmd_export(args: argparse.Namespace) -> int:
                 f,
                 indent=1,
             )
+            f.write("\n")
         print(f"indexed {len(composed)} composed run(s) -> {cdir / 'index.json'}")
 
     tdir = Path(args.runs_dir).parent / "tournaments"
@@ -1110,6 +1112,7 @@ def cmd_export(args: argparse.Namespace) -> int:
                 f,
                 indent=1,
             )
+            f.write("\n")
         print(f"indexed {len(tournaments)} tournament(s) -> {tdir / 'index.json'}")
     return 0
 

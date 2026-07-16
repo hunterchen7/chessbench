@@ -1,4 +1,94 @@
 {
  "schema": "chessbench.index.v2",
- "runs": []
+ "runs": [
+  {
+   "run_id": "d09b13f4f0a34bfdbb50cd86704588bb",
+   "file": "mercury-2--r-low--o8192t__suite-standard-lichess-v2--611c4c22e955ece8__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "inception/mercury-2",
+   "model_variant": {
+    "key": "mercury-2--r-low--o8192t",
+    "base_key": "mercury-2",
+    "display_name": "mercury-2",
+    "label": "mercury-2 \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "inception/mercury-2",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 8192
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T04:37:59+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 8192,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 27,
+    "solve_rate": 0.08307692307692308,
+    "mean_score": 0.14941880341880343,
+    "first_move_legal_rate": 0.8553846153846154,
+    "response_format_valid_rate": null,
+    "points": 48.5611,
+    "max_points": 325,
+    "cost_usd": 0.3307594207499999,
+    "puzzle_performance_rating": {
+     "rating": 826.6585171222687,
+     "stderr": 42.41677832960458,
+     "ci95": [
+      743.5216315962437,
+      909.7954026482937
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T04:57:44+00:00",
+   "completed_at": "2026-07-16T04:57:44+00:00",
+   "usage": {
+    "cost_usd": 0.3307594207499999,
+    "prompt_tokens": 164584,
+    "completion_tokens": 413429,
+    "reasoning_tokens": 409715,
+    "cache_read_tokens": 76077,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 88507,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  }
+ ]
 }

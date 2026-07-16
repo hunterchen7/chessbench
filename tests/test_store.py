@@ -189,7 +189,10 @@ def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_pa
     args = SimpleNamespace(runs_dir=str(runs), out=str(data / "index.json"))
     assert cmd_export(args) == 0
     first = (data / "index.json").read_bytes()
-    entries = json.loads(first)["runs"]
+    exported = json.loads(first)
+    assert exported["schema"] == "chessbench.index.v2"
+    assert first.endswith(b"\n")
+    entries = exported["runs"]
     assert [entry["file"] for entry in entries] == ["a-legacy.json", "z-rich.json"]
 
     legacy_entry, rich_entry = entries
@@ -292,6 +295,7 @@ def test_export_rebuilds_composed_index_deterministically(tmp_path):
 
     assert cmd_export(args) == 0
     first = (composed / "index.json").read_bytes()
+    assert first.endswith(b"\n")
     assert json.loads(first) == {
         "schema": "chessbench.composed_index.v1",
         "runs": [
