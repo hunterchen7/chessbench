@@ -11,6 +11,7 @@ import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { ExactPromptBlock, PromptTranscript } from "@/components/PromptTranscript"
+import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -68,6 +69,8 @@ interface PerformancePoint {
   elo: number | null
   eloDelta: number | null
 }
+
+type AnswerSortKey = "puzzle" | "rating" | "points"
 
 function pointPosition(index: number, total: number, inset: number) {
   const ratio = total === 1 ? 0.5 : index / (total - 1)
@@ -200,8 +203,28 @@ export function ModelDetail() {
   const [run, setRun] = useState<Run | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
   const [filter, setFilter] = useState<"all" | "solved" | "failed">("all")
+  const [answerSort, setAnswerSort] = useState<{ key: AnswerSortKey | null; direction: SortDirection }>({ key: null, direction: "asc" })
   const [openPuzzle, setOpenPuzzle] = useState<string | null>(null)
   const metaFile = meta?.file
+
+  const answerItems = useMemo(() => {
+    const filtered = (run?.items ?? []).filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved))
+    if (!answerSort.key) return filtered
+    const multiplier = answerSort.direction === "asc" ? 1 : -1
+    return filtered.toSorted((a, b) => {
+      const comparison = answerSort.key === "puzzle"
+        ? a.puzzle_id.localeCompare(b.puzzle_id)
+        : answerSort.key === "rating"
+          ? a.rating - b.rating
+          : a.score - b.score
+      return comparison * multiplier || a.puzzle_id.localeCompare(b.puzzle_id)
+    })
+  }, [run, filter, answerSort.key, answerSort.direction])
+
+  const toggleAnswerSort = useCallback((key: AnswerSortKey) => setAnswerSort((current) => ({
+    key,
+    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "points" ? "desc" : "asc",
+  })), [])
 
   useEffect(() => {
     if (!metaFile) return
@@ -360,7 +383,7 @@ export function ModelDetail() {
       <Card><CardHeader><CardTitle className="text-base">Difficulty breakdown</CardTitle></CardHeader><CardContent className="space-y-5 p-0"><div><div className="border-b px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Numeric puzzle rating</div><Table><TableHeader><TableRow><TableHead>Rating band</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byRating.map((row) => <TableRow key={row.low}><TableCell className="font-mono">{row.low}–{row.low + 399}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div><div className="border-t"><div className="border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Named tier</div><Table><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
 
       <Card className="min-w-0 overflow-hidden"><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><div className="min-w-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-emerald-500/70" /> model move</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm border bg-muted" /> built-in puzzle reply</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-rose-500/70" /> wrong / missing move</span><span>Click any row for its exact prompts and response.</span></div></div><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
-        <CardContent className="min-w-0 max-h-[640px] overflow-auto p-0"><Table className="min-w-[1040px] table-fixed"><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><TableHead className="w-20">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead><TableHead className="w-20 text-right">Points</TableHead><TableHead className="w-[300px]">Model answer</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-[150px]">Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
+        <CardContent className="min-w-0 max-h-[640px] overflow-auto p-0"><Table className="min-w-[1040px] table-fixed"><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><SortableTableHead label="Puzzle" active={answerSort.key === "puzzle"} direction={answerSort.direction} className="w-20" onSort={() => toggleAnswerSort("puzzle")} /><SortableTableHead label="Rating" active={answerSort.key === "rating"} direction={answerSort.direction} align="right" className="w-20" onSort={() => toggleAnswerSort("rating")} /><SortableTableHead label="Points" active={answerSort.key === "points"} direction={answerSort.direction} align="right" className="w-20" onSort={() => toggleAnswerSort("points")} /><TableHead className="w-[300px]">Model answer</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-[150px]">Outcome</TableHead></TableRow></TableHeader><TableBody>{answerItems.map((item) => {
           const open = openPuzzle === item.puzzle_id
           const attempts = puzzleModelAttempts(item)
           const correctSolverMoves = item.plies_correct ?? (item.solved ? item.solver_plies ?? attempts.length : Math.round(item.score * (item.solver_plies ?? Math.ceil((item.solution?.length ?? 0) / 2))))
