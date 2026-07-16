@@ -56,6 +56,22 @@ of the condition manifest and slug, preventing results from different prompt tex
 
 The agent is reset before every puzzle. Full-line requests have no between-move context.
 
+### Prompt-prefix caching
+
+`prompt_prefix_v1` is the canonical provider-compute policy for stateful tasks. It is not response caching: the
+provider may reuse attention-state computation only when the supplied prompt prefix is byte-for-byte compatible,
+and every call still produces a new model response. Response-cache headers are never sent.
+
+- each puzzle begins with a fresh local message list and a distinct opaque routing/cache key;
+- White and Black use separate keys, just as they use separate private message lists;
+- `fresh`, `full_line`, and one-shot composed tasks do not request an explicit cache write;
+- OpenRouter receives `session_id` for endpoint stickiness; OpenAI-family routes also receive
+  `prompt_cache_key`, while Anthropic-family routes opt into automatic ephemeral prefix caching;
+- provider raw usage and normalized read/write/uncached token counts and discounts are persisted per turn and
+  aggregated at item and run level.
+
+The cache policy is part of the condition slug and natural key, so pre-policy and cache-aware runs cannot mix.
+
 ### Response contract
 
 Raw, assisted, and coached runs all request the same strict JSON object with a UCI `move` and a concise
@@ -80,6 +96,9 @@ Legality is orthogonal:
 A model variant key includes provider, provider model ID, reasoning effort or exact reasoning-token budget, and maximum output tokens. Different thinking budgets are deliberately separate leaderboard entries. Temperature and prompt condition remain run fields.
 
 OpenRouter receives either `reasoning.effort` or `reasoning.max_tokens`, never both. The provider usage object is the source for token counts and cost.
+
+Requests do not include `tools`, `plugins`, or `tool_choice`. A provider-returned tool call is rejected. This is
+both stricter and more portable than sending `tool_choice: none` without a tool declaration, which xAI rejects.
 
 ## Persistence
 

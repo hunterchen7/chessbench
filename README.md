@@ -50,7 +50,9 @@ Information and conversation state are independent axes. No state ever crosses p
 
 Games default to `hybrid` context: one growing chat per game plus the authoritative position and history on every turn. Illegal moves can cause an immediate forfeit, receive a bounded retry, be prevented with a legal-move list, or count toward an over-the-board cumulative limit.
 
-Evaluated models receive a neutral chess task. They are never told that the request is a benchmark, evaluation, experiment, leaderboard, or scored attempt. They also receive no chess engine, browser, retrieval, code execution, or other tool. OpenAI-compatible requests send no tools and explicitly use `tool_choice: "none"`; a returned tool call is rejected.
+Evaluated models receive a neutral chess task. They are never told that the request is a benchmark, evaluation, experiment, leaderboard, or scored attempt. They also receive no chess engine, browser, retrieval, code execution, or other tool. OpenAI-compatible requests omit `tools`, `plugins`, and `tool_choice` entirely—there is therefore nothing to invoke, and xAI rejects an orphaned `tool_choice` when no tool list exists. A returned tool call is rejected fail-closed.
+
+The default `prompt_prefix_v1` policy enables provider-side prompt-prefix computation reuse for stateful, multi-turn puzzles and games. It never caches or replays a response. Every puzzle still has a fresh message list and distinct opaque routing key; each player in a game has a separate key. One-shot Woodpecker and composed-problem requests skip explicit cache writes. Raw provider usage plus normalized cache reads, writes, uncached prompt tokens, discounts, and cost are retained per turn and aggregated into exports.
 
 Reasoning effort, exact reasoning-token budget, and output-token cap are part of a model variant's identity. For example, the same provider model at `low`, `high`, and `4096` exact reasoning tokens appears as three distinct rows.
 

@@ -53,6 +53,7 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
         <span>{integer(usage.promptTokens)} in</span>
         <span>{integer(usage.completionTokens)} out</span>
         <span>{integer(usage.reasoningTokens)} reasoning</span>
+        {usage.cacheReadTokens > 0 && <span className="text-emerald-700 dark:text-emerald-300">{integer(usage.cacheReadTokens)} cached</span>}
         <span>{dollars(usage.costUsd)}</span>
       </span>
     </AccordionTrigger>
@@ -69,6 +70,8 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
         <span className="flex items-center gap-1"><FileText className="size-3" /> {integer(usage.promptTokens)} prompt</span>
         <span className="flex items-center gap-1"><MessageSquareText className="size-3" /> {integer(usage.completionTokens)} completion</span>
         <span className="flex items-center gap-1"><BrainCircuit className="size-3" /> {integer(usage.reasoningTokens)} reasoning</span>
+        {usage.cacheReadTokens > 0 && <span>{integer(usage.cacheReadTokens)} cache read</span>}
+        {usage.cacheWriteTokens > 0 && <span>{integer(usage.cacheWriteTokens)} cache write</span>}
         <span className="flex items-center gap-1"><CircleDollarSign className="size-3" /> {dollars(usage.costUsd)} provider cost</span>
       </div>
       {formatError && <p className="rounded-md bg-destructive/8 px-3 py-2 text-[11px] text-destructive">{formatError}</p>}
@@ -84,9 +87,10 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
     sum.prompt += usage.promptTokens
     sum.completion += usage.completionTokens
     sum.reasoning += usage.reasoningTokens
+    sum.cacheRead += usage.cacheReadTokens
     sum.cost += usage.costUsd
     return sum
-  }, { prompt: 0, completion: 0, reasoning: 0, cost: 0 })
+  }, { prompt: 0, completion: 0, reasoning: 0, cacheRead: 0, cost: 0 })
 
   return <Accordion type="single" collapsible className="overflow-hidden rounded-xl border bg-card">
     <AccordionItem value="attempt">
@@ -112,8 +116,8 @@ export function ComposedAttemptAudit({ answer }: { answer: ComposedAnswer }) {
           <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Verifier result</div>
           <p className="mt-1 text-xs leading-relaxed">{answer.detail || (answer.solved ? "Accepted" : "Not accepted")}</p>
         </div>
-        {answer.turns.length > 0 && <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border bg-background/70 px-3 py-2 font-mono text-[10px] tabular-nums text-muted-foreground sm:grid-cols-4">
-          <span>{integer(totals.prompt)} in</span><span>{integer(totals.completion)} out</span><span>{integer(totals.reasoning)} reasoning</span><span>{dollars(totals.cost)}</span>
+        {answer.turns.length > 0 && <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border bg-background/70 px-3 py-2 font-mono text-[10px] tabular-nums text-muted-foreground sm:grid-cols-5">
+          <span>{integer(totals.prompt)} in</span><span>{integer(totals.completion)} out</span><span>{integer(totals.reasoning)} reasoning</span><span>{integer(totals.cacheRead)} cached</span><span>{dollars(totals.cost)}</span>
         </div>}
       </div>
 

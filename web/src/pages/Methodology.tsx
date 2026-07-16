@@ -198,7 +198,7 @@ export function Methodology() {
           <CardContent><Prose>
             <p>A base model at different reasoning efforts or exact reasoning-token budgets is treated as a distinct model variant. Output-token caps are part of that identity too.</p>
             <p>The model sees a neutral chess task. Model-facing text never says benchmark, evaluation, experiment, leaderboard, or score.</p>
-            <p>No engine, browser, code execution, retrieval, or provider tool is offered. Compatible providers receive <span className="font-mono text-foreground">tool_choice: none</span>, and a returned tool call invalidates the response.</p>
+            <p>No engine, browser, code execution, retrieval, or provider tool is offered. Requests omit <span className="font-mono text-foreground">tools</span>, <span className="font-mono text-foreground">plugins</span>, and <span className="font-mono text-foreground">tool_choice</span>, so there is nothing the model can invoke. A returned tool call invalidates the response.</p>
           </Prose></CardContent>
         </Card>
 
@@ -207,6 +207,7 @@ export function Methodology() {
           <CardContent><Prose>
             <p><span className="font-mono text-foreground">move_only</span> uses <span className="font-mono text-foreground">plain_text_v1</span>; <span className="font-mono text-foreground">json_rationale</span> requests a structured UCI move plus concise visible rationale. Move scoring remains independent from format compliance.</p>
             <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, response protocol, format validity, legality, provider token counts, reasoning-token count, and cost. A rationale is stored only when requested and returned. It is not presented as faithful hidden chain of thought; provider-hidden reasoning is neither requested for publication nor reconstructed.</p>
+            <p><span className="font-mono text-foreground">prompt_prefix_v1</span> permits provider-side reuse of exact prompt-prefix computation inside a multi-turn puzzle or private game session. It never caches an answer. Puzzle message lists still reset and receive distinct opaque routing keys; White and Black remain separate. Cache reads, writes, uncached prompt tokens, discounts, and raw usage are recorded. One-shot Woodpecker and composed tasks skip explicit cache writes.</p>
             <p>Each completed item is committed locally to SQLite and queued for idempotent Cloudflare D1 ingestion. A run can resume after interruption or exhausted credits without replaying completed items. Filtered data can be exported as JSON from the dashboard.</p>
           </Prose></CardContent>
         </Card>

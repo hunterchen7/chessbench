@@ -101,6 +101,9 @@ function totalUsage(moves: IndexedMove[]) {
   let prompt = 0
   let completion = 0
   let reasoning = 0
+  let cacheRead = 0
+  let cacheWrite = 0
+  let cacheDiscount = 0
   let cost = 0
   for (const { move } of moves) {
     if (move.attempts?.length) {
@@ -108,16 +111,22 @@ function totalUsage(moves: IndexedMove[]) {
         prompt += attempt.prompt_tokens
         completion += attempt.completion_tokens
         reasoning += attempt.reasoning_tokens
+        cacheRead += attempt.cache_read_tokens ?? 0
+        cacheWrite += attempt.cache_write_tokens ?? 0
+        cacheDiscount += attempt.cache_discount_usd ?? 0
         cost += attempt.cost_usd
       }
     } else {
       prompt += move.prompt_tokens ?? 0
       completion += move.completion_tokens ?? 0
       reasoning += move.reasoning_tokens ?? 0
+      cacheRead += move.cache_read_tokens ?? 0
+      cacheWrite += move.cache_write_tokens ?? 0
+      cacheDiscount += move.cache_discount_usd ?? 0
       cost += move.cost_usd ?? 0
     }
   }
-  return { prompt, completion, reasoning, cost }
+  return { prompt, completion, reasoning, cacheRead, cacheWrite, cacheDiscount, cost }
 }
 
 function UsageStrip({ attempt }: { attempt: GameMoveAttempt }) {
@@ -128,6 +137,14 @@ function UsageStrip({ attempt }: { attempt: GameMoveAttempt }) {
       <span className="inline-flex items-center gap-1 text-violet-600 dark:text-violet-300" title="Reasoning tokens">
         <BrainCircuit className="size-3" /> {attempt.reasoning_tokens.toLocaleString()} think
       </span>
+      {(attempt.cache_read_tokens ?? 0) > 0 ? (
+        <span className="text-emerald-700 dark:text-emerald-300" title="Prompt tokens served from the provider compute cache">
+          {attempt.cache_read_tokens!.toLocaleString()} cached
+        </span>
+      ) : null}
+      {(attempt.cache_write_tokens ?? 0) > 0 ? (
+        <span title="Prompt tokens written to the provider compute cache">{attempt.cache_write_tokens!.toLocaleString()} cache write</span>
+      ) : null}
       <span title="Provider-reported cost">${attempt.cost_usd.toFixed(5)}</span>
     </div>
   )
@@ -383,6 +400,8 @@ const ConversationLane = memo(function ConversationLane({
           <span>{moves.length} turns</span>
           <span>{compactNumber.format(usage.prompt + usage.completion)} visible tokens</span>
           <span>{compactNumber.format(usage.reasoning)} reasoning</span>
+          {usage.cacheRead > 0 ? <span title={`${usage.cacheRead.toLocaleString()} prompt tokens served from cache`}>{Math.round(usage.cacheRead / Math.max(1, usage.prompt) * 100)}% cache hit</span> : null}
+          {usage.cacheDiscount > 0 ? <span>${usage.cacheDiscount.toFixed(4)} cache savings</span> : null}
           <span>${usage.cost.toFixed(4)}</span>
         </div>
       </div>

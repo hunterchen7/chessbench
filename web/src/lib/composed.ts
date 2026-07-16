@@ -16,6 +16,9 @@ export interface ComposedTurnUsage {
   completion_tokens?: number
   total_tokens?: number
   reasoning_tokens?: number
+  prompt_tokens_details?: { cached_tokens?: number; cache_write_tokens?: number }
+  cache_read_input_tokens?: number
+  cache_creation_input_tokens?: number
   cost?: number
   cost_usd?: number
   completion_tokens_details?: { reasoning_tokens?: number }
@@ -34,6 +37,12 @@ export interface ComposedTurn {
   prompt_tokens?: number
   completion_tokens?: number
   reasoning_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  uncached_prompt_tokens?: number
+  cache_discount_usd?: number
+  cache_policy?: string
+  cache_session_id?: string | null
   cost_usd?: number
   usage?: ComposedTurnUsage | null
 }
@@ -338,6 +347,14 @@ export function composedTurnUsage(turn: ComposedTurn) {
     reasoningTokens: Number(
       turn.reasoning_tokens ?? usage.reasoning_tokens ?? usage.completion_tokens_details?.reasoning_tokens ?? 0,
     ),
+    cacheReadTokens: Number(
+      turn.cache_read_tokens ?? usage.prompt_tokens_details?.cached_tokens ?? usage.cache_read_input_tokens ?? 0,
+    ),
+    cacheWriteTokens: Number(
+      turn.cache_write_tokens ?? usage.prompt_tokens_details?.cache_write_tokens ?? usage.cache_creation_input_tokens ?? 0,
+    ),
+    uncachedPromptTokens: Number(turn.uncached_prompt_tokens ?? 0),
+    cacheDiscountUsd: Number(turn.cache_discount_usd ?? 0),
     costUsd: Number(turn.cost_usd ?? usage.cost_usd ?? usage.cost ?? 0),
   }
 }

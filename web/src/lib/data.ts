@@ -14,6 +14,7 @@ export interface Condition {
   reasoning_effort?: string | null
   reasoning_max_tokens?: number | null
   max_output_tokens?: number
+  cache_policy?: "disabled" | "prompt_prefix_v1" | string
   prompt_version?: string
   slug: string
 }
@@ -84,6 +85,13 @@ export interface PuzzleItem extends PuzzlePosition {
     completion_tokens: number
     reasoning_tokens: number
     cost_usd: number
+    cache_read_tokens?: number
+    cache_write_tokens?: number
+    uncached_prompt_tokens?: number
+    cache_discount_usd?: number
+    cache_policy?: string
+    cache_session_id?: string | null
+    usage?: Record<string, unknown> | null
   }>
 }
 
@@ -133,7 +141,16 @@ export interface RunIndexEntry {
   suite: SuiteRef | null
   progress: { completed: number; total: number }
   summary: RunSummary
-  usage?: { prompt_tokens: number; completion_tokens: number; reasoning_tokens: number; cost_usd: number }
+  usage?: {
+    prompt_tokens: number
+    completion_tokens: number
+    reasoning_tokens: number
+    cache_read_tokens?: number
+    cache_write_tokens?: number
+    uncached_prompt_tokens?: number
+    cache_discount_usd?: number
+    cost_usd: number
+  }
   error?: string | null
 }
 
@@ -239,6 +256,10 @@ export interface GameMove {
   prompt_tokens?: number
   completion_tokens?: number
   reasoning_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  uncached_prompt_tokens?: number
+  cache_discount_usd?: number
   cost_usd?: number
 }
 
@@ -255,6 +276,13 @@ export interface GameMoveAttempt {
   prompt_tokens: number
   completion_tokens: number
   reasoning_tokens: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  uncached_prompt_tokens?: number
+  cache_discount_usd?: number
+  cache_policy?: string
+  cache_session_id?: string | null
+  usage?: Record<string, unknown> | null
   cost_usd: number
 }
 
@@ -350,6 +378,7 @@ function conditionFromSlug(slug: string): Condition {
   const effort = parts.find((part) => part.startsWith("reason-"))?.slice(7) ?? null
   const puzzleContext = parts.find((part) => part.startsWith("pctx-"))?.slice(5)
   const gameContext = parts.find((part) => ["fresh", "growing", "hybrid"].includes(part))
+  const cachePolicy = parts.find((part) => part.startsWith("cache-"))?.slice(6).replaceAll("-", "_")
   return {
     legality: parts[0] ?? "free_form",
     representation: parts[1] ?? "fen_pieces",
@@ -361,6 +390,7 @@ function conditionFromSlug(slug: string): Condition {
     context_mode: puzzleContext ?? gameContext,
     reasoning_effort: effort?.endsWith("t") ? null : effort,
     reasoning_max_tokens: effort?.endsWith("t") ? Number(effort.slice(0, -1)) : null,
+    cache_policy: cachePolicy ?? "disabled",
     slug,
   }
 }

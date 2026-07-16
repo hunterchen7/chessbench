@@ -95,6 +95,11 @@ export function ModelDetail() {
     acc.push({ item: item.puzzle_id, points: (acc.at(-1)?.points ?? 0) + item.score })
     return acc
   }, [])
+  const cacheRead = meta.usage?.cache_read_tokens ?? 0
+  const cacheRate = cacheRead / Math.max(1, meta.usage?.prompt_tokens ?? 0)
+  const costNote = cacheRead > 0
+    ? `${pct(cacheRate)} prompt cache · ${cacheRead.toLocaleString()} tokens read`
+    : `${meta.usage?.reasoning_tokens?.toLocaleString() ?? 0} reasoning tokens`
 
   return <div className="space-y-8">
     <section className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-7">
@@ -117,7 +122,7 @@ export function ModelDetail() {
       <Stat icon={Check} label="Complete solves" value={`${meta.summary.solved}/${meta.summary.n}`} note={pct(meta.summary.solve_rate)} />
       {meta.track === "puzzle" && <Stat icon={Gauge} label="Puzzle performance" value={performanceValue} note={`${performanceNote} · secondary`} />}
       <Stat icon={Database} label="Legal first" value={pct(meta.summary.first_move_legal_rate)} note={meta.summary.response_format_valid_rate == null ? `${meta.progress.completed}/${meta.progress.total} durable items` : `${pct(meta.summary.response_format_valid_rate)} ${activeResponseStyle.key === "move_only" ? "parseable text" : "valid JSON"} · ${meta.progress.completed}/${meta.progress.total} durable`} />
-      <Stat icon={CircleDollarSign} label="Recorded cost" value={meta.summary.cost_usd == null ? "—" : `$${meta.summary.cost_usd.toFixed(4)}`} note={`${meta.usage?.reasoning_tokens?.toLocaleString() ?? 0} reasoning tokens`} />
+      <Stat icon={CircleDollarSign} label="Recorded cost" value={meta.summary.cost_usd == null ? "—" : `$${meta.summary.cost_usd.toFixed(4)}`} note={costNote} />
     </section>
 
     {modeRuns.filter((item) => item.run).length > 1 && <Card><CardHeader><CardTitle className="flex flex-wrap items-center gap-2 text-base">Board-information comparison <ResponseStyleBadge condition={meta.condition} compact /></CardTitle></CardHeader><CardContent className="grid gap-2 md:grid-cols-3">{modeRuns.map(({ mode, run: candidate }) => <div key={mode.n} className="rounded-lg border p-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{mode.n}. {mode.name}</div><div className="mt-2 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete` : "not run"}</div></div>)}</CardContent></Card>}

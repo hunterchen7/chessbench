@@ -244,7 +244,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                             <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.raw_response ?? "—"}</pre></div>
                             <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
                               {turn.response_format_valid != null && <Badge variant={turn.response_format_valid ? "secondary" : "destructive"}>{turn.response_format_valid ? (responseStyle.key === "move_only" ? "parseable text" : "valid JSON") : "format recovered"}</Badge>}
-                              <span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span><span>${turn.cost_usd.toFixed(5)}</span>
+                              <span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span>{(turn.cache_read_tokens ?? 0) > 0 && <span className="text-emerald-700 dark:text-emerald-300">{turn.cache_read_tokens?.toLocaleString()} cached</span>}{(turn.cache_write_tokens ?? 0) > 0 && <span>{turn.cache_write_tokens?.toLocaleString()} cache write</span>}<span>${turn.cost_usd.toFixed(5)}</span>
                             </div>
                             {turn.response_format_error && <p className="text-[11px] text-destructive">{turn.response_format_error}</p>}
                           </div>
