@@ -2,6 +2,7 @@ import { AlertTriangle, ExternalLink, FileCode2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { PromptCatalog } from "@/components/PromptCatalog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 function Prose({ children }: { children: React.ReactNode }) {
@@ -134,9 +135,11 @@ export function Methodology() {
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-xl font-semibold">Prompt source and templates</h2><p className="mt-1 text-sm text-muted-foreground">These show the canonical message shape. Every rendered message is retained verbatim with its run.</p></div>
+          <div><h2 className="text-xl font-semibold">Exact prompts and builder source</h2><p className="mt-1 text-sm text-muted-foreground">Inspect and copy the literal messages and provider schema. Every rendered run message is also retained verbatim with its puzzle.</p></div>
           <a href="https://github.com/hunterchen7/chessbench/blob/main/chessbench/conditions.py" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:underline dark:text-emerald-300"><FileCode2 className="size-4" /> Prompt builder source <ExternalLink className="size-3.5" /></a>
         </div>
+        <PromptCatalog />
+        <div className="pt-2"><h3 className="font-semibold">Structural templates for other tracks</h3><p className="mt-1 text-xs text-muted-foreground">Placeholders below explain message assembly. They are not presented as literal prompts; exact Standard text is above, while game and composed-attempt pages expose their stored messages.</p></div>
         <Card>
           <CardContent className="px-5 py-1">
             <Accordion type="multiple" defaultValue={["standard"]}>

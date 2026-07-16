@@ -4,13 +4,14 @@ import { Chess } from "chess.js"
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadPuzzle, loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
-import { pct, responseStyleInfo } from "@/lib/format"
+import { pct } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
+import { ExactPromptBlock, PromptTranscript } from "@/components/PromptTranscript"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -206,7 +207,6 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                   const open = expanded === i
                   const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
-                  const responseStyle = responseStyleInfo(a.condition)
                   return (
                     <div key={i} className="rounded-md border">
                       <button
@@ -239,23 +239,10 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Experienced continuation</div><ModelContinuation plies={playedSequence} /><div className="mt-1 text-muted-foreground">Green moves came from the model; neutral moves were supplied by the puzzle; red is the first divergence. {a.item.solved ? "Complete line solved." : partial ? `${correctSolverMoves} correct solver move${correctSolverMoves === 1 ? "" : "s"} · ${a.item.score.toFixed(2)}/1 point.` : `Incorrect at solver move ${correctSolverMoves + 1}.`}</div></div>
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Correct line</div><span className="font-mono">{solutionSan.join(" ") || solution.join(" ") || "—"}</span></div>
                         </div>
-                        {a.item.turns?.map((turn, turnIndex) => <details key={`${turn.solver_ply}-${turnIndex}`} className="rounded-md border bg-muted/20" open={turnIndex === 0}>
-                          <summary className="cursor-pointer p-2 text-xs font-medium">Solver move {turn.solver_ply + 1} · {turn.parsed_move ?? "unparsed"}</summary>
-                          <div className="space-y-2 border-t p-2 text-xs">
-                            {turn.system_prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">System</div><pre className="whitespace-pre-wrap rounded bg-background p-2">{turn.system_prompt}</pre></div>}
-                            {turn.prompt && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Prompt</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.prompt}</pre></div>}
-                            {(turn.rationale || turn.explanation) && <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-background p-2 leading-relaxed">{turn.rationale ?? turn.explanation}</p></div>}
-                            <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded bg-background p-2">{turn.raw_response ?? "—"}</pre></div>
-                            <div className="flex flex-wrap items-center gap-3 font-mono text-muted-foreground">
-                              {turn.response_format_valid != null && <Badge variant={turn.response_format_valid ? "secondary" : "destructive"}>{turn.response_format_valid ? (responseStyle.key === "move_only" ? "parseable text" : "valid JSON") : "format recovered"}</Badge>}
-                              <span>{turn.prompt_tokens} prompt</span><span>{turn.completion_tokens} completion</span><span>{turn.reasoning_tokens} reasoning</span>{(turn.cache_read_tokens ?? 0) > 0 && <span className="text-emerald-700 dark:text-emerald-300">{turn.cache_read_tokens?.toLocaleString()} cached</span>}{(turn.cache_write_tokens ?? 0) > 0 && <span>{turn.cache_write_tokens?.toLocaleString()} cache write</span>}<span>${turn.cost_usd.toFixed(5)}</span>
-                            </div>
-                            {turn.response_format_error && <p className="text-[11px] text-destructive">{turn.response_format_error}</p>}
-                          </div>
-                        </details>)}
+                        {a.item.turns?.length ? <PromptTranscript turns={a.item.turns} /> : null}
                         {!a.item.turns?.length && <>
                           {(a.item.answer_rationale || a.item.answer_explanation) && <><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-muted/30 p-3 text-xs leading-relaxed">{a.item.answer_rationale ?? a.item.answer_explanation}</p></>}
-                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Visible response</div><pre className="whitespace-pre-wrap rounded bg-muted/30 p-3 text-xs">{a.item.answer_raw ?? "—"}</pre>
+                          <ExactPromptBlock label="Visible model response" text={a.item.answer_raw ?? "—"} tone="schema" />
                         </>}
                       </div>}
                     </div>
