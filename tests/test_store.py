@@ -197,7 +197,7 @@ def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_pa
 
     legacy_entry, rich_entry = entries
     assert legacy_entry["model_variant"]["provider"] == "openrouter"
-    assert legacy_entry["model_variant"]["max_output_tokens"] == 2048
+    assert legacy_entry["model_variant"]["max_output_tokens"] == 0
     assert rich_entry == {
         "run_id": "run-rich",
         "file": "z-rich.json",

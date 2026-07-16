@@ -163,7 +163,7 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         temperature=args.temperature,
         reasoning_effort=getattr(args, "reasoning", None),
         reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
-        max_output_tokens=getattr(args, "max_output_tokens", 2048),
+        max_output_tokens=getattr(args, "max_output_tokens", 0),
         cache_policy=CachePolicy(
             getattr(args, "cache_policy", CachePolicy.PROMPT_PREFIX_V1.value)
         ),
@@ -1449,12 +1449,26 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         default=None,
         help="exact thinking-token budget; cannot be combined with --reasoning",
     )
-    p.add_argument(
+    output_budget = p.add_mutually_exclusive_group()
+    output_budget.add_argument(
         "--max-output-tokens",
         dest="max_output_tokens",
         type=int,
-        default=2048,
-        help="maximum output tokens, tracked as part of the model variant",
+        default=0,
+        help=(
+            "opt-in maximum output tokens, tracked as part of the model variant; "
+            "the default omits max_tokens and uses the provider/model limit"
+        ),
+    )
+    output_budget.add_argument(
+        "--provider-output-limit",
+        dest="max_output_tokens",
+        action="store_const",
+        const=0,
+        help=(
+            "omit max_tokens and use the model/provider default; recorded as a "
+            "distinct provider-limit variant"
+        ),
     )
     p.add_argument(
         "--cache-policy",

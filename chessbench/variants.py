@@ -60,15 +60,16 @@ class ModelVariant:
     provider: str
     model_id: str
     reasoning: ReasoningConfig = ReasoningConfig()
-    max_output_tokens: int = 2048
+    max_output_tokens: int = 0
 
     def __post_init__(self) -> None:
-        if self.max_output_tokens <= 0:
-            raise ValueError("max_output_tokens must be positive")
+        if self.max_output_tokens < 0:
+            raise ValueError("max_output_tokens must be non-negative")
 
     @property
     def key(self) -> str:
-        return f"{_slug(self.base_key)}--{self.reasoning.slug}--o{self.max_output_tokens}t"
+        output = "o-provider" if self.max_output_tokens == 0 else f"o{self.max_output_tokens}t"
+        return f"{_slug(self.base_key)}--{self.reasoning.slug}--{output}"
 
     @property
     def label(self) -> str:

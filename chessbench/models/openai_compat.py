@@ -213,8 +213,9 @@ class _OpenAICompatModel:
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens,
         }
+        if max_tokens > 0:
+            payload["max_tokens"] = max_tokens
         # The benchmark never sends a ``tools`` or ``plugins`` array, so there is
         # nothing the model can invoke. Do not also send ``tool_choice: none``:
         # xAI correctly rejects a tool choice when no tools were declared. We
@@ -242,7 +243,8 @@ class _OpenAICompatModel:
                 "max_tokens": self._reasoning_max_tokens,
                 "exclude": True,
             }
-            payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
+            if max_tokens > 0:
+                payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
         if response_format is not None:
             payload["response_format"] = response_format
             if self._require_structured_parameters:

@@ -116,7 +116,9 @@ class Condition:
     reasoning_max_tokens: int | None = (
         None  # exact thinking-token budget; mutually exclusive with effort
     )
-    max_output_tokens: int = 2048
+    # Zero means ChessBench omits max_tokens and uses the provider/model limit.
+    # Numeric caps remain available as an explicit output-budget ablation.
+    max_output_tokens: int = 0
     cache_policy: CachePolicy = CachePolicy.PROMPT_PREFIX_V1
     # Prompt text is part of result identity. This version introduced UCI-only
     # legal candidate lists and UCI within-puzzle move history.
@@ -129,8 +131,8 @@ class Condition:
             )
         if self.reasoning_max_tokens is not None and self.reasoning_max_tokens <= 0:
             raise ValueError("reasoning_max_tokens must be positive")
-        if self.max_output_tokens <= 0:
-            raise ValueError("max_output_tokens must be positive")
+        if self.max_output_tokens < 0:
+            raise ValueError("max_output_tokens must be non-negative")
         if not self.prompt_version:
             raise ValueError("prompt_version must not be empty")
 

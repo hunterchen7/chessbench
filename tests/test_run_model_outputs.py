@@ -71,11 +71,13 @@ def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypat
 
     def fake_run_model(args):
         seen["out_dir"] = args.out_dir
+        seen["max_output_tokens"] = args.max_output_tokens
         return 0
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
     assert cli.main(["run-model", "--model", "model", "--suite", "suite.json"]) == 0
     assert seen["out_dir"] == "web/public/data/runs"
+    assert seen["max_output_tokens"] == 0
 
 
 def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):
@@ -106,3 +108,24 @@ def test_model_factory_threads_response_deadline_to_openrouter():
     )
 
     assert model._timeout == 600.0
+
+
+def test_run_model_accepts_provider_native_output_limit(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_run_model(args):
+        seen["max_output_tokens"] = args.max_output_tokens
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    assert cli.main([
+        "run-model",
+        "--model",
+        "model",
+        "--suite",
+        "suite.json",
+        "--provider-output-limit",
+        "--reasoning",
+        "low",
+    ]) == 0
+    assert seen["max_output_tokens"] == 0

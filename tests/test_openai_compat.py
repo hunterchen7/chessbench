@@ -220,3 +220,23 @@ def test_forbidden_returned_tool_call_fails_closed(monkeypatch):
     model = OpenRouterModel("x-ai/grok-4.5", api_key="test")
     with pytest.raises(ModelError, match="forbidden tool call"):
         model.chat([{"role": "user", "content": "move"}])
+
+
+def test_provider_output_limit_omits_max_tokens_but_keeps_reasoning_effort(monkeypatch):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e2e4"}}]}
+    )
+    model = OpenRouterModel(
+        "qwen/qwen3.5-flash-02-23",
+        api_key="test",
+        reasoning_effort="low",
+    )
+
+    assert model.chat(
+        [{"role": "user", "content": "move"}],
+        max_tokens=0,
+    ) == "e2e4"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert "max_tokens" not in payload
+    assert payload["reasoning"] == {"effort": "low", "exclude": True}

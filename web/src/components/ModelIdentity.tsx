@@ -24,7 +24,7 @@ export function ModelIdentity({ variant, compact = false }: { variant: ModelVari
           <BrainCircuit className="size-3" /> {reasoningLabel(variant)}
         </Badge> : <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px] font-normal"><Cpu className="size-3" /> {kind === "engine" ? "engine reference" : "reference baseline"}</Badge>}
         {!compact && kind === "model" && (
-          <span className="text-[10px] tabular-nums text-muted-foreground">{variant.max_output_tokens.toLocaleString()} out</span>
+          <span className="text-[10px] tabular-nums text-muted-foreground">{variant.max_output_tokens === 0 ? "provider output limit" : `${variant.max_output_tokens.toLocaleString()} out`}</span>
         )}
       </div>
     </div>
