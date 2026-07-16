@@ -32,14 +32,14 @@
    "content_hash": "sha256:5732b7cefa909aac3fa5"
   },
   {
-   "name": "standard-lichess-v4",
-   "title": "Standard tactics \u2014 ten-band balanced v4",
-   "version": "4.0.0",
+   "name": "standard-lichess-v3",
+   "title": "Standard tactics \u2014 ten-band balanced v3",
+   "version": "3.0.0",
    "track": "standard",
    "visibility": "public",
    "item_type": "puzzle",
    "items": 250,
-   "content_hash": "sha256:325b6f4e81bbfdad5e37"
+   "content_hash": "sha256:4b51505e0fc2702fa338"
   },
   {
    "name": "standard-public-v1",

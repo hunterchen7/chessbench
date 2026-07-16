@@ -1,12 +1,12 @@
 {
  "schema": "chessbench.public_corpus.v1",
- "name": "standard-lichess-v4",
- "title": "Standard tactics \u2014 ten-band balanced v4",
- "version": "4.0.0",
+ "name": "standard-lichess-v3",
+ "title": "Standard tactics \u2014 ten-band balanced v3",
+ "version": "3.0.0",
  "track": "standard",
  "visibility": "public",
  "description": "A 250-item rating-ordered Standard suite with 25 puzzles in each of ten bands and an explicit within-band mixture of puzzle families.",
- "content_hash": "sha256:325b6f4e81bbfdad5e37",
+ "content_hash": "sha256:4b51505e0fc2702fa338",
  "sources": [
   {
    "id": "lichess-puzzles",

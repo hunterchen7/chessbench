@@ -22,16 +22,17 @@ EXPECTED = {
     },
     "standard-smoke-v2": {
         "path": "suites/public/standard-smoke-v2.json",
-        "parent": "suites/public/standard-lichess-v3.json",
+        "items_parent": "suites/public/standard-lichess-v2.json",
+        "source": "suite:standard-lichess-v3@sha256:a8cd0d9483229abe",
         "count": 14,
         "hash": "sha256:67c948d7899cfe43",
         "version": "2.0.0",
     },
     "standard-smoke-v3": {
         "path": "suites/public/standard-smoke-v3.json",
-        "parent": "suites/public/standard-lichess-v4.json",
+        "parent": "suites/public/standard-lichess-v3.json",
         "count": 20,
-        "hash": "sha256:65463c83a64a0cfe",
+        "hash": "sha256:a778d26a9a595179",
         "version": "3.0.0",
     },
     "woodpecker-smoke-v1": {
@@ -55,14 +56,18 @@ def test_smoke_suites_have_frozen_metadata_and_documented_hashes():
     catalog = (ROOT / "docs/SUITES.md").read_text(encoding="utf-8")
     for name, expected in EXPECTED.items():
         suite = load_suite(ROOT / expected["path"])
-        parent = load_suite(ROOT / expected["parent"])
+        parent_path = expected.get("parent")
         assert suite.name == name
         assert suite.version == expected["version"]
         assert suite.visibility == "public"
         assert suite.seed == SEED
         assert len(suite.items) == expected["count"]
         assert suite.content_hash == expected["hash"]
-        assert suite.source == f"suite:{parent.name}@{parent.content_hash}"
+        expected_source = expected.get("source")
+        if parent_path:
+            parent = load_suite(ROOT / parent_path)
+            expected_source = f"suite:{parent.name}@{parent.content_hash}"
+        assert suite.source == expected_source
         assert (
             f"| `{expected['path']}` | {expected['count']} | `{expected['hash']}` |"
         ) in catalog
@@ -71,7 +76,9 @@ def test_smoke_suites_have_frozen_metadata_and_documented_hashes():
 def test_smoke_suites_are_exact_ordered_subsets_of_canonical_parents():
     for expected in EXPECTED.values():
         suite = load_suite(ROOT / expected["path"])
-        parent = load_suite(ROOT / expected["parent"])
+        parent_path = expected.get("items_parent") or expected.get("parent")
+        assert parent_path
+        parent = load_suite(ROOT / parent_path)
         parent_items = (
             {str(item["id"]): item for item in parent.items}
             if suite.kind == "puzzle"

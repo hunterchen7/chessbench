@@ -48,20 +48,11 @@
   },
   {
    "name": "standard-lichess-v3",
-   "version": "1.0.0",
-   "kind": "puzzle",
-   "visibility": "public",
-   "items": 325,
-   "content_hash": "sha256:a8cd0d9483229abe",
-   "description": "A 325-position Lichess tactical benchmark spanning beginner through frontier difficulty. Rating-ascending order makes the point where a model begins to falter visible within each run."
-  },
-  {
-   "name": "standard-lichess-v4",
-   "version": "4.0.0",
+   "version": "3.0.0",
    "kind": "puzzle",
    "visibility": "public",
    "items": 250,
-   "content_hash": "sha256:f14685f412bbcbd7",
+   "content_hash": "sha256:196077b0a7370043",
    "description": "A 250-position, rating-ordered Lichess tactical benchmark with exactly 25 puzzles in each of ten difficulty bands. Each band targets a diverse mix of mating, defensive, quiet, pawn, endgame, and tactical ideas while retaining strict calibration and provenance gates."
   },
   {
@@ -106,7 +97,7 @@
    "kind": "puzzle",
    "visibility": "public",
    "items": 20,
-   "content_hash": "sha256:65463c83a64a0cfe",
+   "content_hash": "sha256:a778d26a9a595179",
    "description": "A 20-position Standard preflight suite with two puzzles from each of the ten active rating bands. It is the smallest run that checks the current suite's full difficulty ladder."
   },
   {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the working ten-band, type-balanced 250-item Standard v4 release."""
+"""Build the working ten-band, type-balanced 250-item Standard v3 release."""
 
 from __future__ import annotations
 
@@ -32,12 +32,15 @@ from chessbench.tasks.puzzles import Puzzle  # noqa: E402
 
 
 CORPUS_PARENT = ROOT / "corpora/public/standard-lichess-v2.json"
-TARGET_CORPUS = ROOT / "corpora/public/standard-lichess-v4.json"
-TARGET_SUITE = ROOT / "suites/public/standard-lichess-v4.json"
-SELECTION_RECEIPT = ROOT / "data/curated/standard-lichess-v4-selection.json"
+TARGET_CORPUS = ROOT / "corpora/public/standard-lichess-v3.json"
+TARGET_SUITE = ROOT / "suites/public/standard-lichess-v3.json"
+SELECTION_RECEIPT = ROOT / "data/curated/standard-lichess-v3-selection.json"
 DEFAULT_SOURCE = ROOT / "data/lichess_db_puzzle_2026-07-05.csv.zst"
 
 SEED = "20260716-ten-band"
+# Preserve the namespace that selected the now-current membership. Renaming the
+# working release must not silently choose a different 250 positions on rebuild.
+SELECTION_NAMESPACE = "standard-lichess-v4"
 SOURCE_SHA256 = "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247e"
 RATING_BANDS = (
     (600, 900),
@@ -89,7 +92,7 @@ def puzzle_family(puzzle: Puzzle) -> str:
 
 def _priority(item_id: str, band: tuple[int, int], family: str) -> str:
     low, high = band
-    payload = f"standard-lichess-v4:{SEED}:{low}-{high}:{family}:{item_id}"
+    payload = f"{SELECTION_NAMESPACE}:{SEED}:{low}-{high}:{family}:{item_id}"
     return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -201,7 +204,7 @@ def refresh_selection(source: Path) -> dict[str, object]:
         family_counts[f"{band[0]}-{band[1] - 1}"] = targets
     selected.sort(key=lambda puzzle: (puzzle.rating, puzzle.id))
     return {
-        "schema": "chessbench.standard_v4_selection.v1",
+        "schema": "chessbench.standard_v3_selection.v1",
         "snapshot": "2026-07-05",
         "source": source.name,
         "source_sha256": SOURCE_SHA256,
@@ -222,15 +225,15 @@ def refresh_selection(source: Path) -> dict[str, object]:
 
 def _load_selection() -> tuple[list[Puzzle], dict[str, object]]:
     document = json.loads(SELECTION_RECEIPT.read_text(encoding="utf-8"))
-    if document.get("schema") != "chessbench.standard_v4_selection.v1":
-        raise ValueError("unexpected Standard v4 selection receipt schema")
+    if document.get("schema") != "chessbench.standard_v3_selection.v1":
+        raise ValueError("unexpected Standard v3 selection receipt schema")
     if document.get("source_sha256") != SOURCE_SHA256 or document.get("seed") != SEED:
-        raise ValueError("Standard v4 selection provenance does not match the builder")
+        raise ValueError("Standard v3 selection provenance does not match the builder")
     puzzles = [Puzzle(**item) for item in document.get("items", [])]
     if len(puzzles) != 250 or len({puzzle.id for puzzle in puzzles}) != 250:
-        raise ValueError("Standard v4 selection must contain 250 unique puzzles")
+        raise ValueError("Standard v3 selection must contain 250 unique puzzles")
     if len({_game_key(puzzle) for puzzle in puzzles}) != 250:
-        raise ValueError("Standard v4 selection must use one puzzle per source game")
+        raise ValueError("Standard v3 selection must use one puzzle per source game")
     actual_families: dict[str, dict[str, int]] = {}
     for low, high in RATING_BANDS:
         band_items = [puzzle for puzzle in puzzles if low <= puzzle.rating < high]
@@ -244,7 +247,7 @@ def _load_selection() -> tuple[list[Puzzle], dict[str, object]]:
         for key, value in document.get("family_counts", {}).items()
     }
     if actual_families != expected_families:
-        raise ValueError("Standard v4 family counts do not match the selection receipt")
+        raise ValueError("Standard v3 family counts do not match the selection receipt")
     return puzzles, document
 
 
@@ -252,9 +255,9 @@ def build() -> tuple[Corpus, Suite]:
     puzzles, receipt = _load_selection()
     parent_corpus = load_corpus(CORPUS_PARENT)
     corpus = Corpus(
-        name="standard-lichess-v4",
-        title="Standard tactics — ten-band balanced v4",
-        version="4.0.0",
+        name="standard-lichess-v3",
+        title="Standard tactics — ten-band balanced v3",
+        version="3.0.0",
         track="standard",
         visibility="public",
         description=(

@@ -27,7 +27,7 @@ HISTORICAL_CANDIDATES = ROOT / "data" / "curated" / "candidates"
 PUBLIC_SUITES = ROOT / "suites" / "public"
 
 RELEASES = {
-    "standard": ROOT / "corpora" / "public" / "standard-lichess-v4.json",
+    "standard": ROOT / "corpora" / "public" / "standard-lichess-v3.json",
     "woodpecker": ROOT / "corpora" / "public" / "woodpecker-masters-v1.json",
     "esoteric": ROOT / "corpora" / "public" / "esoteric-seed-v2.json",
 }

@@ -15,7 +15,7 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/standard-public-v1.json` | Standard | 240 | Lichess CC0, 2026-07-05 full dump |
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
 | `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
-| `public/standard-lichess-v4.json` | Standard | 250 | 25 tasks in each of ten rating bands, with within-band type diversity |
+| `public/standard-lichess-v3.json` | Standard | 250 | 25 tasks in each of ten rating bands, with within-band type diversity |
 | `public/woodpecker-masters-v1.json` | Woodpecker | 135 | 50 Easy, 50 Medium, 35 Hard; titled-player source games |
 | `public/esoteric-seed-v2.json` | Esoteric | 51 | v1 sources + one owner-approved, attributed YACPDB composition |
 
@@ -64,13 +64,13 @@ RD <110 and popularity ≥85; Woodpecker admits 10 at RD <120 and popularity ≥
 plays. This adaptive rule preserves genuinely difficult material without pretending it is as tightly estimated as
 the broad core.
 
-The working Standard v4 release selects exactly 25 positions in each of ten bands: six 300-point bands from
+The working Standard v3 release selects exactly 25 positions in each of ten bands: six 300-point bands from
 600–2399, followed by four 200-point bands from 2400–3199. Within every qualified band it aims for four mate,
 four defensive, four quiet, four pawn/promotion, four endgame, and five general tactical tasks. These are mutually
 exclusive primary families assigned by documented precedence even though the underlying Lichess themes overlap.
 If a qualified family is genuinely scarce, its slots are redistributed rather than weakening the admission gates;
 the 3000–3199 band has only one eligible mate. The exact pool counts, adaptive targets, exclusions, snapshot hash,
-and selection seed are frozen in `data/curated/standard-lichess-v4-selection.json`.
+and selection seed are frozen in `data/curated/standard-lichess-v3-selection.json`.
 
 Woodpecker membership is presented in editorial Easy, Medium, and Hard sections. Ratings and RD are retained as
 source provenance where Lichess supplies them, but are not the track's scoring system. The

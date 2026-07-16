@@ -10,7 +10,7 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v4.json` | Public | 250 | `sha256:f14685f412bbcbd7` | Ten rating bands × 25; type-balanced; rating ascending; four methods × both response styles |
+| Standard | `suites/public/standard-lichess-v3.json` | Public | 250 | `sha256:196077b0a7370043` | Ten rating bands × 25; type-balanced; rating ascending; four methods × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
@@ -20,7 +20,7 @@ These are the suites to use for new model evaluations.
 
 ### Standard
 
-The working `standard-lichess-v4` release contains exactly 25 tasks in each of ten human-readable difficulty bands:
+The working `standard-lichess-v3` release contains exactly 25 tasks in each of ten human-readable difficulty bands:
 600–899, 900–1199, 1200–1499, 1500–1799, 1800–2099, 2100–2399, 2400–2599, 2600–2799, 2800–2999, and 3000–3199.
 The narrower upper bands preserve more resolution where model performance begins to fail. Execution remains rating
 ascending with puzzle ID as the deterministic tie-breaker.
@@ -31,11 +31,11 @@ documented precedence order. Diversity never bypasses the source-quality gates: 
 plays, RD below 100, popularity of at least 90, and a source-game URL; 3000–3199 items keep the play and URL rules
 while allowing RD below 110 and popularity of at least 85. When a qualified family is scarce, the target adapts.
 The frontier contains the only eligible mate plus five defensive, five quiet, four pawn/promotion, four endgame,
-and six general tactical tasks. Every v4 task comes from a distinct source game and is disjoint by source game from
+and six general tactical tasks. Every v3 task comes from a distinct source game and is disjoint by source game from
 the Woodpecker and evaluator-held Standard releases.
 
-V3 remains immutable because historical runs refer to its 325-item content hash. V4 is still the working MVP suite;
-its name will not be incremented again until a deliberately stable release is cut. The held-out v1 certification
+The unused 325-item v3 draft was replaced before it accumulated any runs. This 250-item v3 is the working MVP suite,
+and its name will not be incremented again until a deliberately stable release is cut. The held-out v1 certification
 suite remains frozen at 325 in the meantime, and public/private results must never be pooled by name alone.
 The model is asked for one solver move at a time. The forced reply is applied by the harness, and state may continue
 within that puzzle only. No state crosses puzzle boundaries.
@@ -145,14 +145,14 @@ ablation without conflating response format with prompt assistance.
 Run one frozen Standard suite through the complete eight-cell matrix:
 
 ```bash
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 1 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 1 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 2 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 2 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 3 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 3 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 5 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 5 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --rationale
 ```
 
 The same axis applies to games; for example, compare otherwise identical Mode 2 matches with `--move-only` and
@@ -164,8 +164,7 @@ These remain reproducible for old results but are superseded for new headline ev
 
 | Suite | Items | Content hash | Status |
 | --- | ---: | --- | --- |
-| `suites/public/standard-lichess-v3.json` | 325 | `sha256:a8cd0d9483229abe` | Previous canonical suite; v2 membership in rating order |
-| `suites/public/standard-lichess-v2.json` | 325 | `sha256:611c4c22e955ece8` | Same membership as v3; historical puzzle-ID execution order |
+| `suites/public/standard-lichess-v2.json` | 325 | `sha256:611c4c22e955ece8` | Historical 325-item suite in puzzle-ID execution order |
 | `suites/public/standard-public-v1.json` | 240 | `sha256:5520347416337d14` | Previous full-dump Standard release |
 | `suites/public/woodpecker-public-v1.json` | 120 | `sha256:f66bc33d2d4d7897` | Previous full-dump Woodpecker release |
 | `suites/public/standard-seed-v1.json` | 100 | `sha256:a4d6750bdb729857` | Fast development seed |
@@ -191,8 +190,8 @@ parents. They test paid provider calls and every public suite grader without cla
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
 | `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Historical Standard v2-derived smoke suite, frozen in ID order |
-| `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Historical Standard v3-derived smoke suite, rating-ascending |
-| `suites/public/standard-smoke-v3.json` | 20 | `sha256:65463c83a64a0cfe` | Active Standard v4-derived smoke suite; two tasks per rating band |
+| `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Historical retired-draft smoke suite, rating-ascending |
+| `suites/public/standard-smoke-v3.json` | 20 | `sha256:a778d26a9a595179` | Active Standard v3-derived smoke suite; two tasks per rating band |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 

@@ -2,8 +2,8 @@
   "schema": "chessbench.prompt_catalog.v1",
   "scope": "standard_puzzle_first_turn",
   "reference": {
-    "suite": "standard-lichess-v4",
-    "content_hash": "sha256:325b6f4e81bbfdad5e37",
+    "suite": "standard-lichess-v3",
+    "content_hash": "sha256:4b51505e0fc2702fa338",
     "puzzle_id": "ZpGgA",
     "fen": "8/8/8/7p/3N2k1/1p6/1K6/8 b - - 3 56"
   },

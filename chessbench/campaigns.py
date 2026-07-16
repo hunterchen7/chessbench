@@ -28,7 +28,7 @@ PUBLIC_RESPONSE_STYLES: tuple[ResponseStyle, ...] = (
     "json_rationale",
 )
 PUBLIC_SUITES: dict[Track, tuple[str, int]] = {
-    "standard": ("suites/public/standard-lichess-v4.json", 250),
+    "standard": ("suites/public/standard-lichess-v3.json", 250),
     "woodpecker": ("suites/public/woodpecker-masters-v1.json", 135),
     "esoteric": ("suites/public/esoteric-seed-v2.json", 51),
 }

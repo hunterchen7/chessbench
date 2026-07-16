@@ -3,7 +3,7 @@
  "version": "3.0.0",
  "visibility": "public",
  "kind": "puzzle",
- "source": "suite:standard-lichess-v4@sha256:f14685f412bbcbd7",
+ "source": "suite:standard-lichess-v3@sha256:196077b0a7370043",
  "description": "A 20-position Standard preflight suite with two puzzles from each of the ten active rating bands. It is the smallest run that checks the current suite's full difficulty ladder.",
  "seed": 20260715,
  "items": [
@@ -598,5 +598,5 @@
    "difficulty_band": ""
   }
  ],
- "content_hash": "sha256:65463c83a64a0cfe"
+ "content_hash": "sha256:a778d26a9a595179"
 }

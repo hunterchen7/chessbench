@@ -31,7 +31,7 @@ def test_public_campaign_is_complete_and_unique() -> None:
     }
     assert {
         cell.suite for cell in cells if cell.track == "standard"
-    } == {"suites/public/standard-lichess-v4.json"}
+    } == {"suites/public/standard-lichess-v3.json"}
 
 
 def test_public_campaign_pins_protocol_and_response_style() -> None:

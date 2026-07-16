@@ -6,7 +6,7 @@ from dataclasses import asdict
 
 from chessbench.corpus import load_corpus
 from chessbench.suite import load_suite
-from scripts.build_standard_v4 import (
+from scripts.build_standard_suite import (
     FAMILY_TARGETS,
     ITEMS_PER_BAND,
     RATING_BANDS,
@@ -18,13 +18,13 @@ from scripts.build_standard_v4 import (
 )
 
 
-def test_v4_has_ten_exact_rating_bands() -> None:
+def test_v3_has_ten_exact_rating_bands() -> None:
     corpus = load_corpus(TARGET_CORPUS)
     suite = load_suite(TARGET_SUITE)
     puzzles = suite.puzzles()
 
-    assert corpus.name == suite.name == "standard-lichess-v4"
-    assert corpus.version == suite.version == "4.0.0"
+    assert corpus.name == suite.name == "standard-lichess-v3"
+    assert corpus.version == suite.version == "3.0.0"
     assert len(puzzles) == 250
     assert suite.items == corpus.items
     assert puzzles == sorted(puzzles, key=lambda puzzle: (puzzle.rating, puzzle.id))
@@ -35,7 +35,7 @@ def test_v4_has_ten_exact_rating_bands() -> None:
     assert len({puzzle.game_url.split("#", 1)[0] for puzzle in puzzles}) == 250
 
 
-def test_v4_balances_primary_puzzle_families_within_each_band() -> None:
+def test_v3_balances_primary_puzzle_families_within_each_band() -> None:
     receipt = json.loads(SELECTION_RECEIPT.read_text(encoding="utf-8"))
     puzzles = load_suite(TARGET_SUITE).puzzles()
     for low, high in RATING_BANDS:
@@ -59,7 +59,7 @@ def test_v4_balances_primary_puzzle_families_within_each_band() -> None:
     }
 
 
-def test_v4_preserves_quality_gates() -> None:
+def test_v3_preserves_quality_gates() -> None:
     for puzzle in load_suite(TARGET_SUITE).puzzles():
         assert puzzle.nb_plays > 500
         assert puzzle.game_url.startswith("https://lichess.org/")
@@ -71,7 +71,7 @@ def test_v4_preserves_quality_gates() -> None:
             assert puzzle.popularity >= 85
 
 
-def test_committed_v4_matches_deterministic_builder() -> None:
+def test_committed_v3_matches_deterministic_builder() -> None:
     corpus, suite = build()
     assert asdict(corpus) == json.loads(TARGET_CORPUS.read_text(encoding="utf-8"))
     assert asdict(suite) == json.loads(TARGET_SUITE.read_text(encoding="utf-8"))

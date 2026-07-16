@@ -94,7 +94,7 @@ export function PuzzleLeaderboard() {
     .filter((entry) => /^standard-lichess-v\d+$/.test(entry.name))
     .toSorted((a, b) => Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0)), [suiteCatalog])
   const requestedSuite = searchParams.get("suite")
-  const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : suites[0]?.name || "standard-lichess-v4"
+  const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : suites[0]?.name || "standard-lichess-v3"
   const requestedModes = searchParams.get("modes")?.split(",").map(Number).filter((value): value is Mode => MODES.some((mode) => mode.n === value)) ?? []
   const visibleModes = requestedModes.length ? MODES.map((mode) => mode.n).filter((mode) => requestedModes.includes(mode)) : MODES.map((mode) => mode.n)
   const openModels = searchParams.getAll("open")

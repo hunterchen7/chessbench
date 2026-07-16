@@ -22,7 +22,7 @@ from chessbench.tasks.puzzles import Puzzle  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SEED = 20260715
-STANDARD_V4_BANDS = (
+STANDARD_ACTIVE_BANDS = (
     (600, 899),
     (900, 1199),
     (1200, 1499),
@@ -87,8 +87,11 @@ def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
 
 def build() -> list[tuple[Suite, pathlib.Path]]:
     standard_v1_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
-    standard_v2_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
-    standard_v3_parent = load_suite(ROOT / "suites/public/standard-lichess-v4.json")
+    # Smoke v2 is a frozen artifact of the retired 325-item, rating-ordered v3.
+    # Its membership is identical to v2, so v2 remains a sufficient local source
+    # after the unused old v3 release was replaced by the current 250-item suite.
+    standard_v2_parent = standard_v1_parent
+    standard_v3_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
     esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 
@@ -118,7 +121,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         ),
         name="standard-smoke-v2",
         version="2.0.0",
-        source_label=f"suite:{standard_v2_parent.name}@{standard_v2_parent.content_hash}",
+        source_label="suite:standard-lichess-v3@sha256:a8cd0d9483229abe",
         description=(
             "A 14-position rating-ordered Standard preflight suite spanning the "
             "calibrated difficulty range. It validates multi-turn puzzle execution, "
@@ -128,7 +131,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     )
     standard_v3 = freeze_puzzle_suite(
         sorted(
-            _band_sample(standard_v3_parent, STANDARD_V4_BANDS, 2),
+            _band_sample(standard_v3_parent, STANDARD_ACTIVE_BANDS, 2),
             key=lambda puzzle: (puzzle.rating, puzzle.id),
         ),
         name="standard-smoke-v3",
