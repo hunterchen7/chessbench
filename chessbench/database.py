@@ -1049,14 +1049,72 @@ class BenchmarkStore:
         """
         now = _now()
         with self._transaction():
+            row = self._db.execute(
+                "SELECT status FROM benchmark_run WHERE run_id=?", (run_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            if row["status"] == "failed":
+                raise RuntimeError(f"run {run_id} is already failed")
+
+            # Puzzle checkpoints contain paid turns not yet represented in a
+            # completed puzzle_attempt. Retiring a run must not make that spend
+            # disappear from its aggregate audit totals.
+            checkpoint_totals: dict[str, int | float] = {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "reasoning_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+                "uncached_prompt_tokens": 0,
+                "cache_discount_usd": 0.0,
+                "cost_usd": 0.0,
+            }
+            states = self._db.execute(
+                "SELECT state_json FROM puzzle_checkpoint WHERE run_id=?", (run_id,)
+            ).fetchall()
+            for state_row in states:
+                state = json.loads(state_row["state_json"])
+                turns = state.get("turns") if isinstance(state, dict) else None
+                if not isinstance(turns, list):
+                    continue
+                for turn in turns:
+                    if not isinstance(turn, dict):
+                        continue
+                    for field in checkpoint_totals:
+                        value = turn.get(field, 0)
+                        if isinstance(value, (int, float)) and not isinstance(
+                            value, bool
+                        ):
+                            checkpoint_totals[field] += value
             cursor = self._db.execute(
                 """UPDATE benchmark_run
-                   SET status='failed', error=?, completed_at=?, updated_at=?
+                   SET status='failed', error=?, completed_at=?, updated_at=?,
+                       prompt_tokens=prompt_tokens+?,
+                       completion_tokens=completion_tokens+?,
+                       reasoning_tokens=reasoning_tokens+?,
+                       cache_read_tokens=cache_read_tokens+?,
+                       cache_write_tokens=cache_write_tokens+?,
+                       uncached_prompt_tokens=uncached_prompt_tokens+?,
+                       cache_discount_usd=cache_discount_usd+?,
+                       cost_usd=cost_usd+?
                    WHERE run_id=?""",
-                (error[:2000], now, now, run_id),
+                (
+                    error[:2000],
+                    now,
+                    now,
+                    int(checkpoint_totals["prompt_tokens"]),
+                    int(checkpoint_totals["completion_tokens"]),
+                    int(checkpoint_totals["reasoning_tokens"]),
+                    int(checkpoint_totals["cache_read_tokens"]),
+                    int(checkpoint_totals["cache_write_tokens"]),
+                    int(checkpoint_totals["uncached_prompt_tokens"]),
+                    float(checkpoint_totals["cache_discount_usd"]),
+                    float(checkpoint_totals["cost_usd"]),
+                    run_id,
+                ),
             )
-            if cursor.rowcount != 1:
-                raise KeyError(run_id)
+            assert cursor.rowcount == 1
             self._event(run_id, "failed", error[:500], now)
 
     def run_row(self, run_id: str) -> dict[str, object]:

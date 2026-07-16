@@ -1,6 +1,6 @@
 import pytest
 
-from chessbench.variants import ModelVariant, ReasoningConfig
+from chessbench.variants import ModelVariant, ProviderRoute, ReasoningConfig
 
 
 def test_reasoning_budget_is_part_of_variant_identity():
@@ -27,3 +27,26 @@ def test_provider_output_limit_is_a_distinct_variant_identity():
 
     assert variant.key == "qwen--r-low--o-provider"
     assert variant.to_dict()["max_output_tokens"] == 0
+
+
+def test_provider_route_is_part_of_variant_identity_without_changing_defaults():
+    default = ModelVariant("glm", "GLM", "openrouter", "z-ai/glm-5.2")
+    pinned = ModelVariant(
+        "glm",
+        "GLM",
+        "openrouter",
+        "z-ai/glm-5.2",
+        provider_route=ProviderRoute(
+            only=("z-ai",), allow_fallbacks=False, require_parameters=True
+        ),
+    )
+
+    assert default.key == "glm--r-default--o-provider"
+    assert pinned.key != default.key
+    assert "route-only-z-ai-no-fallbacks-required-params" in pinned.key
+    assert pinned.to_dict()["provider_route"] == {
+        "only": ["z-ai"],
+        "order": [],
+        "allow_fallbacks": False,
+        "require_parameters": True,
+    }

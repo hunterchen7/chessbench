@@ -110,6 +110,48 @@ def test_model_factory_threads_response_deadline_to_openrouter():
     assert model._timeout == 600.0
 
 
+def test_model_factory_threads_openrouter_provider_preferences():
+    model = cli._build_model(
+        "openrouter",
+        "z-ai/glm-5.2",
+        provider_preferences={
+            "only": ["z-ai"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        },
+    )
+
+    assert model._provider_preferences == {
+        "only": ["z-ai"],
+        "allow_fallbacks": False,
+        "require_parameters": True,
+    }
+
+
+def test_run_model_accepts_recorded_provider_route(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_run_model(args):
+        seen["only"] = args.provider_only
+        seen["fallbacks"] = args.provider_allow_fallbacks
+        seen["require"] = args.require_provider_parameters
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    assert cli.main([
+        "run-model",
+        "--model",
+        "glm-5.2",
+        "--suite",
+        "suite.json",
+        "--provider-only",
+        "z-ai",
+        "--no-provider-fallbacks",
+        "--require-provider-parameters",
+    ]) == 0
+    assert seen == {"only": ["z-ai"], "fallbacks": False, "require": True}
+
+
 def test_run_model_accepts_provider_native_output_limit(monkeypatch):
     seen: dict[str, object] = {}
 

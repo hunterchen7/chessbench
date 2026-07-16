@@ -28,6 +28,12 @@ export interface ModelVariant {
   model_id: string
   reasoning: { effort?: string | null; max_tokens?: number | null; exclude?: boolean }
   max_output_tokens: number
+  provider_route?: {
+    only: string[]
+    order: string[]
+    allow_fallbacks: boolean
+    require_parameters: boolean
+  }
 }
 
 export interface Categories {

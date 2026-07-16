@@ -397,3 +397,29 @@ def test_provider_output_limit_omits_max_tokens_but_keeps_reasoning_effort(monke
     assert isinstance(payload, dict)
     assert "max_tokens" not in payload
     assert payload["reasoning"] == {"effort": "low", "exclude": True}
+
+
+def test_provider_route_is_sent_without_tools(monkeypatch):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "h5h4"}}]}
+    )
+    model = OpenRouterModel(
+        "z-ai/glm-5.2",
+        api_key="test",
+        reasoning_effort="high",
+        provider_preferences={
+            "only": ["z-ai"],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        },
+    )
+
+    assert model.chat([{"role": "user", "content": "move"}], max_tokens=0) == "h5h4"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["provider"] == {
+        "only": ["z-ai"],
+        "allow_fallbacks": False,
+        "require_parameters": True,
+    }
+    assert "tools" not in payload

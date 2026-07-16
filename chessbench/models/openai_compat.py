@@ -82,6 +82,7 @@ class _OpenAICompatModel:
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
         require_structured_parameters: bool = False,
+        provider_preferences: dict[str, object] | None = None,
     ) -> None:
         self.name = model
         self._model = model
@@ -98,6 +99,7 @@ class _OpenAICompatModel:
         self._reasoning_effort = reasoning_effort
         self._reasoning_max_tokens = reasoning_max_tokens
         self._require_structured_parameters = require_structured_parameters
+        self._provider_preferences = dict(provider_preferences or {})
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
@@ -307,13 +309,16 @@ class _OpenAICompatModel:
             }
             if max_tokens > 0:
                 payload["max_tokens"] = max(max_tokens, self._reasoning_max_tokens + 512)
+        provider_preferences = dict(self._provider_preferences)
         if response_format is not None:
             payload["response_format"] = response_format
             if self._require_structured_parameters:
                 # OpenRouter otherwise permits a provider to silently ignore
                 # unsupported parameters. Benchmark protocol constraints fail
                 # closed instead of mixing constrained and unconstrained cells.
-                payload["provider"] = {"require_parameters": True}
+                provider_preferences["require_parameters"] = True
+        if provider_preferences:
+            payload["provider"] = provider_preferences
         data = json.dumps(payload).encode("utf-8")
         # This is the exact JSON request body and intentionally excludes HTTP
         # authorization headers. Persisting it makes provider quirks reproducible.
@@ -521,6 +526,7 @@ class OpenRouterModel(_OpenAICompatModel):
         timeout: float = 120.0,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
+        provider_preferences: dict[str, object] | None = None,
     ) -> None:
         super().__init__(
             model,
@@ -537,6 +543,7 @@ class OpenRouterModel(_OpenAICompatModel):
             timeout=timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
+            provider_preferences=provider_preferences,
             require_structured_parameters=True,
         )
 

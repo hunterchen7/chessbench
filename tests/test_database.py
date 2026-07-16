@@ -8,7 +8,7 @@ from chessbench.conditions import mode_condition
 from chessbench.database import BenchmarkStore, RunBusyError, RunSpec
 from chessbench.report import build_report
 from chessbench.tasks.games import GameRecord, MoveAttempt, MoveRecord
-from chessbench.tasks.puzzles import Puzzle, PuzzleResult
+from chessbench.tasks.puzzles import Puzzle, PuzzleCheckpoint, PuzzleResult
 from chessbench.variants import ModelVariant, ReasoningConfig
 
 
@@ -88,10 +88,42 @@ def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
 def test_failed_run_is_retained_but_replaced_by_a_clean_run(tmp_path):
     with BenchmarkStore(tmp_path / "bench.db") as store:
         invalid = store.start_run(_spec())
+        checkpoint = PuzzleCheckpoint(
+            puzzle_id="failed-puzzle",
+            board_fen="6k1/8/8/8/8/8/8/6K1 w - - 0 1",
+            solver_ply=0,
+            active_lines=[0],
+            history_san=[],
+            moves_played=[],
+            plies_correct=0,
+            illegal_attempts=0,
+            first_move_legal=None,
+            all_moves_legal=True,
+            answer={},
+            turns=[
+                {
+                    "prompt_tokens": 147,
+                    "completion_tokens": 3979,
+                    "reasoning_tokens": 2851,
+                    "uncached_prompt_tokens": 147,
+                    "cost_usd": 0.0154220913,
+                }
+            ],
+            attempts_used=0,
+            illegal_feedback=None,
+            conversation=[],
+        )
+        store.save_puzzle_checkpoint(
+            invalid.run_id, 0, checkpoint.puzzle_id, checkpoint
+        )
         store.mark_failed(invalid.run_id, "provider null was misparsed as a move")
         failed = store.run_row(invalid.run_id)
         assert failed["status"] == "failed"
         assert "misparsed" in str(failed["error"])
+        assert failed["prompt_tokens"] == 147
+        assert failed["completion_tokens"] == 3979
+        assert failed["reasoning_tokens"] == 2851
+        assert failed["cost_usd"] == pytest.approx(0.0154220913)
 
         replacement = store.start_run(_spec())
         assert replacement.run_id != invalid.run_id

@@ -674,6 +674,7 @@ def _build_model(
     reasoning_effort: str | None = None,
     reasoning_max_tokens: int | None = None,
     request_timeout: float = 120.0,
+    provider_preferences: dict[str, object] | None = None,
 ) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
 
@@ -687,6 +688,7 @@ def _build_model(
             timeout=request_timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
+            provider_preferences=provider_preferences,
         )
     raise SystemExit(f"unknown model provider: {spec}")
 
@@ -822,7 +824,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     from .database import BenchmarkStore, RunSpec
     from .registry import get_model
     from .suite import load_suite
-    from .variants import ModelVariant, ReasoningConfig
+    from .variants import ModelVariant, ProviderRoute, ReasoningConfig
 
     if args.max_new_items is not None and args.max_new_items < 1:
         raise ValueError("--max-new-items must be positive")
@@ -831,6 +833,14 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     entry = get_model(args.model)
     suite = load_suite(args.suite)
     condition = _base_condition(args)
+    provider_route = ProviderRoute(
+        only=tuple(args.provider_only),
+        order=tuple(args.provider_order),
+        allow_fallbacks=args.provider_allow_fallbacks,
+        require_parameters=args.require_provider_parameters,
+    )
+    if entry.provider != "openrouter" and not provider_route.is_default:
+        raise ValueError("provider routing options require an OpenRouter model")
     variant = ModelVariant(
         base_key=entry.label,
         display_name=entry.label,
@@ -841,6 +851,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             max_tokens=condition.reasoning_max_tokens,
         ),
         max_output_tokens=condition.max_output_tokens,
+        provider_route=provider_route,
     )
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -884,6 +895,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         reasoning_effort=condition.reasoning_effort,
         reasoning_max_tokens=condition.reasoning_max_tokens,
         request_timeout=args.request_timeout,
+        provider_preferences=provider_route.to_request(),
     )
     agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
     completed = store.load_puzzle_results(handle.run_id)
@@ -1891,6 +1903,33 @@ def main(argv: list[str] | None = None) -> int:
             "stop cleanly after N newly evaluated items; completed items remain "
             "durable and the same run resumes later"
         ),
+    )
+    provider_order = rmp.add_mutually_exclusive_group()
+    provider_order.add_argument(
+        "--provider-only",
+        action="append",
+        default=[],
+        metavar="SLUG",
+        help="allow only this OpenRouter provider (repeatable; recorded in model identity)",
+    )
+    provider_order.add_argument(
+        "--provider-order",
+        action="append",
+        default=[],
+        metavar="SLUG",
+        help="prefer OpenRouter providers in this order (repeatable; recorded in model identity)",
+    )
+    rmp.add_argument(
+        "--no-provider-fallbacks",
+        dest="provider_allow_fallbacks",
+        action="store_false",
+        default=True,
+        help="fail if the selected OpenRouter providers are unavailable",
+    )
+    rmp.add_argument(
+        "--require-provider-parameters",
+        action="store_true",
+        help="route only to endpoints supporting every supplied parameter",
     )
     _add_condition_args(rmp)
     rmp.set_defaults(func=cmd_run_model)
