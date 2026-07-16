@@ -32,6 +32,16 @@
    "content_hash": "sha256:5732b7cefa909aac3fa5"
   },
   {
+   "name": "standard-lichess-v4",
+   "title": "Standard tactics \u2014 250-item frontier v4",
+   "version": "4.0.0",
+   "track": "standard",
+   "visibility": "public",
+   "item_type": "puzzle",
+   "items": 250,
+   "content_hash": "sha256:83541ce47a057be99f8c"
+  },
+  {
    "name": "standard-public-v1",
    "title": "Standard tactics \u2014 public-v1",
    "version": "1.0.0",

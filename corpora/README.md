@@ -15,6 +15,7 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/standard-public-v1.json` | Standard | 240 | Lichess CC0, 2026-07-05 full dump |
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
 | `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
+| `public/standard-lichess-v4.json` | Standard | 250 | 200 calibrated core + 50 adaptively gated 3000+ puzzles |
 | `public/woodpecker-masters-v1.json` | Woodpecker | 135 | 50 Easy, 50 Medium, 35 Hard; titled-player source games |
 | `public/esoteric-seed-v2.json` | Esoteric | 51 | v1 sources + one owner-approved, attributed YACPDB composition |
 
@@ -62,6 +63,12 @@ The scarce 3000–3199 frontier is intentionally smaller and judged separately: 
 RD <110 and popularity ≥85; Woodpecker admits 10 at RD <120 and popularity ≥80. Both still require more than 500
 plays. This adaptive rule preserves genuinely difficult material without pretending it is as tightly estimated as
 the broad core.
+
+Standard v4 is a new immutable release rather than an edit to v3. It deterministically downsamples the v3 core to
+200 positions, progressively weighting the harder calibrated bands, retains all 25 existing frontier positions,
+and adds 25 disjoint frontier positions from the same pinned full snapshot. The resulting 50 frontier tasks are 20%
+of the 250-item suite by design. The exact additions, quality gate, snapshot hash, exclusions, and selection seed are
+frozen in `data/curated/standard-lichess-v4-frontier-additions.json`.
 
 Woodpecker membership is presented in editorial Easy, Medium, and Hard sections. Ratings and RD are retained as
 source provenance where Lichess supplies them, but are not the track's scoring system. The

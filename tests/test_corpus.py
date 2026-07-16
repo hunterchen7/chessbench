@@ -62,6 +62,7 @@ def test_checked_in_corpora_are_valid_and_content_addressed():
         "standard-public-v1",
         "woodpecker-public-v1",
         "standard-lichess-v2",
+        "standard-lichess-v4",
         "woodpecker-masters-v1",
         "esoteric-seed-v1",
         "esoteric-seed-v2",

@@ -76,6 +76,7 @@ def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
 def build() -> list[tuple[Suite, pathlib.Path]]:
     standard_v1_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
     standard_v2_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
+    standard_v3_parent = load_suite(ROOT / "suites/public/standard-lichess-v4.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
     esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 
@@ -100,6 +101,16 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         source_label=f"suite:{standard_v2_parent.name}@{standard_v2_parent.content_hash}",
         seed=SEED,
     )
+    standard_v3 = freeze_puzzle_suite(
+        sorted(
+            _band_sample(standard_v3_parent, bands, 2),
+            key=lambda puzzle: (puzzle.rating, puzzle.id),
+        ),
+        name="standard-smoke-v3",
+        version="3.0.0",
+        source_label=f"suite:{standard_v3_parent.name}@{standard_v3_parent.content_hash}",
+        seed=SEED,
+    )
     woodpecker = freeze_puzzle_suite(
         _woodpecker_section_sample(woodpecker_parent),
         name="woodpecker-smoke-v1",
@@ -117,6 +128,7 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
     return [
         (standard_v1, ROOT / "suites/public/standard-smoke-v1.json"),
         (standard_v2, ROOT / "suites/public/standard-smoke-v2.json"),
+        (standard_v3, ROOT / "suites/public/standard-smoke-v3.json"),
         (woodpecker, ROOT / "suites/public/woodpecker-smoke-v1.json"),
         (esoteric, ROOT / "suites/public/esoteric-smoke-v2.json"),
     ]
