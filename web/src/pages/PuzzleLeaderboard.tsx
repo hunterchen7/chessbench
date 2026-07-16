@@ -130,7 +130,7 @@ export function PuzzleLeaderboard() {
           <div className="flex max-w-2xl items-start gap-2 text-sm text-muted-foreground"><Info className="mt-0.5 size-4 shrink-0" /><span><strong className="text-foreground">{activeSuite}</strong> · cells show every available response style. Expand a model for points, solves, legality, cost, and run dates.</span></div>
           <div className="flex flex-wrap items-center gap-2">
             {suites.length > 1 ? <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select> : null}
-            <div className="flex h-9 items-center gap-1 rounded-lg border bg-card p-1 shadow-xs" aria-label="Visible method columns">
+            <div className="flex min-h-9 max-w-full flex-wrap items-center gap-1 rounded-lg border bg-card p-1 shadow-xs" aria-label="Visible method columns">
               <span className="flex items-center gap-1 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><Filter className="size-3" /> Columns</span>
               {MODES.map((item) => {
                 const visible = visibleModes.includes(item.n)
