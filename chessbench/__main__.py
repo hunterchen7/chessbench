@@ -16,6 +16,7 @@ Sweep an ablation axis:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from contextlib import ExitStack
 from dataclasses import replace
@@ -89,6 +90,39 @@ def _usage_int(value: object) -> int:
 
 def _usage_float(value: object) -> float:
     return float(value) if isinstance(value, (str, int, float)) else 0.0
+
+
+def _sync_completed_run(db_path: str, run_id: str, *, disabled: bool = False) -> None:
+    """Best-effort publish after local completion; the SQLite outbox stays canonical."""
+    if disabled:
+        print("publish: skipped by --no-sync")
+        return
+    api = os.environ.get("CHESSBENCH_API")
+    token = os.environ.get("CHESSBENCH_INGEST_TOKEN")
+    if not api or not token:
+        print("publish: local only (Cloudflare credentials are not configured)")
+        return
+
+    from .cloudflare_sync import sync_run
+    from .database import BenchmarkStore
+
+    try:
+        with BenchmarkStore(db_path) as store:
+            sent, failed = sync_run(store, api, token, run_id)
+    except Exception as exc:
+        print(
+            f"[warn] Cloudflare publish failed; the complete run remains in the "
+            f"local outbox: {type(exc).__name__}: {exc}",
+            file=sys.stderr,
+        )
+        return
+    if failed:
+        print(
+            f"[warn] published {sent} item(s); {failed} remain queued in the local outbox",
+            file=sys.stderr,
+        )
+    else:
+        print(f"publish: Cloudflare D1 is current ({sent} newly delivered item(s))")
 
 
 def _turn_usage_totals(
@@ -828,6 +862,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     if handle.status == "completed" and not args.force:
         print(f"skip (completed): {variant.label} × {suite.name} × {condition.slug()}")
         store.close()
+        _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
         return 0
     store.acquire_run_lock(handle.run_id)
     out = _run_model_output_path(
@@ -1003,6 +1038,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     store.close()
     print(format_report(report))
     print(f"\ncompleted {handle.run_id}; wrote JSON export -> {out}")
+    _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
     return 0
 
 
@@ -1824,7 +1860,12 @@ def main(argv: list[str] | None = None) -> int:
     rmp.add_argument(
         "--db",
         default="runs/chessbench.db",
-        help="durable local outbox/database (syncs to Cloudflare separately)",
+        help="durable local outbox/database (completed runs auto-sync when Cloudflare credentials exist)",
+    )
+    rmp.add_argument(
+        "--no-sync",
+        action="store_true",
+        help="leave a completed run queued in the local outbox instead of publishing it",
     )
     rmp.add_argument(
         "--force", action="store_true", help="recompute even if the run file exists"

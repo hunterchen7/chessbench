@@ -244,6 +244,16 @@ python3 scripts/sync_registry.py
 python3 scripts/sync_cloudflare.py --db runs/chessbench.db
 ```
 
+`run-model` also publishes its own completed run automatically when those two
+Cloudflare environment variables are configured. Delivery is idempotent: a
+network failure leaves the completed items in the local SQLite outbox for the
+next automatic attempt or a manual `sync_cloudflare.py` drain. Use `--no-sync`
+only when a completed run should intentionally remain local.
+
+Dashboard exports are scoped to the current suite, method, model run, puzzle,
+or match set. The navigation Data menu keeps the full cross-track archive as an
+explicitly labelled secondary export instead of making it the default action.
+
 During credential migration the Worker may also accept `INGEST_TOKEN_V2`; this lets a new local outbox client sync
 without invalidating an existing ingestion client. Keep only the credentials that are actively needed.
 
