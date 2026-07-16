@@ -334,6 +334,17 @@ def test_billed_provider_failure_is_checkpointed_without_becoming_a_chess_move()
                 }
             ],
         }
+        model.last_request_payload = {
+            "model": "z-ai/glm-5.2",
+            "messages": messages,
+            "reasoning": {"effort": "high", "exclude": True},
+        }
+        model.last_provider_response_raw = json.dumps(model.last_provider_response)
+        model.last_http_status = 200
+        model.last_response_headers = {
+            "x-generation-id": "gen-glm-failed",
+            "cf-ray": "example-ray",
+        }
         model.last_response_id = "gen-glm-failed"
         model.last_response_model = "z-ai/glm-5.2"
         model.last_response_provider = "Example Inference"
@@ -359,6 +370,18 @@ def test_billed_provider_failure_is_checkpointed_without_becoming_a_chess_move()
     assert turn["response_id"] == "gen-glm-failed"
     assert turn["finish_reason"] == "error"
     assert turn["provider_error"] == {"message": "generation failed"}
+    assert turn["request_payload"]["reasoning"] == {
+        "effort": "high",
+        "exclude": True,
+    }
+    assert turn["provider_response_raw"] == json.dumps(
+        model.last_provider_response
+    )
+    assert turn["http_status"] == 200
+    assert turn["response_headers"] == {
+        "x-generation-id": "gen-glm-failed",
+        "cf-ray": "example-ray",
+    }
     assert turn["cost_usd"] == pytest.approx(0.0292616478)
 
     resumed = UsageScriptedModel(

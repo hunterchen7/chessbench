@@ -24,6 +24,13 @@ from ..types import Message
 # 5xx responses and transport failures are outcome-ambiguous: the provider may
 # have completed and charged the generation before the response was lost.
 _SAFE_RETRY_STATUS = {429, 503}
+_SENSITIVE_RESPONSE_HEADERS = {
+    "authorization",
+    "cookie",
+    "proxy-authenticate",
+    "set-cookie",
+    "www-authenticate",
+}
 
 
 class ModelError(RuntimeError):
@@ -109,6 +116,10 @@ class _OpenAICompatModel:
         self.last_finish_reason: str | None = None
         self.last_native_finish_reason: str | None = None
         self.last_provider_error: object | None = None
+        self.last_request_payload: dict[str, object] | None = None
+        self.last_provider_response_raw: str | None = None
+        self.last_http_status: int | None = None
+        self.last_response_headers: dict[str, str] | None = None
 
     def set_cache_session(self, session_id: str | None) -> None:
         """Set an opaque conversation key for provider prompt-prefix caching."""
@@ -151,6 +162,29 @@ class _OpenAICompatModel:
                 return b"".join(chunks)
             chunks.append(cast(bytes, chunk))
 
+    @staticmethod
+    def _response_headers_for_audit(headers: object) -> dict[str, str]:
+        """Return response headers without persisting authentication material."""
+        items = getattr(headers, "items", None)
+        if not callable(items):
+            return {}
+        audited: dict[str, str] = {}
+        for key, value in items():
+            name = str(key).lower()
+            if name not in _SENSITIVE_RESPONSE_HEADERS:
+                audited[name] = str(value)
+        return audited
+
+    def _capture_http_response(
+        self, response: object, body: str, *, status: int | None = None
+    ) -> None:
+        candidate = status if status is not None else getattr(response, "status", None)
+        self.last_http_status = candidate if isinstance(candidate, int) else None
+        self.last_response_headers = self._response_headers_for_audit(
+            getattr(response, "headers", None)
+        )
+        self.last_provider_response_raw = body
+
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST without silently duplicating an outcome-ambiguous generation.
 
@@ -168,12 +202,13 @@ class _OpenAICompatModel:
             deadline = time.monotonic() + self._timeout
             try:
                 with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                    return self._read_body_with_deadline(resp, deadline).decode(
-                        "utf-8"
-                    )
+                    body = self._read_body_with_deadline(resp, deadline).decode("utf-8")
+                    self._capture_http_response(resp, body)
+                    return body
             except urllib.error.HTTPError as e:
+                detail = e.read().decode("utf-8", "replace")
+                self._capture_http_response(e, detail, status=e.code)
                 if e.code not in _SAFE_RETRY_STATUS:
-                    detail = e.read().decode("utf-8", "replace")
                     qualifier = (
                         " outcome may be ambiguous; automatic retry disabled;"
                         if e.code >= 500
@@ -230,6 +265,10 @@ class _OpenAICompatModel:
         self.last_finish_reason = None
         self.last_native_finish_reason = None
         self.last_provider_error = None
+        self.last_request_payload = None
+        self.last_provider_response_raw = None
+        self.last_http_status = None
+        self.last_response_headers = None
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {
@@ -276,6 +315,9 @@ class _OpenAICompatModel:
                 # closed instead of mixing constrained and unconstrained cells.
                 payload["provider"] = {"require_parameters": True}
         data = json.dumps(payload).encode("utf-8")
+        # This is the exact JSON request body and intentionally excludes HTTP
+        # authorization headers. Persisting it makes provider quirks reproducible.
+        self.last_request_payload = cast(dict[str, object], json.loads(data))
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
@@ -295,6 +337,8 @@ class _OpenAICompatModel:
         parsed = cast(_Response, decoded)
         self.last_provider_response = dict(decoded)
         response_id = parsed.get("id")
+        if not isinstance(response_id, str) and self.last_response_headers:
+            response_id = self.last_response_headers.get("x-generation-id")
         self.last_response_id = response_id if isinstance(response_id, str) else None
         response_model = parsed.get("model")
         self.last_response_model = (

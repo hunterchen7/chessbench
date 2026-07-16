@@ -12,8 +12,16 @@ from chessbench.models.openai_compat import ModelError, OpenAIModel, OpenRouterM
 
 
 class _Response:
-    def __init__(self, payload: dict[str, object]) -> None:
+    def __init__(
+        self,
+        payload: dict[str, object],
+        *,
+        status: int = 200,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         self._body = json.dumps(payload).encode()
+        self.status = status
+        self.headers = headers or {}
 
     def __enter__(self):
         return self
@@ -127,13 +135,18 @@ def test_503_honors_retry_after_then_records_response(monkeypatch):
     assert model.last_cost == pytest.approx(0.001)
 
 
-def _capture_request(monkeypatch, response: dict[str, object]):
+def _capture_request(
+    monkeypatch,
+    response: dict[str, object],
+    *,
+    response_headers: dict[str, str] | None = None,
+):
     captured: dict[str, object] = {}
 
     def respond(request, **_kwargs):
         captured["payload"] = json.loads(request.data)
         captured["headers"] = dict(request.header_items())
-        return _Response(response)
+        return _Response(response, headers=response_headers)
 
     monkeypatch.setattr("urllib.request.urlopen", respond)
     return captured
@@ -315,13 +328,55 @@ def test_successful_response_keeps_full_provider_envelope(monkeypatch):
             }
         ],
     }
-    _capture_request(monkeypatch, response)
+    _capture_request(
+        monkeypatch,
+        response,
+        response_headers={
+            "X-Generation-Id": "gen-header",
+            "CF-Ray": "example-ray",
+            "Set-Cookie": "must-not-be-persisted",
+        },
+    )
     model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
 
     assert model.chat([{"role": "user", "content": "move"}]) == "h5h4"
     assert model.last_provider_response == response
+    assert model.last_provider_response_raw == json.dumps(response)
+    assert model.last_http_status == 200
+    assert model.last_response_headers == {
+        "x-generation-id": "gen-header",
+        "cf-ray": "example-ray",
+    }
+    assert model.last_request_payload == {
+        "model": "z-ai/glm-5.2",
+        "messages": [{"role": "user", "content": "move"}],
+        "temperature": 0.0,
+        "max_tokens": 2048,
+    }
     assert model.last_response_provider == "Example Inference"
     assert model.last_finish_reason == "stop"
+
+
+def test_generation_id_header_is_kept_when_error_body_has_no_id(monkeypatch):
+    _capture_request(
+        monkeypatch,
+        {
+            "choices": [
+                {
+                    "finish_reason": "error",
+                    "message": {"content": None},
+                    "error": {"code": 502, "message": "provider disconnected"},
+                }
+            ]
+        },
+        response_headers={"X-Generation-Id": "gen-from-header"},
+    )
+    model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
+
+    with pytest.raises(ModelError, match="choice error"):
+        model.chat([{"role": "user", "content": "move"}])
+
+    assert model.last_response_id == "gen-from-header"
 
 
 def test_provider_output_limit_omits_max_tokens_but_keeps_reasoning_effort(monkeypatch):

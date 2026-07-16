@@ -66,6 +66,10 @@ class MoveContext:
     last_finish_reason: str | None = None
     last_native_finish_reason: str | None = None
     last_provider_error: object | None = None
+    last_request_payload: dict[str, object] | None = None
+    last_provider_response_raw: str | None = None
+    last_http_status: int | None = None
+    last_response_headers: dict[str, str] | None = None
 
 
 def _capture_model_audit(model: object, ctx: MoveContext) -> None:
@@ -81,6 +85,16 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
     ctx.last_cache_session_id = session if isinstance(session, str) else None
     response = getattr(model, "last_provider_response", None)
     ctx.last_provider_response = dict(response) if isinstance(response, dict) else None
+    request = getattr(model, "last_request_payload", None)
+    ctx.last_request_payload = dict(request) if isinstance(request, dict) else None
+    raw_body = getattr(model, "last_provider_response_raw", None)
+    ctx.last_provider_response_raw = raw_body if isinstance(raw_body, str) else None
+    http_status = getattr(model, "last_http_status", None)
+    ctx.last_http_status = http_status if isinstance(http_status, int) else None
+    response_headers = getattr(model, "last_response_headers", None)
+    ctx.last_response_headers = (
+        dict(response_headers) if isinstance(response_headers, dict) else None
+    )
     for ctx_name, model_name in (
         ("last_response_id", "last_response_id"),
         ("last_response_model", "last_response_model"),
