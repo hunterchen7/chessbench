@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
-import { Link, useParams, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/data"
@@ -179,9 +179,15 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
 
 export function ModelDetail() {
   const { model = "" } = useParams()
+  const navigate = useNavigate()
   const key = decodeURIComponent(model)
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
+  const goBack = useCallback(() => {
+    const historyIndex = window.history.state?.idx
+    if (typeof historyIndex === "number" && historyIndex > 0) navigate(-1)
+    else navigate("/")
+  }, [navigate])
   const mine = useMemo(() => runs
     .filter((run) => isVisibleUiTrack(run.track) && run.model_variant.key === key)
     .sort((a, b) => b.created.localeCompare(a.created)), [runs, key])
@@ -206,7 +212,7 @@ export function ModelDetail() {
     return () => { active = false }
   }, [metaFile])
 
-  if (!meta) return <div><p>No published runs for {key}.</p><Link to="/" className="text-sm underline">Back to overview</Link></div>
+  if (!meta) return <div><p>No published runs for {key}.</p><button type="button" onClick={goBack} className="cursor-pointer text-sm underline">Go back</button></div>
   const displayRun = run ?? ({ ...meta, schema: "", themes: [], items: [] } as Run)
   const variant = meta.model_variant
   const activeResponseStyle = responseStyleInfo(meta.condition)
@@ -288,7 +294,7 @@ export function ModelDetail() {
   return <div className="space-y-8">
     <section className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-7">
       <div>
-        <Link to="/" className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Overview</Link>
+        <button type="button" onClick={goBack} className="mb-4 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Back</button>
         <h1 className="sr-only">{variant.display_name} benchmark configuration</h1>
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output-limit policy are part of this participant’s identity.</p>
