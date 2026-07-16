@@ -2,6 +2,95 @@
  "schema": "chessbench.index.v2",
  "runs": [
   {
+   "run_id": "a600ea9b09854b77881b78fe835910aa",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T06:37:40+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "json_schema_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 69,
+    "solve_rate": 0.2123076923076923,
+    "mean_score": 0.28653724053724056,
+    "first_move_legal_rate": 0.88,
+    "response_format_valid_rate": 0.8953846153846153,
+    "points": 93.1246,
+    "max_points": 325,
+    "cost_usd": 0.22737577500000006,
+    "puzzle_performance_rating": {
+     "rating": 1176.510900259018,
+     "stderr": 36.32964153599174,
+     "ci95": [
+      1105.304802848474,
+      1247.7169976695618
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T06:51:25+00:00",
+   "completed_at": "2026-07-16T06:51:25+00:00",
+   "usage": {
+    "cost_usd": 0.22737577500000006,
+    "prompt_tokens": 246636,
+    "completion_tokens": 112009,
+    "reasoning_tokens": 75622,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 246636,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
    "run_id": "d9f9b05fcc674186b5bb09004c0ca38f",
    "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
    "track": "puzzle",
@@ -86,6 +175,362 @@
     "cache_read_tokens": 0,
     "cache_write_tokens": 0,
     "uncached_prompt_tokens": 125339,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "98e9cea938214e589ceac5022eafee22",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T07:10:24+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "json_schema_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 81,
+    "solve_rate": 0.24923076923076923,
+    "mean_score": 0.32556288156288155,
+    "first_move_legal_rate": 0.9815384615384616,
+    "response_format_valid_rate": 0.9661538461538461,
+    "points": 105.8079,
+    "max_points": 325,
+    "cost_usd": 0.37881929250000024,
+    "puzzle_performance_rating": {
+     "rating": 1267.4258053302765,
+     "stderr": 36.25315710105581,
+     "ci95": [
+      1196.3696174122072,
+      1338.4819932483458
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T07:29:30+00:00",
+   "completed_at": "2026-07-16T07:29:30+00:00",
+   "usage": {
+    "cost_usd": 0.37881929250000024,
+    "prompt_tokens": 596413,
+    "completion_tokens": 155695,
+    "reasoning_tokens": 112615,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 596413,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "ee83d284b11e41f89e6d75ea560032bf",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T06:22:28+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 70,
+    "solve_rate": 0.2153846153846154,
+    "mean_score": 0.31273015873015875,
+    "first_move_legal_rate": 0.9507692307692308,
+    "response_format_valid_rate": null,
+    "points": 101.6373,
+    "max_points": 325,
+    "cost_usd": 0.25618947750000004,
+    "puzzle_performance_rating": {
+     "rating": 1184.1056048870087,
+     "stderr": 36.31619241013559,
+     "ci95": [
+      1112.9258677631428,
+      1255.2853420108745
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T06:33:58+00:00",
+   "completed_at": "2026-07-16T06:33:58+00:00",
+   "usage": {
+    "cost_usd": 0.25618947750000004,
+    "prompt_tokens": 439807,
+    "completion_tokens": 99217,
+    "reasoning_tokens": 97225,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 439807,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "ef5c5826af73426d8cd96ba47488e420",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T06:53:21+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "json_schema_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 67,
+    "solve_rate": 0.20615384615384616,
+    "mean_score": 0.28054700854700854,
+    "first_move_legal_rate": 0.9846153846153847,
+    "response_format_valid_rate": 0.9538461538461539,
+    "points": 91.1778,
+    "max_points": 325,
+    "cost_usd": 0.24788882250000005,
+    "puzzle_performance_rating": {
+     "rating": 1161.3024771213531,
+     "stderr": 36.362393554860375,
+     "ci95": [
+      1090.0321857538268,
+      1232.5727684888795
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T07:08:07+00:00",
+   "completed_at": "2026-07-16T07:08:07+00:00",
+   "usage": {
+    "cost_usd": 0.24788882250000005,
+    "prompt_tokens": 347613,
+    "completion_tokens": 108993,
+    "reasoning_tokens": 72661,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 347613,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "79c9aa2b56be41b3bc9fe4f06b6131c0",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T06:11:49+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 64,
+    "solve_rate": 0.19692307692307692,
+    "mean_score": 0.2799316239316239,
+    "first_move_legal_rate": 0.9723076923076923,
+    "response_format_valid_rate": null,
+    "points": 90.9778,
+    "max_points": 325,
+    "cost_usd": 0.1760620949999998,
+    "puzzle_performance_rating": {
+     "rating": 1138.4291350841522,
+     "stderr": 36.428779329898674,
+     "ci95": [
+      1067.0287275975509,
+      1209.8295425707536
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T06:21:59+00:00",
+   "completed_at": "2026-07-16T06:21:59+00:00",
+   "usage": {
+    "cost_usd": 0.1760620949999998,
+    "prompt_tokens": 233042,
+    "completion_tokens": 79720,
+    "reasoning_tokens": 77768,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 233042,
     "cache_discount_usd": 0.0
    },
    "error": null
