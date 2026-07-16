@@ -210,7 +210,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                   return (
                     <div key={i} className="rounded-md border">
                       <button
-                        className="flex w-full items-center gap-3 px-3 py-2 text-left"
+                        className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/35 disabled:cursor-default disabled:hover:bg-transparent"
                         onClick={() => setExpanded(open ? null : i)}
                         disabled={!hasAudit}
                       >

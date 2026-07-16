@@ -251,7 +251,7 @@ export function GameReplay({
                         type="button"
                         onClick={() => setCursor(index + 1)}
                         className={cn(
-                          "flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 text-left font-mono transition-colors",
+                          "flex min-w-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-left font-mono transition-colors",
                           cursor === index + 1 ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
                           move.forfeited && cursor !== index + 1 && "text-rose-600",
                           !firstLegal && !move.forfeited && cursor !== index + 1 && "text-amber-700 dark:text-amber-300",

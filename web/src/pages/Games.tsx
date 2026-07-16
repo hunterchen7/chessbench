@@ -68,7 +68,7 @@ export function Games() {
             </Card>
           </Link>
         ))}
-        {visible.length === 0 && <p className="text-sm text-muted-foreground">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} tournaments recorded yet.</p>}
+        {visible.length === 0 && <p className="text-sm text-muted-foreground">No {responseStyle === "move_only" ? "move-only" : "rationale"} tournaments recorded yet.</p>}
       </div>
     </div>
   )

@@ -274,7 +274,7 @@ const TurnCard = memo(function TurnCard({
       <button
         type="button"
         onClick={() => onSelect(index + 1)}
-        className="flex w-full items-center justify-between gap-3 rounded-t-2xl px-3 py-2.5 text-left hover:bg-muted/45"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-t-2xl px-3 py-2.5 text-left hover:bg-muted/45"
       >
         <div className="flex min-w-0 items-center gap-2">
           <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{move.ply}.</span>

@@ -8,8 +8,8 @@ function Collapsible(props: React.ComponentProps<typeof CollapsiblePrimitive.Roo
   return <CollapsiblePrimitive.Root data-slot="collapsible" {...props} />
 }
 
-function CollapsibleTrigger(props: React.ComponentProps<typeof CollapsiblePrimitive.Trigger>) {
-  return <CollapsiblePrimitive.Trigger data-slot="collapsible-trigger" {...props} />
+function CollapsibleTrigger({ className, ...props }: React.ComponentProps<typeof CollapsiblePrimitive.Trigger>) {
+  return <CollapsiblePrimitive.Trigger data-slot="collapsible-trigger" className={cn("cursor-pointer disabled:cursor-not-allowed", className)} {...props} />
 }
 
 function CollapsibleContent({ className, ...props }: React.ComponentProps<typeof CollapsiblePrimitive.Content>) {

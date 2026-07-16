@@ -50,12 +50,12 @@ function methodRuns(row: ModelRow, mode: Mode) {
 
 function MethodRating({ runs }: { runs: RunIndexEntry[] }) {
   if (!runs.length) return <div className="text-xs text-muted-foreground/70">Not run</div>
-  return <div className="space-y-2.5">{runs.map((run) => <div key={run.run_id} className="min-w-0 first:pt-0 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-border/60 [&:not(:first-child)]:pt-2.5">
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="font-mono text-lg font-semibold leading-none tabular-nums">{ratingText(run)}</span>
+  return <div className="grid gap-1.5">{runs.map((run) => <div key={run.run_id} className="min-w-0 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2 shadow-xs">
+    <div className="flex items-center justify-between gap-2">
       <ResponseStyleBadge condition={run.condition} compact />
+      <span className="font-mono text-lg font-semibold leading-none tabular-nums">{ratingText(run)}</span>
     </div>
-    <div className="mt-1 text-[10px] leading-none text-muted-foreground">{ratingNote(run)}</div>
+    <div className="mt-1.5 text-right text-[10px] leading-none text-muted-foreground">{ratingNote(run)}</div>
   </div>)}</div>
 }
 
@@ -102,8 +102,8 @@ export function PuzzleLeaderboard() {
     if (current.includes(mode)) return current.length === 1 ? current : current.filter((item) => item !== mode)
     return MODES.map((item) => item.n).filter((item) => current.includes(item) || item === mode)
   })
-  const matrixColumns = `minmax(250px, 1.4fr) repeat(${visibleModes.length}, minmax(160px, .85fr)) minmax(120px, .65fr)`
-  const matrixMinWidth = 390 + visibleModes.length * 170
+  const matrixColumns = `minmax(250px, 1.4fr) repeat(${visibleModes.length}, minmax(185px, .85fr)) minmax(120px, .65fr)`
+  const matrixMinWidth = 390 + visibleModes.length * 195
 
   return (
     <div className="space-y-8">
@@ -134,7 +134,7 @@ export function PuzzleLeaderboard() {
               <span className="flex items-center gap-1 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><Filter className="size-3" /> Columns</span>
               {MODES.map((item) => {
                 const visible = visibleModes.includes(item.n)
-                return <button key={item.n} type="button" aria-pressed={visible} disabled={visible && visibleModes.length === 1} title={visible && visibleModes.length === 1 ? "Keep at least one method visible" : item.blurb} onClick={() => toggleMode(item.n)} className={cn("inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70", visible ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
+                return <button key={item.n} type="button" aria-pressed={visible} disabled={visible && visibleModes.length === 1} title={visible && visibleModes.length === 1 ? "Keep at least one method visible" : item.blurb} onClick={() => toggleMode(item.n)} className={cn("inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70", visible ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
                   <Check className={cn("size-3 transition-all duration-200", visible ? "scale-100 opacity-100" : "-mr-1.5 scale-75 opacity-0")} /> {item.n}. {item.name}
                 </button>
               })}

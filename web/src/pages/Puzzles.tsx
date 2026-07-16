@@ -191,7 +191,7 @@ export function PuzzleBrowser() {
       {rows.length > limit && (
         <button
           onClick={() => setLimit((l) => l + 120)}
-          className="mx-auto block rounded-md border px-4 py-2 text-sm hover:bg-secondary"
+          className="mx-auto block cursor-pointer rounded-md border px-4 py-2 text-sm hover:bg-secondary"
         >
           Show more ({rows.length - limit} remaining)
         </button>

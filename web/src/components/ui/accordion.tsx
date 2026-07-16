@@ -19,7 +19,7 @@ function AccordionTrigger({ className, children, ...props }: React.ComponentProp
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "group flex flex-1 items-start justify-between gap-4 rounded-md py-3 text-left text-sm font-medium transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-50",
+          "group flex flex-1 cursor-pointer items-start justify-between gap-4 rounded-md py-3 text-left text-sm font-medium transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}

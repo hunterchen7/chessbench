@@ -28,8 +28,8 @@ export interface ResponseStyleInfo {
 export const RESPONSE_STYLES: readonly ResponseStyleInfo[] = [
   {
     key: "json_rationale",
-    label: "JSON + rationale",
-    shortLabel: "JSON + why",
+    label: "Rationale",
+    shortLabel: "Rationale",
     protocol: "json_rationale",
     description: "A structured move and a concise, visible model-authored rationale.",
   },

@@ -173,19 +173,35 @@ export function Leaderboard() {
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle points</h2></div>
-            <p className="mt-1 text-sm text-muted-foreground">Compare board-information modes within one response style. Every mode preserves an isolated conversation across moves in the same puzzle; Raw changes board assistance, not chat memory.</p>
+          <div className="max-w-4xl">
+            <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle leaderboard</h2></div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Compare Puzzle Elo and points across board-information methods. Each puzzle keeps its own isolated conversation across moves; changing methods changes the board assistance, not the model's memory.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
-            <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
-            <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}><TabsList className="h-8 border bg-background p-0.5"><TabsTrigger value="compare" className="h-6 text-xs">Compare</TabsTrigger>{MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} className="h-6 text-xs">{mode.n}. {mode.name}</TabsTrigger>)}</TabsList></Tabs>
-            <ExportButton track="puzzle" responseStyle={responseStyle} suite={activeSuite} mode={view === "compare" ? undefined : Number(view)} status="completed" label={view === "compare" ? "Export comparison" : `Export ${MODES.find((mode) => String(mode.n) === view)?.name ?? "view"}`} />
-          </div>
+          <Link to="/puzzles" className="group inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            Explore the full leaderboard <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
 
-        <Card className="overflow-hidden border-border/70">
+        <Card className="gap-0 overflow-hidden border-border/70 py-0">
+          <div className="flex flex-wrap items-end justify-between gap-4 border-b bg-muted/25 px-4 py-3.5">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Response</div>
+                <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Prompt method</div>
+                <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}>
+                  <TabsList className="h-8 border bg-background p-0.5 shadow-xs">
+                    <TabsTrigger value="compare" className="h-6 px-2.5 text-xs">All modes</TabsTrigger>
+                    {MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} title={mode.blurb} className="h-6 px-2.5 text-xs">{mode.n}. {mode.name}</TabsTrigger>)}
+                  </TabsList>
+                </Tabs>
+              </div>
+              {suites.length > 1 && <div className="space-y-1.5"><div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Suite</div><Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48 bg-background"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select></div>}
+            </div>
+            <ExportButton track="puzzle" responseStyle={responseStyle} suite={activeSuite} mode={view === "compare" ? undefined : Number(view)} status="completed" label={view === "compare" ? "Export comparison" : `Export ${MODES.find((mode) => String(mode.n) === view)?.name ?? "view"}`} />
+          </div>
           <CardContent className="p-0">
             <Table>
               <TableHeader><TableRow>
@@ -196,19 +212,23 @@ export function Leaderboard() {
                 {(view === "compare" ? compareRows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
                   const run = row.anchor
                   const estimate = puzzleRating(run)
-                  return <TableRow key={row.key} className="group">
+                  return <TableRow key={row.key} className="group transition-colors hover:bg-muted/30">
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{index === 0 ? <Trophy className="mx-auto size-4 text-amber-500" /> : index + 1}</TableCell>
-                    <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`}><ModelIdentity variant={run.model_variant} /></Link></TableCell>
+                    <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`} className="block cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring/60"><ModelIdentity variant={run.model_variant} /></Link></TableCell>
                     {view === "compare" ? MODES.map((mode) => {
                       const cell = row.modes[mode.n]
                       return <TableCell key={mode.n} className="text-right">{cell ? <><div className="font-mono font-semibold tabular-nums">{pointsText(cell.summary)}</div><div className="text-[11px] text-muted-foreground">{pct(cell.summary.solve_rate)} solved</div></> : <span className="text-muted-foreground">—</span>}</TableCell>
                     }) : <><TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{puzzleRatingText(run)}</div><div className="text-[11px] text-muted-foreground">{estimate?.ci95 ? `95% ${Math.round(estimate.ci95[0])}–${Math.round(estimate.ci95[1])}` : "not estimated"}</div></TableCell><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
                   </TableRow>
                 })}
-                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
+                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/15 px-4 py-2.5 text-[11px] text-muted-foreground">
+            <span>{view === "compare" ? compareRows.length : single.length} model configuration{(view === "compare" ? compareRows.length : single.length) === 1 ? "" : "s"}</span>
+            <span>{responseStyle === "move_only" ? "Move only" : "Rationale"} · {view === "compare" ? "all prompt methods" : MODES.find((mode) => String(mode.n) === view)?.name}</span>
+          </div>
         </Card>
       </section>
 

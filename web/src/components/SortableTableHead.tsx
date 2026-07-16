@@ -29,7 +29,7 @@ export function SortableTableHead({
         type="button"
         onClick={onSort}
         className={cn(
-          "group inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60",
+          "group inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60",
           align === "right" && "ml-auto",
           align === "center" && "mx-auto",
           active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
