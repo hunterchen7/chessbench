@@ -170,7 +170,7 @@ export function ModelDetail() {
         <Link to="/" className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" /> Overview</Link>
         <h1 className="sr-only">{variant.display_name} benchmark configuration</h1>
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
-        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output budgets are part of this participant’s identity.</p>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output-limit policy are part of this participant’s identity.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {mine.length > 1 && <select value={meta.run_id} onChange={(event) => setSelected(event.target.value)} className="h-8 max-w-sm rounded-md border bg-background px-2 text-xs">{mine.map((candidate) => <option key={candidate.run_id} value={candidate.run_id}>{candidate.track} · {modeInfo(candidate.condition)?.name ?? "special"} · {responseStyleInfo(candidate.condition).label} · {candidate.suite?.name ?? "no suite"}</option>)}</select>}

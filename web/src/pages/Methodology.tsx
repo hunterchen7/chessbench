@@ -89,7 +89,9 @@ export function Methodology() {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
-          reasoning budget, output cap, and sampling settings. Those fields form the identity of a result.
+          reasoning setting, output-limit policy, and sampling settings. Those fields form the identity of a result.
+          By default ChessBench omits <span className="font-mono text-sm text-foreground">max_tokens</span> and records
+          the provider/model limit; a numeric completion cap is used only for an explicit output-budget ablation.
         </p>
       </header>
 

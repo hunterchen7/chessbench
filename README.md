@@ -161,6 +161,12 @@ Each model request records:
 The model-authored rationale is displayed as an explanation, not represented as faithful hidden chain of thought.
 Provider-hidden chain of thought is not requested for publication, summarized, or reconstructed.
 
+ChessBench omits the provider `max_tokens` parameter by default, so a model uses
+its native completion limit independently from the selected reasoning effort.
+This is recorded as the `o-provider` model variant. A numeric
+`--max-output-tokens` value is opt-in and creates a distinct output-budget
+ablation; `--provider-output-limit` can also state the default policy explicitly.
+
 ## Local setup
 
 Requirements: Python 3.10+, Node 20+, and pnpm.
