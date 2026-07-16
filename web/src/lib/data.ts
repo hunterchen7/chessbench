@@ -172,6 +172,35 @@ export interface PuzzleEntry {
   aggregate?: { solved: number; total: number }
 }
 
+export interface PromptCatalogStyle {
+  style: "move_only" | "json_rationale"
+  response_protocol: string
+  condition_slug: string
+  system_prompt: string
+  user_prompt: string
+  provider_response_format: Record<string, unknown> | null
+}
+
+export interface PromptCatalogMethod {
+  internal_mode: number
+  display_mode: number
+  name: string
+  prompt_version: string
+  styles: PromptCatalogStyle[]
+}
+
+export interface PromptCatalog {
+  schema: "chessbench.prompt_catalog.v1"
+  scope: "standard_puzzle_first_turn"
+  reference: {
+    suite: string
+    content_hash: string
+    puzzle_id: string
+    fen: string
+  }
+  methods: PromptCatalogMethod[]
+}
+
 export interface PublicCorpus<T> {
   schema: "chessbench.public_corpus.v1"
   name: string
@@ -188,6 +217,14 @@ export interface PublicCorpus<T> {
 
 export async function loadPublicCorpus<T>(track: "standard" | "woodpecker" | "esoteric"): Promise<PublicCorpus<T>> {
   return fetchJSON<PublicCorpus<T>>(`${DATA}corpora/${track}.json`)
+}
+
+let promptCatalogCache: Promise<PromptCatalog> | null = null
+export function loadPromptCatalog(): Promise<PromptCatalog> {
+  return promptCatalogCache ??= fetchJSON<PromptCatalog>(`${DATA}prompts.json`).catch((error) => {
+    promptCatalogCache = null
+    throw error
+  })
 }
 
 export interface HistoricalCandidate {

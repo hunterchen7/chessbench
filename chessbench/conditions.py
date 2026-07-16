@@ -207,6 +207,14 @@ class Condition:
 # The scientific baseline condition (free-form, unaided) -- kept for the honest measurement.
 HEADLINE = Condition()
 
+# Constant per-puzzle system message for stateful Standard sessions. Keeping it
+# beside the prompt builders lets the web prompt catalog use the literal harness
+# text rather than duplicating it.
+PUZZLE_SYSTEM_PROMPT = (
+    "You are solving one chess puzzle across several turns. Keep track of the line, but "
+    "trust each newly supplied position as authoritative."
+)
+
 # --- Named "how much help" modes (presets over the axes) ---
 # 1: raw FEN + piece list; 2: + legal moves (UCI only); 3: + concise coaching;
 # 4 remains the Woodpecker full-line protocol; 5 adds long-form coaching.

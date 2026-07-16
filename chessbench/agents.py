@@ -145,10 +145,7 @@ class LLMAgent:
         self.name = model.name
         self._messages: list[Message] = []
         self._cache_namespace = cache_namespace or "ephemeral"
-        self._system = (
-            "You are solving one chess puzzle across several turns. Keep track of the line, but "
-            "trust each newly supplied position as authoritative."
-        )
+        self._system = conditions.PUZZLE_SYSTEM_PROMPT
 
     def reset_puzzle(self) -> None:
         self._messages = []
