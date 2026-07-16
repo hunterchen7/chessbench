@@ -20,7 +20,7 @@ def test_public_campaign_is_complete_and_unique() -> None:
 
     assert len(cells) == 24
     assert len({cell.key for cell in cells}) == len(cells)
-    assert sum(cell.item_count for cell in cells) == 5944
+    assert sum(cell.item_count for cell in cells) == 4744
     assert Counter(cell.track for cell in cells) == {
         "standard": 16,
         "woodpecker": 4,
@@ -31,7 +31,7 @@ def test_public_campaign_is_complete_and_unique() -> None:
     }
     assert {
         cell.suite for cell in cells if cell.track == "standard"
-    } == {"suites/public/standard-lichess-v3.json"}
+    } == {"suites/public/standard-lichess-v4.json"}
 
 
 def test_public_campaign_pins_protocol_and_response_style() -> None:

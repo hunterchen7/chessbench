@@ -26,7 +26,7 @@ DEFAULT_OUT = ROOT / "web" / "public" / "data" / "corpora"
 HISTORICAL_CANDIDATES = ROOT / "data" / "curated" / "candidates"
 
 RELEASES = {
-    "standard": ROOT / "corpora" / "public" / "standard-lichess-v2.json",
+    "standard": ROOT / "corpora" / "public" / "standard-lichess-v4.json",
     "woodpecker": ROOT / "corpora" / "public" / "woodpecker-masters-v1.json",
     "esoteric": ROOT / "corpora" / "public" / "esoteric-seed-v2.json",
 }

@@ -10,7 +10,7 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v3.json` | Public | 325 | `sha256:a8cd0d9483229abe` | Rating ascending, ID tie-break; four Standard methods × both response styles |
+| Standard | `suites/public/standard-lichess-v4.json` | Public | 250 | `sha256:45b23614e01975f0` | Rating ascending, ID tie-break; four Standard methods × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
@@ -20,17 +20,22 @@ These are the suites to use for new model evaluations.
 
 ### Standard
 
-`standard-lichess-v3` retains exactly the 325-item membership of `standard-lichess-v2`, but pins execution order to
-ascending Lichess rating with puzzle ID as the deterministic tie-breaker. This makes the point and Puzzle Elo
-trajectories progress from easier to harder tasks, so the failure frontier is visually legible. The v2 suite remains
-immutable for its historical runs; it was ordered by puzzle ID and is not silently reinterpreted.
+`standard-lichess-v4` is the 250-item canonical public release. Its 200-item core uses deterministic quotas of
+30, 30, 30, 35, 35, and 40 puzzles in the six 400-point bands from 600–999 through 2600–2999, modestly emphasizing
+the harder calibrated bands. Core items have more than 500 Lichess plays, RD below 100, popularity of at least 90,
+and a source-game URL.
 
-The public Standard membership and `standard-heldout-v1` each contain a 300-item calibrated core: 50 puzzles in every
-400-point band from 600–999 through 2600–2999. Core items have more than 500 Lichess plays, RD below 100,
-popularity of at least 90, and a source-game URL. Each suite also reserves 25 puzzles rated 3000–3199. That scarce
-frontier keeps the >500-play requirement but admits RD below 110 and popularity of at least 85. Frontier membership
-is reported separately; it is not presented as equally calibrated to the core. Public and held-out membership is
-mutually disjoint and comes from the complete 2026-07-05 Lichess snapshot.
+The remaining 50 positions are rated 3000–3199: all 25 v3 frontier tasks plus 25 additional positions selected from
+the complete 2026-07-05 Lichess snapshot. They retain the >500-play rule while allowing RD below 110 and popularity
+of at least 85. The scan found 119 eligible candidates after excluding every existing public and evaluator-held
+puzzle release. Every v4 position comes from a distinct source game. Frontier membership is reported separately;
+its 20% suite share is an intentional high-end stress test, not a claim that the source distribution contains 20%
+frontier puzzles.
+
+Execution remains rating ascending with puzzle ID as the deterministic tie-breaker, making points and Puzzle Elo
+trajectories progress from easier to harder tasks. V3 remains immutable because existing runs refer to its 325-item
+content hash. The current held-out v1 certification suite also remains frozen at 325 until a separately versioned
+250-item private release is curated; public and private results must never be pooled by name alone.
 The model is asked for one solver move at a time. The forced reply is applied by the harness, and state may continue
 within that puzzle only. No state crosses puzzle boundaries.
 
@@ -139,14 +144,14 @@ ablation without conflating response format with prompt assistance.
 Run one frozen Standard suite through the complete eight-cell matrix:
 
 ```bash
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 1 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 1 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 2 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 2 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 3 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 3 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 5 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v4.json --mode 5 --rationale
 ```
 
 The same axis applies to games; for example, compare otherwise identical Mode 2 matches with `--move-only` and
@@ -158,6 +163,7 @@ These remain reproducible for old results but are superseded for new headline ev
 
 | Suite | Items | Content hash | Status |
 | --- | ---: | --- | --- |
+| `suites/public/standard-lichess-v3.json` | 325 | `sha256:a8cd0d9483229abe` | Previous canonical suite; v2 membership in rating order |
 | `suites/public/standard-lichess-v2.json` | 325 | `sha256:611c4c22e955ece8` | Same membership as v3; historical puzzle-ID execution order |
 | `suites/public/standard-public-v1.json` | 240 | `sha256:5520347416337d14` | Previous full-dump Standard release |
 | `suites/public/woodpecker-public-v1.json` | 120 | `sha256:f66bc33d2d4d7897` | Previous full-dump Woodpecker release |
@@ -184,7 +190,8 @@ parents. They test paid provider calls and every public suite grader without cla
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
 | `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Historical Standard v2-derived smoke suite, frozen in ID order |
-| `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Active Standard v3-derived smoke suite, rating-ascending |
+| `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Historical Standard v3-derived smoke suite, rating-ascending |
+| `suites/public/standard-smoke-v3.json` | 14 | `sha256:73068832973411d1` | Active Standard v4-derived smoke suite, rating-ascending |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 
@@ -198,13 +205,13 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v2` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
+| Standard | `standard-smoke-v3` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
 | Esoteric | `esoteric-smoke-v2` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, 3, and 5 | 2 games per method, colors alternating |
 
 This is 69 puzzle/composition evaluations per model. Because Standard is move-by-move, its 14 fixtures contain
-40 possible solver turns; the puzzle and composition portion makes at most 173 model requests per model (346 total)
+45 possible solver turns; the puzzle and composition portion makes at most 193 model requests per model (386 total)
 if every Standard line reaches every turn, plus however many turns the eight games require. Games use `hybrid`
 context, a 200-ply ceiling, and two independent player conversations. Each player receives the authoritative current
 position and public move history but never the other player's raw response or rationale.

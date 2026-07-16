@@ -5,10 +5,10 @@ from scripts.sync_registry import ACTIVE_SUITE_FILES, suite_track
 
 def test_live_registry_defaults_exclude_superseded_suites():
     assert ACTIVE_SUITE_FILES == (
-        "standard-lichess-v3.json",
+        "standard-lichess-v4.json",
         "woodpecker-masters-v1.json",
         "esoteric-seed-v2.json",
-        "standard-smoke-v2.json",
+        "standard-smoke-v3.json",
         "woodpecker-smoke-v1.json",
         "esoteric-smoke-v2.json",
     )
@@ -17,5 +17,5 @@ def test_live_registry_defaults_exclude_superseded_suites():
 
 def test_registry_track_mapping_keeps_woodpecker_separate():
     assert suite_track("woodpecker-masters-v1", "puzzle") == "woodpecker"
-    assert suite_track("standard-lichess-v3", "puzzle") == "puzzle"
+    assert suite_track("standard-lichess-v4", "puzzle") == "puzzle"
     assert suite_track("esoteric-seed-v2", "composed") == "esoteric"

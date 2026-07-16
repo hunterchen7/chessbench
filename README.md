@@ -74,11 +74,13 @@ The checked-in releases contain fast development seeds and the first full-dump p
 | `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
 | `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
 | `standard-lichess-v2` | 325 | 300-item calibrated core plus 25 adaptively gated 3000+ puzzles |
+| `standard-lichess-v4` | 250 | 200-item calibrated core plus 50 adaptively gated 3000+ puzzles |
 | `woodpecker-masters-v1` | 135 | 50 Easy, 50 Medium, 35 Hard; long titled-game lines with a separate historical review bank |
 | `esoteric-seed-v2` | 51 | v1 plus the fully sourced, independently certified Kopaev selfmate |
 
-The canonical executable Standard suite is `standard-lichess-v3`: it keeps the exact v2 membership but orders
-puzzles by ascending rating, then puzzle ID. The v2 suite remains frozen for historical run reproducibility.
+The canonical executable Standard suite is `standard-lichess-v4`: a deterministic 250-item release ordered by
+ascending rating, then puzzle ID. It keeps 200 calibrated core tasks and doubles the high-end frontier to 50
+positions. The 325-item v2 and v3 suites remain frozen for historical run reproducibility.
 
 The Standard and scored Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
 all 6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
@@ -109,6 +111,7 @@ Rebuild the seed release or create a larger deterministic Lichess source pool:
 ```bash
 python3 scripts/build_corpora.py
 python3 scripts/build_esoteric_release.py
+python3 scripts/build_standard_v4.py
 python3 scripts/download_puzzles.py --per-bucket 5000 \
   --snapshot YYYY-MM-DD --out data/lichess_pool_YYYY-MM-DD.csv
 python3 scripts/build_corpora.py \
@@ -121,7 +124,7 @@ python3 scripts/build_corpora.py \
 Run each frozen collection:
 
 ```bash
-python3 -m chessbench puzzles --suite suites/public/standard-lichess-v3.json --mode 2
+python3 -m chessbench puzzles --suite suites/public/standard-lichess-v4.json --mode 2
 python3 -m chessbench puzzles --suite suites/public/woodpecker-masters-v1.json --mode 4
 python3 -m chessbench composed --suite suites/public/esoteric-seed-v2.json
 ```
@@ -220,7 +223,7 @@ For the full Standard 4 × 2 matrix, repeat that pair under Modes 1, 2, 3, and 5
 `plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
 
 The frozen Luna/Haiku low-reasoning public campaign contains 24 durable cells
-and 5,944 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
+and 4,744 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
 exact matrix, dry-run validation, and resumable launcher are documented in
 [`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
 The paired public game campaign adds six color-balanced conditions across Modes
