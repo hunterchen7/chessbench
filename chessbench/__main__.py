@@ -639,16 +639,18 @@ def _build_model(
     *,
     reasoning_effort: str | None = None,
     reasoning_max_tokens: int | None = None,
+    request_timeout: float = 120.0,
 ) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
 
     if spec == "anthropic":
         return AnthropicModel(model_id or "claude-opus-4-8")
     if spec == "openai":
-        return OpenAIModel(model_id or "gpt-4.1")
+        return OpenAIModel(model_id or "gpt-4.1", timeout=request_timeout)
     if spec == "openrouter":
         return OpenRouterModel(
             model_id or "openai/gpt-4o-mini",
+            timeout=request_timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
         )
@@ -790,6 +792,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
 
     if args.max_new_items is not None and args.max_new_items < 1:
         raise ValueError("--max-new-items must be positive")
+    if args.request_timeout <= 0:
+        raise ValueError("--request-timeout must be positive")
     entry = get_model(args.model)
     suite = load_suite(args.suite)
     condition = _base_condition(args)
@@ -844,6 +848,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         entry.model_id,
         reasoning_effort=condition.reasoning_effort,
         reasoning_max_tokens=condition.reasoning_max_tokens,
+        request_timeout=args.request_timeout,
     )
     agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
     completed = store.load_puzzle_results(handle.run_id)
@@ -1811,6 +1816,15 @@ def main(argv: list[str] | None = None) -> int:
         "--force", action="store_true", help="recompute even if the run file exists"
     )
     rmp.add_argument("--progress", type=int, default=10)
+    rmp.add_argument(
+        "--request-timeout",
+        type=float,
+        default=120.0,
+        help=(
+            "absolute per-response deadline in seconds; transport failures are "
+            "never retried automatically because billing may have occurred"
+        ),
+    )
     rmp.add_argument(
         "--max-new-items",
         type=int,

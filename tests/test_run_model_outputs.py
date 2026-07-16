@@ -76,3 +76,33 @@ def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypat
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
     assert cli.main(["run-model", "--model", "model", "--suite", "suite.json"]) == 0
     assert seen["out_dir"] == "web/public/data/runs"
+
+
+def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_run_model(args):
+        seen["request_timeout"] = args.request_timeout
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    assert cli.main([
+        "run-model",
+        "--model",
+        "model",
+        "--suite",
+        "suite.json",
+        "--request-timeout",
+        "600",
+    ]) == 0
+    assert seen["request_timeout"] == 600.0
+
+
+def test_model_factory_threads_response_deadline_to_openrouter():
+    model = cli._build_model(
+        "openrouter",
+        "test/model",
+        request_timeout=600.0,
+    )
+
+    assert model._timeout == 600.0
