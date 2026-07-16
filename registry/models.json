@@ -81,6 +81,14 @@
    "enabled": true
   },
   {
+   "label": "qwen3.5-flash",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen3.5-flash-02-23",
+   "family": "qwen",
+   "notes": "Low-cost Qwen 3.5 Flash proof model",
+   "enabled": true
+  },
+  {
    "label": "glm-5.2",
    "provider": "openrouter",
    "model_id": "z-ai/glm-5.2",

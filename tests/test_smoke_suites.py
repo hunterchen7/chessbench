@@ -174,3 +174,11 @@ def test_smoke_model_registry_slugs_are_exact():
         "notes": "Anthropic Claude Haiku 4.5 — low-cost reasoning model",
         "enabled": True,
     }
+    assert by_label["qwen3.5-flash"] == {
+        "label": "qwen3.5-flash",
+        "provider": "openrouter",
+        "model_id": "qwen/qwen3.5-flash-02-23",
+        "family": "qwen",
+        "notes": "Low-cost Qwen 3.5 Flash proof model",
+        "enabled": True,
+    }
