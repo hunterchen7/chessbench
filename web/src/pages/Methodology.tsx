@@ -201,6 +201,7 @@ export function Methodology() {
           <CardHeader><CardTitle className="text-base">Points</CardTitle></CardHeader>
           <CardContent><Prose>
             <p>Standard, Woodpecker, and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
+            <p>The canonical public Standard v3 suite executes puzzles from lowest to highest source rating, with puzzle ID as the deterministic tie-breaker. This makes the failure frontier visible in trajectory charts. Historical v2 runs retain their original ID-sorted order and content hash.</p>
             <p>For tactical puzzles, a secondary performance rating is fitted from complete solves against the source puzzle ratings and shown with a 95% confidence interval. Points remain the official ranking score; this rating is a diagnostic and is not directly comparable to human over-the-board Elo.</p>
             <p>Games use ordinary match points: win = 1, draw = 0.5, loss = 0. Leaderboards do not convert performance to Elo.</p>
           </Prose></CardContent>

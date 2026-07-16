@@ -71,7 +71,7 @@ export function PuzzleLeaderboard() {
   const [visibleModes, setVisibleModes] = useState<Mode[]>(MODES.map((mode) => mode.n))
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
-  const activeSuite = suite || suites[0] || "standard-lichess-v2"
+  const activeSuite = suite || suites[0] || "standard-lichess-v3"
   const suiteRuns = useMemo(() => standard.filter((run) => !suites.length || run.suite?.name === activeSuite), [standard, suites.length, activeSuite])
 
   const rows = useMemo(() => {

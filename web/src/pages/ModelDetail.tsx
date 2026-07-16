@@ -98,6 +98,11 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
     })
   }, [items])
   if (!history.length) return null
+  const ratingOrdered = items.every((item, index) => {
+    if (index === 0) return true
+    const previous = items[index - 1]
+    return previous.rating < item.rating || (previous.rating === item.rating && previous.puzzle_id <= item.puzzle_id)
+  })
 
   const hoverAt = (clientX: number, left: number, width: number, inset: number) => {
     const ratio = Math.max(0, Math.min(1, (clientX - left - inset) / Math.max(1, width - inset * 2)))
@@ -122,13 +127,13 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
   return <Card>
     <CardHeader className="space-y-1">
       <CardTitle className="text-base">Performance over suite</CardTitle>
-      <p className="text-xs text-muted-foreground">Cumulative points and complete-solve puzzle Elo after each puzzle in fixed suite order. Hover either chart to inspect an individual result.</p>
+      <p className="text-xs text-muted-foreground">Cumulative points and complete-solve puzzle Elo after each puzzle in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. Hover either chart to inspect an individual result.</p>
     </CardHeader>
     <CardContent className="grid gap-5 lg:grid-cols-2">
       <div>
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Points accumulation</div>
         <div className="relative flex h-32 touch-pan-y items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 12) }} onMouseLeave={() => setHoveredIndex(null)}>{history.map((point, index) => <div key={point.puzzleId} className={`min-w-0 flex-1 transition-colors ${hoveredIndex === index ? "bg-emerald-500" : "bg-emerald-500/70"}`} style={{ height: `${Math.max(2, point.cumulativePoints / pointsScale * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.cumulativePoints.toFixed(2)} points`} />)}{hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={12} />}</div>
-        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>puzzle 1</span><span>{final.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
+        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>{ratingOrdered ? `rating ${history[0].rating.toLocaleString()}` : "puzzle 1"}</span><span>{ratingOrdered ? `rating ${final.rating.toLocaleString()} · ` : ""}{final.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
       </div>
       <div>
         <div className="mb-2 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span>{displayedElo != null && <span className="font-mono text-violet-700 dark:text-violet-300">{Math.round(displayedElo).toLocaleString()}</span>}</div>
