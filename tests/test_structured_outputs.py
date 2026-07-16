@@ -87,7 +87,7 @@ def test_provider_usage_is_per_call_and_never_stale() -> None:
     assert model.total_cost == 0.25
 
 
-def test_openrouter_payload_is_strict_fail_closed_and_has_no_tools():
+def test_openrouter_payload_is_strict_fail_closed_and_declares_no_tool_fields():
     model = CapturingOpenRouter()
     contract = response_format("move")
     raw = model.chat_structured(
@@ -100,7 +100,7 @@ def test_openrouter_payload_is_strict_fail_closed_and_has_no_tools():
     [payload] = model.payloads
     assert payload["response_format"] == contract
     assert payload["provider"] == {"require_parameters": True}
-    assert payload["tool_choice"] == "none"
+    assert "tool_choice" not in payload
     assert "tools" not in payload and "plugins" not in payload
     schema = contract["json_schema"]
     assert isinstance(schema, dict)
@@ -123,7 +123,7 @@ def test_openrouter_json_object_payload_is_provider_enforced():
     [payload] = model.payloads
     assert payload["response_format"] == {"type": "json_object"}
     assert payload["provider"] == {"require_parameters": True}
-    assert payload["tool_choice"] == "none"
+    assert "tool_choice" not in payload
 
 
 @pytest.mark.parametrize(

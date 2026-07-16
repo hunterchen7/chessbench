@@ -159,10 +159,11 @@ class _OpenAICompatModel:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            # The benchmark never offers or executes tools.  Explicitly disabling
-            # tool choice also protects against provider/router defaults changing.
-            "tool_choice": "none",
         }
+        # The benchmark never sends a ``tools`` or ``plugins`` array, so there is
+        # nothing the model can invoke. Do not also send ``tool_choice: none``:
+        # xAI correctly rejects a tool choice when no tools were declared. We
+        # still fail closed below if a provider ever returns a tool call anyway.
         if self._reasoning_effort is not None:
             payload["reasoning"] = {"effort": self._reasoning_effort, "exclude": True}
         elif self._reasoning_max_tokens is not None:
