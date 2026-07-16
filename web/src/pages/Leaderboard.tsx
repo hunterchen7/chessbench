@@ -18,7 +18,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type Mode = 1 | 2 | 3
 type ModeMap = Partial<Record<Mode, RunIndexEntry>>
-type SortKey = "model" | "points" | "solved" | "legal" | "cost" | `mode-${Mode}`
+type SortKey = "model" | "rating" | "points" | "solved" | "legal" | "cost" | `mode-${Mode}`
+
+const puzzleRating = (run: RunIndexEntry) => run.summary.puzzle_performance_rating
+
+const puzzleRatingText = (run: RunIndexEntry) => {
+  const estimate = puzzleRating(run)
+  if (!estimate) return "—"
+  if (!estimate.bounded) return estimate.rating <= 0 ? "< 0" : "> 4000"
+  return String(Math.round(estimate.rating))
+}
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -87,6 +96,7 @@ export function Leaderboard() {
     return values.toSorted((a, b) => {
       let comparison = 0
       if (sort.key === "model") comparison = a.model_variant.display_name.localeCompare(b.model_variant.display_name)
+      else if (sort.key === "rating") comparison = (puzzleRating(a)?.rating ?? -1) - (puzzleRating(b)?.rating ?? -1)
       else if (sort.key === "solved") comparison = a.summary.solve_rate - b.summary.solve_rate
       else if (sort.key === "legal") comparison = a.summary.first_move_legal_rate - b.summary.first_move_legal_rate
       else if (sort.key === "cost") comparison = (a.summary.cost_usd ?? Number.POSITIVE_INFINITY) - (b.summary.cost_usd ?? Number.POSITIVE_INFINITY)
@@ -165,7 +175,7 @@ export function Leaderboard() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle points</h2></div>
-            <p className="mt-1 text-sm text-muted-foreground">Compare board-information modes within one response style; switch styles for the orthogonal output ablation.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Compare board-information modes within one response style. Every mode preserves an isolated conversation across moves in the same puzzle; Raw changes board assistance, not chat memory.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
@@ -180,21 +190,22 @@ export function Leaderboard() {
             <Table>
               <TableHeader><TableRow>
                 <TableHead className="w-12 text-center">#</TableHead><SortableTableHead label="Model configuration" active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model", "asc")} />
-                {view === "compare" ? MODES.map((mode) => <SortableTableHead key={mode.n} label={mode.name} active={sort.key === `mode-${mode.n}`} direction={sort.direction} align="right" onSort={() => toggleSort(`mode-${mode.n}`)} />) : <><SortableTableHead label="Points" active={sort.key === "points"} direction={sort.direction} align="right" onSort={() => toggleSort("points")} /><SortableTableHead label="Full solves" active={sort.key === "solved"} direction={sort.direction} align="right" onSort={() => toggleSort("solved")} /><SortableTableHead label="Legal first" active={sort.key === "legal"} direction={sort.direction} align="right" onSort={() => toggleSort("legal")} /><SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost", "asc")} /></>}
+                {view === "compare" ? MODES.map((mode) => <SortableTableHead key={mode.n} label={mode.name} active={sort.key === `mode-${mode.n}`} direction={sort.direction} align="right" onSort={() => toggleSort(`mode-${mode.n}`)} />) : <><SortableTableHead label="Puzzle Elo" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} /><SortableTableHead label="Points" active={sort.key === "points"} direction={sort.direction} align="right" onSort={() => toggleSort("points")} /><SortableTableHead label="Full solves" active={sort.key === "solved"} direction={sort.direction} align="right" onSort={() => toggleSort("solved")} /><SortableTableHead label="Legal first" active={sort.key === "legal"} direction={sort.direction} align="right" onSort={() => toggleSort("legal")} /><SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost", "asc")} /></>}
               </TableRow></TableHeader>
               <TableBody>
                 {(view === "compare" ? compareRows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
                   const run = row.anchor
+                  const estimate = puzzleRating(run)
                   return <TableRow key={row.key} className="group">
                     <TableCell className="text-center font-mono text-xs text-muted-foreground">{index === 0 ? <Trophy className="mx-auto size-4 text-amber-500" /> : index + 1}</TableCell>
                     <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`}><ModelIdentity variant={run.model_variant} /></Link></TableCell>
                     {view === "compare" ? MODES.map((mode) => {
                       const cell = row.modes[mode.n]
                       return <TableCell key={mode.n} className="text-right">{cell ? <><div className="font-mono font-semibold tabular-nums">{pointsText(cell.summary)}</div><div className="text-[11px] text-muted-foreground">{pct(cell.summary.solve_rate)} solved</div></> : <span className="text-muted-foreground">—</span>}</TableCell>
-                    }) : <><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
+                    }) : <><TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{puzzleRatingText(run)}</div><div className="text-[11px] text-muted-foreground">{estimate?.ci95 ? `95% ${Math.round(estimate.ci95[0])}–${Math.round(estimate.ci95[1])}` : "not estimated"}</div></TableCell><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
                   </TableRow>
                 })}
-                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 7} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
+                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "JSON + rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>
