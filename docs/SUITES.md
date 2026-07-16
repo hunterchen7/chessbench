@@ -10,7 +10,7 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v2.json` | Public | 325 | `sha256:611c4c22e955ece8` | Move-by-move; four Standard methods × both response styles |
+| Standard | `suites/public/standard-lichess-v3.json` | Public | 325 | `sha256:a8cd0d9483229abe` | Rating ascending, ID tie-break; four Standard methods × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
@@ -20,7 +20,12 @@ These are the suites to use for new model evaluations.
 
 ### Standard
 
-`standard-lichess-v2` and `standard-heldout-v1` each contain a 300-item calibrated core: 50 puzzles in every
+`standard-lichess-v3` retains exactly the 325-item membership of `standard-lichess-v2`, but pins execution order to
+ascending Lichess rating with puzzle ID as the deterministic tie-breaker. This makes the point and Puzzle Elo
+trajectories progress from easier to harder tasks, so the failure frontier is visually legible. The v2 suite remains
+immutable for its historical runs; it was ordered by puzzle ID and is not silently reinterpreted.
+
+The public Standard membership and `standard-heldout-v1` each contain a 300-item calibrated core: 50 puzzles in every
 400-point band from 600–999 through 2600–2999. Core items have more than 500 Lichess plays, RD below 100,
 popularity of at least 90, and a source-game URL. Each suite also reserves 25 puzzles rated 3000–3199. That scarce
 frontier keeps the >500-play requirement but admits RD below 110 and popularity of at least 85. Frontier membership
@@ -134,14 +139,14 @@ ablation without conflating response format with prompt assistance.
 Run one frozen Standard suite through the complete eight-cell matrix:
 
 ```bash
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 1 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 1 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 2 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 2 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --rationale
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 5 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 5 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 1 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 2 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 3 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v3.json --mode 5 --rationale
 ```
 
 The same axis applies to games; for example, compare otherwise identical Mode 2 matches with `--move-only` and
@@ -153,6 +158,7 @@ These remain reproducible for old results but are superseded for new headline ev
 
 | Suite | Items | Content hash | Status |
 | --- | ---: | --- | --- |
+| `suites/public/standard-lichess-v2.json` | 325 | `sha256:611c4c22e955ece8` | Same membership as v3; historical puzzle-ID execution order |
 | `suites/public/standard-public-v1.json` | 240 | `sha256:5520347416337d14` | Previous full-dump Standard release |
 | `suites/public/woodpecker-public-v1.json` | 120 | `sha256:f66bc33d2d4d7897` | Previous full-dump Woodpecker release |
 | `suites/public/standard-seed-v1.json` | 100 | `sha256:a4d6750bdb729857` | Fast development seed |
@@ -177,7 +183,7 @@ parents. They test paid provider calls and every public suite grader without cla
 
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
-| `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Two puzzles in each core band plus the 3000+ frontier |
+| `suites/public/standard-smoke-v1.json` | 14 | `sha256:eac8937352267d8e` | Two puzzles per band, rating-ascending like Standard v3 |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 

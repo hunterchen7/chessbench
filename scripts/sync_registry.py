@@ -17,7 +17,7 @@ if str(ROOT) not in sys.path:
 from chessbench.env import load_local_env  # noqa: E402
 
 ACTIVE_SUITE_FILES = (
-    "standard-lichess-v2.json",
+    "standard-lichess-v3.json",
     "woodpecker-masters-v1.json",
     "esoteric-seed-v2.json",
     "standard-smoke-v1.json",

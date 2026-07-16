@@ -45,7 +45,7 @@ def _band_sample(
                 f"{suite.name}: band {band} has only {len(candidates)} items"
             )
         selected.extend(candidates[:per_band])
-    return sorted(selected, key=lambda puzzle: puzzle.id)
+    return sorted(selected, key=lambda puzzle: (puzzle.rating, puzzle.id))
 
 
 def _genre_sample(suite: Suite) -> list[ComposedProblem]:
@@ -74,7 +74,7 @@ def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
 
 
 def build() -> list[tuple[Suite, pathlib.Path]]:
-    standard_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
+    standard_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
     esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 

@@ -29,6 +29,9 @@ def test_public_campaign_is_complete_and_unique() -> None:
     assert Counter(cell.model_label for cell in cells) == {
         model: 12 for model in PUBLIC_MODELS
     }
+    assert {
+        cell.suite for cell in cells if cell.track == "standard"
+    } == {"suites/public/standard-lichess-v3.json"}
 
 
 def test_public_campaign_pins_protocol_and_response_style() -> None:

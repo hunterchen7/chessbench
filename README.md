@@ -77,6 +77,9 @@ The checked-in releases contain fast development seeds and the first full-dump p
 | `woodpecker-masters-v1` | 135 | 50 Easy, 50 Medium, 35 Hard; long titled-game lines with a separate historical review bank |
 | `esoteric-seed-v2` | 51 | v1 plus the fully sourced, independently certified Kopaev selfmate |
 
+The canonical executable Standard suite is `standard-lichess-v3`: it keeps the exact v2 membership but orders
+puzzles by ascending rating, then puzzle ID. The v2 suite remains frozen for historical run reproducibility.
+
 The Standard and scored Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
 all 6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
 Woodpecker material is restricted to puzzles from titled-player games. The older seed uses the repository's 500-row
@@ -118,7 +121,7 @@ python3 scripts/build_corpora.py \
 Run each frozen collection:
 
 ```bash
-python3 -m chessbench puzzles --suite suites/public/standard-lichess-v2.json --mode 2
+python3 -m chessbench puzzles --suite suites/public/standard-lichess-v3.json --mode 2
 python3 -m chessbench puzzles --suite suites/public/woodpecker-masters-v1.json --mode 4
 python3 -m chessbench composed --suite suites/public/esoteric-seed-v2.json
 ```

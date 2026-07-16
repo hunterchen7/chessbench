@@ -15,9 +15,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXPECTED = {
     "standard-smoke-v1": {
         "path": "suites/public/standard-smoke-v1.json",
-        "parent": "suites/public/standard-lichess-v2.json",
+        "parent": "suites/public/standard-lichess-v3.json",
         "count": 14,
-        "hash": "sha256:63ca1208b6c74ec6",
+        "hash": "sha256:eac8937352267d8e",
         "version": "1.0.0",
     },
     "woodpecker-smoke-v1": {
@@ -64,7 +64,13 @@ def test_smoke_suites_are_exact_ordered_subsets_of_canonical_parents():
             else {problem.id: asdict(problem) for problem in parent.composed_problems()}
         )
         ids = [str(item["id"]) for item in suite.items]
-        if suite.kind == "puzzle":
+        if suite.name == "standard-smoke-v1":
+            assert [
+                (int(item["rating"]), str(item["id"])) for item in suite.items
+            ] == sorted(
+                (int(item["rating"]), str(item["id"])) for item in suite.items
+            )
+        elif suite.kind == "puzzle":
             assert ids == sorted(ids)
         else:
             assert [
