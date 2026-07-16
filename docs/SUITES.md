@@ -183,7 +183,8 @@ parents. They test paid provider calls and every public suite grader without cla
 
 | Suite | Items | Content hash | Coverage |
 | --- | ---: | --- | --- |
-| `suites/public/standard-smoke-v1.json` | 14 | `sha256:eac8937352267d8e` | Two puzzles per band, rating-ascending like Standard v3 |
+| `suites/public/standard-smoke-v1.json` | 14 | `sha256:63ca1208b6c74ec6` | Historical Standard v2-derived smoke suite, frozen in ID order |
+| `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Active Standard v3-derived smoke suite, rating-ascending |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 
@@ -197,7 +198,7 @@ early-stop rule.
 
 | Track | Suite/configuration | Prompt modes | Evaluations per model |
 | --- | --- | --- | ---: |
-| Standard | `standard-smoke-v1` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
+| Standard | `standard-smoke-v2` | Modes 1, 2, 3, and 5; `json_rationale` first pass | 56 puzzle attempts |
 | Woodpecker | `woodpecker-smoke-v1` | Mode 4 | 6 full-line attempts |
 | Esoteric | `esoteric-smoke-v2` | Mode 3 | 7 genre-specific attempts |
 | Games | Normal starting position; no opening book | Modes 1, 2, 3, and 5 | 2 games per method, colors alternating |

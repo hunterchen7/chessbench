@@ -45,7 +45,7 @@ def _band_sample(
                 f"{suite.name}: band {band} has only {len(candidates)} items"
             )
         selected.extend(candidates[:per_band])
-    return sorted(selected, key=lambda puzzle: (puzzle.rating, puzzle.id))
+    return selected
 
 
 def _genre_sample(suite: Suite) -> list[ComposedProblem]:
@@ -74,19 +74,30 @@ def _woodpecker_section_sample(suite: Suite) -> list[Puzzle]:
 
 
 def build() -> list[tuple[Suite, pathlib.Path]]:
-    standard_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
+    standard_v1_parent = load_suite(ROOT / "suites/public/standard-lichess-v2.json")
+    standard_v2_parent = load_suite(ROOT / "suites/public/standard-lichess-v3.json")
     woodpecker_parent = load_suite(ROOT / "suites/public/woodpecker-masters-v1.json")
     esoteric_parent = load_suite(ROOT / "suites/public/esoteric-seed-v2.json")
 
-    standard = freeze_puzzle_suite(
-        _band_sample(
-            standard_parent,
-            (*tuple((start, start + 399) for start in range(600, 3000, 400)), (3000, 3199)),
-            2,
+    bands = (*tuple((start, start + 399) for start in range(600, 3000, 400)), (3000, 3199))
+    standard_v1 = freeze_puzzle_suite(
+        sorted(
+            _band_sample(standard_v1_parent, bands, 2),
+            key=lambda puzzle: puzzle.id,
         ),
         name="standard-smoke-v1",
         version="1.0.0",
-        source_label=f"suite:{standard_parent.name}@{standard_parent.content_hash}",
+        source_label=f"suite:{standard_v1_parent.name}@{standard_v1_parent.content_hash}",
+        seed=SEED,
+    )
+    standard_v2 = freeze_puzzle_suite(
+        sorted(
+            _band_sample(standard_v2_parent, bands, 2),
+            key=lambda puzzle: (puzzle.rating, puzzle.id),
+        ),
+        name="standard-smoke-v2",
+        version="2.0.0",
+        source_label=f"suite:{standard_v2_parent.name}@{standard_v2_parent.content_hash}",
         seed=SEED,
     )
     woodpecker = freeze_puzzle_suite(
@@ -104,7 +115,8 @@ def build() -> list[tuple[Suite, pathlib.Path]]:
         seed=SEED,
     )
     return [
-        (standard, ROOT / "suites/public/standard-smoke-v1.json"),
+        (standard_v1, ROOT / "suites/public/standard-smoke-v1.json"),
+        (standard_v2, ROOT / "suites/public/standard-smoke-v2.json"),
         (woodpecker, ROOT / "suites/public/woodpecker-smoke-v1.json"),
         (esoteric, ROOT / "suites/public/esoteric-smoke-v2.json"),
     ]

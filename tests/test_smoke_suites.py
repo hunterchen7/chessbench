@@ -15,10 +15,17 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXPECTED = {
     "standard-smoke-v1": {
         "path": "suites/public/standard-smoke-v1.json",
+        "parent": "suites/public/standard-lichess-v2.json",
+        "count": 14,
+        "hash": "sha256:63ca1208b6c74ec6",
+        "version": "1.0.0",
+    },
+    "standard-smoke-v2": {
+        "path": "suites/public/standard-smoke-v2.json",
         "parent": "suites/public/standard-lichess-v3.json",
         "count": 14,
-        "hash": "sha256:eac8937352267d8e",
-        "version": "1.0.0",
+        "hash": "sha256:67c948d7899cfe43",
+        "version": "2.0.0",
     },
     "woodpecker-smoke-v1": {
         "path": "suites/public/woodpecker-smoke-v1.json",
@@ -64,7 +71,7 @@ def test_smoke_suites_are_exact_ordered_subsets_of_canonical_parents():
             else {problem.id: asdict(problem) for problem in parent.composed_problems()}
         )
         ids = [str(item["id"]) for item in suite.items]
-        if suite.name == "standard-smoke-v1":
+        if suite.name == "standard-smoke-v2":
             assert [
                 (int(item["rating"]), str(item["id"])) for item in suite.items
             ] == sorted(
@@ -89,6 +96,7 @@ def test_builder_reproduces_committed_smoke_suites_byte_for_byte():
 def test_every_smoke_puzzle_solution_line_is_legal():
     for path in (
         ROOT / "suites/public/standard-smoke-v1.json",
+        ROOT / "suites/public/standard-smoke-v2.json",
         ROOT / "suites/public/woodpecker-smoke-v1.json",
     ):
         for puzzle in load_suite(path).puzzles():
@@ -105,7 +113,7 @@ def test_every_smoke_puzzle_solution_line_is_legal():
 
 
 def test_standard_smoke_suite_is_small_and_rating_balanced():
-    suite = load_suite(ROOT / "suites/public/standard-smoke-v1.json")
+    suite = load_suite(ROOT / "suites/public/standard-smoke-v2.json")
     puzzles = suite.puzzles()
     assert len(puzzles) == 14
     assert sum(puzzle.num_solver_plies() for puzzle in puzzles) == 40

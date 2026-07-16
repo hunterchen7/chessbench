@@ -20,7 +20,7 @@ ACTIVE_SUITE_FILES = (
     "standard-lichess-v3.json",
     "woodpecker-masters-v1.json",
     "esoteric-seed-v2.json",
-    "standard-smoke-v1.json",
+    "standard-smoke-v2.json",
     "woodpecker-smoke-v1.json",
     "esoteric-smoke-v2.json",
 )
