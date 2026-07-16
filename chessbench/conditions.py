@@ -126,6 +126,13 @@ class Condition:
     prompt_version: str = "uci_candidates_v1"
 
     def __post_init__(self) -> None:
+        if self.prompt_style == PromptStyle.DEEP_COACHED:
+            if self.prompt_version == "uci_candidates_v1":
+                object.__setattr__(self, "prompt_version", "deep_coach_v1")
+            elif self.prompt_version != "deep_coach_v1":
+                raise ValueError(
+                    "deep_coached currently requires prompt_version=deep_coach_v1"
+                )
         if self.reasoning_effort is not None and self.reasoning_max_tokens is not None:
             raise ValueError(
                 "reasoning_effort and reasoning_max_tokens are mutually exclusive"
@@ -255,7 +262,6 @@ def mode_condition(mode: int) -> Condition:
         representation=representation,
         prompt_style=prompt_style,
         puzzle_protocol=puzzle_protocol,
-        prompt_version="deep_coach_v1" if mode == 5 else "uci_candidates_v1",
     )
 
 

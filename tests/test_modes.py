@@ -5,6 +5,7 @@ from dataclasses import replace
 import chess
 
 from chessbench.conditions import (
+    Condition,
     DEFAULT_MODE,
     Legality,
     PromptStyle,
@@ -71,6 +72,14 @@ def test_mode5_adds_versioned_deep_calculation_coaching():
     assert "intermediate check" in prompt
     assert "opponent-perspective blunder audit" in prompt
     assert 900 <= len(DEEP_COACH_ADVICE_V1.split()) <= 1100
+
+
+def test_direct_deep_coach_axis_cannot_use_a_stale_prompt_version():
+    assert mode_condition(5).prompt_version == "deep_coach_v1"
+    assert (
+        Condition(prompt_style=PromptStyle.DEEP_COACHED).prompt_version
+        == "deep_coach_v1"
+    )
 
 
 def test_move_only_is_explicit_for_minimal_coached_and_full_line_prompts():
