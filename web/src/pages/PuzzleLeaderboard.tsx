@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { ArrowRight, BarChart3, Check, CircleDollarSign, Database, Filter, Info, Layers3 } from "lucide-react"
 import { useData } from "@/lib/useData"
 import type { ModelVariant, RunIndexEntry } from "@/lib/data"
@@ -65,8 +65,13 @@ function completedDate(run: RunIndexEntry) {
   return Number.isNaN(date.valueOf()) ? value.slice(0, 10) : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
+function runDetailPath(run: RunIndexEntry) {
+  return `/model/${encodeURIComponent(run.model_variant.key)}?run=${encodeURIComponent(run.run_id)}`
+}
+
 export function PuzzleLeaderboard() {
   const { runs } = useData()
+  const navigate = useNavigate()
   const [suite, setSuite] = useState("")
   const [visibleModes, setVisibleModes] = useState<Mode[]>(MODES.map((mode) => mode.n))
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
@@ -189,10 +194,7 @@ export function PuzzleLeaderboard() {
                       </AccordionTrigger>
                       <AccordionContent className="pb-0">
                         <div className="border-t bg-muted/15 px-4 py-5">
-                          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <div><div className="text-sm font-semibold">Published runs</div><div className="mt-0.5 text-xs text-muted-foreground">Each row is a distinct prompt method and response protocol.</div></div>
-                            <Link to={`/model/${encodeURIComponent(row.variant.key)}`} className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-background px-3 text-xs font-medium shadow-xs transition-colors hover:bg-accent">Open model history <ArrowRight className="size-3.5" /></Link>
-                          </div>
+                          <div className="mb-4"><div className="text-sm font-semibold">Published runs</div><div className="mt-0.5 text-xs text-muted-foreground">Each row is a distinct prompt method and response protocol. Select one to inspect its complete result.</div></div>
                           <div className="overflow-hidden rounded-lg border bg-background">
                             <Table>
                               <TableHeader><TableRow>
@@ -200,7 +202,20 @@ export function PuzzleLeaderboard() {
                               </TableRow></TableHeader>
                               <TableBody>{visibleRuns.map((run) => {
                                 const info = modeInfo(run.condition)!
-                                return <TableRow key={run.run_id}>
+                                const path = runDetailPath(run)
+                                return <TableRow
+                                  key={run.run_id}
+                                  role="link"
+                                  tabIndex={0}
+                                  aria-label={`Open ${info.displayN}. ${info.name}, ${responseStyleInfo(run.condition).label}`}
+                                  className="group cursor-pointer outline-none hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                                  onClick={() => navigate(path)}
+                                  onKeyDown={(event) => {
+                                    if (event.key !== "Enter" && event.key !== " ") return
+                                    event.preventDefault()
+                                    navigate(path)
+                                  }}
+                                >
                                   <TableCell><div className="font-medium">{info.displayN}. {info.name}</div><div className="text-[10px] text-muted-foreground">{info.blurb}</div></TableCell>
                                   <TableCell><ResponseStyleBadge condition={run.condition} /></TableCell>
                                   <TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{ratingText(run)}</div><div className="text-[10px] text-muted-foreground">{ratingNote(run)}</div></TableCell>
@@ -208,7 +223,7 @@ export function PuzzleLeaderboard() {
                                   <TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}<div className="text-[10px] text-muted-foreground">{pct(run.summary.solve_rate)}</div></TableCell>
                                   <TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell>
                                   <TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell>
-                                  <TableCell className="text-right text-xs text-muted-foreground">{completedDate(run)}</TableCell>
+                                  <TableCell className="text-right text-xs text-muted-foreground"><span className="inline-flex items-center gap-2">{completedDate(run)} <ArrowRight className="size-3.5 opacity-35 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:translate-x-0.5 group-focus-visible:opacity-100" /></span></TableCell>
                                 </TableRow>
                               })}</TableBody>
                             </Table>
