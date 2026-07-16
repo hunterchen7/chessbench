@@ -182,3 +182,11 @@ def test_smoke_model_registry_slugs_are_exact():
         "notes": "Low-cost Qwen 3.5 Flash proof model",
         "enabled": True,
     }
+    assert by_label["mistral-small-4"] == {
+        "label": "mistral-small-4",
+        "provider": "openrouter",
+        "model_id": "mistralai/mistral-small-2603",
+        "family": "mistral",
+        "notes": "Low-cost Mistral Small 4 compatibility model",
+        "enabled": True,
+    }

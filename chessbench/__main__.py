@@ -788,6 +788,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     from .suite import load_suite
     from .variants import ModelVariant, ReasoningConfig
 
+    if args.max_new_items is not None and args.max_new_items < 1:
+        raise ValueError("--max-new-items must be positive")
     entry = get_model(args.model)
     suite = load_suite(args.suite)
     condition = _base_condition(args)
@@ -928,6 +930,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             puzzles,
             condition,
             progress_every=args.progress,
+            max_new_items=args.max_new_items,
             completed=completed,
             checkpoints=checkpoints,
             on_checkpoint=persist_checkpoint,
@@ -960,6 +963,32 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         finally:
             store.close()
         raise
+    row = store.run_row(handle.run_id)
+    if (
+        args.max_new_items is not None
+        and _usage_int(row.get("completed_items")) < len(puzzles)
+    ):
+        reason = f"operator stop after {args.max_new_items} new item(s)"
+        store.mark_partial(handle.run_id, reason)
+        durable = store.load_puzzle_results(handle.run_id)
+        durable_results = [
+            durable[puzzle.id] for puzzle in puzzles if puzzle.id in durable
+        ]
+        from .report import build_report
+
+        partial_report = build_report(
+            entry.model_id, condition.slug(), durable_results
+        )
+        export_snapshot(
+            durable_results, partial_report, store.run_row(handle.run_id)
+        )
+        store.close()
+        print(
+            f"\npartial {handle.run_id}; stopped after {args.max_new_items} new "
+            f"item(s); wrote resumable JSON export -> {out}"
+        )
+        return 0
+
     # Each item already incremented the durable aggregate exactly once. Do not
     # replace it with this process's model.total_cost: a resumed process only
     # knows about its newly-issued calls.
@@ -1779,6 +1808,15 @@ def main(argv: list[str] | None = None) -> int:
         "--force", action="store_true", help="recompute even if the run file exists"
     )
     rmp.add_argument("--progress", type=int, default=10)
+    rmp.add_argument(
+        "--max-new-items",
+        type=int,
+        default=None,
+        help=(
+            "stop cleanly after N newly evaluated items; completed items remain "
+            "durable and the same run resumes later"
+        ),
+    )
     _add_condition_args(rmp)
     rmp.set_defaults(func=cmd_run_model)
 

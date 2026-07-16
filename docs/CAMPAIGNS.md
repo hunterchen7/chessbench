@@ -56,12 +56,13 @@ python3 scripts/run_public_campaign.py --tracks esoteric --models claude-haiku-4
 ### Budget proof campaign
 
 Before spending on the headline models, run the Standard track one durable cell
-at a time with `qwen3.5-flash` at low reasoning. The initial compatibility cell
-is Mode 1 / move-only:
+at a time with an inexpensive compatibility model at low reasoning. First issue
+one paid item; this is an operational stop and does not create a different
+benchmark condition:
 
 ```bash
 python3 -m chessbench run-model \
-  --model qwen3.5-flash \
+  --model mistral-small-4 \
   --suite suites/public/standard-lichess-v2.json \
   --db runs/chessbench.db \
   --out-dir web/public/data/runs \
@@ -69,16 +70,16 @@ python3 -m chessbench run-model \
   --move-only \
   --response-protocol prompt_json_v1 \
   --reasoning low \
-  --max-output-tokens 8192
+  --max-output-tokens 8192 \
+  --max-new-items 1
 ```
 
-After inspecting that cell, the campaign runner can resume the remaining
-move-only modes in order with `--tracks standard --models qwen3.5-flash
---response-styles move_only`. Every puzzle result is committed to SQLite before
-the next paid request, so the process can be interrupted after any item and
-resumed without repeating completed work. Pricing is deliberately not frozen
-in this document; check the provider immediately before a paid run. This model
-is a harness proof model, not one of the two headline comparison models.
+After inspecting that item, rerun the same command without `--max-new-items` to
+resume the exact cell through all 325 puzzles. Every result is committed to
+SQLite before the next paid request, so the process can be interrupted after
+any item and resumed without repeating completed work. Pricing is deliberately
+not frozen in this document; check the provider immediately before a paid run.
+Compatibility models are harness proofs, not headline comparison models.
 
 ## Public game response-style campaign
 

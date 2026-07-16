@@ -261,6 +261,27 @@ def test_runner_database_resume_counts_each_audited_turn_once(tmp_path):
         assert store.run_row(run.run_id)["cost_usd"] == pytest.approx(0.03)
 
 
+def test_runner_can_stop_before_issuing_more_paid_items():
+    second = replace(ONE_MOVE, id="one-checkpoint-2")
+    model = UsageScriptedModel(
+        [
+            (_answer("a1a8", "FIRST"), 8, 3, 1, 0.005),
+            AssertionError("second provider call must not be issued"),
+        ]
+    )
+
+    report, results = run_puzzles(
+        LLMAgent(model),
+        [ONE_MOVE, second],
+        HEADLINE,
+        max_new_items=1,
+    )
+
+    assert len(results) == 1
+    assert report.n == 1
+    assert len(model.calls) == 1
+
+
 def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):
     path = tmp_path / "migrate-v3.db"
     with BenchmarkStore(path):

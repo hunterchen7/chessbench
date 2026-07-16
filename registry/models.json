@@ -129,6 +129,14 @@
    "enabled": true
   },
   {
+   "label": "mistral-small-4",
+   "provider": "openrouter",
+   "model_id": "mistralai/mistral-small-2603",
+   "family": "mistral",
+   "notes": "Low-cost Mistral Small 4 compatibility model",
+   "enabled": true
+  },
+  {
    "label": "nova-2-lite",
    "provider": "openrouter",
    "model_id": "amazon/nova-2-lite-v1",
