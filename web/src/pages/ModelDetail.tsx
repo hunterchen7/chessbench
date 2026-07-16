@@ -6,6 +6,7 @@ import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/da
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { puzzlePerformanceRating } from "@/lib/puzzleRating"
+import { isVisibleUiTrack } from "@/lib/uiTracks"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
@@ -180,7 +181,9 @@ export function ModelDetail() {
   const { model = "" } = useParams()
   const key = decodeURIComponent(model)
   const { runs } = useData()
-  const mine = useMemo(() => runs.filter((run) => run.model_variant.key === key).sort((a, b) => b.created.localeCompare(a.created)), [runs, key])
+  const mine = useMemo(() => runs
+    .filter((run) => isVisibleUiTrack(run.track) && run.model_variant.key === key)
+    .sort((a, b) => b.created.localeCompare(a.created)), [runs, key])
   const [selected, setSelected] = useState("")
   const activeId = selected || mine[0]?.run_id || ""
   const meta = mine.find((run) => run.run_id === activeId) ?? mine[0]

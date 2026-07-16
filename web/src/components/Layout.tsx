@@ -10,7 +10,6 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTri
 const NAV = [
   { to: "/", label: "Overview", end: true },
   { to: "/puzzles", label: "Puzzles" },
-  { to: "/woodpecker", label: "Woodpecker" },
   { to: "/esoteric", label: "Esoteric" },
   { to: "/games", label: "Games" },
   { to: "/methodology", label: "Methods" },

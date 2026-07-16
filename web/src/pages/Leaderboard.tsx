@@ -6,6 +6,7 @@ import type { RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { isModelVariant } from "@/lib/participants"
+import { isVisibleUiTrack } from "@/lib/uiTracks"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
@@ -41,7 +42,6 @@ function Stat({ label, value, note }: { label: string; value: string; note: stri
 
 const TRACKS = [
   { to: "/puzzles", icon: ListChecks, label: "Standard", copy: "Independent move-finding under four prompt scaffolds.", tone: "text-emerald-600" },
-  { to: "/woodpecker", icon: Activity, label: "Woodpecker", copy: "One response must calculate the complete forced line.", tone: "text-violet-600" },
   { to: "/esoteric", icon: Sparkles, label: "Esoteric", copy: "Selfmates, helpmates, proof games, and studies.", tone: "text-amber-600" },
   { to: "/games", icon: Swords, label: "Games", copy: "Stateful head-to-head play with match-point standings.", tone: "text-rose-600" },
 ]
@@ -110,7 +110,7 @@ export function Leaderboard() {
     direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : defaultDirection,
   }))
 
-  const modelRuns = runs.filter((run) => isModelVariant(run.model_variant))
+  const modelRuns = runs.filter((run) => isVisibleUiTrack(run.track) && isModelVariant(run.model_variant))
   const baseModels = new Set(modelRuns.map((run) => run.model_variant.base_key)).size
   const completed = modelRuns.filter((run) => run.status === "completed").length
   const active = modelRuns.filter((run) => run.status === "running" || run.status === "partial")
@@ -127,19 +127,19 @@ export function Leaderboard() {
             How well do language models actually <span className="text-muted-foreground">understand chess?</span>
           </h1>
           <p className="mt-5 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            A points-first, tool-free evaluation across tactical puzzles, full-line calculation, composed problems,
-            and stateful games. Every prompt condition and reasoning budget stays visible.
+            A points-first, tool-free evaluation across tactical puzzles, composed problems, and stateful games.
+            Every prompt condition and reasoning budget stays visible.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 xl:grid-cols-2">
           <Stat label="Base models" value={String(baseModels)} note="budget variants separate" />
-          <Stat label="Completed runs" value={String(completed)} note={`${runs.length} total manifests`} />
+          <Stat label="Completed runs" value={String(completed)} note={`${modelRuns.length} visible manifests`} />
           <Stat label="Game sets" value={String(tournaments.length)} note="match-point scoring" />
           <Stat label="Recorded cost" value={`$${cost.toFixed(2)}`} note="provider-reported" />
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-3">
         {TRACKS.map(({ to, icon: Icon, label, copy, tone }) => (
           <Link key={to} to={to} className="group">
             <Card className="h-full border-border/70 bg-card/70 transition-all group-hover:-translate-y-0.5 group-hover:border-foreground/30 group-hover:shadow-lg">

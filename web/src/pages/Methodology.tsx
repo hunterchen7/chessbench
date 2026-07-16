@@ -45,18 +45,6 @@ Side to move: {White|Black}
     body: `You are solving one chess puzzle across several turns. Keep track of the line, but trust each newly supplied position as authoritative.`,
   },
   {
-    id: "woodpecker",
-    title: "Woodpecker · one-shot full line",
-    body: `You are solving a chess puzzle. Choose the single best move for the side to move.
-
-{authoritative FEN, piece list, side to move, UCI legal candidates, and coaching block}
-
-Calculate the complete solution now, including the opponent's forced replies.
-
-{move_only: return every move in legal-play order as a UCI line.}
-{json_rationale: return {"moves":["e2e4","e7e5",...],"rationale":"..."}.}`,
-  },
-  {
     id: "game",
     title: "Game · private system and turn messages",
     body: `SYSTEM
@@ -157,7 +145,7 @@ export function Methodology() {
         <div className="max-w-3xl">
           <h2 className="text-xl font-semibold">Response style is a separate axis</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Each of the four methods can independently request a bare move or structured JSON with a visible rationale, producing an eight-cell Standard matrix. Woodpecker remains a separate full-line track.
+            Each of the four methods can independently request a bare move or structured JSON with a visible rationale, producing an eight-cell Standard matrix.
           </p>
         </div>
         <Card className="overflow-hidden">
@@ -190,17 +178,9 @@ export function Methodology() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">Woodpecker is a separate track</CardTitle></CardHeader>
-          <CardContent><Prose>
-            <p>The model sees one position and must return the complete forced solution in a single response. There are no intermediate opponent replies and therefore no between-move conversation policy.</p>
-            <p>The grader parses the full sequence and awards prefix credit only while every preceding solver move remains correct.</p>
-          </Prose></CardContent>
-        </Card>
-
-        <Card>
           <CardHeader><CardTitle className="text-base">Points</CardTitle></CardHeader>
           <CardContent><Prose>
-            <p>Standard, Woodpecker, and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
+            <p>Standard and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
             <p>The canonical public Standard v3 suite executes puzzles from lowest to highest source rating, with puzzle ID as the deterministic tie-breaker. This makes the failure frontier visible in trajectory charts. Historical v2 runs retain their original ID-sorted order and content hash.</p>
             <p>For tactical puzzles, a secondary performance rating is fitted from complete solves against the source puzzle ratings and shown with a 95% confidence interval. Points remain the official ranking score; this rating is a diagnostic and is not directly comparable to human over-the-board Elo.</p>
             <p>Games use ordinary match points: win = 1, draw = 0.5, loss = 0. Leaderboards do not convert performance to Elo.</p>
@@ -229,7 +209,7 @@ export function Methodology() {
           <CardContent><Prose>
             <p><span className="font-mono text-foreground">move_only</span> uses <span className="font-mono text-foreground">plain_text_v1</span>; <span className="font-mono text-foreground">json_rationale</span> requests a structured UCI move plus concise visible rationale. Move scoring remains independent from format compliance.</p>
             <p>We store the exact system prompt where applicable, each user prompt, visible response, parsed move, response protocol, format validity, legality, provider token counts, reasoning-token count, and cost. A rationale is stored only when requested and returned. It is not presented as faithful hidden chain of thought; provider-hidden reasoning is neither requested for publication nor reconstructed.</p>
-            <p><span className="font-mono text-foreground">prompt_prefix_v1</span> permits provider-side reuse of exact prompt-prefix computation inside a multi-turn puzzle or private game session. It never caches an answer. Puzzle message lists still reset and receive distinct opaque routing keys; White and Black remain separate. Cache reads, writes, uncached prompt tokens, discounts, and raw usage are recorded. One-shot Woodpecker and composed tasks skip explicit cache writes.</p>
+            <p><span className="font-mono text-foreground">prompt_prefix_v1</span> permits provider-side reuse of exact prompt-prefix computation inside a multi-turn puzzle or private game session. It never caches an answer. Puzzle message lists still reset and receive distinct opaque routing keys; White and Black remain separate. Cache reads, writes, uncached prompt tokens, discounts, and raw usage are recorded. Composed tasks skip explicit cache writes.</p>
             <p>Each completed item is committed locally to SQLite and queued for idempotent Cloudflare D1 ingestion. A run can resume after interruption or exhausted credits without replaying completed items. Filtered data can be exported as JSON from the dashboard.</p>
           </Prose></CardContent>
         </Card>
