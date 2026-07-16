@@ -8,7 +8,7 @@ import urllib.error
 
 import pytest
 
-from chessbench.models.openai_compat import ModelError, OpenRouterModel
+from chessbench.models.openai_compat import ModelError, OpenAIModel, OpenRouterModel
 
 
 class _Response:
@@ -96,3 +96,98 @@ def test_503_honors_retry_after_then_records_response(monkeypatch):
     assert calls == 2
     assert sleeps == [2.5]
     assert model.last_cost == pytest.approx(0.001)
+
+
+def _capture_request(monkeypatch, response: dict[str, object]):
+    captured: dict[str, object] = {}
+
+    def respond(request, **_kwargs):
+        captured["payload"] = json.loads(request.data)
+        captured["headers"] = dict(request.header_items())
+        return _Response(response)
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    return captured
+
+
+def test_grok_cache_session_is_routing_only_and_tools_are_absent(monkeypatch):
+    captured = _capture_request(
+        monkeypatch,
+        {
+            "choices": [{"message": {"content": "e2e4"}}],
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 5,
+                "prompt_tokens_details": {"cached_tokens": 80},
+                "cost": 0.0002,
+            },
+            "cache_discount": 0.0001,
+        },
+    )
+    model = OpenRouterModel("x-ai/grok-4.5", api_key="test")
+    model.set_cache_session("cb:run:puzzle:abc")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["session_id"] == "cb:run:puzzle:abc"
+    assert "prompt_cache_key" not in payload
+    assert "cache_control" not in payload
+    assert "tools" not in payload
+    assert "plugins" not in payload
+    assert "tool_choice" not in payload
+    headers = captured["headers"]
+    assert isinstance(headers, dict)
+    assert not any(key.lower() == "x-openrouter-cache" for key in headers)
+    assert model.last_cache_policy == "prompt_prefix_v1"
+    assert model.last_cache_session_id == "cb:run:puzzle:abc"
+    assert model.last_cache_discount == pytest.approx(0.0001)
+
+
+@pytest.mark.parametrize(
+    ("model_id", "expected"),
+    [
+        ("openai/gpt-5.6-luna", "prompt_cache_key"),
+        ("anthropic/claude-haiku-4.5", "cache_control"),
+    ],
+)
+def test_openrouter_provider_specific_cache_hint(monkeypatch, model_id, expected):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e2e4"}}]}
+    )
+    model = OpenRouterModel(model_id, api_key="test")
+    model.set_cache_session("cache-key")
+    model.chat([{"role": "user", "content": "move"}])
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert expected in payload
+
+
+def test_direct_openai_uses_prompt_cache_key_without_session_id(monkeypatch):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e2e4"}}]}
+    )
+    model = OpenAIModel("gpt-5.4-mini", api_key="test")
+    model.set_cache_session("cache-key")
+    model.chat([{"role": "user", "content": "move"}])
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["prompt_cache_key"] == "cache-key"
+    assert "session_id" not in payload
+
+
+def test_forbidden_returned_tool_call_fails_closed(monkeypatch):
+    _capture_request(
+        monkeypatch,
+        {
+            "choices": [
+                {
+                    "finish_reason": "tool_calls",
+                    "message": {"tool_calls": [{"function": {"name": "search"}}]},
+                }
+            ]
+        },
+    )
+    model = OpenRouterModel("x-ai/grok-4.5", api_key="test")
+    with pytest.raises(ModelError, match="forbidden tool call"):
+        model.chat([{"role": "user", "content": "move"}])

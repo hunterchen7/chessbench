@@ -10,6 +10,7 @@ active Condition, calls a Model, and extracts the move.
 
 from __future__ import annotations
 
+import hashlib
 import random
 from dataclasses import dataclass, field
 from typing import Protocol, cast
@@ -55,6 +56,9 @@ class MoveContext:
     last_response_format: dict[str, object] | None = None
     last_usage: dict[str, object] | None = None
     last_cost: float = 0.0
+    last_cache_discount: float = 0.0
+    last_cache_policy: str = "provider_default"
+    last_cache_session_id: str | None = None
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -129,11 +133,18 @@ class StockfishAgent:
 class LLMAgent:
     """Wraps a Model: renders the prompt from the Condition, extracts the move."""
 
-    def __init__(self, model: Model, condition: Condition | None = None):
+    def __init__(
+        self,
+        model: Model,
+        condition: Condition | None = None,
+        *,
+        cache_namespace: str | None = None,
+    ):
         self._model = model
         self._condition = condition or conditions.HEADLINE
         self.name = model.name
         self._messages: list[Message] = []
+        self._cache_namespace = cache_namespace or "ephemeral"
         self._system = (
             "You are solving one chess puzzle across several turns. Keep track of the line, but "
             "trust each newly supplied position as authoritative."
@@ -141,6 +152,21 @@ class LLMAgent:
 
     def reset_puzzle(self) -> None:
         self._messages = []
+
+    def start_puzzle(self, puzzle_id: str) -> None:
+        """Isolate provider routing/cache state for exactly one puzzle."""
+        setter = getattr(self._model, "set_cache_session", None)
+        if not callable(setter):
+            return
+        if (
+            self._condition.cache_policy == conditions.CachePolicy.DISABLED
+            or self._condition.context_mode == conditions.ContextMode.FRESH
+            or self._condition.puzzle_protocol == conditions.PuzzleProtocol.FULL_LINE
+        ):
+            setter(None)
+            return
+        digest = hashlib.sha256(puzzle_id.encode()).hexdigest()[:16]
+        setter(f"cb:{self._cache_namespace}:puzzle:{digest}")
 
     def puzzle_conversation(self) -> list[Message]:
         """Return a detached snapshot suitable for a durable puzzle checkpoint."""
@@ -185,6 +211,14 @@ class LLMAgent:
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
+        ctx.last_cache_discount = float(
+            getattr(self._model, "last_cache_discount", 0.0)
+        )
+        ctx.last_cache_policy = str(
+            getattr(self._model, "last_cache_policy", "provider_default")
+        )
+        session = getattr(self._model, "last_cache_session_id", None)
+        ctx.last_cache_session_id = session if isinstance(session, str) else None
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
         parsed = board_utils.parse_model_move_response(board, raw)
@@ -217,6 +251,14 @@ class LLMAgent:
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
+        ctx.last_cache_discount = float(
+            getattr(self._model, "last_cache_discount", 0.0)
+        )
+        ctx.last_cache_policy = str(
+            getattr(self._model, "last_cache_policy", "provider_default")
+        )
+        session = getattr(self._model, "last_cache_session_id", None)
+        ctx.last_cache_session_id = session if isinstance(session, str) else None
         parsed = board_utils.parse_model_line_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:
@@ -288,6 +330,19 @@ class LLMGameAgent:
         self._messages: list[Message] = []
         self._system: str = ""
         self._started = False
+
+    def start_game_session(self, session_id: str) -> None:
+        """Pin one player's private chat without sharing either side's state."""
+        setter = getattr(self._model, "set_cache_session", None)
+        if not callable(setter):
+            return
+        if (
+            self._condition.cache_policy == conditions.CachePolicy.DISABLED
+            or self._condition.context_mode == conditions.ContextMode.FRESH
+        ):
+            setter(None)
+        else:
+            setter(session_id)
 
     def reset(self, color: bool) -> None:
         self._messages = []
@@ -364,6 +419,14 @@ class LLMGameAgent:
         usage = getattr(self._model, "last_usage", None)
         ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
         ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
+        ctx.last_cache_discount = float(
+            getattr(self._model, "last_cache_discount", 0.0)
+        )
+        ctx.last_cache_policy = str(
+            getattr(self._model, "last_cache_policy", "provider_default")
+        )
+        session = getattr(self._model, "last_cache_session_id", None)
+        ctx.last_cache_session_id = session if isinstance(session, str) else None
         parsed = board_utils.parse_model_move_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:

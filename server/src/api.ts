@@ -33,6 +33,10 @@ interface RunRow {
   prompt_tokens: number
   completion_tokens: number
   reasoning_tokens: number
+  cache_read_tokens: number
+  cache_write_tokens: number
+  uncached_prompt_tokens: number
+  cache_discount_usd: number
   puzzle_rating: number | null
   puzzle_rating_stderr: number | null
   puzzle_rating_n: number
@@ -103,6 +107,10 @@ function publicRun(row: RunRow) {
       prompt_tokens: row.prompt_tokens,
       completion_tokens: row.completion_tokens,
       reasoning_tokens: row.reasoning_tokens,
+      cache_read_tokens: row.cache_read_tokens,
+      cache_write_tokens: row.cache_write_tokens,
+      uncached_prompt_tokens: row.uncached_prompt_tokens,
+      cache_discount_usd: row.cache_discount_usd,
       cost_usd: row.cost_usd,
     },
     error: row.error,

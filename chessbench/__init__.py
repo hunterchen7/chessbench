@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from .conditions import (
     HEADLINE,
+    CachePolicy,
     Condition,
     ContextMode,
     Legality,
@@ -21,6 +22,7 @@ from .conditions import (
 
 __all__ = [
     "Condition",
+    "CachePolicy",
     "ContextMode",
     "HEADLINE",
     "Legality",

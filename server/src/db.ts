@@ -168,8 +168,15 @@ const refreshAggregate = (env: Env, runId: string, stamp: string) =>
        prompt_tokens=COALESCE((SELECT SUM(prompt_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
        completion_tokens=COALESCE((SELECT SUM(completion_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
        reasoning_tokens=COALESCE((SELECT SUM(reasoning_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       cache_read_tokens=COALESCE((SELECT SUM(cache_read_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       cache_write_tokens=COALESCE((SELECT SUM(cache_write_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       uncached_prompt_tokens=COALESCE((SELECT SUM(uncached_prompt_tokens) FROM benchmark_items_v2 WHERE run_id=?), 0),
+       cache_discount_usd=COALESCE((SELECT SUM(cache_discount_usd) FROM benchmark_items_v2 WHERE run_id=?), 0),
        updated_at=? WHERE run_id=?`,
-  ).bind(runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, stamp, runId)
+  ).bind(
+    runId, runId, runId, runId, runId, runId, runId, runId, runId, runId, runId,
+    runId, runId, runId, runId, stamp, runId,
+  )
 
 interface PuzzleRatingEstimate {
   rating: number
@@ -219,8 +226,9 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       `INSERT INTO benchmark_items_v2
        (run_id, item_id, sequence, points, max_points, solved, first_move_legal, response_format_valid,
         failure_reason, latency_ms, item_rating, item_rating_deviation, cost_usd, prompt_tokens, completion_tokens,
-        reasoning_tokens, payload_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        reasoning_tokens, cache_read_tokens, cache_write_tokens, uncached_prompt_tokens,
+        cache_discount_usd, payload_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(run_id, item_id) DO UPDATE SET
          sequence=excluded.sequence, points=excluded.points, max_points=excluded.max_points,
          solved=excluded.solved, first_move_legal=excluded.first_move_legal,
@@ -229,6 +237,9 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
          item_rating=excluded.item_rating, item_rating_deviation=excluded.item_rating_deviation,
          cost_usd=excluded.cost_usd, prompt_tokens=excluded.prompt_tokens,
          completion_tokens=excluded.completion_tokens, reasoning_tokens=excluded.reasoning_tokens,
+         cache_read_tokens=excluded.cache_read_tokens, cache_write_tokens=excluded.cache_write_tokens,
+         uncached_prompt_tokens=excluded.uncached_prompt_tokens,
+         cache_discount_usd=excluded.cache_discount_usd,
          payload_json=excluded.payload_json, updated_at=excluded.updated_at`,
     ).bind(
       item.run_id,
@@ -247,6 +258,10 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.prompt_tokens ?? 0,
       item.completion_tokens ?? 0,
       item.reasoning_tokens ?? 0,
+      item.cache_read_tokens ?? 0,
+      item.cache_write_tokens ?? 0,
+      item.uncached_prompt_tokens ?? 0,
+      item.cache_discount_usd ?? 0,
       JSON.stringify(item.payload),
       stamp,
       stamp,

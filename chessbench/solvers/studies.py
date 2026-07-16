@@ -10,6 +10,7 @@ This is the one composed genre that needs an engine at grading time.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 
 import chess
@@ -19,6 +20,7 @@ from ..conditions import Condition, Legality
 from ..core import board as board_utils
 from ..core.engine import Engine
 from ..types import StudyGoal
+from ..usage import normalize_usage
 
 
 @dataclass
@@ -53,6 +55,10 @@ def grade_study(
     config = config or StudyConfig()
     board = chess.Board(fen)
     solver = board.turn
+    start_session = getattr(agent, "start_game_session", None)
+    if callable(start_session):
+        digest = hashlib.sha256(fen.encode()).hexdigest()[:16]
+        start_session(f"cb:study:{digest}:solver")
     reset = getattr(agent, "reset", None)
     if callable(reset):
         reset(solver)  # LLM game agents initialise per-game conversation state here
@@ -84,9 +90,12 @@ def grade_study(
             raw = agent.choose(board, ctx)
             move = board_utils.parse_move(board, raw)
             usage = ctx.last_usage or {}
-            details = usage.get("completion_tokens_details")
-            reasoning_value = (
-                details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
+            metrics = normalize_usage(
+                usage,
+                cost_usd=ctx.last_cost,
+                cache_discount_usd=ctx.last_cache_discount,
+                cache_policy=ctx.last_cache_policy,
+                cache_session_id=ctx.last_cache_session_id,
             )
             turns.append(
                 {
@@ -100,10 +109,7 @@ def grade_study(
                     "response_format_error": ctx.last_response_format_error,
                     "response_format": ctx.last_response_format,
                     "usage": dict(usage),
-                    "reasoning_tokens": int(reasoning_value)
-                    if isinstance(reasoning_value, (int, float, str))
-                    else 0,
-                    "cost_usd": ctx.last_cost,
+                    **metrics.to_dict(),
                 }
             )
             if first_move_legal is None:

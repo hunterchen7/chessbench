@@ -76,6 +76,10 @@ export interface RunItemDoc {
   prompt_tokens?: number
   completion_tokens?: number
   reasoning_tokens?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  uncached_prompt_tokens?: number
+  cache_discount_usd?: number
   payload: Record<string, unknown>
 }
 

@@ -11,6 +11,13 @@ export interface GameAttemptPayload {
   completion_tokens?: number
   reasoning_tokens?: number
   cost_usd?: number
+  cache_read_tokens?: number
+  cache_write_tokens?: number
+  uncached_prompt_tokens?: number
+  cache_discount_usd?: number
+  cache_policy?: string
+  cache_session_id?: string | null
+  usage?: Record<string, unknown> | null
 }
 
 export interface GameMovePayload {

@@ -29,6 +29,7 @@ from ..agents import Agent, TurnContext
 from ..conditions import Condition, Legality, PuzzleProtocol
 from ..core import board as board_utils
 from ..types import Message, PuzzleFailure
+from ..usage import normalize_usage
 
 
 @dataclass
@@ -128,15 +129,13 @@ def _turn_record(
     k: int, ctx: TurnContext, parsed_move: chess.Move | None
 ) -> dict[str, object]:
     usage = ctx.last_usage or {}
-    details = usage.get("completion_tokens_details")
-    reasoning_value = (
-        details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
+    metrics = normalize_usage(
+        usage,
+        cost_usd=ctx.last_cost,
+        cache_discount_usd=ctx.last_cache_discount,
+        cache_policy=ctx.last_cache_policy,
+        cache_session_id=ctx.last_cache_session_id,
     )
-    reasoning_tokens = (
-        int(reasoning_value) if isinstance(reasoning_value, (int, float, str)) else 0
-    )
-    prompt_value = usage.get("prompt_tokens", 0)
-    completion_value = usage.get("completion_tokens", 0)
     return {
         "solver_ply": k,
         "system_prompt": ctx.last_system_prompt,
@@ -148,14 +147,8 @@ def _turn_record(
         "response_format_valid": ctx.last_response_format_valid,
         "response_format_error": ctx.last_response_format_error,
         "response_format": ctx.last_response_format,
-        "prompt_tokens": int(prompt_value)
-        if isinstance(prompt_value, (int, float, str))
-        else 0,
-        "completion_tokens": int(completion_value)
-        if isinstance(completion_value, (int, float, str))
-        else 0,
-        "reasoning_tokens": reasoning_tokens,
-        "cost_usd": ctx.last_cost,
+        "usage": dict(usage),
+        **metrics.to_dict(),
     }
 
 
@@ -229,6 +222,9 @@ def grade_puzzle(
     line's final ply). Every move is validated with python-chess -- legality is
     never decided by a lenient string match.
     """
+    start = getattr(agent, "start_puzzle", None)
+    if callable(start):
+        start(puzzle.id)
     if condition.puzzle_protocol == PuzzleProtocol.FULL_LINE:
         return _grade_full_line(agent, puzzle, condition)
 

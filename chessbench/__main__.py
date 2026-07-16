@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from .conditions import (
+    CachePolicy,
     Condition,
     ContextMode,
     Legality,
@@ -124,6 +125,20 @@ def _turn_usage_totals(
     return prompt, completion, reasoning, cost
 
 
+def _turn_cache_totals(
+    turns: list[dict[str, object]],
+) -> tuple[int, int, int, float]:
+    """Aggregate normalized prompt-cache accounting from audited turns."""
+    cache_read = cache_write = uncached_prompt = 0
+    cache_discount = 0.0
+    for turn in turns:
+        cache_read += _usage_int(turn.get("cache_read_tokens", 0))
+        cache_write += _usage_int(turn.get("cache_write_tokens", 0))
+        uncached_prompt += _usage_int(turn.get("uncached_prompt_tokens", 0))
+        cache_discount += _usage_float(turn.get("cache_discount_usd", 0.0))
+    return cache_read, cache_write, uncached_prompt, cache_discount
+
+
 def _base_condition(args: argparse.Namespace) -> Condition:
     """Build a Condition from --mode (preset) or the individual axis flags, then
     layer the always-explicit axes (notation, context, explain, temperature, ...)."""
@@ -149,10 +164,15 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         reasoning_effort=getattr(args, "reasoning", None),
         reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
         max_output_tokens=getattr(args, "max_output_tokens", 2048),
+        cache_policy=CachePolicy(
+            getattr(args, "cache_policy", CachePolicy.PROMPT_PREFIX_V1.value)
+        ),
     )
 
 
-def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
+def _build_agent(
+    args: argparse.Namespace, stack: ExitStack, condition: Condition
+) -> Agent:
     from .agents import FirstLegalAgent, LLMAgent, RandomAgent, StockfishAgent
 
     if args.agent == "random":
@@ -168,11 +188,11 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
     if args.agent == "anthropic":
         from .models import AnthropicModel
 
-        return LLMAgent(AnthropicModel(args.model or "claude-opus-4-8"))
+        return LLMAgent(AnthropicModel(args.model or "claude-opus-4-8"), condition)
     if args.agent == "openai":
         from .models import OpenAIModel
 
-        return LLMAgent(OpenAIModel(args.model or "gpt-4.1"))
+        return LLMAgent(OpenAIModel(args.model or "gpt-4.1"), condition)
     if args.agent == "openrouter":
         from .models import OpenRouterModel
 
@@ -181,7 +201,8 @@ def _build_agent(args: argparse.Namespace, stack: ExitStack) -> Agent:
                 args.model or "openai/gpt-4o-mini",
                 reasoning_effort=getattr(args, "reasoning", None),
                 reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
-            )
+            ),
+            condition,
         )
     if args.agent == "openrouter-vision":
         from .agents import VisionAgent
@@ -216,7 +237,7 @@ def cmd_puzzles(args: argparse.Namespace) -> int:
     ckpt = args.save_run + ".ckpt.jsonl" if args.save_run else None
 
     with ExitStack() as stack:
-        agent = _build_agent(args, stack)
+        agent = _build_agent(args, stack, condition)
         report, results = run_puzzles(
             agent,
             puzzles,
@@ -511,6 +532,9 @@ def cmd_composed(args: argparse.Namespace) -> int:
                 prompt_tokens, completion_tokens, reasoning_tokens, cost_usd = (
                     _turn_usage_totals(turns)
                 )
+                cache_read, cache_write, uncached_prompt, cache_discount = (
+                    _turn_cache_totals(turns)
+                )
                 store.save_benchmark_item(
                     handle.run_id,
                     sequence,
@@ -525,6 +549,10 @@ def cmd_composed(args: argparse.Namespace) -> int:
                     prompt_tokens=prompt_tokens,
                     completion_tokens=completion_tokens,
                     reasoning_tokens=reasoning_tokens,
+                    cache_read_tokens=cache_read,
+                    cache_write_tokens=cache_write,
+                    uncached_prompt_tokens=uncached_prompt,
+                    cache_discount_usd=cache_discount,
                 )
                 items.append(item)
                 by_kind.setdefault(p.kind, []).append(solved)
@@ -815,13 +843,16 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         reasoning_effort=condition.reasoning_effort,
         reasoning_max_tokens=condition.reasoning_max_tokens,
     )
-    agent = LLMAgent(model)
+    agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
     completed = store.load_puzzle_results(handle.run_id)
     checkpoints = store.load_puzzle_checkpoints(handle.run_id)
 
     def persist(seq: int, puzzle, result) -> None:
         prompt_tokens, completion_tokens, reasoning_tokens, item_cost = (
             _turn_usage_totals(result.turns)
+        )
+        cache_read, cache_write, uncached_prompt, cache_discount = (
+            _turn_cache_totals(result.turns)
         )
         store.save_puzzle_result(
             handle.run_id,
@@ -832,6 +863,10 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             reasoning_tokens=reasoning_tokens,
+            cache_read_tokens=cache_read,
+            cache_write_tokens=cache_write,
+            uncached_prompt_tokens=uncached_prompt,
+            cache_discount_usd=cache_discount,
         )
 
     def persist_checkpoint(seq: int, puzzle, state) -> None:
@@ -870,6 +905,14 @@ def cmd_run_model(args: argparse.Namespace) -> int:
                 "prompt_tokens": _usage_int(row.get("prompt_tokens")),
                 "completion_tokens": _usage_int(row.get("completion_tokens")),
                 "reasoning_tokens": _usage_int(row.get("reasoning_tokens")),
+                "cache_read_tokens": _usage_int(row.get("cache_read_tokens")),
+                "cache_write_tokens": _usage_int(row.get("cache_write_tokens")),
+                "uncached_prompt_tokens": _usage_int(
+                    row.get("uncached_prompt_tokens")
+                ),
+                "cache_discount_usd": _usage_float(
+                    row.get("cache_discount_usd")
+                ),
             },
             error=str(row["error"]) if row.get("error") else None,
             updated_at=str(row.get("updated_at") or ""),
@@ -1253,6 +1296,7 @@ def cmd_tournament(args: argparse.Namespace) -> int:
                 on_game_start=start_game,
                 on_game=persist_game,
                 on_move=persist_move,
+                cache_session_prefix=handle.run_id,
             )
             summary = {
                 "n_games": len(result.games),
@@ -1374,6 +1418,15 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         type=int,
         default=2048,
         help="maximum output tokens, tracked as part of the model variant",
+    )
+    p.add_argument(
+        "--cache-policy",
+        default=CachePolicy.PROMPT_PREFIX_V1.value,
+        choices=[policy.value for policy in CachePolicy],
+        help=(
+            "provider prompt-prefix caching policy; never enables response caching "
+            "or exposes tools"
+        ),
     )
 
 

@@ -72,8 +72,9 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
       `INSERT INTO game_turn_logs_v2
        (game_id, turn_ordinal, ply, attempt, color, system_prompt, prompt, raw_response, parsed_move, legal,
         explanation, response_format_valid, response_format_error, prompt_tokens, completion_tokens,
-        reasoning_tokens, cost_usd, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        reasoning_tokens, cost_usd, cache_read_tokens, cache_write_tokens,
+        uncached_prompt_tokens, cache_discount_usd, cache_policy, cache_session_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       gameId, turn.turnOrdinal, turn.ply, turn.attempt, turn.color,
       attempt.system_prompt ?? null, attempt.prompt ?? null, attempt.raw_response ?? "",
@@ -81,7 +82,10 @@ export async function postIngestGame(env: Env, req: Request, url: URL): Promise<
       attempt.response_format_valid == null ? null : attempt.response_format_valid ? 1 : 0,
       attempt.response_format_error ?? null, attempt.prompt_tokens ?? 0,
       attempt.completion_tokens ?? 0, attempt.reasoning_tokens ?? 0,
-      attempt.cost_usd ?? 0, now(),
+      attempt.cost_usd ?? 0, attempt.cache_read_tokens ?? 0,
+      attempt.cache_write_tokens ?? 0, attempt.uncached_prompt_tokens ?? 0,
+      attempt.cache_discount_usd ?? 0, attempt.cache_policy ?? "provider_default",
+      attempt.cache_session_id ?? null, now(),
     ))
   }
   await env.DB.batch(headerStatements)

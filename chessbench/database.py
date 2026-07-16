@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from .tasks.games import GameRecord, MoveRecord
 
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 DEFAULT_DB = Path("runs/chessbench.db")
 
 
@@ -139,6 +139,10 @@ CREATE TABLE IF NOT EXISTS benchmark_run (
   prompt_tokens INTEGER NOT NULL DEFAULT 0,
   completion_tokens INTEGER NOT NULL DEFAULT 0,
   reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+  uncached_prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_discount_usd REAL NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   started_at TEXT,
   updated_at TEXT NOT NULL,
@@ -160,6 +164,10 @@ CREATE TABLE IF NOT EXISTS puzzle_attempt (
   prompt_tokens INTEGER NOT NULL DEFAULT 0,
   completion_tokens INTEGER NOT NULL DEFAULT 0,
   reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+  uncached_prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_discount_usd REAL NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   PRIMARY KEY (run_id, puzzle_id),
   UNIQUE (run_id, sequence)
@@ -193,6 +201,10 @@ CREATE TABLE IF NOT EXISTS benchmark_item (
   prompt_tokens INTEGER NOT NULL DEFAULT 0,
   completion_tokens INTEGER NOT NULL DEFAULT 0,
   reasoning_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+  uncached_prompt_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_discount_usd REAL NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   PRIMARY KEY (run_id, item_id),
   UNIQUE (run_id, sequence)
@@ -286,7 +298,6 @@ CREATE TABLE IF NOT EXISTS puzzle_checkpoint (
 );
 """
 
-
 class BenchmarkStore:
     def __init__(self, path: str | Path = DEFAULT_DB) -> None:
         self.path = Path(path)
@@ -372,7 +383,28 @@ class BenchmarkStore:
                 self._db.executescript(_GENERIC_ITEM_SCHEMA)
             if version < 4:
                 self._db.executescript(_PUZZLE_CHECKPOINT_SCHEMA)
+            if version < 5:
+                self._migrate_cache_usage()
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+
+    def _migrate_cache_usage(self) -> None:
+        """Add v5 fields idempotently, including partially migrated databases."""
+        definitions = {
+            "cache_read_tokens": "INTEGER NOT NULL DEFAULT 0",
+            "cache_write_tokens": "INTEGER NOT NULL DEFAULT 0",
+            "uncached_prompt_tokens": "INTEGER NOT NULL DEFAULT 0",
+            "cache_discount_usd": "REAL NOT NULL DEFAULT 0",
+        }
+        for table in ("benchmark_run", "puzzle_attempt", "benchmark_item"):
+            present = {
+                str(row[1])
+                for row in self._db.execute(f"PRAGMA table_info({table})").fetchall()
+            }
+            for column, definition in definitions.items():
+                if column not in present:
+                    self._db.execute(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
+                    )
 
     @contextmanager
     def _transaction(self) -> Iterator[None]:
@@ -545,14 +577,19 @@ class BenchmarkStore:
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         reasoning_tokens: int = 0,
+        cache_read_tokens: int = 0,
+        cache_write_tokens: int = 0,
+        uncached_prompt_tokens: int = 0,
+        cache_discount_usd: float = 0.0,
     ) -> bool:
         now = _now()
         with self._transaction():
             cursor = self._db.execute(
                 """INSERT OR IGNORE INTO puzzle_attempt
                    (run_id, sequence, puzzle_id, result_json, puzzle_json, latency_ms, cost_usd,
-                    prompt_tokens, completion_tokens, reasoning_tokens, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    prompt_tokens, completion_tokens, reasoning_tokens, cache_read_tokens,
+                    cache_write_tokens, uncached_prompt_tokens, cache_discount_usd, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     sequence,
@@ -564,6 +601,10 @@ class BenchmarkStore:
                     prompt_tokens,
                     completion_tokens,
                     reasoning_tokens,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                    uncached_prompt_tokens,
+                    cache_discount_usd,
                     now,
                 ),
             )
@@ -574,12 +615,20 @@ class BenchmarkStore:
                          completed_items=completed_items+1,
                          cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
                          completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                         cache_read_tokens=cache_read_tokens+?,
+                         cache_write_tokens=cache_write_tokens+?,
+                         uncached_prompt_tokens=uncached_prompt_tokens+?,
+                         cache_discount_usd=cache_discount_usd+?,
                          updated_at=? WHERE run_id=?""",
                     (
                         cost_usd,
                         prompt_tokens,
                         completion_tokens,
                         reasoning_tokens,
+                        cache_read_tokens,
+                        cache_write_tokens,
+                        uncached_prompt_tokens,
+                        cache_discount_usd,
                         now,
                         run_id,
                     ),
@@ -618,6 +667,10 @@ class BenchmarkStore:
         prompt_tokens: int = 0,
         completion_tokens: int = 0,
         reasoning_tokens: int = 0,
+        cache_read_tokens: int = 0,
+        cache_write_tokens: int = 0,
+        uncached_prompt_tokens: int = 0,
+        cache_discount_usd: float = 0.0,
     ) -> bool:
         """Commit one non-tactical benchmark item and its complete audit payload."""
         now = _now()
@@ -626,8 +679,9 @@ class BenchmarkStore:
                 """INSERT OR IGNORE INTO benchmark_item
                    (run_id, sequence, item_id, points, max_points, solved, first_move_legal,
                     response_format_valid, failure_reason, payload_json, latency_ms, cost_usd,
-                    prompt_tokens, completion_tokens, reasoning_tokens, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    prompt_tokens, completion_tokens, reasoning_tokens, cache_read_tokens,
+                    cache_write_tokens, uncached_prompt_tokens, cache_discount_usd, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     run_id,
                     sequence,
@@ -646,6 +700,10 @@ class BenchmarkStore:
                     prompt_tokens,
                     completion_tokens,
                     reasoning_tokens,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                    uncached_prompt_tokens,
+                    cache_discount_usd,
                     now,
                 ),
             )
@@ -656,12 +714,20 @@ class BenchmarkStore:
                          completed_items=completed_items+1,
                          cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
                          completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                         cache_read_tokens=cache_read_tokens+?,
+                         cache_write_tokens=cache_write_tokens+?,
+                         uncached_prompt_tokens=uncached_prompt_tokens+?,
+                         cache_discount_usd=cache_discount_usd+?,
                          updated_at=? WHERE run_id=?""",
                     (
                         cost_usd,
                         prompt_tokens,
                         completion_tokens,
                         reasoning_tokens,
+                        cache_read_tokens,
+                        cache_write_tokens,
+                        uncached_prompt_tokens,
+                        cache_discount_usd,
                         now,
                         run_id,
                     ),
@@ -782,6 +848,26 @@ class BenchmarkStore:
             for move in record.records
             for attempt in move.attempts
         )
+        cache_read_tokens = sum(
+            attempt.cache_read_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        cache_write_tokens = sum(
+            attempt.cache_write_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        uncached_prompt_tokens = sum(
+            attempt.uncached_prompt_tokens
+            for move in record.records
+            for attempt in move.attempts
+        )
+        cache_discount_usd = sum(
+            attempt.cache_discount_usd
+            for move in record.records
+            for attempt in move.attempts
+        )
         cost_usd = sum(
             attempt.cost_usd for move in record.records for attempt in move.attempts
         )
@@ -820,12 +906,20 @@ class BenchmarkStore:
                 """UPDATE benchmark_run SET completed_items=completed_items+1,
                    cost_usd=cost_usd+?, prompt_tokens=prompt_tokens+?,
                    completion_tokens=completion_tokens+?, reasoning_tokens=reasoning_tokens+?,
+                   cache_read_tokens=cache_read_tokens+?,
+                   cache_write_tokens=cache_write_tokens+?,
+                   uncached_prompt_tokens=uncached_prompt_tokens+?,
+                   cache_discount_usd=cache_discount_usd+?,
                    updated_at=? WHERE run_id=?""",
                 (
                     cost_usd,
                     prompt_tokens,
                     completion_tokens,
                     reasoning_tokens,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                    uncached_prompt_tokens,
+                    cache_discount_usd,
                     now,
                     run_id,
                 ),
@@ -1022,6 +1116,10 @@ class BenchmarkStore:
                     "prompt_tokens": row["prompt_tokens"],
                     "completion_tokens": row["completion_tokens"],
                     "reasoning_tokens": row["reasoning_tokens"],
+                    "cache_read_tokens": row["cache_read_tokens"],
+                    "cache_write_tokens": row["cache_write_tokens"],
+                    "uncached_prompt_tokens": row["uncached_prompt_tokens"],
+                    "cache_discount_usd": row["cache_discount_usd"],
                     "payload": payload,
                 }
             )
@@ -1052,6 +1150,10 @@ class BenchmarkStore:
                     "prompt_tokens": row["prompt_tokens"],
                     "completion_tokens": row["completion_tokens"],
                     "reasoning_tokens": row["reasoning_tokens"],
+                    "cache_read_tokens": row["cache_read_tokens"],
+                    "cache_write_tokens": row["cache_write_tokens"],
+                    "uncached_prompt_tokens": row["uncached_prompt_tokens"],
+                    "cache_discount_usd": row["cache_discount_usd"],
                     "payload": json.loads(row["payload_json"]),
                 }
             )

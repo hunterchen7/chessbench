@@ -36,6 +36,9 @@ class Usage(TypedDict, total=False):
     total_tokens: int
     cost: float  # OpenRouter includes USD cost; OpenAI does not
     completion_tokens_details: dict[str, int]
+    prompt_tokens_details: dict[str, int]
+    cache_read_input_tokens: int
+    cache_creation_input_tokens: int
 
 
 class _Choice(TypedDict, total=False):
@@ -48,6 +51,7 @@ class _Response(TypedDict, total=False):
     usage: Usage
     model: str
     error: dict[str, str]
+    cache_discount: float
 
 
 class _OpenAICompatModel:
@@ -85,6 +89,16 @@ class _OpenAICompatModel:
         self.last_usage: Usage | None = None
         self.last_cost: float = 0.0
         self.total_cost: float = 0.0
+        self.last_cache_discount: float = 0.0
+        self.last_cache_policy: str = "provider_default"
+        self.last_cache_session_id: str | None = None
+        self._cache_session_id: str | None = None
+
+    def set_cache_session(self, session_id: str | None) -> None:
+        """Set an opaque conversation key for provider prompt-prefix caching."""
+        if session_id is not None and len(session_id) > 256:
+            raise ValueError("cache session id must be at most 256 characters")
+        self._cache_session_id = session_id
 
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST without silently duplicating an outcome-ambiguous generation.
@@ -152,6 +166,9 @@ class _OpenAICompatModel:
         # call's tokens/cost.
         self.last_usage = None
         self.last_cost = 0.0
+        self.last_cache_discount = 0.0
+        self.last_cache_session_id = self._cache_session_id
+        self.last_cache_policy = "provider_default"
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {
@@ -164,6 +181,22 @@ class _OpenAICompatModel:
         # nothing the model can invoke. Do not also send ``tool_choice: none``:
         # xAI correctly rejects a tool choice when no tools were declared. We
         # still fail closed below if a provider ever returns a tool call anyway.
+        if self._cache_session_id is not None:
+            if self._base_url.startswith("https://openrouter.ai"):
+                # Session stickiness is routing metadata, not conversation state.
+                # It ensures an append-only chat returns to the endpoint holding
+                # its prompt-prefix cache.
+                payload["session_id"] = self._cache_session_id
+                self.last_cache_policy = "prompt_prefix_v1"
+                if self._model.startswith("openai/"):
+                    payload["prompt_cache_key"] = self._cache_session_id
+                if self._model.startswith("anthropic/"):
+                    # Anthropic requires an explicit opt-in. Automatic 5-minute
+                    # caching advances the breakpoint as the conversation grows.
+                    payload["cache_control"] = {"type": "ephemeral"}
+            elif self._base_url.startswith("https://api.openai.com"):
+                payload["prompt_cache_key"] = self._cache_session_id
+                self.last_cache_policy = "prompt_prefix_v1"
         if self._reasoning_effort is not None:
             payload["reasoning"] = {"effort": self._reasoning_effort, "exclude": True}
         elif self._reasoning_max_tokens is not None:
@@ -197,6 +230,9 @@ class _OpenAICompatModel:
         if choice.get("finish_reason") == "tool_calls" or message.get("tool_calls"):
             raise ModelError(f"{self._model}: provider returned a forbidden tool call")
         usage = parsed.get("usage")
+        discount = parsed.get("cache_discount", 0.0)
+        if isinstance(discount, (int, float)):
+            self.last_cache_discount = float(discount)
         if usage is not None:
             self.last_usage = usage
             self.last_cost = float(usage.get("cost", 0.0))

@@ -207,6 +207,10 @@ def test_generic_item_is_durable_resumable_and_keeps_exact_audit_payload(tmp_pat
             prompt_tokens=11,
             completion_tokens=7,
             reasoning_tokens=3,
+            cache_read_tokens=8,
+            cache_write_tokens=2,
+            uncached_prompt_tokens=1,
+            cache_discount_usd=0.0004,
         )
         assert not store.save_benchmark_item(
             run.run_id,
@@ -226,6 +230,11 @@ def test_generic_item_is_durable_resumable_and_keeps_exact_audit_payload(tmp_pat
         assert row["prompt_tokens"] == 11
         assert row["completion_tokens"] == 7
         assert row["reasoning_tokens"] == 3
+        assert row["cache_read_tokens"] == 8
+        assert row["cache_write_tokens"] == 2
+        assert row["uncached_prompt_tokens"] == 1
+        assert row["cache_discount_usd"] == pytest.approx(0.0004)
+        assert outbox["cache_read_tokens"] == 8
         store.finalize_run(run.run_id, {"n": 1, "points": 1.0})
 
 
@@ -241,6 +250,9 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         completion_tokens=4,
         reasoning_tokens=2,
         cost_usd=0.001,
+        cache_read_tokens=8,
+        uncached_prompt_tokens=2,
+        cache_discount_usd=0.0002,
     )
     black_attempt = MoveAttempt(
         "black system",
@@ -253,6 +265,8 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         completion_tokens=5,
         reasoning_tokens=3,
         cost_usd=0.002,
+        cache_write_tokens=12,
+        cache_discount_usd=0.0003,
     )
     record = GameRecord(
         "white-model",
@@ -280,6 +294,10 @@ def test_game_is_durable_and_reconstructs_both_conversation_streams(tmp_path):
         assert row["prompt_tokens"] == 22
         assert row["completion_tokens"] == 9
         assert row["reasoning_tokens"] == 5
+        assert row["cache_read_tokens"] == 8
+        assert row["cache_write_tokens"] == 12
+        assert row["uncached_prompt_tokens"] == 2
+        assert row["cache_discount_usd"] == pytest.approx(0.0005)
         assert row["cost_usd"] == 0.003
         store.finalize_run(run.run_id, {"n_games": 1})
         existing = store.start_run(_generic_spec("tournament"))

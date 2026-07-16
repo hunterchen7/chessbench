@@ -41,6 +41,7 @@ from ..models.base import generate_with_response_format
 from ..response_protocols import ResponseShape, response_format_for
 from ..solvers import proofgame, series, stipulations
 from ..types import AnswerShape, StipulationKind, StudyGoal
+from ..usage import normalize_usage
 
 _ANSWER_SHAPE: dict[StipulationKind, AnswerShape] = {
     "directmate": "key",
@@ -210,6 +211,11 @@ class LLMComposedSolver:
         self.last_turn: dict[str, object] | None = None
 
     def solve(self, problem: ComposedProblem, condition: Condition) -> str:
+        set_cache_session = getattr(self._model, "set_cache_session", None)
+        if callable(set_cache_session):
+            # One-shot tasks have no later request that can amortize an explicit
+            # cache write. Provider-default automatic caching may still apply.
+            set_cache_session(None)
         prompt = build_composed_prompt(problem, condition)
         response_shape: ResponseShape = (
             "line" if problem.answer_shape == "line" else "move"
@@ -225,13 +231,25 @@ class LLMComposedSolver:
             max_tokens=condition.max_output_tokens,
         )
         usage = getattr(self._model, "last_usage", None)
+        raw_usage = dict(usage) if isinstance(usage, dict) else {}
+        metrics = normalize_usage(
+            raw_usage,
+            cost_usd=float(getattr(self._model, "last_cost", 0.0)),
+            cache_discount_usd=float(
+                getattr(self._model, "last_cache_discount", 0.0)
+            ),
+            cache_policy=str(
+                getattr(self._model, "last_cache_policy", "provider_default")
+            ),
+            cache_session_id=getattr(self._model, "last_cache_session_id", None),
+        )
         self.last_turn = {
             "system_prompt": None,
             "prompt": prompt,
             "raw_response": raw,
             "response_format": applied_format,
-            "usage": dict(usage) if isinstance(usage, dict) else None,
-            "cost_usd": float(getattr(self._model, "last_cost", 0.0)),
+            "usage": raw_usage,
+            **metrics.to_dict(),
         }
         return raw
 

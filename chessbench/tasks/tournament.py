@@ -68,6 +68,7 @@ def round_robin(
     on_game: Callable[[GameRecord, int], None] | None = None,
     on_move: Callable[[str, str, str | None, int, chess.Board, list[MoveRecord]], None]
     | None = None,
+    cache_session_prefix: str | None = None,
 ) -> TournamentResult:
     """Run or resume every pairing without replaying already-durable plies.
 
@@ -154,6 +155,11 @@ def round_robin(
                     start_fen=start_fen,
                     resume=resume,
                     on_move=mv,
+                    cache_session_prefix=(
+                        f"{cache_session_prefix}:game:{idx}"
+                        if cache_session_prefix
+                        else None
+                    ),
                 )
                 record.white, record.black = (
                     white.label,

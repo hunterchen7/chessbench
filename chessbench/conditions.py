@@ -85,6 +85,13 @@ class PuzzleProtocol(str, Enum):
     FULL_LINE = "full_line"
 
 
+class CachePolicy(str, Enum):
+    """Provider compute reuse; never caches or replays model responses."""
+
+    DISABLED = "disabled"
+    PROMPT_PREFIX_V1 = "prompt_prefix_v1"
+
+
 @dataclass(frozen=True)
 class Condition:
     legality: Legality = Legality.FREE_FORM
@@ -110,6 +117,7 @@ class Condition:
         None  # exact thinking-token budget; mutually exclusive with effort
     )
     max_output_tokens: int = 2048
+    cache_policy: CachePolicy = CachePolicy.PROMPT_PREFIX_V1
     # Prompt text is part of result identity. This version introduced UCI-only
     # legal candidate lists and UCI within-puzzle move history.
     prompt_version: str = "uci_candidates_v1"
@@ -141,6 +149,7 @@ class Condition:
             self.notation.value,
             self.prompt_style.value,
             f"prompt-{self.prompt_version.replace('_', '-')}",
+            f"cache-{self.cache_policy.value.replace('_', '-')}",
         ]
         if self.explain:
             parts.append("json-rationale")
@@ -179,6 +188,7 @@ class Condition:
             "reasoning_effort": self.reasoning_effort,
             "reasoning_max_tokens": self.reasoning_max_tokens,
             "max_output_tokens": self.max_output_tokens,
+            "cache_policy": self.cache_policy.value,
             "prompt_version": self.prompt_version,
             "slug": self.slug(),
         }

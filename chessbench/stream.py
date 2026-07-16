@@ -30,6 +30,10 @@ def _move_dict(m: MoveRecord) -> dict[str, object]:
         "prompt_tokens": sum(a.prompt_tokens for a in m.attempts),
         "completion_tokens": sum(a.completion_tokens for a in m.attempts),
         "reasoning_tokens": sum(a.reasoning_tokens for a in m.attempts),
+        "cache_read_tokens": sum(a.cache_read_tokens for a in m.attempts),
+        "cache_write_tokens": sum(a.cache_write_tokens for a in m.attempts),
+        "uncached_prompt_tokens": sum(a.uncached_prompt_tokens for a in m.attempts),
+        "cache_discount_usd": sum(a.cache_discount_usd for a in m.attempts),
         "cost_usd": sum(a.cost_usd for a in m.attempts),
     }
 

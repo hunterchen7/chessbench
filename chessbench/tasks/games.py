@@ -13,6 +13,7 @@ expose `reset(color)`, called at the start of each game.
 from __future__ import annotations
 
 import math
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -23,6 +24,7 @@ from ..agents import Agent, GameTurnContext
 from ..conditions import Condition, Legality
 from ..core import board as board_utils, metrics
 from ..core.engine import Engine
+from ..usage import normalize_usage
 
 
 @dataclass
@@ -47,6 +49,13 @@ class MoveAttempt:
     completion_tokens: int = 0
     reasoning_tokens: int = 0
     cost_usd: float = 0.0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    uncached_prompt_tokens: int = 0
+    cache_discount_usd: float = 0.0
+    cache_policy: str = "provider_default"
+    cache_session_id: str | None = None
+    usage: dict[str, object] | None = None
 
 
 @dataclass
@@ -166,17 +175,13 @@ def _request_move(
         raw = agent.choose(board, ctx)
         mv = board_utils.parse_move(board, raw)
         usage = ctx.last_usage or {}
-        details = usage.get("completion_tokens_details")
-        reasoning_value = (
-            details.get("reasoning_tokens", 0) if isinstance(details, dict) else 0
+        metrics = normalize_usage(
+            usage,
+            cost_usd=ctx.last_cost,
+            cache_discount_usd=ctx.last_cache_discount,
+            cache_policy=ctx.last_cache_policy,
+            cache_session_id=ctx.last_cache_session_id,
         )
-        reasoning_tokens = (
-            int(reasoning_value)
-            if isinstance(reasoning_value, (int, float, str))
-            else 0
-        )
-        prompt_value = usage.get("prompt_tokens", 0)
-        completion_value = usage.get("completion_tokens", 0)
         attempts.append(
             MoveAttempt(
                 system_prompt=ctx.last_system_prompt,
@@ -188,14 +193,8 @@ def _request_move(
                 response_format_valid=ctx.last_response_format_valid,
                 response_format_error=ctx.last_response_format_error,
                 response_format=ctx.last_response_format,
-                prompt_tokens=int(prompt_value)
-                if isinstance(prompt_value, (int, float, str))
-                else 0,
-                completion_tokens=int(completion_value)
-                if isinstance(completion_value, (int, float, str))
-                else 0,
-                reasoning_tokens=reasoning_tokens,
-                cost_usd=ctx.last_cost,
+                usage=dict(usage),
+                **metrics.to_dict(),
             )
         )
         if first_legal is None:
@@ -240,6 +239,7 @@ def play_game(
     start_fen: str | None = None,
     resume: GameRecord | None = None,
     on_move: Callable[[chess.Board, list[MoveRecord]], None] | None = None,
+    cache_session_prefix: str | None = None,
 ) -> GameRecord:
     """Play or exactly resume one game, checkpointing every paid attempt.
 
@@ -297,10 +297,14 @@ def play_game(
             None,
         )
 
+    session_prefix = cache_session_prefix or f"cb:ephemeral:game:{uuid.uuid4().hex}"
     for agent, color, color_name in (
         (white, chess.WHITE, "white"),
         (black, chess.BLACK, "black"),
     ):
+        start_session = getattr(agent, "start_game_session", None)
+        if callable(start_session):
+            start_session(f"{session_prefix}:{color_name}")
         restore = getattr(agent, "restore", None)
         if callable(restore):
             restore(
