@@ -27,7 +27,33 @@ export async function registerSuite(env: Env, doc: SuiteDoc): Promise<{ content_
     return { id, sequence, item }
   })
   if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error("duplicate suite item id")
-  await env.DB.batch([
+
+  // A suite name/version is a convenient working label; the content hash is
+  // the reproducibility boundary. Permit local iteration under the same label
+  // until a run pins the old hash, then require the caller to publish a new
+  // version instead of invalidating historical work.
+  const previous = await env.DB.prepare(
+    `SELECT content_hash FROM benchmark_suites
+     WHERE name=? AND version=? AND content_hash<>?`,
+  ).bind(doc.name, doc.version, doc.content_hash).first<{ content_hash: string }>()
+  if (previous) {
+    const referenced = await env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM benchmark_runs_v2 WHERE suite_hash=?`,
+    ).bind(previous.content_hash).first<{ count: number }>()
+    if (Number(referenced?.count ?? 0) > 0) {
+      throw new Error(
+        `suite ${doc.name}@${doc.version} already has benchmark runs; publish a new version`,
+      )
+    }
+  }
+
+  const registration = [
+    ...(previous
+      ? [
+          env.DB.prepare(`DELETE FROM benchmark_suite_items WHERE content_hash=?`).bind(previous.content_hash),
+          env.DB.prepare(`DELETE FROM benchmark_suites WHERE content_hash=?`).bind(previous.content_hash),
+        ]
+      : []),
     env.DB.prepare(
       `INSERT INTO benchmark_suites
        (content_hash, name, version, track, visibility, source, item_count, created_at, updated_at)
@@ -38,7 +64,8 @@ export async function registerSuite(env: Env, doc: SuiteDoc): Promise<{ content_
          item_count=excluded.item_count, updated_at=excluded.updated_at`,
     ).bind(doc.content_hash, doc.name, doc.version, track, doc.visibility, doc.source ?? "", items.length, stamp, stamp),
     env.DB.prepare(`DELETE FROM benchmark_suite_items WHERE content_hash=?`).bind(doc.content_hash),
-  ])
+  ]
+  await env.DB.batch(registration)
   await batchChunked(env, items.map(({ id, sequence, item }) => env.DB.prepare(
     `INSERT INTO benchmark_suite_items (content_hash, item_id, sequence, payload_json) VALUES (?, ?, ?, ?)`,
   ).bind(doc.content_hash, id, sequence, JSON.stringify(item))))
@@ -60,8 +87,20 @@ export async function registerCorpus(env: Env, doc: CorpusDoc): Promise<{ conten
   })
   if (new Set(items.map((item) => item.id)).size !== items.length) throw new Error("duplicate corpus item id")
 
-  await env.DB.batch([
+  // Browsing corpora do not own benchmark results; exact runnable suites do.
+  // Replace an unpublished working corpus with the same name while retaining
+  // content hashes as the identity of every registered build.
+  const previous = await env.DB.prepare(
+    `SELECT content_hash FROM corpus_releases WHERE name=? AND content_hash<>?`,
+  ).bind(doc.name, doc.content_hash).first<{ content_hash: string }>()
+  const registration = [
     env.DB.prepare(`UPDATE corpus_releases SET active=0, updated_at=? WHERE track=?`).bind(stamp, doc.track),
+    ...(previous
+      ? [
+          env.DB.prepare(`DELETE FROM corpus_items WHERE content_hash=?`).bind(previous.content_hash),
+          env.DB.prepare(`DELETE FROM corpus_releases WHERE content_hash=?`).bind(previous.content_hash),
+        ]
+      : []),
     env.DB.prepare(
       `INSERT INTO corpus_releases
        (content_hash, name, title, version, track, visibility, description, item_count,
@@ -77,7 +116,8 @@ export async function registerCorpus(env: Env, doc: CorpusDoc): Promise<{ conten
       doc.description ?? "", items.length, JSON.stringify(metadata), stamp, stamp,
     ),
     env.DB.prepare(`DELETE FROM corpus_items WHERE content_hash=?`).bind(doc.content_hash),
-  ])
+  ]
+  await env.DB.batch(registration)
   await batchChunked(env, items.map(({ id, sequence, item }) => env.DB.prepare(
     `INSERT INTO corpus_items (content_hash, item_id, sequence, payload_json) VALUES (?, ?, ?, ?)`,
   ).bind(doc.content_hash, id, sequence, JSON.stringify(item))))
