@@ -100,6 +100,41 @@ class _OpenAICompatModel:
             raise ValueError("cache session id must be at most 256 characters")
         self._cache_session_id = session_id
 
+    @staticmethod
+    def _read_body_with_deadline(resp: object, deadline: float) -> bytes:
+        """Read chunked responses without allowing heartbeats to reset timeout.
+
+        ``HTTPResponse.read()`` applies the socket timeout to each receive, not
+        to the full body. A provider can therefore keep a nominally
+        non-streaming request alive indefinitely with small chunks. ``read1``
+        returns after one underlying read, letting us enforce one absolute
+        deadline across headers, reasoning, and body delivery.
+        """
+        read1 = getattr(resp, "read1", None)
+        if not callable(read1):
+            # Test doubles and non-HTTP compatibility objects generally expose
+            # only read(); real urllib HTTPResponse objects provide read1().
+            read = getattr(resp, "read")
+            return cast(bytes, read())
+
+        chunks: list[bytes] = []
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("total response deadline exceeded")
+
+            # Bound a blocked read by the same remaining wall-clock budget.
+            fp = getattr(resp, "fp", None)
+            raw = getattr(fp, "raw", None)
+            sock = getattr(raw, "_sock", None)
+            if sock is not None:
+                sock.settimeout(max(0.001, remaining))
+
+            chunk = read1(64 * 1024)
+            if not chunk:
+                return b"".join(chunks)
+            chunks.append(cast(bytes, chunk))
+
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST without silently duplicating an outcome-ambiguous generation.
 
@@ -114,9 +149,12 @@ class _OpenAICompatModel:
         last: Exception | None = None
         for attempt in range(self._max_retries):
             retry_after: float | None = None
+            deadline = time.monotonic() + self._timeout
             try:
                 with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                    return resp.read().decode("utf-8")
+                    return self._read_body_with_deadline(resp, deadline).decode(
+                        "utf-8"
+                    )
             except urllib.error.HTTPError as e:
                 if e.code not in _SAFE_RETRY_STATUS:
                     detail = e.read().decode("utf-8", "replace")

@@ -62,7 +62,7 @@ benchmark condition:
 
 ```bash
 python3 -m chessbench run-model \
-  --model mistral-small-4 \
+  --model mercury-2 \
   --suite suites/public/standard-lichess-v2.json \
   --db runs/chessbench.db \
   --out-dir web/public/data/runs \

@@ -25,6 +25,17 @@ class _Response:
         return self._body
 
 
+class _HeartbeatResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def read1(self, _size: int) -> bytes:
+        return b" "
+
+
 def _http_error(code: int, *, retry_after: str | None = None):
     headers = {"Retry-After": retry_after} if retry_after is not None else {}
     return urllib.error.HTTPError(
@@ -48,6 +59,24 @@ def test_transport_failure_is_not_retried(monkeypatch):
     model = OpenRouterModel("test/model", api_key="test")
 
     with pytest.raises(ModelError, match="outcome may be ambiguous"):
+        model.chat([{"role": "user", "content": "move"}])
+    assert calls == 1
+
+
+def test_chunked_heartbeats_cannot_extend_total_response_deadline(monkeypatch):
+    calls = 0
+    clock = iter([0.0, 0.4, 1.1])
+
+    def respond(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return _HeartbeatResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("time.monotonic", lambda: next(clock))
+    model = OpenRouterModel("test/model", api_key="test", timeout=1.0)
+
+    with pytest.raises(ModelError, match="total response deadline exceeded"):
         model.chat([{"role": "user", "content": "move"}])
     assert calls == 1
 

@@ -190,3 +190,11 @@ def test_smoke_model_registry_slugs_are_exact():
         "notes": "Low-cost Mistral Small 4 compatibility model",
         "enabled": True,
     }
+    assert by_label["mercury-2"] == {
+        "label": "mercury-2",
+        "provider": "openrouter",
+        "model_id": "inception/mercury-2",
+        "family": "inception",
+        "notes": "Fast low-cost Mercury 2 compatibility model",
+        "enabled": True,
+    }

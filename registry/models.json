@@ -113,6 +113,14 @@
    "enabled": true
   },
   {
+   "label": "mercury-2",
+   "provider": "openrouter",
+   "model_id": "inception/mercury-2",
+   "family": "inception",
+   "notes": "Fast low-cost Mercury 2 compatibility model",
+   "enabled": true
+  },
+  {
    "label": "llama-4-maverick",
    "provider": "openrouter",
    "model_id": "meta-llama/llama-4-maverick",
