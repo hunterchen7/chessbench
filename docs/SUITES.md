@@ -10,12 +10,12 @@ These are the suites to use for new model evaluations.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
-| Standard | `suites/public/standard-lichess-v2.json` | Public | 325 | `sha256:611c4c22e955ece8` | Move-by-move; Modes 1–3 × both response styles |
+| Standard | `suites/public/standard-lichess-v2.json` | Public | 325 | `sha256:611c4c22e955ece8` | Move-by-move; four Standard methods × both response styles |
 | Standard | `suites/private/standard-heldout-v1.json` | Held-out | 325 | `sha256:8ad476ffdb5808c3` | Move-by-move; certification run after public testing |
 | Woodpecker | `suites/public/woodpecker-masters-v1.json` | Public | 135 | `sha256:20e309892363e42e` | Mode 4; complete forced line in one response |
 | Woodpecker | `suites/private/woodpecker-masters-heldout-v1.json` | Held-out | 135 | `sha256:a6c964a27efa45ad` | Mode 4; sealed certification run |
 | Esoteric | `suites/public/esoteric-seed-v1.json` | Public | 50 | `sha256:aedbc34a91a528ae` | Genre-specific key, full-line, or interactive verifier |
-| Esoteric | `suites/private/esoteric-yacpdb-mvp-v1.json` | Private MVP | 400 | `sha256:f0015eebd7e2ab05` | 50 problems in each of eight genres |
+| Esoteric | `suites/private/esoteric-yacpdb-mvp-v1.json` | Private MVP | 450 | `sha256:6b3af48d566249c2` | 50 problems in each of nine mechanical categories |
 | Esoteric | `suites/private/esoteric-original-mvp-v1.json` | Private generated | 50 | `sha256:066aa9058e8ba4ae` | 10 newly generated problems in each of five genres |
 
 ### Standard
@@ -29,24 +29,29 @@ mutually disjoint and comes from the complete 2026-07-05 Lichess snapshot.
 The model is asked for one solver move at a time. The forced reply is applied by the harness, and state may continue
 within that puzzle only. No state crosses puzzle boundaries.
 
-Every Standard suite is evaluated under three independent prompt conditions:
+Every Standard suite can be evaluated under four independent prompt conditions:
 
 1. **Mode 1 — Raw:** FEN, explicit piece locations, and side to move. Illegal output fails the puzzle.
 2. **Mode 2 — Assisted:** Mode 1 plus every legal move in UCI coordinate notation.
 3. **Mode 3 — Coached:** Mode 2 plus the fixed calculation-advice block.
+4. **Method 4 — Deep coached:** Mode 2 plus the fixed 925-word `deep_coach_v1` calculation framework.
+
+The stable CLI identifier for Deep coached is `--mode 5`, because `--mode 4` already denotes the separately scored
+Woodpecker full-line protocol. The web UI presents Deep coached as the fourth Standard method.
 
 SAN candidates are intentionally excluded: `+` marks check and `#` marks checkmate, which would directly leak
 forcing and mate-in-one answers. Canonical requested answers and within-puzzle history are also UCI. The prompt
 version `uci_candidates_v1` is embedded in the complete condition slug.
 
-Response style is an orthogonal axis; it does **not** create Modes 4–6. The canonical Standard comparison is the
-following 3 × 2 matrix, holding the suite, model variant, context policy, and all other settings constant:
+Response style is an orthogonal axis. The canonical Standard comparison is the following 4 × 2 matrix, holding the
+suite, model variant, context policy, and all other settings constant:
 
 | Board-information mode | `move_only` | `json_rationale` |
 | --- | --- | --- |
 | Mode 1 — Raw | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
 | Mode 2 — Assisted | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
 | Mode 3 — Coached | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
+| Method 4 — Deep coached (`--mode 5`) | `explain=false`, `plain_text_v1` | `explain=true`, structured move + visible rationale |
 
 `move_only` asks only for a move (or a tagged line where applicable) in plain text. `json_rationale` is the existing
 structured contract. Chess points are graded from the parsed move independently of response-format compliance.
@@ -104,10 +109,11 @@ The public `esoteric-seed-v1` development suite contains 50 verifier-checked com
 | Series directmate | 3 |
 | Series helpmate | 1 |
 
-The private YACPDB MVP contains exactly 50 each of directmate, selfmate, reflexmate, helpmate, series directmate,
-series helpmate, proof game, and study. Its six Popeye-supported composition genres carry Popeye certificates and
-native-verifier confirmation. Proof games are replay-verified. Study outcomes are still marked source-claimed and
-must not be presented as engine-certified results.
+The private YACPDB MVP contains exactly 50 each of directmate, selfmate, reflexmate, helpmate, series selfmate,
+series directmate, series helpmate, proof game, and study. Its seven Popeye-supported composition genres carry
+Popeye certificates and native-verifier confirmation. Proof games are replay-verified. Study outcomes are still
+marked source-claimed and must not be presented as engine-certified results. These are mechanical candidates; the
+separate quality-set status is recorded in `corpora/manifests/esoteric-benchmark-v2-curation-status.json`.
 
 The private original MVP contains 10 each of directmate, selfmate, reflexmate, single-solution helpmate, and unique
 three-ply proof game. The first four genres are independently solved by Popeye and checked by the native verifier.
@@ -123,7 +129,7 @@ ablation without changing mode numbers.
 
 ### Canonical response-style commands
 
-Run one frozen Standard suite through the complete six-cell matrix:
+Run one frozen Standard suite through the complete eight-cell matrix:
 
 ```bash
 python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 1 --move-only
@@ -132,6 +138,8 @@ python3 -m chessbench run-model --model my-model --suite suites/public/standard-
 python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 2 --rationale
 python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --move-only
 python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 3 --rationale
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 5 --move-only
+python3 -m chessbench run-model --model my-model --suite suites/public/standard-lichess-v2.json --mode 5 --rationale
 ```
 
 The same axis applies to games; for example, compare otherwise identical Mode 2 matches with `--move-only` and

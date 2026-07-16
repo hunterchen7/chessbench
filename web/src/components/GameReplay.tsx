@@ -63,6 +63,7 @@ function short(model: string): string {
 
 function modeLabel(condition?: Condition): string {
   if (!condition) return "Game protocol"
+  if (condition.prompt_style === "deep_coached") return "Deep coached"
   if (condition.prompt_style === "coached") return "Mode 3 · coached"
   if (condition.legality === "legal_list") return "Mode 2 · legal moves"
   return "Mode 1 · raw position"

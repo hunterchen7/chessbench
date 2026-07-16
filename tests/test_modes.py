@@ -1,4 +1,4 @@
-"""The 4 puzzle protocols, from raw position through a full-line answer."""
+"""Named puzzle conditions, from raw position through coached and full-line answers."""
 
 from dataclasses import replace
 
@@ -10,6 +10,7 @@ from chessbench.conditions import (
     PromptStyle,
     PuzzleProtocol,
     build_puzzle_prompt,
+    DEEP_COACH_ADVICE_V1,
     game_system_prompt,
     mode_condition,
 )
@@ -60,8 +61,20 @@ def test_mode4_requests_the_complete_woodpecker_line():
     assert mode_condition(4).puzzle_protocol == PuzzleProtocol.FULL_LINE
 
 
+def test_mode5_adds_versioned_deep_calculation_coaching():
+    condition = mode_condition(5)
+    prompt = build_puzzle_prompt(B, condition)
+    assert condition.prompt_style == PromptStyle.DEEP_COACHED
+    assert condition.prompt_version == "deep_coach_v1"
+    assert "prompt-deep-coach-v1" in condition.slug()
+    assert "Assume the opponent may capture back" in prompt
+    assert "intermediate check" in prompt
+    assert "opponent-perspective blunder audit" in prompt
+    assert 900 <= len(DEEP_COACH_ADVICE_V1.split()) <= 1100
+
+
 def test_move_only_is_explicit_for_minimal_coached_and_full_line_prompts():
-    for mode in (1, 2, 3):
+    for mode in (1, 2, 3, 5):
         condition = replace(mode_condition(mode), explain=False)
         puzzle = build_puzzle_prompt(B, condition)
         system = game_system_prompt(condition, chess.WHITE)
@@ -83,6 +96,7 @@ def test_mode_presets_and_default():
     assert mode_condition(1).legality == Legality.FREE_FORM
     assert mode_condition(2).legality == Legality.LEGAL_LIST
     assert mode_condition(3).prompt_style == PromptStyle.COACHED
+    assert mode_condition(5).prompt_style == PromptStyle.DEEP_COACHED
     assert "prompt-uci-candidates-v1" in mode_condition(2).slug()
 
 

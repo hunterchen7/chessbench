@@ -12,6 +12,7 @@ const HELP = [
   ["1", "Raw", "FEN + piece locations", "The model receives the position and must generate a legal move without a candidate list."],
   ["2", "Assisted", "Raw + UCI legal moves", "The same task with every legal move supplied as unannotated UCI coordinates, isolating move choice from board-legality tracking."],
   ["3", "Coached", "Assisted + chess guidance", "Adds fixed, non-prescriptive calculation considerations covering forcing and quiet play. It is a prompt ablation, not assumed to be stronger."],
+  ["4", "Deep coached", "Assisted + 925-word calculation framework", "Expands the coaching into explicit candidate search, strongest-defense analysis, recapture and zwischenzug checks, calculation to stability, endgame checks, and a final opponent-perspective blunder audit."],
 ] as const
 
 const PROMPT_TEMPLATES = [
@@ -27,11 +28,12 @@ Pieces:
 
 Side to move: {White|Black}
 
-{Modes 2–3 only} Legal moves [UCI]: a2a3, a2a4, ...
+{Methods 2–4 only} Legal moves [UCI]: a2a3, a2a4, ...
 
 {continuations only} Moves already played in this puzzle [UCI]: {uci moves}
 
-{Mode 3 only: fixed coaching block}
+{Method 3: concise coaching block}
+{Method 4: versioned 925-word deep-coaching block}
 
 {move_only: Reply with ONLY your move in UCI, no explanation or other text.}
 {json_rationale: strict JSON object with a lowercase UCI move and concise rationale.}`,
@@ -85,7 +87,7 @@ export function Methodology() {
   return (
     <div className="space-y-10">
       <header className="max-w-4xl">
-        <Badge variant="outline">Protocol v4 · UCI candidates</Badge>
+        <Badge variant="outline">Protocol v5 · deep-coach ablation</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
@@ -96,10 +98,10 @@ export function Methodology() {
       </header>
 
       <section className="space-y-4">
-        <div><h2 className="text-xl font-semibold">Three information prompts</h2><p className="mt-1 text-sm text-muted-foreground">The information supplied is independent from how conversation state is handled.</p></div>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div><h2 className="text-xl font-semibold">Four prompt methods</h2><p className="mt-1 text-sm text-muted-foreground">Board information and coaching depth are independent from how conversation state is handled.</p></div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {HELP.map(([n, name, tag, description]) => <Card key={n}>
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Badge variant="secondary">Mode {n}</Badge>{name}</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Badge variant="secondary">Method {n}</Badge>{name}</CardTitle></CardHeader>
             <CardContent><div className="mb-3 font-mono text-xs text-foreground">{tag}</div><p className="text-sm leading-relaxed text-muted-foreground">{description}</p></CardContent>
           </Card>)}
         </div>
@@ -111,6 +113,20 @@ export function Methodology() {
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
                 SAN is not neutral metadata: <span className="font-mono text-foreground">+</span> labels a checking move and <span className="font-mono text-foreground">#</span> labels checkmate. A mate-in-one candidate such as <span className="font-mono text-foreground">Qh7#</span> therefore reveals the answer before the model calculates it. Canonical candidate lists, requested answers, and within-puzzle move history now use UCI only. The version <span className="font-mono text-foreground">uci_candidates_v1</span> is part of every condition identity, so mixed-SAN results cannot be pooled with this protocol.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <h3 className="font-semibold">How the deep coach was derived</h3>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              The fixed text synthesizes established calculation themes: candidate moves and comparison, forcing moves without blindly preferring them, the opponent&apos;s best defensive resources, calculation through recaptures to a stable position, and a final move-safety check. The prose is original, contains no puzzle-specific hint, and is frozen as <span className="font-mono text-foreground">deep_coach_v1</span>.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs">
+              <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://www.newinchess.com/improve-your-chess-calculation" target="_blank" rel="noreferrer">Ramesh · calculation</a>
+              <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://www.qualitychess.co.uk/products/improvement/29/practical_chess_defence_by_jacob_aagaard/" target="_blank" rel="noreferrer">Aagaard · defense</a>
+              <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://www.newinchess.com/forcing-chess-moves-new-and-extended-4th-edition" target="_blank" rel="noreferrer">Hertan · forcing moves</a>
+              <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://www.newinchess.com/is-your-move-safe" target="_blank" rel="noreferrer">Heisman · move safety</a>
             </div>
           </CardContent>
         </Card>
@@ -138,7 +154,7 @@ export function Methodology() {
         <div className="max-w-3xl">
           <h2 className="text-xl font-semibold">Response style is a separate axis</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Modes 1–3 only change board information. Each mode can independently request a bare move or structured JSON with a visible rationale, producing a six-cell Standard matrix without renumbering the modes.
+            Each of the four methods can independently request a bare move or structured JSON with a visible rationale, producing an eight-cell Standard matrix. Woodpecker remains a separate full-line track.
           </p>
         </div>
         <Card className="overflow-hidden">
@@ -150,7 +166,7 @@ export function Methodology() {
             </div>
             {HELP.map(([n, name]) => (
               <div key={n} className="grid border-b last:border-b-0 sm:grid-cols-[180px_1fr_1fr]">
-                <div className="bg-muted/20 p-3"><div className="text-xs font-semibold">Mode {n} · {name}</div><div className="mt-1 text-[11px] text-muted-foreground">information axis</div></div>
+                <div className="bg-muted/20 p-3"><div className="text-xs font-semibold">Method {n} · {name}</div><div className="mt-1 text-[11px] text-muted-foreground">prompt axis</div></div>
                 <div className="border-t p-3 sm:border-l sm:border-t-0"><div className="sm:hidden"><ResponseStyleBadge condition="plain-text-v1" compact /></div><div className="mt-1 font-mono text-xs">plain_text_v1</div><p className="mt-1 text-xs text-muted-foreground">Move or line only; no explanation requested.</p></div>
                 <div className="border-t p-3 sm:border-l sm:border-t-0"><div className="sm:hidden"><ResponseStyleBadge condition="json-rationale" compact /></div><div className="mt-1 font-mono text-xs">json_rationale</div><p className="mt-1 text-xs text-muted-foreground">Structured move plus concise visible rationale.</p></div>
               </div>

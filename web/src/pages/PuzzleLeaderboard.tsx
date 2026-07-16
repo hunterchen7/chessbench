@@ -4,7 +4,7 @@ import { ArrowRight, BarChart3, Check, CircleDollarSign, Database, Filter, Info,
 import { useData } from "@/lib/useData"
 import type { ModelVariant, RunIndexEntry } from "@/lib/data"
 import { isModelVariant } from "@/lib/participants"
-import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-type Mode = 1 | 2 | 3
+type Mode = ModeNumber
 type StyleRuns = Partial<Record<ResponseStyleKey, RunIndexEntry>>
 type LatestByMode = Partial<Record<Mode, StyleRuns>>
 
@@ -68,7 +68,7 @@ function completedDate(run: RunIndexEntry) {
 export function PuzzleLeaderboard() {
   const { runs } = useData()
   const [suite, setSuite] = useState("")
-  const [visibleModes, setVisibleModes] = useState<Mode[]>([1, 2, 3])
+  const [visibleModes, setVisibleModes] = useState<Mode[]>(MODES.map((mode) => mode.n))
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
   const activeSuite = suite || suites[0] || "standard-lichess-v2"
@@ -112,7 +112,7 @@ export function PuzzleLeaderboard() {
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><BarChart3 className="size-4" /> Standard tactics</div>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle leaderboard</h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">
-            Compare every model across the three board-information methods. Points decide performance within a run; Puzzle Elo estimates the human puzzle rating at which the model would score about 50%.
+            Compare every model across four board-information and coaching methods. Points decide performance within a run; Puzzle Elo estimates the human puzzle rating at which the model would score about 50%.
           </p>
         </div>
         <PuzzleNav count={325} />
@@ -135,7 +135,7 @@ export function PuzzleLeaderboard() {
               {MODES.map((item) => {
                 const visible = visibleModes.includes(item.n)
                 return <button key={item.n} type="button" aria-pressed={visible} disabled={visible && visibleModes.length === 1} title={visible && visibleModes.length === 1 ? "Keep at least one method visible" : item.blurb} onClick={() => toggleMode(item.n)} className={cn("inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70", visible ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-                  <Check className={cn("size-3 transition-all duration-200", visible ? "scale-100 opacity-100" : "-mr-1.5 scale-75 opacity-0")} /> {item.n}. {item.name}
+                  <Check className={cn("size-3 transition-all duration-200", visible ? "scale-100 opacity-100" : "-mr-1.5 scale-75 opacity-0")} /> {item.displayN}. {item.name}
                 </button>
               })}
             </div>
@@ -159,7 +159,7 @@ export function PuzzleLeaderboard() {
                     <div className="text-xs font-medium text-muted-foreground">Model configuration</div>
                     {visibleModes.map((mode) => {
                       const info = MODES.find((item) => item.n === mode)!
-                      return <div key={mode} title={info.blurb}><div className="text-xs font-medium text-foreground">{info.n}. {info.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Puzzle Elo</div></div>
+                      return <div key={mode} title={info.blurb}><div className="text-xs font-medium text-foreground">{info.displayN}. {info.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Puzzle Elo</div></div>
                     })}
                     <div className="text-right text-xs font-medium text-muted-foreground">Visible runs</div>
                   </div>
@@ -201,7 +201,7 @@ export function PuzzleLeaderboard() {
                               <TableBody>{visibleRuns.map((run) => {
                                 const info = modeInfo(run.condition)!
                                 return <TableRow key={run.run_id}>
-                                  <TableCell><div className="font-medium">{info.n}. {info.name}</div><div className="text-[10px] text-muted-foreground">{info.blurb}</div></TableCell>
+                                  <TableCell><div className="font-medium">{info.displayN}. {info.name}</div><div className="text-[10px] text-muted-foreground">{info.blurb}</div></TableCell>
                                   <TableCell><ResponseStyleBadge condition={run.condition} /></TableCell>
                                   <TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{ratingText(run)}</div><div className="text-[10px] text-muted-foreground">{ratingNote(run)}</div></TableCell>
                                   <TableCell className="text-right font-mono font-semibold tabular-nums">{pointsText(run.summary)}</TableCell>

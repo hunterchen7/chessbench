@@ -52,23 +52,29 @@ export function responseStyleInfo(condition: Condition | string | null | undefin
   return RESPONSE_STYLES[isMoveOnly ? 1 : 0]
 }
 
-// The 3 named "help" modes (the headline ablation). Reasoning runs and other
+// The named Standard "help" modes (the headline ablation). CLI mode 4 is the
+// separate Woodpecker protocol, so deep coaching keeps internal id 5 while it
+// appears as the fourth Standard method in the UI.
 // axis combos return null (they're shown separately, not in the mode matrix).
+export type ModeNumber = 1 | 2 | 3 | 5
 export interface ModeInfo {
-  n: 1 | 2 | 3
+  n: ModeNumber
+  displayN: 1 | 2 | 3 | 4
   name: string
   blurb: string
 }
 export const MODES: ModeInfo[] = [
-  { n: 1, name: "Raw", blurb: "just the position — no legal moves" },
-  { n: 2, name: "Assisted", blurb: "legal moves handed in" },
-  { n: 3, name: "Coached", blurb: "legal moves + tactical tips" },
+  { n: 1, displayN: 1, name: "Raw", blurb: "just the position — no legal moves" },
+  { n: 2, displayN: 2, name: "Assisted", blurb: "legal moves handed in" },
+  { n: 3, displayN: 3, name: "Coached", blurb: "legal moves + concise tactical tips" },
+  { n: 5, displayN: 4, name: "Deep coached", blurb: "legal moves + a versioned 925-word calculation process" },
 ]
 export function modeInfo(c: Condition): ModeInfo | null {
   if (c.puzzle_protocol === "full_line") return null
   if (c.legality === "free_form" && c.prompt_style === "minimal") return MODES[0]
   if (c.legality === "legal_list" && c.prompt_style === "minimal") return MODES[1]
   if (c.legality === "legal_list" && c.prompt_style === "coached") return MODES[2]
+  if (c.legality === "legal_list" && c.prompt_style === "deep_coached") return MODES[3]
   return null
 }
 

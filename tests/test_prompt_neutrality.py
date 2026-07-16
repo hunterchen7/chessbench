@@ -15,7 +15,9 @@ def assert_neutral(*texts: str) -> None:
 
 def test_every_model_facing_prompt_is_neutral():
     board = chess.Board()
-    puzzle_prompts = [build_puzzle_prompt(board, mode_condition(mode)) for mode in (1, 2, 3, 4)]
+    puzzle_prompts = [
+        build_puzzle_prompt(board, mode_condition(mode)) for mode in (1, 2, 3, 4, 5)
+    ]
     condition = mode_condition(2)
     game = [
         game_system_prompt(condition, chess.WHITE),

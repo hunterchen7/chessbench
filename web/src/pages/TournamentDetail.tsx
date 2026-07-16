@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 const short = (m: string) => (m.includes("/") ? m.split("/")[1] : m)
 
 function modeLabel(t: Tournament): string {
+  if (t.condition.prompt_style === "deep_coached") return "Deep coached"
   if (t.condition.prompt_style === "coached") return "Mode 3 · coached"
   if (t.condition.legality === "legal_list") return "Mode 2 · legal moves"
   return "Mode 1 · raw position"

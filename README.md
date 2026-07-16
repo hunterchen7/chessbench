@@ -16,23 +16,30 @@ Leaderboards rank total points under an identical frozen suite and condition. Th
 
 ## Evaluation protocol
 
-The three standard board-information prompts are:
+The four standard prompt methods are:
 
 1. **Raw** — FEN and piece locations.
 2. **Assisted** — Raw plus every legal move in UCI coordinate notation.
 3. **Coached** — Assisted plus fixed, non-prescriptive chess calculation considerations.
+4. **Deep coached** — Assisted plus a fixed 925-word calculation framework emphasizing best defense, recaptures, intermediate moves, stable endpoints, and a final blunder audit.
 
 Canonical puzzle prompts never put SAN in a legal-candidate list. SAN appends `+` to checks and `#` to checkmates,
 so a move such as `Qh7#` would disclose a mate-in-one answer. Candidate lists, requested answers, and within-puzzle
 move history use UCI under prompt contract `uci_candidates_v1`; that version is included in every condition slug.
 
-Response style is a separate axis. It never changes the Mode 1–3 numbering:
+Response style is a separate axis. It never changes the Standard method numbering:
 
 | | Move only | JSON + rationale |
 | --- | --- | --- |
 | Mode 1 — Raw | `plain_text_v1` | structured move + visible rationale |
 | Mode 2 — Assisted | `plain_text_v1` | structured move + visible rationale |
 | Mode 3 — Coached | `plain_text_v1` | structured move + visible rationale |
+| Method 4 — Deep coached | `plain_text_v1` | structured move + visible rationale |
+
+For backward-compatible CLI numbering, Deep coached is `--mode 5`; `--mode 4` remains the separately scored
+Woodpecker full-line protocol. The dashboard presents Deep coached as the fourth Standard method. Its exact text is
+frozen in `chessbench/conditions.py` under prompt contract `deep_coach_v1`, so it never pools with concise-coached
+results.
 
 The `move_only` ablation uses `explain=false` and requests only a plain-text move. The `json_rationale` style uses
 `explain=true` and the current structured contract:

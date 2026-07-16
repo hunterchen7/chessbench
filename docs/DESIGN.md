@@ -39,10 +39,14 @@ upstream snapshot -> bounded source pool -> validated corpus -> frozen suite -> 
 - `raw`: FEN plus a piece inventory.
 - `assisted`: raw plus every legal move in UCI coordinate notation.
 - `coached`: assisted plus fixed, non-prescriptive calculation considerations.
+- `deep_coached`: assisted plus the fixed long-form calculation framework in `DEEP_COACH_ADVICE_V1`, with explicit
+  best-defense, recapture, intermediate-move, stable-endpoint, endgame, and final safety checks.
 
 SAN is excluded from canonical candidate lists because its `+` and `#` suffixes reveal which candidates check or
-mate. Requested answers and within-puzzle move history are UCI as well. `prompt_version=uci_candidates_v1` is part
-of the condition manifest and slug, preventing results from different prompt text from being resumed or pooled.
+mate. Requested answers and within-puzzle move history are UCI as well. `prompt_version=uci_candidates_v1` or
+`deep_coach_v1` is part of the condition manifest and slug, preventing results from different prompt text from
+being resumed or pooled. CLI Mode 4 remains the existing Woodpecker full-line preset; Deep coached is Mode 5
+internally and is displayed as the fourth Standard method.
 
 ### Puzzle response protocol
 
@@ -74,7 +78,7 @@ The cache policy is part of the condition slug and natural key, so pre-policy an
 
 ### Response contract
 
-Raw, assisted, and coached runs all request the same strict JSON object with a UCI `move` and a concise
+Raw, assisted, coached, and deep-coached runs all request the same strict JSON object with a UCI `move` and a concise
 model-authored `rationale`. Woodpecker and other full-line tasks use a UCI `moves` array plus `rationale`.
 The raw provider response is always retained. The parser treats the declared move field as authoritative,
 scores a recoverable move even when the surrounding JSON is malformed, and records format validity separately.

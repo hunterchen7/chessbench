@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Activity, ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
 import type { RunIndexEntry } from "@/lib/data"
-import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
+import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-type Mode = 1 | 2 | 3
+type Mode = ModeNumber
 type ModeMap = Partial<Record<Mode, RunIndexEntry>>
 type SortKey = "model" | "rating" | "points" | "solved" | "legal" | "cost" | `mode-${Mode}`
 
@@ -40,7 +40,7 @@ function Stat({ label, value, note }: { label: string; value: string; note: stri
 }
 
 const TRACKS = [
-  { to: "/puzzles", icon: ListChecks, label: "Standard", copy: "Independent move-finding under three prompt scaffolds.", tone: "text-emerald-600" },
+  { to: "/puzzles", icon: ListChecks, label: "Standard", copy: "Independent move-finding under four prompt scaffolds.", tone: "text-emerald-600" },
   { to: "/woodpecker", icon: Activity, label: "Woodpecker", copy: "One response must calculate the complete forced line.", tone: "text-violet-600" },
   { to: "/esoteric", icon: Sparkles, label: "Esoteric", copy: "Selfmates, helpmates, proof games, and studies.", tone: "text-amber-600" },
   { to: "/games", icon: Swords, label: "Games", copy: "Stateful head-to-head play with match-point standings.", tone: "text-rose-600" },
@@ -48,7 +48,7 @@ const TRACKS = [
 
 export function Leaderboard() {
   const { runs, tournaments, apiBase } = useData()
-  const [view, setView] = useState<"compare" | "1" | "2" | "3">("2")
+  const [view, setView] = useState<"compare" | "1" | "2" | "3" | "5">("2")
   const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
   const [humans, setHumans] = useState<HumanRow[]>([])
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
@@ -77,7 +77,7 @@ export function Leaderboard() {
   }, [standard, activeSuite, responseStyle])
 
   const rows = useMemo(() => Array.from(byVariant.entries()).map(([key, modes]) => {
-    const anchor = modes[2] ?? modes[3] ?? modes[1]!
+    const anchor = modes[2] ?? modes[3] ?? modes[5] ?? modes[1]!
     return { key, modes, anchor }
   }).filter((row) => row.anchor), [byVariant])
 
@@ -194,7 +194,7 @@ export function Leaderboard() {
                 <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}>
                   <TabsList className="h-8 border bg-background p-0.5 shadow-xs">
                     <TabsTrigger value="compare" className="h-6 px-2.5 text-xs">All modes</TabsTrigger>
-                    {MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} title={mode.blurb} className="h-6 px-2.5 text-xs">{mode.n}. {mode.name}</TabsTrigger>)}
+                    {MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} title={mode.blurb} className="h-6 px-2.5 text-xs">{mode.displayN}. {mode.name}</TabsTrigger>)}
                   </TabsList>
                 </Tabs>
               </div>
@@ -221,7 +221,7 @@ export function Leaderboard() {
                     }) : <><TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{puzzleRatingText(run)}</div><div className="text-[11px] text-muted-foreground">{estimate?.ci95 ? `95% ${Math.round(estimate.ci95[0])}–${Math.round(estimate.ci95[1])}` : "not estimated"}</div></TableCell><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
                   </TableRow>
                 })}
-                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? 5 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
+                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? MODES.length + 2 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
               </TableBody>
             </Table>
           </CardContent>

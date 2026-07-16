@@ -303,7 +303,7 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
   const allowedTracks = new Set(["puzzle", "woodpecker", "esoteric", "game"])
   const allowedStatuses = new Set(["queued", "running", "partial", "completed", "failed"])
   const allowedResponseStyles = new Set(["move_only", "json_rationale"])
-  const allowedModes = new Set(["1", "2", "3", "4"])
+  const allowedModes = new Set(["1", "2", "3", "4", "5"])
   if (track && !allowedTracks.has(track)) return error(400, "invalid track filter")
   if (status && !allowedStatuses.has(status)) return error(400, "invalid status filter")
   if (responseStyle && !allowedResponseStyles.has(responseStyle)) {
@@ -323,6 +323,7 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
   if (mode === "2") clauses.push("json_extract(r.condition_json, '$.legality')='legal_list' AND json_extract(r.condition_json, '$.prompt_style')='minimal' AND json_extract(r.condition_json, '$.puzzle_protocol')='move_by_move'")
   if (mode === "3") clauses.push("json_extract(r.condition_json, '$.legality')='legal_list' AND json_extract(r.condition_json, '$.prompt_style')='coached' AND json_extract(r.condition_json, '$.puzzle_protocol')='move_by_move'")
   if (mode === "4") clauses.push("json_extract(r.condition_json, '$.puzzle_protocol')='full_line'")
+  if (mode === "5") clauses.push("json_extract(r.condition_json, '$.legality')='legal_list' AND json_extract(r.condition_json, '$.prompt_style')='deep_coached' AND json_extract(r.condition_json, '$.puzzle_protocol')='move_by_move'")
   if (tournament) clauses.push("1=0")
   if (responseStyle) {
     clauses.push(

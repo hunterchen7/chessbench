@@ -60,6 +60,7 @@ class PromptStyle(str, Enum):
     COT = "cot"  # ask for reasoning then a tagged answer
     FEW_SHOT = "few_shot"  # prepend worked examples (deltas reported, not baked in)
     COACHED = "coached"  # explicit "how to think about the position" checklist
+    DEEP_COACHED = "deep_coached"  # long-form calculation and blunder-check process
 
 
 class ContextMode(str, Enum):
@@ -200,7 +201,8 @@ class Condition:
 HEADLINE = Condition()
 
 # --- Named "how much help" modes (presets over the axes) ---
-# 1: raw FEN + piece list; 2: + legal moves (UCI only); 3: + coaching tips.
+# 1: raw FEN + piece list; 2: + legal moves (UCI only); 3: + concise coaching;
+# 4 remains the Woodpecker full-line protocol; 5 adds long-form coaching.
 # The DEFAULT for CLI runs is MODE 2 ("hand-holding": the legal moves are provided).
 MODES: dict[int, tuple[Legality, Representation, PromptStyle, PuzzleProtocol]] = {
     1: (
@@ -227,6 +229,12 @@ MODES: dict[int, tuple[Legality, Representation, PromptStyle, PuzzleProtocol]] =
         PromptStyle.COACHED,
         PuzzleProtocol.FULL_LINE,
     ),
+    5: (
+        Legality.LEGAL_LIST,
+        Representation.FEN_PIECES,
+        PromptStyle.DEEP_COACHED,
+        PuzzleProtocol.MOVE_BY_MOVE,
+    ),
 }
 DEFAULT_MODE = 2
 MODE_LABELS = {
@@ -234,6 +242,7 @@ MODE_LABELS = {
     2: "assisted (legal moves)",
     3: "coached (legal moves + tips)",
     4: "full line (Woodpecker)",
+    5: "deep coached (legal moves + calculation process)",
 }
 
 
@@ -246,6 +255,7 @@ def mode_condition(mode: int) -> Condition:
         representation=representation,
         prompt_style=prompt_style,
         puzzle_protocol=puzzle_protocol,
+        prompt_version="deep_coach_v1" if mode == 5 else "uci_candidates_v1",
     )
 
 
@@ -308,8 +318,9 @@ def build_puzzle_prompt(
             "",
             "Moves already played in this puzzle [UCI]: " + " ".join(history_uci),
         ]
-    if cond.prompt_style == PromptStyle.COACHED:
-        lines += ["", COACH_ADVICE]
+    coaching = coaching_advice(cond)
+    if coaching:
+        lines += ["", coaching]
     if cond.puzzle_protocol == PuzzleProtocol.FULL_LINE:
         lines += [
             "",
@@ -370,6 +381,38 @@ _DEFAULT_COACH = (
 COACH_ADVICE = os.environ.get("CHESSBENCH_COACH", _DEFAULT_COACH)
 
 
+# This text is deliberately versioned and immutable. Editing it requires a new
+# prompt_version so completed cells cannot silently pool across prompt changes.
+DEEP_COACH_ADVICE_V1 = """Use the following as a disciplined lens for calculation, not as a rigid checklist. Adapt the depth and order to the position. Your task is still to choose the best move; do not assume that the most forcing-looking move is correct.
+
+First orient yourself precisely. Confirm the side to move, whether either king is in check or exposed, and what the last move or preceding puzzle moves changed. Reconstruct the location and role of every relevant piece from the supplied position. Count material, but also note piece activity, trapped pieces, loose pieces, overloaded defenders, pinned pieces, weak back ranks, advanced passed pawns, promotion threats, and squares that are defended only once. Before searching for your own idea, ask what the opponent threatens right now. If you made a neutral move, what check, capture, mating idea, promotion, or positional transformation would they choose?
+
+Generate a small but serious set of candidate moves. Examine legal checks, captures, promotions, and direct threats early because they constrain the reply, but do not automatically prefer them. Include quiet moves when they improve a piece, remove a defender, create zugzwang, prepare a pawn break, make prophylaxis, or threaten something the opponent cannot meet. In sparse positions or positions that appear to hinge on a precise move, widen the search and compare every plausible legal alternative. A familiar pattern is a clue, not proof: verify that the exact geometry, move order, and defenders in this position make it work.
+
+For each candidate, calculate the opponent's strongest reply rather than the reply you hope to see. Treat the opponent as resourceful and actively trying to refute you. Start with their forcing options: counterchecks, captures, promotions, mating threats, intermediate moves, and attacks on your queen or king. Then look for defensive resources such as declining a sacrifice, returning material, exchanging the attacking piece, interposing, evacuating a threatened piece, creating luft, pinning a key attacker, perpetual check, fortress, stalemate, or a move-order change. An attack is sound only if it survives the best defense, not merely the natural defense.
+
+Be especially careful with captures. Never stop at “I take that piece” or “I win the queen.” Assume the opponent may capture back and explicitly identify every legal recapture: by pawn, piece, king, or a different piece along a newly opened line. After the apparent recapture, check whether either side has an intermediate check, zwischenzug, discovered attack, promotion, or stronger capture before completing the exchange. Recount the full material balance only after the sequence has settled. Verify whether the capturing piece is protected, whether a defender is pinned or overloaded, whether moving it exposes your king or another valuable piece, and whether an apparently free target is bait. If your move places a piece on a square the opponent can capture, prove why that capture fails; do not merely assume it is poisoned.
+
+Carry critical variations far enough to reach a quiet or otherwise stable position. Do not end a line at the first attractive event, such as winning material, giving check, or reaching an apparently winning attack. Continue through forced recaptures, counterchecks, and tactical clean-up until the consequences can be compared reliably. When several move orders reach similar positions, check whether one order gives the opponent an extra tempo, escape square, intermezzo, or defensive exchange. Keep the board visualization synchronized after every ply: remove captured pieces, update opened and closed lines, move both pieces during castling, handle en passant correctly, and replace a promoted pawn with the chosen piece.
+
+At the stable endpoint of each serious line, compare concrete outcomes before general impressions. Check for forced mate, perpetual check, stalemate, insufficient material, promotion, decisive material gain, or an unavoidable tactical loss. If none decides the position, compare king safety, piece activity, coordination, pawn structure, passed pawns, weak squares, space, and whose threats arrive first. Prefer a smaller secure advantage over a spectacular line that depends on cooperation. Conversely, do not reject a sound sacrifice merely because the immediate material count is unfavorable if the follow-up is forced and sufficient.
+
+In defensive positions, search for active resistance. Consider counterchecks, forcing exchanges, interference, deflection, counter-sacrifices, perpetual-check mechanisms, stalemate tricks, and returning material to eliminate the attack. When solving a puzzle, the key move must begin the intended forcing solution against every relevant defense; a move that is generally strong but allows one escape is not enough. Also consider that the best move may be a quiet retreat, prophylactic move, or only move that prevents the opponent's threat.
+
+Treat endgames concretely. Recalculate king distances, opposition, corresponding squares, pawn races, breakthrough ideas, reserve tempi, zugzwang, and whether a rook belongs behind a passed pawn. Count promotion tempi one move at a time and include checks that gain tempo. Verify whether the promoted piece can be captured, whether promotion gives check, whether underpromotion matters, and whether simplifying enters a theoretically drawn fortress or an unwinnable material configuration. In queen and rook endings, test perpetual checks and back-rank tactics before trusting a material advantage.
+
+Before committing, perform a final opponent-perspective blunder audit on the exact candidate move. Confirm that it is legal and does not leave your own king in check. Then ask: can the opponent check me, mate me, capture the moved piece, capture something the move stopped defending, recapture what I just took, insert a stronger intermediate move, promote, trap my queen, or force perpetual or stalemate? Re-scan all newly opened ranks, files, diagonals, and discovered attacks from both sides. Finally compare the candidate once more with the strongest alternative. Only then return the move in the requested format."""
+
+
+def coaching_advice(cond: Condition) -> str | None:
+    """Return the fixed coaching text selected by this condition."""
+    if cond.prompt_style == PromptStyle.COACHED:
+        return COACH_ADVICE
+    if cond.prompt_style == PromptStyle.DEEP_COACHED:
+        return DEEP_COACH_ADVICE_V1
+    return None
+
+
 def _notation_name(cond: Condition) -> str:
     return (
         "SAN (e.g. Nf3, exd5, O-O)"
@@ -411,8 +454,9 @@ def game_system_prompt(cond: Condition, color: bool) -> str:
         f"You are playing a chess game as {side}.",
         "On each of your turns, choose a single legal move.",
     ]
-    if cond.prompt_style == PromptStyle.COACHED:
-        lines += ["", COACH_ADVICE]
+    coaching = coaching_advice(cond)
+    if coaching:
+        lines += ["", coaching]
     if cond.prompt_style == PromptStyle.COT:
         lines += [
             "Think through the position carefully before producing the requested response."

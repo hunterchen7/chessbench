@@ -1415,8 +1415,11 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
         "--mode",
         type=int,
         default=None,
-        choices=[1, 2, 3, 4],
-        help="1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line",
+        choices=[1, 2, 3, 4, 5],
+        help=(
+            "1=raw, 2=legal moves, 3=coached, 4=Woodpecker full line, "
+            "5=deep coached"
+        ),
     )
     # Individual axes default to MODE 2 (hand-holding: legal moves in UCI).
     p.add_argument(
