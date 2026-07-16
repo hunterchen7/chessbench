@@ -228,7 +228,7 @@ const AttemptExchange = memo(function AttemptExchange({
         </pre>
       </div>
 
-      <ProviderReasoning reasoning={attempt.reasoning} details={attempt.reasoning_details} />
+      <ProviderReasoning reasoning={attempt.reasoning} details={attempt.reasoning_details} reasoningTokens={attempt.reasoning_tokens} />
 
       <div className="space-y-1.5">
         <div className="flex flex-wrap items-center gap-1.5">

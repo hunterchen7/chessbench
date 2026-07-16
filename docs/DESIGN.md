@@ -84,6 +84,15 @@ The raw provider response is always retained. The parser treats the declared mov
 scores a recoverable move even when the surrounding JSON is malformed, and records format validity separately.
 Rationales are visible explanations and are not assumed to be faithful transcripts of hidden reasoning.
 
+Provider reasoning has a separate lifecycle. ChessBench stores any readable reasoning text and the complete native
+`reasoning_details` artifact, including signatures or encrypted content. The UI renders only readable text in a
+collapsed audit disclosure and labels opaque blocks without interpreting them. In a continuing private session the
+exact structured artifact is appended to the assistant turn; the plaintext `reasoning` field is the fallback only
+when no structured artifact exists. This avoids duplicating the same thought while matching provider-native
+conversation continuity. Reasoning-token counts are recorded but never sent back as conversation content. Puzzle
+boundaries, game boundaries, and the White/Black session boundary remain strict. `--no-capture-reasoning` defines the
+visible-history-only ablation.
+
 ### Games
 
 `hybrid` is canonical for games: a growing chat plus current FEN, piece inventory, history, and legal moves when enabled. `fresh` and `growing` remain explicit ablations. The session resets before each game.
@@ -183,8 +192,8 @@ and exact visible transcripts for audit.
 
 - Secrets live in ignored `.env`/`.dev.vars` files or Cloudflare secrets.
 - Provider tool calls are disabled and returned tool calls are rejected.
-- The UI labels the parsed text as a model rationale and the complete payload as visible output; neither is
-  presented as hidden reasoning.
+- The UI labels the parsed text as a model rationale, shows provider-readable reasoning only inside a collapsed
+  audit disclosure, and never presents signed/encrypted continuity state as readable thought.
 - Public exports contain benchmark data and provider usage, never API credentials or ingestion tokens.
 - Private-suite item payloads are excluded from `/runs`, `/puzzles`, and default exports. `include_private=1` fails
   closed unless the request carries the Worker's owner Bearer token.

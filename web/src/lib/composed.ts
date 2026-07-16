@@ -34,6 +34,8 @@ export interface ComposedTurn {
   response_format?: unknown
   response_format_valid?: boolean | null
   response_format_error?: string | null
+  reasoning?: string | null
+  reasoning_details?: Array<Record<string, unknown>> | null
   prompt_tokens?: number
   completion_tokens?: number
   reasoning_tokens?: number

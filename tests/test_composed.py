@@ -142,6 +142,14 @@ def test_llm_composed_turn_keeps_exact_prompt_response_usage_and_modes():
             "completion_tokens_details": {"reasoning_tokens": 5},
         }
         last_cost = 0.004
+        last_reasoning = "The back rank is weak."
+        last_reasoning_details = [
+            {
+                "type": "reasoning.text",
+                "text": "The back rank is weak.",
+                "signature": {"opaque": "signed-provider-state"},
+            }
+        ]
 
         def __init__(self):
             self.prompt = ""
@@ -199,6 +207,8 @@ def test_llm_composed_turn_keeps_exact_prompt_response_usage_and_modes():
             "prompt": model.prompt,
             "raw_response": '{"move":"a1a8","rationale":"The rook mates on the back rank."}',
             "response_format": model.response_format,
+            "reasoning": "The back rank is weak.",
+            "reasoning_details": model.last_reasoning_details,
                 "usage": model.last_usage,
                 "prompt_tokens": 21,
                 "completion_tokens": 8,

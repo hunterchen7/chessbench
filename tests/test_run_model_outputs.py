@@ -214,6 +214,23 @@ def test_run_model_accepts_reasoning_capture(monkeypatch):
     assert seen["capture_reasoning"] is True
 
 
+def test_run_model_defaults_to_native_reasoning_continuity_and_allows_ablation(
+    monkeypatch,
+):
+    seen: list[bool] = []
+
+    def fake_run_model(args):
+        seen.append(args.capture_reasoning)
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
+    base = ["run-model", "--model", "model", "--suite", "suite.json"]
+
+    assert cli.main(base) == 0
+    assert cli.main([*base, "--no-capture-reasoning"]) == 0
+    assert seen == [True, False]
+
+
 def test_run_model_accepts_recorded_provider_route(monkeypatch):
     seen: dict[str, object] = {}
 

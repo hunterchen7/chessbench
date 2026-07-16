@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import hashlib
 import random
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Protocol, cast
+from typing import Protocol
 
 import chess
 import chess.engine
@@ -99,7 +100,7 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
     ctx.last_reasoning = reasoning if isinstance(reasoning, str) else None
     reasoning_details = getattr(model, "last_reasoning_details", None)
     ctx.last_reasoning_details = (
-        [dict(detail) for detail in reasoning_details]
+        deepcopy(reasoning_details)
         if isinstance(reasoning_details, list)
         and all(isinstance(detail, dict) for detail in reasoning_details)
         else None
@@ -117,18 +118,42 @@ def _capture_model_audit(model: object, ctx: MoveContext) -> None:
     ctx.last_provider_error = dict(error) if isinstance(error, dict) else error
 
 
-def _assistant_message(model: object, content: str) -> Message:
-    """Preserve provider reasoning only inside this model's private chat."""
+def _assistant_message_from_audit(
+    content: str,
+    reasoning: str | None,
+    reasoning_details: list[dict[str, object]] | None,
+) -> Message:
+    """Build one assistant turn with provider-native reasoning continuity.
+
+    Modern reasoning APIs require the structured block/signature to be returned
+    exactly as received.  OpenRouter documents ``reasoning`` as the compatibility
+    fallback when no structured ``reasoning_details`` are available.  Sending
+    both can duplicate the same thought, so the structured representation wins.
+    The readable text is still retained separately in the audit record.
+    """
     message: Message = {"role": "assistant", "content": content}
-    reasoning = getattr(model, "last_reasoning", None)
-    if isinstance(reasoning, str):
-        message["reasoning"] = reasoning
-    reasoning_details = getattr(model, "last_reasoning_details", None)
-    if isinstance(reasoning_details, list) and all(
+    if reasoning_details and all(
         isinstance(detail, dict) for detail in reasoning_details
     ):
-        message["reasoning_details"] = [dict(detail) for detail in reasoning_details]
+        message["reasoning_details"] = deepcopy(reasoning_details)
+    elif isinstance(reasoning, str):
+        message["reasoning"] = reasoning
     return message
+
+
+def _assistant_message(model: object, content: str) -> Message:
+    """Preserve native reasoning only inside this model's private chat."""
+    reasoning = getattr(model, "last_reasoning", None)
+    reasoning_details = getattr(model, "last_reasoning_details", None)
+    return _assistant_message_from_audit(
+        content,
+        reasoning if isinstance(reasoning, str) else None,
+        reasoning_details
+        if isinstance(reasoning_details, list)
+        and reasoning_details
+        and all(isinstance(detail, dict) for detail in reasoning_details)
+        else None,
+    )
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -237,11 +262,11 @@ class LLMAgent:
 
     def puzzle_conversation(self) -> list[Message]:
         """Return a detached snapshot suitable for a durable puzzle checkpoint."""
-        return [cast(Message, dict(message)) for message in self._messages]
+        return deepcopy(self._messages)
 
     def restore_puzzle(self, messages: list[Message]) -> None:
         """Restore exactly one puzzle's chat without sharing mutable state."""
-        self._messages = [cast(Message, dict(message)) for message in messages]
+        self._messages = deepcopy(messages)
 
     def choose(self, board: chess.Board, ctx: TurnContext) -> str:
         cond = ctx.condition
@@ -438,17 +463,11 @@ class LLMGameAgent:
             self._messages.append({"role": "system", "content": self._system})
             for prompt, raw_response, reasoning, reasoning_details in turns:
                 self._messages.append({"role": "user", "content": prompt})
-                assistant: Message = {
-                    "role": "assistant",
-                    "content": raw_response,
-                }
-                if reasoning is not None:
-                    assistant["reasoning"] = reasoning
-                if reasoning_details is not None:
-                    assistant["reasoning_details"] = [
-                        dict(detail) for detail in reasoning_details
-                    ]
-                self._messages.append(assistant)
+                self._messages.append(
+                    _assistant_message_from_audit(
+                        raw_response, reasoning, reasoning_details
+                    )
+                )
         self._started = True
 
     def choose(self, board: chess.Board, ctx: MoveContext) -> str:

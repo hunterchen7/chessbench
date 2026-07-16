@@ -207,7 +207,7 @@ def _base_condition(args: argparse.Namespace) -> Condition:
         temperature=args.temperature,
         reasoning_effort=getattr(args, "reasoning", None),
         reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
-        reasoning_exclude=not getattr(args, "capture_reasoning", False),
+        reasoning_exclude=not getattr(args, "capture_reasoning", True),
         max_output_tokens=getattr(args, "max_output_tokens", 0),
         cache_policy=CachePolicy(
             getattr(args, "cache_policy", CachePolicy.PROMPT_PREFIX_V1.value)
@@ -246,7 +246,7 @@ def _build_agent(
                 args.model or "openai/gpt-4o-mini",
                 reasoning_effort=getattr(args, "reasoning", None),
                 reasoning_max_tokens=getattr(args, "reasoning_tokens", None),
-                reasoning_exclude=not getattr(args, "capture_reasoning", False),
+                reasoning_exclude=not getattr(args, "capture_reasoning", True),
             ),
             condition,
         )
@@ -1540,10 +1540,12 @@ def _add_condition_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--capture-reasoning",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
-            "store provider-supplied reasoning separately from the scored answer "
-            "and preserve it within the model's private conversation"
+            "request and store provider-supplied reasoning, then preserve its exact "
+            "native continuity artifact inside the model's private conversation "
+            "(default: enabled; use --no-capture-reasoning for the visible-history ablation)"
         ),
     )
     output_budget = p.add_mutually_exclusive_group()

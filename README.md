@@ -172,10 +172,17 @@ Each model request records:
 - exact user prompt and visible provider response;
 - parsed move, legality, retry attempt, visible rationale, and JSON-format validity;
 - prompt, completion, and reasoning-token counts;
+- readable provider reasoning when returned, plus the exact signed/encrypted
+  native reasoning blocks needed for same-session continuity;
 - provider-reported cost.
 
 The model-authored rationale is displayed as an explanation, not represented as faithful hidden chain of thought.
-Provider-hidden chain of thought is not requested for publication, summarized, or reconstructed.
+Readable provider reasoning is shown separately in a collapsed audit disclosure and may itself be only a provider
+summary. Opaque reasoning blocks are stored for audit/export but never rendered as readable thought. Within one
+multi-move puzzle or one player's private game chat, ChessBench returns the exact structured artifact on the next
+turn; plaintext reasoning is used only when the provider supplied no structured form. Numeric reasoning-token counts
+are accounting data and are never replayed. Capture/native continuity is the default; `--no-capture-reasoning` is the
+visible-history-only ablation.
 
 ChessBench omits the provider `max_tokens` parameter by default, so a model uses
 its native completion limit independently from the selected reasoning effort.

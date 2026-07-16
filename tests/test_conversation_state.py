@@ -100,7 +100,7 @@ def test_puzzle_reasoning_is_stored_and_preserved_only_within_that_puzzle():
         }
     ]
     assert model.calls[1][2]["role"] == "assistant"
-    assert model.calls[1][2]["reasoning"] == "PUZZLE-REASON-1"
+    assert "reasoning" not in model.calls[1][2]
     assert (
         model.calls[1][2]["reasoning_details"] == result.turns[0]["reasoning_details"]
     )
@@ -129,8 +129,28 @@ def test_game_restore_keeps_reasoning_in_one_players_private_chat():
     white.choose(chess.Board(), TurnContext(condition=condition))
 
     request = white_model.calls[0]
-    assert request[2]["reasoning"] == "WHITE-OLD-REASON"
+    assert "reasoning" not in request[2]
+    assert request[2]["reasoning_details"] == [
+        {"type": "reasoning.text", "text": "WHITE-OLD-REASON"}
+    ]
     assert "BLACK" not in json.dumps(request)
+
+
+def test_plaintext_reasoning_is_the_continuity_fallback_without_native_blocks():
+    condition = mode_condition(2)
+    white_model = ReasoningScriptedModel(["e2e4"], "WHITE")
+    white = LLMGameAgent(white_model, condition)
+    white.restore(
+        chess.WHITE,
+        [("old white prompt", "g1f3", "WHITE-OLD-REASON", None)],
+        "You are playing White.",
+    )
+
+    white.choose(chess.Board(), TurnContext(condition=condition))
+
+    request = white_model.calls[0]
+    assert request[2]["reasoning"] == "WHITE-OLD-REASON"
+    assert "reasoning_details" not in request[2]
 
 
 def test_game_players_have_strictly_separate_conversations_but_audit_keeps_both():

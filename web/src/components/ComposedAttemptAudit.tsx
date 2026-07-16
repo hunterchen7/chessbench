@@ -2,6 +2,7 @@ import { BrainCircuit, Check, CircleDollarSign, FileText, MessageSquareText, X }
 import { composedTurnUsage, type ComposedAnswer, type ComposedTurn } from "@/lib/composed"
 import { responseStyleInfo } from "@/lib/format"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ProviderReasoning } from "@/components/PromptTranscript"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -65,6 +66,7 @@ function TurnAudit({ turn, answer, index }: { turn: ComposedTurn; answer: Compos
         <p className="rounded-lg border border-violet-500/15 bg-violet-500/[0.035] p-3 text-xs leading-relaxed">{rationale}</p>
       </section>}
       <AuditBlock label="Raw model response" accent>{turn.raw_response ?? "—"}</AuditBlock>
+      <ProviderReasoning reasoning={turn.reasoning} details={turn.reasoning_details} reasoningTokens={usage.reasoningTokens} />
       {metadata && <AuditBlock label="Provider response-format metadata">{metadata}</AuditBlock>}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-background/70 px-3 py-2 font-mono text-[10px] tabular-nums text-muted-foreground">
         <span className="flex items-center gap-1"><FileText className="size-3" /> {integer(usage.promptTokens)} prompt</span>

@@ -18,6 +18,7 @@ reuse the game-track Agent interface via `solvers.grade_study`.
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Protocol
@@ -256,6 +257,24 @@ class LLMComposedSolver:
             "usage": raw_usage,
             **metrics.to_dict(),
         }
+        # Readable reasoning and native structured artifacts are separate: the
+        # former can be displayed, while the latter may be signed or encrypted
+        # provider state that must remain structurally unchanged.
+        for key, attribute in (
+            ("reasoning", "last_reasoning"),
+            ("reasoning_details", "last_reasoning_details"),
+            ("request_payload", "last_request_payload"),
+            ("provider_response", "last_provider_response"),
+            ("provider_response_raw", "last_provider_response_raw"),
+            ("response_id", "last_response_id"),
+            ("response_model", "last_response_model"),
+            ("response_provider", "last_response_provider"),
+            ("finish_reason", "last_finish_reason"),
+            ("native_finish_reason", "last_native_finish_reason"),
+        ):
+            value = getattr(self._model, attribute, None)
+            if value is not None:
+                self.last_turn[key] = deepcopy(value)
         return raw
 
 

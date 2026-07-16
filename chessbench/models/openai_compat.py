@@ -15,6 +15,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from copy import deepcopy
 from typing import TypedDict, cast
 
 from ..response_protocols import ResponseFormat
@@ -428,7 +429,10 @@ class _OpenAICompatModel:
         if isinstance(reasoning_details, list) and all(
             isinstance(detail, dict) for detail in reasoning_details
         ):
-            self.last_reasoning_details = [dict(detail) for detail in reasoning_details]
+            # Signatures and encrypted payloads are opaque provider state. Keep
+            # the exact nested value so it can be audited and round-tripped on
+            # the next turn without normalization.
+            self.last_reasoning_details = deepcopy(reasoning_details)
         if finish_reason == "tool_calls" or message.get("tool_calls"):
             raise ModelError(f"{self._model}: provider returned a forbidden tool call")
         if "error" in choice:

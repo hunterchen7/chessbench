@@ -1,12 +1,13 @@
 import { useState } from "react"
-import { BrainCircuit, Check, Copy, MessageSquareText } from "lucide-react"
+import { BrainCircuit, Check, Copy, Eye, LockKeyhole, MessageSquareText } from "lucide-react"
 import type { PuzzleItem } from "@/lib/data"
+import { presentReasoning } from "@/lib/reasoning"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
 
-export function ExactPromptBlock({ label, text, tone = "user" }: { label: string; text: string; tone?: "system" | "user" | "schema" }) {
+export function ExactPromptBlock({ label, text, tone = "user" }: { label: string; text: string; tone?: "system" | "user" | "schema" | "reasoning" }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
     setCopied(true)
@@ -24,7 +25,7 @@ export function ExactPromptBlock({ label, text, tone = "user" }: { label: string
   }
 
   return <div className="min-w-0 max-w-full overflow-hidden rounded-xl border bg-background shadow-xs">
-    <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2", tone === "system" ? "bg-violet-500/[0.06]" : tone === "schema" ? "bg-sky-500/[0.06]" : "bg-emerald-500/[0.05]") }>
+    <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2", tone === "system" || tone === "reasoning" ? "bg-violet-500/[0.06]" : tone === "schema" ? "bg-sky-500/[0.06]" : "bg-emerald-500/[0.05]") }>
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="font-mono text-[10px] uppercase">{tone}</Badge>
         <span className="text-xs font-semibold">{label}</span>
@@ -43,20 +44,41 @@ type PromptTurn = NonNullable<PuzzleItem["turns"]>[number]
 export function ProviderReasoning({
   reasoning,
   details,
+  reasoningTokens = 0,
 }: {
   reasoning?: string | null
   details?: Array<Record<string, unknown>> | null
+  reasoningTokens?: number
 }) {
-  if (!reasoning && !details?.length) return null
+  const presented = presentReasoning(reasoning, details)
+  if (!presented.readableText && !presented.nativeBlockCount && reasoningTokens <= 0) return null
+  const hiddenOnly = !presented.readableText
   return <Accordion type="single" collapsible className="rounded-xl border border-violet-500/20 bg-violet-500/[0.04] px-3">
     <AccordionItem value="provider-reasoning" className="border-0">
       <AccordionTrigger className="py-2.5 text-xs">
-        <span className="flex items-center gap-2"><BrainCircuit className="size-3.5 text-violet-600 dark:text-violet-300" />Provider-supplied reasoning <Badge variant="outline" className="font-mono text-[9px]">audit only</Badge></span>
+        <span className="flex min-w-0 flex-wrap items-center gap-2 text-left">
+          {hiddenOnly
+            ? <LockKeyhole className="size-3.5 shrink-0 text-violet-600 dark:text-violet-300" />
+            : <BrainCircuit className="size-3.5 shrink-0 text-violet-600 dark:text-violet-300" />}
+          <span>{hiddenOnly ? "Hidden model reasoning" : "Readable model reasoning"}</span>
+          {presented.readableText ? <Badge variant="outline" className="gap-1 font-mono text-[9px]"><Eye className="size-2.5" /> readable</Badge> : null}
+          {reasoningTokens > 0 ? <Badge variant="outline" className="font-mono text-[9px]">{reasoningTokens.toLocaleString()} tokens</Badge> : null}
+          {presented.hiddenBlockCount > 0 ? <Badge variant="outline" className="font-mono text-[9px]">{presented.hiddenBlockCount} opaque</Badge> : null}
+        </span>
       </AccordionTrigger>
       <AccordionContent className="space-y-3 pb-3">
-        <p className="text-[10px] leading-relaxed text-muted-foreground">Returned by the inference provider and stored verbatim. It is not the scored answer and may be incomplete, summarized, or unavailable for some models.</p>
-        {reasoning ? <ExactPromptBlock label="Reasoning text" text={reasoning} tone="system" /> : null}
-        {details?.length ? <ExactPromptBlock label="Structured reasoning details" text={JSON.stringify(details, null, 2)} tone="schema" /> : null}
+        {presented.readableText ? <>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">Readable reasoning returned by the inference provider. It is audit material, not part of the scored answer, and may be a provider-generated summary rather than the model&apos;s complete internal computation.</p>
+          <ExactPromptBlock label="Readable provider reasoning" text={presented.readableText} tone="reasoning" />
+        </> : <p className="rounded-lg border border-dashed bg-background/60 px-3 py-2.5 text-[10px] leading-relaxed text-muted-foreground">The provider reported reasoning usage but returned no human-readable reasoning text.</p>}
+        {presented.nativeBlockCount > 0 ? <div className="flex items-start gap-2.5 rounded-lg border bg-background/70 px-3 py-2.5">
+          <LockKeyhole className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 space-y-1">
+            <p className="text-[10px] font-semibold text-foreground">Native continuity artifact preserved</p>
+            <p className="text-[10px] leading-relaxed text-muted-foreground">{presented.nativeBlockCount} provider-native block{presented.nativeBlockCount === 1 ? " is" : "s are"} stored exactly for audit and same-session continuation. Signatures and encrypted content are not rendered as readable thought; the complete artifact remains in the scoped JSON export.</p>
+            <div className="flex flex-wrap gap-1 pt-0.5">{presented.blockTypes.map((type) => <Badge key={type} variant="secondary" className="font-mono text-[9px]">{type}</Badge>)}{presented.signedBlockCount > 0 ? <Badge variant="secondary" className="font-mono text-[9px]">{presented.signedBlockCount} signed</Badge> : null}</div>
+          </div>
+        </div> : null}
       </AccordionContent>
     </AccordionItem>
   </Accordion>
@@ -78,7 +100,7 @@ export function PromptTranscript({ turns, includeResponses = true }: { turns: Pr
           {turn.system_prompt ? <ExactPromptBlock label="Exact system prompt" text={turn.system_prompt} tone="system" /> : null}
           {turn.prompt ? <ExactPromptBlock label="Exact user prompt" text={turn.prompt} /> : null}
           {includeResponses ? <ExactPromptBlock label="Visible model response" text={turn.raw_response ?? "—"} tone="schema" /> : null}
-          <ProviderReasoning reasoning={turn.reasoning} details={turn.reasoning_details} />
+          <ProviderReasoning reasoning={turn.reasoning} details={turn.reasoning_details} reasoningTokens={turn.reasoning_tokens} />
           <div className="flex flex-wrap items-center gap-3 px-1 font-mono text-[10px] text-muted-foreground">
             <span>{turn.prompt_tokens.toLocaleString()} prompt</span><span>{turn.completion_tokens.toLocaleString()} completion</span><span>{turn.reasoning_tokens.toLocaleString()} reasoning</span>{(turn.cache_read_tokens ?? 0) > 0 ? <span className="text-emerald-700 dark:text-emerald-300">{turn.cache_read_tokens?.toLocaleString()} cached</span> : null}<span>${turn.cost_usd.toFixed(5)}</span>
           </div>
