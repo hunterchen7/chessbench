@@ -358,6 +358,184 @@
    "error": null
   },
   {
+   "run_id": "6e11ccd034cc4e6093a4359ced4a1c42",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T15:38:48+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "deep_coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "json_schema_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "deep_coach_v1",
+    "slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 56,
+    "solve_rate": 0.1723076923076923,
+    "mean_score": 0.2727521367521368,
+    "first_move_legal_rate": 0.9723076923076923,
+    "response_format_valid_rate": 0.9353846153846154,
+    "points": 88.6444,
+    "max_points": 325,
+    "cost_usd": 0.8095663124999998,
+    "puzzle_performance_rating": {
+     "rating": 1076.8484771251678,
+     "stderr": 36.746574879640136,
+     "ci95": [
+      1004.8251903610732,
+      1148.8717638892624
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T16:15:49+00:00",
+   "completed_at": "2026-07-16T16:15:49+00:00",
+   "usage": {
+    "cost_usd": 0.8095663124999998,
+    "prompt_tokens": 1149657,
+    "completion_tokens": 354150,
+    "reasoning_tokens": 306418,
+    "cache_read_tokens": 3980,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 1145677,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "e496407cb7404c8d9de7564baccb6559",
+   "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": true
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T15:05:58+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "deep_coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "deep_coach_v1",
+    "slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low"
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low",
+   "suite": {
+    "name": "standard-lichess-v2",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:611c4c22e955ece8"
+   },
+   "progress": {
+    "completed": 325,
+    "total": 325
+   },
+   "summary": {
+    "n": 325,
+    "solved": 63,
+    "solve_rate": 0.19384615384615383,
+    "mean_score": 0.28459829059829056,
+    "first_move_legal_rate": 0.9446153846153846,
+    "response_format_valid_rate": null,
+    "points": 92.4944,
+    "max_points": 325,
+    "cost_usd": 0.5970146985000004,
+    "puzzle_performance_rating": {
+     "rating": 1130.7843625545502,
+     "stderr": 36.45627041845059,
+     "ci95": [
+      1059.330072534387,
+      1202.2386525747133
+     ],
+     "n": 325,
+     "bounded": true
+    }
+   },
+   "updated_at": "2026-07-16T15:36:54+00:00",
+   "completed_at": "2026-07-16T15:36:54+00:00",
+   "usage": {
+    "cost_usd": 0.5970146985000004,
+    "prompt_tokens": 1002471,
+    "completion_tokens": 235560,
+    "reasoning_tokens": 233652,
+    "cache_read_tokens": 4056,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 998415,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
    "run_id": "ef5c5826af73426d8cd96ba47488e420",
    "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__legal_list__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
    "track": "puzzle",
