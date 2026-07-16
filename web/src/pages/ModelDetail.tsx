@@ -33,18 +33,75 @@ function Continuation({ plies }: { plies: PuzzleContinuationPly[] }) {
   </span>
 }
 
+interface PerformancePoint {
+  puzzleId: string
+  rating: number
+  score: number
+  solved: boolean
+  failureReason: string | null
+  cumulativePoints: number
+  elo: number | null
+  eloDelta: number | null
+}
+
+function pointPosition(index: number, total: number, inset: number) {
+  const ratio = total === 1 ? 0.5 : index / (total - 1)
+  return { ratio, left: `calc(${ratio * 100}% + ${inset * (1 - 2 * ratio)}px)` }
+}
+
+function PerformanceTooltip({ point, index, total, inset }: { point: PerformancePoint; index: number; total: number; inset: number }) {
+  const position = pointPosition(index, total, inset)
+  const translate = position.ratio < 0.18 ? "0" : position.ratio > 0.82 ? "-100%" : "-50%"
+  const outcome = point.solved ? "Solved" : point.score > 0 ? "Partial credit" : point.failureReason?.replaceAll("_", " ") ?? "Incorrect"
+  const elo = point.elo == null ? "Not bounded" : Math.round(point.elo).toLocaleString()
+  const delta = point.eloDelta == null ? null : Math.round(point.eloDelta)
+
+  return <>
+    <span className="pointer-events-none absolute inset-y-2 z-10 w-px bg-foreground/25" style={{ left: position.left }} />
+    <div role="tooltip" className="pointer-events-none absolute top-1.5 z-20 min-w-44 rounded-lg border bg-popover/95 p-2 text-popover-foreground shadow-lg backdrop-blur" style={{ left: position.left, transform: `translateX(${translate})` }}>
+      <div className="flex items-center justify-between gap-4"><span className="font-mono text-xs font-semibold">{point.puzzleId}</span><span className="text-[10px] text-muted-foreground">#{index + 1} of {total}</span></div>
+      <div className="mt-1.5 grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 text-[10px] leading-tight">
+        <span className="text-muted-foreground">Result</span><span className={point.solved ? "text-right font-medium text-emerald-700 dark:text-emerald-300" : point.score > 0 ? "text-right font-medium text-amber-700 dark:text-amber-300" : "text-right font-medium text-rose-700 dark:text-rose-300"}>{outcome}</span>
+        <span className="text-muted-foreground">Puzzle rating</span><span className="text-right font-mono">{point.rating.toLocaleString()}</span>
+        <span className="text-muted-foreground">This puzzle</span><span className="text-right font-mono">+{point.score.toFixed(2)} pt</span>
+        <span className="text-muted-foreground">Cumulative</span><span className="text-right font-mono">{point.cumulativePoints.toFixed(2)} pts</span>
+        <span className="text-muted-foreground">Puzzle Elo</span><span className="text-right font-mono">{elo}{delta == null ? "" : ` (${delta >= 0 ? "+" : ""}${delta})`}</span>
+      </div>
+    </div>
+  </>
+}
+
 function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoints: number }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const history = useMemo(() => {
     let points = 0
+    let previousElo: number | null = null
     const prefix: PuzzleItem[] = []
     return items.map((item) => {
       points += item.score
       prefix.push(item)
       const estimate = puzzlePerformanceRating(prefix)
-      return { item: item.puzzle_id, points, elo: estimate.bounded ? estimate.rating : null }
+      const elo = estimate.bounded ? estimate.rating : null
+      const eloDelta = elo == null || previousElo == null ? null : elo - previousElo
+      if (elo != null) previousElo = elo
+      return {
+        puzzleId: item.puzzle_id,
+        rating: item.rating,
+        score: item.score,
+        solved: item.solved,
+        failureReason: item.failure_reason,
+        cumulativePoints: points,
+        elo,
+        eloDelta,
+      } satisfies PerformancePoint
     })
   }, [items])
   if (!history.length) return null
+
+  const hoverAt = (clientX: number, left: number, width: number, inset: number) => {
+    const ratio = Math.max(0, Math.min(1, (clientX - left - inset) / Math.max(1, width - inset * 2)))
+    setHoveredIndex(Math.round(ratio * (history.length - 1)))
+  }
 
   const eloValues = history.flatMap((point) => point.elo == null ? [] : [point.elo])
   const eloMin = eloValues.length ? Math.floor((Math.min(...eloValues) - 50) / 100) * 100 : 0
@@ -54,30 +111,35 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
     `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${116 - (point.elo - eloMin) / (eloMax - eloMin) * 100}`,
   ]).join(" ")
   const final = history.at(-1)!
+  const hovered = hoveredIndex == null ? null : history[hoveredIndex]
   const finalElo = history.findLast((point) => point.elo != null)?.elo ?? null
+  const displayedElo = hovered?.elo ?? finalElo
   const firstEloIndex = history.findIndex((point) => point.elo != null)
-  const pointsScale = Math.max(1, final.points)
+  const pointsScale = Math.max(1, final.cumulativePoints)
+  const hoveredEloY = hovered?.elo == null ? null : (116 - (hovered.elo - eloMin) / (eloMax - eloMin) * 100) / 128 * 100
 
   return <Card>
     <CardHeader className="space-y-1">
       <CardTitle className="text-base">Performance over suite</CardTitle>
-      <p className="text-xs text-muted-foreground">Cumulative points and complete-solve puzzle Elo after each puzzle in fixed suite order.</p>
+      <p className="text-xs text-muted-foreground">Cumulative points and complete-solve puzzle Elo after each puzzle in fixed suite order. Hover either chart to inspect an individual result.</p>
     </CardHeader>
     <CardContent className="grid gap-5 lg:grid-cols-2">
       <div>
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Points accumulation</div>
-        <div className="flex h-32 items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle">{history.map((point, index) => <div key={point.item} title={`${point.item}: ${point.points.toFixed(2)} points`} className="min-w-0 flex-1 bg-emerald-500/70 transition-colors hover:bg-emerald-500" style={{ height: `${Math.max(2, point.points / pointsScale * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.points.toFixed(2)} points`} />)}</div>
-        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>puzzle 1</span><span>{final.points.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
+        <div className="relative flex h-32 touch-pan-y items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 12) }} onMouseLeave={() => setHoveredIndex(null)}>{history.map((point, index) => <div key={point.puzzleId} className={`min-w-0 flex-1 transition-colors ${hoveredIndex === index ? "bg-emerald-500" : "bg-emerald-500/70"}`} style={{ height: `${Math.max(2, point.cumulativePoints / pointsScale * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.cumulativePoints.toFixed(2)} points`} />)}{hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={12} />}</div>
+        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>puzzle 1</span><span>{final.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
       </div>
       <div>
-        <div className="mb-2 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span>{finalElo != null && <span className="font-mono text-violet-700 dark:text-violet-300">{Math.round(finalElo).toLocaleString()}</span>}</div>
-        <div className="relative h-32 overflow-hidden rounded-lg border bg-secondary/30 p-2" aria-label="Puzzle Elo estimate after each puzzle">
+        <div className="mb-2 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span>{displayedElo != null && <span className="font-mono text-violet-700 dark:text-violet-300">{Math.round(displayedElo).toLocaleString()}</span>}</div>
+        <div className="relative h-32 touch-pan-y overflow-hidden rounded-lg border bg-secondary/30 p-2" aria-label="Puzzle Elo estimate after each puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 8) }} onMouseLeave={() => setHoveredIndex(null)}>
           {eloValues.length ? <svg viewBox="0 0 1000 128" preserveAspectRatio="none" className="size-full overflow-visible text-violet-500" role="img" aria-label={`Puzzle Elo changed from the first bounded estimate after puzzle ${firstEloIndex + 1} to ${Math.round(finalElo ?? 0)}`}>
             <line x1="0" y1="16" x2="1000" y2="16" className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
             <line x1="0" y1="116" x2="1000" y2="116" className="stroke-border" vectorEffect="non-scaling-stroke" />
             <polyline points={linePoints} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
           </svg> : <div className="grid size-full place-items-center text-center text-xs text-muted-foreground">A bounded Elo estimate needs at least one solve and one miss.</div>}
           {eloValues.length > 0 && <><span className="absolute left-2 top-1 font-mono text-[9px] text-muted-foreground">{eloMax}</span><span className="absolute bottom-1 left-2 font-mono text-[9px] text-muted-foreground">{eloMin}</span></>}
+          {hoveredIndex != null && hoveredEloY != null && <span className="pointer-events-none absolute z-10 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500 ring-2 ring-background" style={{ left: pointPosition(hoveredIndex, history.length, 8).left, top: `${hoveredEloY}%` }} />}
+          {hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={8} />}
         </div>
         <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>{firstEloIndex >= 0 ? `first estimate · puzzle ${firstEloIndex + 1}` : "not yet bounded"}</span><span>complete-solve MLE</span></div>
       </div>
