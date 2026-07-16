@@ -181,7 +181,7 @@ export function Leaderboard() {
             {suites.length > 1 && <Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select>}
             <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
             <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}><TabsList className="h-8 border bg-background p-0.5"><TabsTrigger value="compare" className="h-6 text-xs">Compare</TabsTrigger>{MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} className="h-6 text-xs">{mode.n}. {mode.name}</TabsTrigger>)}</TabsList></Tabs>
-            <ExportButton track="puzzle" responseStyle={responseStyle} />
+            <ExportButton track="puzzle" responseStyle={responseStyle} suite={activeSuite} mode={view === "compare" ? undefined : Number(view)} status="completed" label={view === "compare" ? "Export comparison" : `Export ${MODES.find((mode) => String(mode.n) === view)?.name ?? "view"}`} />
           </div>
         </div>
 

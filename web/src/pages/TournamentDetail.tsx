@@ -146,7 +146,7 @@ export function TournamentDetail() {
           <ResponseStyleBadge condition={t.condition} />
           <Badge variant="outline"><BrainCircuit className="size-3" /> {reasoningLabel(t)}</Badge>
           <Badge variant="outline">{t.condition.context_mode ?? "game"} context</Badge>
-          <ExportButton track="game" />
+          <ExportButton tournament={decoded} label="Export this match set" />
         </div>
       </div>
 

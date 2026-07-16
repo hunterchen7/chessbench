@@ -139,7 +139,7 @@ export function PuzzleLeaderboard() {
                 </button>
               })}
             </div>
-            <ExportButton track="puzzle" />
+            <ExportButton track="puzzle" suite={activeSuite} status="completed" label="Export this suite" />
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -139,9 +140,9 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   return (
     <div className="space-y-6">
-      <Link to="/puzzles/browse" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3"><Link to="/puzzles/browse" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Puzzle browser
-      </Link>
+      </Link><ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
         <div className="overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">

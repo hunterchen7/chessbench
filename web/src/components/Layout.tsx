@@ -4,7 +4,7 @@ import { FlaskConical, Menu, Moon, Sun } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
-import { ExportButton } from "@/components/ExportButton"
+import { DataExportMenu } from "@/components/ExportButton"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 const NAV = [
@@ -54,7 +54,7 @@ export function Layout() {
             ))}
           </nav>
           <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex">
-            <ExportButton />
+            <DataExportMenu />
             <Button variant="ghost" size="icon-sm" aria-label={`Switch to ${dark ? "light" : "dark"} mode`} aria-pressed={dark} onClick={() => setDark((value) => !value)}>
               {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
             </Button>
@@ -68,7 +68,7 @@ export function Layout() {
                 {NAV.map((item) => <SheetClose asChild key={item.to}><NavLink to={item.to} end={item.end} className={({ isActive }) => cn("rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>{item.label}</NavLink></SheetClose>)}
               </nav>
               <div className="mt-auto grid gap-2 border-t pt-4">
-                <ExportButton />
+                <DataExportMenu />
                 <Button variant="outline" onClick={() => setDark((value) => !value)} aria-pressed={dark}>{dark ? <Sun className="size-4" /> : <Moon className="size-4" />} Switch to {dark ? "light" : "dark"} mode</Button>
               </div>
             </SheetContent>
