@@ -187,6 +187,11 @@ export function ModelDetail() {
   const key = decodeURIComponent(model)
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
+  const updateSearchParams = useCallback((update: (next: URLSearchParams) => void) => setSearchParams((current) => {
+    const next = new URLSearchParams(current)
+    update(next)
+    return next
+  }, { replace: true }), [setSearchParams])
   const goBack = useCallback(() => {
     const historyIndex = window.history.state?.idx
     if (typeof historyIndex === "number" && historyIndex > 0) navigate(-1)
@@ -200,12 +205,20 @@ export function ModelDetail() {
     ? requestedRun
     : mine[0]?.run_id || ""
   const meta = mine.find((run) => run.run_id === activeId) ?? mine[0]
-  const selectRun = useCallback((runId: string) => setSearchParams({ run: runId }), [setSearchParams])
+  const selectRun = useCallback((runId: string) => updateSearchParams((next) => {
+    next.set("run", runId)
+    next.delete("answer")
+  }), [updateSearchParams])
   const [run, setRun] = useState<Run | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<"all" | "solved" | "failed">("all")
-  const [answerSort, setAnswerSort] = useState<{ key: AnswerSortKey | null; direction: SortDirection }>({ key: null, direction: "asc" })
-  const [openPuzzle, setOpenPuzzle] = useState<string | null>(null)
+  const requestedFilter = searchParams.get("answers")
+  const filter: "all" | "solved" | "failed" = requestedFilter === "solved" || requestedFilter === "failed" ? requestedFilter : "all"
+  const requestedAnswerSort = searchParams.get("sort")
+  const answerSort: { key: AnswerSortKey | null; direction: SortDirection } = {
+    key: requestedAnswerSort === "puzzle" || requestedAnswerSort === "rating" || requestedAnswerSort === "points" ? requestedAnswerSort : null,
+    direction: searchParams.get("direction") === "desc" ? "desc" : "asc",
+  }
+  const openPuzzle = searchParams.get("answer")
   const metaFile = meta?.file
 
   const answerItems = useMemo(() => {
@@ -222,10 +235,21 @@ export function ModelDetail() {
     })
   }, [run, filter, answerSort.key, answerSort.direction])
 
-  const toggleAnswerSort = useCallback((key: AnswerSortKey) => setAnswerSort((current) => ({
-    key,
-    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : key === "points" ? "desc" : "asc",
-  })), [])
+  const setFilter = useCallback((value: "all" | "solved" | "failed") => updateSearchParams((next) => {
+    if (value === "all") next.delete("answers")
+    else next.set("answers", value)
+  }), [updateSearchParams])
+  const setOpenPuzzle = useCallback((puzzleId: string | null) => updateSearchParams((next) => {
+    if (puzzleId) next.set("answer", puzzleId)
+    else next.delete("answer")
+  }), [updateSearchParams])
+  const toggleAnswerSort = useCallback((key: AnswerSortKey) => {
+    const direction = answerSort.key === key ? (answerSort.direction === "asc" ? "desc" : "asc") : key === "points" ? "desc" : "asc"
+    updateSearchParams((next) => {
+      next.set("sort", key)
+      next.set("direction", direction)
+    })
+  }, [answerSort.key, answerSort.direction, updateSearchParams])
 
   useEffect(() => {
     if (!metaFile) return
