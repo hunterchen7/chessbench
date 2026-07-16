@@ -28,6 +28,7 @@ import chess
 from ..agents import Agent, TurnContext
 from ..conditions import Condition, Legality, PuzzleProtocol
 from ..core import board as board_utils
+from ..models import ModelError
 from ..types import Message, PuzzleFailure
 from ..usage import normalize_usage
 
@@ -126,7 +127,11 @@ class PuzzleCheckpoint:
 
 
 def _turn_record(
-    k: int, ctx: TurnContext, parsed_move: chess.Move | None
+    k: int,
+    ctx: TurnContext,
+    parsed_move: chess.Move | None,
+    *,
+    model_error: str | None = None,
 ) -> dict[str, object]:
     usage = ctx.last_usage or {}
     metrics = normalize_usage(
@@ -147,6 +152,14 @@ def _turn_record(
         "response_format_valid": ctx.last_response_format_valid,
         "response_format_error": ctx.last_response_format_error,
         "response_format": ctx.last_response_format,
+        "model_error": model_error,
+        "provider_error": ctx.last_provider_error,
+        "provider_response": ctx.last_provider_response,
+        "response_id": ctx.last_response_id,
+        "response_model": ctx.last_response_model,
+        "response_provider": ctx.last_response_provider,
+        "finish_reason": ctx.last_finish_reason,
+        "native_finish_reason": ctx.last_native_finish_reason,
         "usage": dict(usage),
         **metrics.to_dict(),
     }
@@ -375,7 +388,15 @@ def grade_puzzle(
                 history_uci=list(history_uci),
                 illegal_feedback=feedback,
             )
-            raw = agent.choose(board, ctx)
+            try:
+                raw = agent.choose(board, ctx)
+            except ModelError as exc:
+                # A billed provider failure is auditable and durable, but it is
+                # not a chess attempt: do not consume retry allowance, alter the
+                # score, or add it to the model's conversation.
+                turns.append(_turn_record(k, ctx, None, model_error=str(exc)))
+                persist()
+                raise
             move = board_utils.parse_move(board, raw)
             turns.append(_turn_record(k, ctx, move))
             attempts_used += 1

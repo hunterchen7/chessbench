@@ -168,6 +168,10 @@ def test_grok_cache_session_is_routing_only_and_tools_are_absent(monkeypatch):
     headers = captured["headers"]
     assert isinstance(headers, dict)
     assert not any(key.lower() == "x-openrouter-cache" for key in headers)
+    assert any(
+        key.lower() == "x-openrouter-metadata" and value == "enabled"
+        for key, value in headers.items()
+    )
     assert model.last_cache_policy == "prompt_prefix_v1"
     assert model.last_cache_session_id == "cb:run:puzzle:abc"
     assert model.last_cache_discount == pytest.approx(0.0001)
@@ -220,6 +224,104 @@ def test_forbidden_returned_tool_call_fails_closed(monkeypatch):
     model = OpenRouterModel("x-ai/grok-4.5", api_key="test")
     with pytest.raises(ModelError, match="forbidden tool call"):
         model.chat([{"role": "user", "content": "move"}])
+
+
+def test_choice_error_is_not_coerced_to_empty_chess_answer(monkeypatch):
+    response = {
+        "id": "gen-glm-failed",
+        "model": "z-ai/glm-5.2",
+        "provider": "Example Inference",
+        "choices": [
+            {
+                "finish_reason": "error",
+                "native_finish_reason": "server_error",
+                "message": {"content": None},
+                "error": {"code": 500, "message": "generation failed"},
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 147,
+            "completion_tokens": 7610,
+            "completion_tokens_details": {"reasoning_tokens": 5368},
+            "cost": 0.0292616478,
+        },
+    }
+    _capture_request(monkeypatch, response)
+    model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
+
+    with pytest.raises(ModelError, match="choice error"):
+        model.chat([{"role": "user", "content": "move"}])
+
+    assert model.last_response_id == "gen-glm-failed"
+    assert model.last_response_model == "z-ai/glm-5.2"
+    assert model.last_response_provider == "Example Inference"
+    assert model.last_finish_reason == "error"
+    assert model.last_native_finish_reason == "server_error"
+    assert model.last_provider_error == {
+        "code": 500,
+        "message": "generation failed",
+    }
+    assert model.last_provider_response == response
+    assert model.last_usage == response["usage"]
+    assert model.last_cost == pytest.approx(0.0292616478)
+
+
+@pytest.mark.parametrize("content", [None, "", "   \n"])
+def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content):
+    _capture_request(
+        monkeypatch,
+        {
+            "id": "gen-empty",
+            "choices": [
+                {
+                    "finish_reason": "length",
+                    "native_finish_reason": "max_tokens",
+                    "message": {"content": content},
+                }
+            ],
+        },
+    )
+    model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
+
+    with pytest.raises(ModelError, match="no visible content"):
+        model.chat([{"role": "user", "content": "move"}])
+
+    assert model.last_response_id == "gen-empty"
+    assert model.last_finish_reason == "length"
+    assert model.last_native_finish_reason == "max_tokens"
+
+
+def test_successful_response_keeps_full_provider_envelope(monkeypatch):
+    response = {
+        "id": "gen-success",
+        "model": "z-ai/glm-5.2",
+        "openrouter_metadata": {
+            "strategy": "direct",
+            "endpoints": {
+                "available": [
+                    {
+                        "provider": "Example Inference",
+                        "model": "z-ai/glm-5.2",
+                        "selected": True,
+                    }
+                ]
+            },
+        },
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "native_finish_reason": "stop",
+                "message": {"content": "h5h4"},
+            }
+        ],
+    }
+    _capture_request(monkeypatch, response)
+    model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "h5h4"
+    assert model.last_provider_response == response
+    assert model.last_response_provider == "Example Inference"
+    assert model.last_finish_reason == "stop"
 
 
 def test_provider_output_limit_omits_max_tokens_but_keeps_reasoning_effort(monkeypatch):

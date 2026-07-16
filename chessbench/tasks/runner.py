@@ -18,24 +18,6 @@ from ..report import PuzzleReport, build_report
 from .puzzles import Puzzle, PuzzleCheckpoint, PuzzleResult, grade_puzzle
 
 
-def _error_result(puzzle: Puzzle) -> PuzzleResult:
-    """Record a provider failure as an unsolved/illegal puzzle so one flaky call
-    doesn't abort a long run."""
-    return PuzzleResult(
-        puzzle_id=puzzle.id,
-        rating=puzzle.rating,
-        themes=puzzle.themes,
-        solved=False,
-        score=0.0,
-        first_move_legal=False,
-        all_moves_legal=False,
-        illegal_attempts=0,
-        failure_reason="illegal",
-        solver_plies=puzzle.num_solver_plies(),
-        plies_correct=0,
-    )
-
-
 def _load_checkpoint(path: str | Path) -> dict[str, PuzzleResult]:
     """Read per-puzzle results already computed in a prior (interrupted) run."""
     done: dict[str, PuzzleResult] = {}
@@ -126,8 +108,8 @@ def run_puzzles(
                     if errors <= 3:
                         print(f"  [warn] model error on {p.id}: {exc}")
                     # A run of errors means a persistent outage (e.g. the budget cap):
-                    # abort so we don't save a garbage run. Real progress is checkpointed,
-                    # so re-running resumes and RETRIES these puzzles (errors aren't saved).
+                    # abort so we don't save a garbage run. Billed failed turns are
+                    # checkpointed for audit, but remain unscored and retry the puzzle.
                     if consecutive_errors >= 6:
                         raise RuntimeError(
                             f"aborting after {consecutive_errors} consecutive model errors "
@@ -137,7 +119,9 @@ def run_puzzles(
             results.append(res)
             if log_f:
                 log_f.write(json.dumps(asdict(res)) + "\n")
-            # Only checkpoint genuine gradings — never transient errors, so a resume retries them.
+            # Only append genuine gradings to the legacy JSONL resume file.
+            # Provider failures live in the structured database checkpoint and
+            # remain missing here so a resume retries them.
             if resume_f and not cached:
                 resume_f.write(json.dumps(asdict(res)) + "\n")
                 resume_f.flush()  # durable per-puzzle so a kill loses nothing

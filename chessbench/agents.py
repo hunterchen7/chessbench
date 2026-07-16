@@ -22,7 +22,7 @@ from . import conditions
 from .conditions import Condition
 from .core import board as board_utils
 from .core.engine import Engine, EngineConfig
-from .models import Model, VisionModel
+from .models import Model, ModelError, VisionModel
 from .models.base import (
     chat_with_response_format,
     generate_with_response_format,
@@ -59,6 +59,39 @@ class MoveContext:
     last_cache_discount: float = 0.0
     last_cache_policy: str = "provider_default"
     last_cache_session_id: str | None = None
+    last_provider_response: dict[str, object] | None = None
+    last_response_id: str | None = None
+    last_response_model: str | None = None
+    last_response_provider: str | None = None
+    last_finish_reason: str | None = None
+    last_native_finish_reason: str | None = None
+    last_provider_error: object | None = None
+
+
+def _capture_model_audit(model: object, ctx: MoveContext) -> None:
+    """Copy the last provider call's audit fields on success or failure."""
+    usage = getattr(model, "last_usage", None)
+    ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
+    ctx.last_cost = float(getattr(model, "last_cost", 0.0))
+    ctx.last_cache_discount = float(getattr(model, "last_cache_discount", 0.0))
+    ctx.last_cache_policy = str(
+        getattr(model, "last_cache_policy", "provider_default")
+    )
+    session = getattr(model, "last_cache_session_id", None)
+    ctx.last_cache_session_id = session if isinstance(session, str) else None
+    response = getattr(model, "last_provider_response", None)
+    ctx.last_provider_response = dict(response) if isinstance(response, dict) else None
+    for ctx_name, model_name in (
+        ("last_response_id", "last_response_id"),
+        ("last_response_model", "last_response_model"),
+        ("last_response_provider", "last_response_provider"),
+        ("last_finish_reason", "last_finish_reason"),
+        ("last_native_finish_reason", "last_native_finish_reason"),
+    ):
+        value = getattr(model, model_name, None)
+        setattr(ctx, ctx_name, value if isinstance(value, str) else None)
+    error = getattr(model, "last_provider_error", None)
+    ctx.last_provider_error = dict(error) if isinstance(error, dict) else error
 
 
 # Backwards-compatible names for the two tracks (both are the unified context).
@@ -181,41 +214,44 @@ class LLMAgent:
         response_format = response_format_for(
             cond.response_protocol, "move", explain=cond.explain
         )
+        ctx.last_prompt = prompt
+        ctx.last_response_format = response_format
         if cond.context_mode == conditions.ContextMode.FRESH:
-            raw, applied_format = generate_with_response_format(
-                self._model,
-                prompt,
-                response_format=response_format,
-                temperature=cond.temperature,
-                max_tokens=cond.max_output_tokens,
-            )
+            try:
+                raw, applied_format = generate_with_response_format(
+                    self._model,
+                    prompt,
+                    response_format=response_format,
+                    temperature=cond.temperature,
+                    max_tokens=cond.max_output_tokens,
+                )
+            except ModelError:
+                _capture_model_audit(self._model, ctx)
+                raise
         else:
             if not self._messages:
                 self._messages.append({"role": "system", "content": self._system})
                 ctx.last_system_prompt = self._system
             self._messages.append({"role": "user", "content": prompt})
-            raw, applied_format = chat_with_response_format(
-                self._model,
-                self._messages,
-                response_format=response_format,
-                temperature=cond.temperature,
-                max_tokens=cond.max_output_tokens,
-            )
+            try:
+                raw, applied_format = chat_with_response_format(
+                    self._model,
+                    self._messages,
+                    response_format=response_format,
+                    temperature=cond.temperature,
+                    max_tokens=cond.max_output_tokens,
+                )
+            except ModelError:
+                _capture_model_audit(self._model, ctx)
+                # A failed request is an audited provider attempt, but it is not
+                # part of the model's chess conversation. Resume from the same
+                # prompt instead of leaving a dangling user turn behind.
+                self._messages.pop()
+                raise
             self._messages.append({"role": "assistant", "content": raw})
-        ctx.last_prompt = prompt
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
-        usage = getattr(self._model, "last_usage", None)
-        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
-        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
-        ctx.last_cache_discount = float(
-            getattr(self._model, "last_cache_discount", 0.0)
-        )
-        ctx.last_cache_policy = str(
-            getattr(self._model, "last_cache_policy", "provider_default")
-        )
-        session = getattr(self._model, "last_cache_session_id", None)
-        ctx.last_cache_session_id = session if isinstance(session, str) else None
+        _capture_model_audit(self._model, ctx)
         # Extract a legal move if we can; else return the raw text so the grader
         # records an illegal/unparseable attempt (never silently repaired).
         parsed = board_utils.parse_model_move_response(board, raw)
@@ -235,27 +271,22 @@ class LLMAgent:
         response_format = response_format_for(
             cond.response_protocol, "line", explain=cond.explain
         )
-        raw, applied_format = generate_with_response_format(
-            self._model,
-            prompt,
-            response_format=response_format,
-            temperature=cond.temperature,
-            max_tokens=cond.max_output_tokens,
-        )
         ctx.last_prompt = prompt
+        ctx.last_response_format = response_format
+        try:
+            raw, applied_format = generate_with_response_format(
+                self._model,
+                prompt,
+                response_format=response_format,
+                temperature=cond.temperature,
+                max_tokens=cond.max_output_tokens,
+            )
+        except ModelError:
+            _capture_model_audit(self._model, ctx)
+            raise
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
-        usage = getattr(self._model, "last_usage", None)
-        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
-        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
-        ctx.last_cache_discount = float(
-            getattr(self._model, "last_cache_discount", 0.0)
-        )
-        ctx.last_cache_policy = str(
-            getattr(self._model, "last_cache_policy", "provider_default")
-        )
-        session = getattr(self._model, "last_cache_session_id", None)
-        ctx.last_cache_session_id = session if isinstance(session, str) else None
+        _capture_model_audit(self._model, ctx)
         parsed = board_utils.parse_model_line_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:
@@ -295,9 +326,11 @@ class VisionAgent:
         response_format = response_format_for(
             cond.response_protocol, "move", explain=cond.explain
         )
+        ctx.last_prompt = "\n".join(lines)
+        ctx.last_response_format = response_format
         raw, applied_format = image_with_response_format(
             self._model,
-            "\n".join(lines),
+            ctx.last_prompt,
             render_board_png(board),
             response_format=response_format,
             temperature=cond.temperature,
@@ -305,6 +338,7 @@ class VisionAgent:
         )
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
+        _capture_model_audit(self._model, ctx)
         parsed = board_utils.parse_model_move_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:
@@ -386,44 +420,44 @@ class LLMGameAgent:
         response_format = response_format_for(
             cond.response_protocol, "move", explain=cond.explain
         )
+        if is_first:
+            ctx.last_system_prompt = self._system
+        ctx.last_prompt = user
+        ctx.last_response_format = response_format
         if cond.context_mode == conditions.ContextMode.FRESH:
-            raw, applied_format = chat_with_response_format(
-                self._model,
-                [system_msg, user_msg],
-                response_format=response_format,
-                temperature=cond.temperature,
-                max_tokens=cond.max_output_tokens,
-            )
+            try:
+                raw, applied_format = chat_with_response_format(
+                    self._model,
+                    [system_msg, user_msg],
+                    response_format=response_format,
+                    temperature=cond.temperature,
+                    max_tokens=cond.max_output_tokens,
+                )
+            except ModelError:
+                _capture_model_audit(self._model, ctx)
+                raise
         else:  # GROWING / HYBRID: persist the conversation across turns
             if not self._messages:
                 self._messages.append(system_msg)
             self._messages.append(user_msg)
-            raw, applied_format = chat_with_response_format(
-                self._model,
-                self._messages,
-                response_format=response_format,
-                temperature=cond.temperature,
-                max_tokens=cond.max_output_tokens,
-            )
+            try:
+                raw, applied_format = chat_with_response_format(
+                    self._model,
+                    self._messages,
+                    response_format=response_format,
+                    temperature=cond.temperature,
+                    max_tokens=cond.max_output_tokens,
+                )
+            except ModelError:
+                _capture_model_audit(self._model, ctx)
+                self._messages.pop()
+                raise
             self._messages.append({"role": "assistant", "content": raw})
         self._started = True
 
-        if is_first:
-            ctx.last_system_prompt = self._system
-        ctx.last_prompt = user
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
-        usage = getattr(self._model, "last_usage", None)
-        ctx.last_usage = dict(usage) if isinstance(usage, dict) else None
-        ctx.last_cost = float(getattr(self._model, "last_cost", 0.0))
-        ctx.last_cache_discount = float(
-            getattr(self._model, "last_cache_discount", 0.0)
-        )
-        ctx.last_cache_policy = str(
-            getattr(self._model, "last_cache_policy", "provider_default")
-        )
-        session = getattr(self._model, "last_cache_session_id", None)
-        ctx.last_cache_session_id = session if isinstance(session, str) else None
+        _capture_model_audit(self._model, ctx)
         parsed = board_utils.parse_model_move_response(board, raw)
         ctx.last_explanation = parsed.rationale
         if cond.explain:

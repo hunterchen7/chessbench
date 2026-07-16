@@ -44,6 +44,10 @@ class UsageScriptedModel(ScriptedModel):
 
     def _respond(self, messages):
         self.calls.append([dict(message) for message in messages])
+        # Match real provider adapters: a new call never inherits the preceding
+        # call's usage when it fails before returning a response.
+        self.last_usage = {}
+        self.last_cost = 0.0
         action = self.actions.pop(0)
         if isinstance(action, Exception):
             raise action
@@ -96,7 +100,9 @@ def test_resume_continues_at_next_solver_move_with_restored_conversation():
     checkpoint = checkpoints[-1]
     assert checkpoint.solver_ply == 1
     assert checkpoint.moves_played == ["e7e5"]
-    assert len(checkpoint.turns) == 1
+    assert len(checkpoint.turns) == 2
+    assert checkpoint.turns[-1]["model_error"] == "credits exhausted"
+    assert checkpoint.conversation[-1]["role"] == "assistant"
     assert len(first_model.calls) == 2
 
     resumed_model = UsageScriptedModel(
@@ -110,7 +116,7 @@ def test_resume_continues_at_next_solver_move_with_restored_conversation():
 
     assert result.solved
     assert result.moves_played == ["e7e5", "b8c6"]
-    assert len(result.turns) == 2
+    assert len(result.turns) == 3
     assert len(resumed_model.calls) == 1
     restored_call = resumed_model.calls[0]
     assert [message["role"] for message in restored_call] == [
@@ -156,7 +162,7 @@ def test_illegal_retry_resumes_with_feedback_without_reissuing_attempt():
     )
 
     assert result.solved and result.illegal_attempts == 1
-    assert len(result.turns) == 2
+    assert len(result.turns) == 3
     assert len(resumed_model.calls) == 1
     assert (
         "previous answer was illegal" in resumed_model.calls[0][-1]["content"].lower()
@@ -248,7 +254,7 @@ def test_runner_database_resume_counts_each_audited_turn_once(tmp_path):
             on_result=save_result,
         )
 
-        assert result.solved and len(result.turns) == 2
+        assert result.solved and len(result.turns) == 3
         assert store.load_puzzle_checkpoints(run.run_id) == {}
         row = store.run_row(run.run_id)
         assert row["completed_items"] == 1
@@ -300,6 +306,74 @@ def test_runner_paid_boundary_counts_provider_failures():
         )
 
     assert len(model.calls) == 1
+
+
+def test_billed_provider_failure_is_checkpointed_without_becoming_a_chess_move():
+    model = UsageScriptedModel([ModelError("choice ended in error")])
+    model.last_provider_response = None
+    model.last_response_id = None
+    checkpoints: list[PuzzleCheckpoint] = []
+
+    # Simulate the provider's audit state being populated before it raises.
+    def failed_response(messages):
+        model.calls.append([dict(message) for message in messages])
+        model.last_usage = {
+            "prompt_tokens": 147,
+            "completion_tokens": 7610,
+            "completion_tokens_details": {"reasoning_tokens": 5368},
+            "cost": 0.0292616478,
+        }
+        model.last_cost = 0.0292616478
+        model.last_provider_response = {
+            "id": "gen-glm-failed",
+            "choices": [
+                {
+                    "finish_reason": "error",
+                    "message": {"content": None},
+                    "error": {"message": "generation failed"},
+                }
+            ],
+        }
+        model.last_response_id = "gen-glm-failed"
+        model.last_response_model = "z-ai/glm-5.2"
+        model.last_response_provider = "Example Inference"
+        model.last_finish_reason = "error"
+        model.last_native_finish_reason = "server_error"
+        model.last_provider_error = {"message": "generation failed"}
+        raise ModelError("choice ended in error")
+
+    model._responder = failed_response
+    with pytest.raises(ModelError, match="choice ended in error"):
+        grade_puzzle(
+            LLMAgent(model), ONE_MOVE, HEADLINE, on_checkpoint=checkpoints.append
+        )
+
+    checkpoint = checkpoints[-1]
+    assert checkpoint.solver_ply == 0
+    assert checkpoint.attempts_used == 0
+    assert checkpoint.illegal_attempts == 0
+    assert [message["role"] for message in checkpoint.conversation] == ["system"]
+    [turn] = checkpoint.turns
+    assert turn["model_error"] == "choice ended in error"
+    assert turn["parsed_move"] is None
+    assert turn["response_id"] == "gen-glm-failed"
+    assert turn["finish_reason"] == "error"
+    assert turn["provider_error"] == {"message": "generation failed"}
+    assert turn["cost_usd"] == pytest.approx(0.0292616478)
+
+    resumed = UsageScriptedModel(
+        [(_answer("a1a8", "valid retry"), 8, 3, 1, 0.005)]
+    )
+    result = grade_puzzle(
+        LLMAgent(resumed), ONE_MOVE, HEADLINE, checkpoint=checkpoint
+    )
+    assert result.solved
+    assert result.illegal_attempts == 0
+    assert len(result.turns) == 2
+    assert [message["role"] for message in resumed.calls[0]] == ["system", "user"]
+    prompt, completion, reasoning, cost = _turn_usage_totals(result.turns)
+    assert (prompt, completion, reasoning) == (155, 7613, 5369)
+    assert cost == pytest.approx(0.0342616478)
 
 
 def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):

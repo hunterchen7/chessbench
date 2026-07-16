@@ -440,7 +440,10 @@ class BenchmarkStore:
                 ),
             )
             row = self._db.execute(
-                "SELECT run_id, status, completed_items FROM benchmark_run WHERE natural_key = ?",
+                """SELECT run_id, status, completed_items
+                   FROM benchmark_run
+                   WHERE natural_key = ? AND status != 'failed'
+                   ORDER BY created_at DESC LIMIT 1""",
                 (natural_key,),
             ).fetchone()
             if row is not None:
@@ -1037,6 +1040,24 @@ class BenchmarkStore:
                 (error[:2000], now, run_id),
             )
             self._event(run_id, "interrupted", error[:500], now)
+
+    def mark_failed(self, run_id: str, error: str) -> None:
+        """Retire an invalid run without deleting its forensic audit record.
+
+        Failed runs are excluded from the benchmark natural-key uniqueness
+        constraint, so a corrected harness can start a clean replacement.
+        """
+        now = _now()
+        with self._transaction():
+            cursor = self._db.execute(
+                """UPDATE benchmark_run
+                   SET status='failed', error=?, completed_at=?, updated_at=?
+                   WHERE run_id=?""",
+                (error[:2000], now, now, run_id),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(run_id)
+            self._event(run_id, "failed", error[:500], now)
 
     def run_row(self, run_id: str) -> dict[str, object]:
         row = self._db.execute(

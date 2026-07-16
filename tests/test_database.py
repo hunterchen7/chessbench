@@ -85,6 +85,20 @@ def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
         assert store.run_row(first.run_id)["cost_usd"] == 0.01
 
 
+def test_failed_run_is_retained_but_replaced_by_a_clean_run(tmp_path):
+    with BenchmarkStore(tmp_path / "bench.db") as store:
+        invalid = store.start_run(_spec())
+        store.mark_failed(invalid.run_id, "provider null was misparsed as a move")
+        failed = store.run_row(invalid.run_id)
+        assert failed["status"] == "failed"
+        assert "misparsed" in str(failed["error"])
+
+        replacement = store.start_run(_spec())
+        assert replacement.run_id != invalid.run_id
+        assert replacement.status == "running"
+        assert len(store.list_runs()) == 2
+
+
 def test_executor_lock_rejects_concurrent_paid_runner_and_releases_on_close(tmp_path):
     path = tmp_path / "locked.db"
     first = BenchmarkStore(path)

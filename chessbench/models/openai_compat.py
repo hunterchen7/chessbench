@@ -44,14 +44,19 @@ class Usage(TypedDict, total=False):
 class _Choice(TypedDict, total=False):
     message: dict[str, object]
     finish_reason: str
+    native_finish_reason: str
+    error: object
 
 
 class _Response(TypedDict, total=False):
+    id: str
     choices: list[_Choice]
     usage: Usage
     model: str
-    error: dict[str, str]
+    provider: str
+    error: object
     cache_discount: float
+    openrouter_metadata: dict[str, object]
 
 
 class _OpenAICompatModel:
@@ -93,6 +98,17 @@ class _OpenAICompatModel:
         self.last_cache_policy: str = "provider_default"
         self.last_cache_session_id: str | None = None
         self._cache_session_id: str | None = None
+        # Keep the provider envelope, not merely the visible text. OpenRouter
+        # can bill a generation whose choice ends in an error with null content;
+        # without these fields that failure is indistinguishable from a model
+        # deliberately answering with an empty string.
+        self.last_provider_response: dict[str, object] | None = None
+        self.last_response_id: str | None = None
+        self.last_response_model: str | None = None
+        self.last_response_provider: str | None = None
+        self.last_finish_reason: str | None = None
+        self.last_native_finish_reason: str | None = None
+        self.last_provider_error: object | None = None
 
     def set_cache_session(self, session_id: str | None) -> None:
         """Set an opaque conversation key for provider prompt-prefix caching."""
@@ -207,6 +223,13 @@ class _OpenAICompatModel:
         self.last_cache_discount = 0.0
         self.last_cache_session_id = self._cache_session_id
         self.last_cache_policy = "provider_default"
+        self.last_provider_response = None
+        self.last_response_id = None
+        self.last_response_model = None
+        self.last_response_provider = None
+        self.last_finish_reason = None
+        self.last_native_finish_reason = None
+        self.last_provider_error = None
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
         payload: dict[str, object] = {
@@ -259,26 +282,103 @@ class _OpenAICompatModel:
             **self._extra_headers,
         }
         body = self._post(data, headers)
-        parsed = cast(_Response, json.loads(body))
-        if "error" in parsed:
-            raise ModelError(f"{self._model}: {parsed['error']}")
-        choices = parsed.get("choices")
-        if not choices:
-            raise ModelError(f"{self._model}: no choices in response: {body[:200]}")
-        choice = choices[0]
-        message = choice.get("message", {})
-        if choice.get("finish_reason") == "tool_calls" or message.get("tool_calls"):
-            raise ModelError(f"{self._model}: provider returned a forbidden tool call")
+        try:
+            decoded = json.loads(body)
+        except json.JSONDecodeError as exc:
+            raise ModelError(
+                f"{self._model}: provider returned invalid JSON: {body[:200]}"
+            ) from exc
+        if not isinstance(decoded, dict):
+            raise ModelError(
+                f"{self._model}: provider returned a non-object response: {body[:200]}"
+            )
+        parsed = cast(_Response, decoded)
+        self.last_provider_response = dict(decoded)
+        response_id = parsed.get("id")
+        self.last_response_id = response_id if isinstance(response_id, str) else None
+        response_model = parsed.get("model")
+        self.last_response_model = (
+            response_model if isinstance(response_model, str) else None
+        )
+        response_provider = parsed.get("provider")
+        metadata = parsed.get("openrouter_metadata")
+        if not isinstance(response_provider, str) and isinstance(metadata, dict):
+            for key in ("provider_name", "provider"):
+                candidate = metadata.get(key)
+                if isinstance(candidate, str):
+                    response_provider = candidate
+                    break
+            endpoints = metadata.get("endpoints")
+            available = endpoints.get("available") if isinstance(endpoints, dict) else None
+            if not isinstance(response_provider, str) and isinstance(available, list):
+                selected = next(
+                    (
+                        endpoint
+                        for endpoint in available
+                        if isinstance(endpoint, dict) and endpoint.get("selected") is True
+                    ),
+                    None,
+                )
+                candidate = selected.get("provider") if isinstance(selected, dict) else None
+                if isinstance(candidate, str):
+                    response_provider = candidate
+        self.last_response_provider = (
+            response_provider if isinstance(response_provider, str) else None
+        )
+
+        # Usage is meaningful even when the provider reports an errored choice.
+        # Capture it before validating the semantic response.
         usage = parsed.get("usage")
         discount = parsed.get("cache_discount", 0.0)
         if isinstance(discount, (int, float)):
             self.last_cache_discount = float(discount)
-        if usage is not None:
+        if isinstance(usage, dict):
             self.last_usage = usage
             self.last_cost = float(usage.get("cost", 0.0))
             self.total_cost += self.last_cost
+
+        if "error" in parsed:
+            self.last_provider_error = parsed["error"]
+            raise ModelError(f"{self._model}: provider error: {parsed['error']}")
+        choices = parsed.get("choices")
+        if not choices:
+            raise ModelError(f"{self._model}: no choices in response: {body[:200]}")
+        choice = choices[0]
+        finish_reason = choice.get("finish_reason")
+        native_finish_reason = choice.get("native_finish_reason")
+        self.last_finish_reason = (
+            finish_reason if isinstance(finish_reason, str) else None
+        )
+        self.last_native_finish_reason = (
+            native_finish_reason
+            if isinstance(native_finish_reason, str)
+            else None
+        )
+        message = choice.get("message", {})
+        if not isinstance(message, dict):
+            message = {}
+        if finish_reason == "tool_calls" or message.get("tool_calls"):
+            raise ModelError(f"{self._model}: provider returned a forbidden tool call")
+        if "error" in choice:
+            self.last_provider_error = choice["error"]
+            raise ModelError(
+                f"{self._model}: choice error"
+                f" (finish={finish_reason!r}, native={native_finish_reason!r}):"
+                f" {choice['error']}"
+            )
+        if finish_reason == "error":
+            raise ModelError(
+                f"{self._model}: choice ended in an error"
+                f" (native={native_finish_reason!r})"
+            )
         content = message.get("content")
-        return content if isinstance(content, str) else ""
+        if not isinstance(content, str) or not content.strip():
+            raise ModelError(
+                f"{self._model}: provider returned no visible content"
+                f" (finish={finish_reason!r}, native={native_finish_reason!r},"
+                f" response_id={self.last_response_id!r})"
+            )
+        return content
 
     def chat(
         self,
@@ -386,6 +486,9 @@ class OpenRouterModel(_OpenAICompatModel):
             extra_headers={
                 "HTTP-Referer": "https://github.com/chessbench",
                 "X-Title": "chessbench",
+                # Requests routed through OpenRouter otherwise omit useful
+                # endpoint/provider audit metadata from the response envelope.
+                "X-OpenRouter-Metadata": "enabled",
             },
             timeout=timeout,
             reasoning_effort=reasoning_effort,
