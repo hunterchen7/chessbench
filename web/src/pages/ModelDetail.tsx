@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, Scale, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadRun, type PuzzleItem, type Run } from "@/lib/data"
+import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { puzzlePerformanceRating } from "@/lib/puzzleRating"
@@ -14,6 +14,29 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+
+function suiteIdentity(run: RunIndexEntry) {
+  return `${run.track}:${run.suite?.content_hash ?? run.suite?.name ?? "unspecified"}`
+}
+
+function conditionIdentity(run: RunIndexEntry) {
+  return run.condition_slug || run.condition.slug
+}
+
+function runConfigurationLabel(run: RunIndexEntry) {
+  const mode = modeInfo(run.condition)
+  const method = mode ? `${mode.displayN}. ${mode.name}` : run.track === "woodpecker" ? "Full-line calculation" : "Special protocol"
+  return `${method} · ${responseStyleInfo(run.condition).label}`
+}
+
+function summaryRatingText(run: RunIndexEntry) {
+  const estimate = run.summary.puzzle_performance_rating
+  if (!estimate) return "—"
+  if (!estimate.bounded) return estimate.rating <= 0 ? "≤0" : "≥4,000"
+  return Math.round(estimate.rating).toLocaleString()
+}
 
 function Stat({ label, value, note, icon: Icon }: { label: string; value: string; note: string; icon: typeof Scale }) {
   return <Card><CardContent className="flex items-start gap-3 pt-6"><Icon className="mt-1 size-4 text-muted-foreground" /><div><div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 font-mono text-2xl font-semibold tabular-nums">{value}</div><div className="mt-0.5 text-xs text-muted-foreground">{note}</div></div></CardContent></Card>
@@ -180,6 +203,29 @@ export function ModelDetail() {
   const displayRun = run ?? ({ ...meta, schema: "", themes: [], items: [] } as Run)
   const variant = meta.model_variant
   const activeResponseStyle = responseStyleInfo(meta.condition)
+  const activeSuiteKey = suiteIdentity(meta)
+  const suiteGroups = Array.from(mine.reduce((groups, candidate) => {
+    const candidateKey = suiteIdentity(candidate)
+    const existing = groups.get(candidateKey)
+    if (existing) existing.runs.push(candidate)
+    else groups.set(candidateKey, { key: candidateKey, track: candidate.track, suite: candidate.suite, runs: [candidate] })
+    return groups
+  }, new Map<string, { key: string; track: RunIndexEntry["track"]; suite: RunIndexEntry["suite"]; runs: RunIndexEntry[] }>()).values())
+  const activeSuiteGroup = suiteGroups.find((group) => group.key === activeSuiteKey) ?? suiteGroups[0]
+  const chooseSuite = (nextKey: string) => {
+    const group = suiteGroups.find((candidate) => candidate.key === nextKey)
+    if (!group) return
+    const activeModeNumber = modeInfo(meta.condition)?.n
+    const next = group.runs.find((candidate) =>
+      modeInfo(candidate.condition)?.n === activeModeNumber &&
+      responseStyleInfo(candidate.condition).key === activeResponseStyle.key
+    ) ?? group.runs.find((candidate) => responseStyleInfo(candidate.condition).key === activeResponseStyle.key) ?? group.runs[0]
+    setSelected(next.run_id)
+  }
+  const comparableSuiteRuns = suiteGroups.map((group) => ({
+    group,
+    run: group.runs.find((candidate) => conditionIdentity(candidate) === conditionIdentity(meta)),
+  }))
 
   const byTier = TIER_ORDER.map((tier) => {
     const items = displayRun.items.filter((item) => item.categories.tier?.includes(tier))
@@ -240,13 +286,40 @@ export function ModelDetail() {
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output-limit policy are part of this participant’s identity.</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {mine.length > 1 && <select value={meta.run_id} onChange={(event) => setSelected(event.target.value)} className="h-8 max-w-sm rounded-md border bg-background px-2 text-xs">{mine.map((candidate) => <option key={candidate.run_id} value={candidate.run_id}>{candidate.track} · {modeInfo(candidate.condition)?.name ?? "special"} · {responseStyleInfo(candidate.condition).label} · {candidate.suite?.name ?? "no suite"}</option>)}</select>}
-        <ExportButton run={meta.run_id} label="Export this run" />
-      </div>
+      <ExportButton run={meta.run_id} label="Export this run" />
     </section>
 
     {runError && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><span className="font-medium text-destructive">Detailed run data could not be loaded.</span> <span className="text-muted-foreground">{runError}</span></div>}
+
+    <Card className="gap-0 overflow-hidden py-0">
+      <CardHeader className="border-b bg-muted/20 py-4">
+        <CardTitle className="flex items-center gap-2 text-base"><Layers3 className="size-4 text-emerald-600" /> Benchmark suite</CardTitle>
+        <p className="text-xs leading-relaxed text-muted-foreground">Choose the frozen test set first, then the run configuration. A shared suite hash means identical puzzles in identical order.</p>
+      </CardHeader>
+      <CardContent className="space-y-4 py-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {suiteGroups.map((group) => {
+            const active = group.key === activeSuiteKey
+            const latest = group.runs[0]
+            return <button key={group.key} type="button" aria-pressed={active} onClick={() => chooseSuite(group.key)} className={cn("cursor-pointer rounded-xl border p-3 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring/60", active ? "border-emerald-500/45 bg-emerald-500/[0.05] shadow-sm" : "bg-background")}>
+              <div className="flex items-start justify-between gap-3"><span className="font-semibold">{group.suite?.name ?? "Unversioned suite"}</span>{active ? <Badge className="bg-emerald-600 text-white">Viewing</Badge> : <Badge variant="outline">{group.track}</Badge>}</div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground"><span>{latest.summary.n} items</span><span>{group.runs.length} configuration{group.runs.length === 1 ? "" : "s"}</span><span>{group.suite?.visibility ?? "unspecified"}</span></div>
+              <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={group.suite?.content_hash ?? undefined}>{group.suite?.version ? `v${group.suite.version} · ` : ""}{group.suite?.content_hash?.replace("sha256:", "") ?? "no content hash"}</div>
+            </button>
+          })}
+        </div>
+        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-[minmax(0,420px)_1fr]">
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run configuration</div>
+            <Select value={meta.run_id} onValueChange={setSelected}>
+              <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+              <SelectContent align="start">{activeSuiteGroup.runs.toSorted((a, b) => (modeInfo(a.condition)?.displayN ?? 99) - (modeInfo(b.condition)?.displayN ?? 99) || responseStyleInfo(a.condition).label.localeCompare(responseStyleInfo(b.condition).label)).map((candidate) => <SelectItem key={candidate.run_id} value={candidate.run_id}>{runConfigurationLabel(candidate)} · {candidate.status}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" /><span>Puzzles are isolated from one another. Conversation state persists only between moves of the same puzzle.</span></div>
+        </div>
+      </CardContent>
+    </Card>
 
     <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
@@ -256,17 +329,25 @@ export function ModelDetail() {
       <Stat icon={CircleDollarSign} label="Recorded cost" value={meta.summary.cost_usd == null ? "—" : `$${meta.summary.cost_usd.toFixed(4)}`} note={costNote} />
     </section>
 
-    {modeRuns.filter((item) => item.run).length > 1 && <Card><CardHeader><CardTitle className="flex flex-wrap items-center gap-2 text-base">Prompt-method comparison <ResponseStyleBadge condition={meta.condition} compact /></CardTitle></CardHeader><CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{modeRuns.map(({ mode, run: candidate }) => <div key={mode.n} className="rounded-lg border p-4"><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{mode.displayN}. {mode.name}</div><div className="mt-2 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete` : "not run"}</div></div>)}</CardContent></Card>}
+    {modeRuns.filter((item) => item.run).length > 1 && <Card><CardHeader><CardTitle className="flex flex-wrap items-center gap-2 text-base">Prompt-method comparison <ResponseStyleBadge condition={meta.condition} compact /></CardTitle></CardHeader><CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{modeRuns.map(({ mode, run: candidate }) => <button key={mode.n} type="button" disabled={!candidate} onClick={() => candidate && setSelected(candidate.run_id)} className={cn("cursor-pointer rounded-lg border p-4 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:cursor-not-allowed disabled:hover:translate-y-0", candidate?.run_id === meta.run_id && "border-primary/40 bg-primary/[0.035] shadow-sm")}><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{mode.displayN}. {mode.name}</div><div className="mt-2 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · click to view` : "not run"}</div></button>)}</CardContent></Card>}
 
-    {meta.track === "puzzle" && activeMode && <Card><CardHeader><CardTitle className="text-base">Response-style ablation · Mode {activeMode.n} {activeMode.name}</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{responseRuns.map(({ style, run: candidate }) => <div key={style.key} className={`rounded-xl border p-4 ${style.key === activeResponseStyle.key ? "border-primary/35 bg-primary/[0.025]" : ""}`}><ResponseStyleBadge condition={style.key === "move_only" ? "plain-text-v1" : "json-rationale"} /><div className="mt-3 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · ${candidate.status}` : "not run for this suite"}</div></div>)}</CardContent></Card>}
+    {meta.track === "puzzle" && activeMode && <Card><CardHeader><CardTitle className="text-base">Response-style ablation · Method {activeMode.displayN} {activeMode.name}</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{responseRuns.map(({ style, run: candidate }) => <button type="button" disabled={!candidate} onClick={() => candidate && setSelected(candidate.run_id)} key={style.key} className={cn("cursor-pointer rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:cursor-not-allowed disabled:hover:translate-y-0", style.key === activeResponseStyle.key && "border-primary/35 bg-primary/[0.025] shadow-sm")}><ResponseStyleBadge condition={style.key === "move_only" ? "plain-text-v1" : "json-rationale"} /><div className="mt-3 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · ${candidate.status} · click to view` : "not run for this suite"}</div></button>)}</CardContent></Card>}
+
+    <Card>
+      <CardHeader className="space-y-1"><CardTitle className="flex items-center gap-2 text-base"><GitCompareArrows className="size-4 text-violet-600" /> Suite comparison</CardTitle><p className="text-xs leading-relaxed text-muted-foreground">Same model configuration, prompt method, and response style across frozen test sets. Compare percentages and Puzzle Elo; raw points are only directly comparable when suite sizes match.</p></CardHeader>
+      <CardContent className="p-0">
+        <Table><TableHeader><TableRow><TableHead>Suite</TableHead><TableHead className="text-right">Items</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader><TableBody>{comparableSuiteRuns.map(({ group, run: candidate }) => <TableRow key={group.key} className={group.key === activeSuiteKey ? "bg-primary/[0.025]" : undefined}><TableCell><button type="button" disabled={!candidate} onClick={() => candidate && setSelected(candidate.run_id)} className="cursor-pointer text-left disabled:cursor-not-allowed"><span className="font-medium hover:underline">{group.suite?.name ?? "Unversioned suite"}</span><span className="mt-0.5 block font-mono text-[10px] text-muted-foreground">{group.suite?.content_hash?.replace("sha256:", "") ?? "no content hash"}{group.key === activeSuiteKey ? " · identical order" : " · different frozen suite"}</span></button></TableCell><TableCell className="text-right tabular-nums">{candidate?.summary.n ?? "—"}</TableCell><TableCell className="text-right">{candidate ? <><div className="font-mono font-semibold">{pct(candidate.summary.points / Math.max(1, candidate.summary.max_points))}</div><div className="text-[10px] text-muted-foreground">{pointsText(candidate.summary)}</div></> : "Not run"}</TableCell><TableCell className="text-right">{candidate ? <><div className="font-mono font-semibold">{pct(candidate.summary.solve_rate)}</div><div className="text-[10px] text-muted-foreground">{candidate.summary.solved}/{candidate.summary.n}</div></> : "—"}</TableCell><TableCell className="text-right font-mono font-semibold">{candidate ? summaryRatingText(candidate) : "—"}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{candidate?.summary.cost_usd == null ? "—" : `$${candidate.summary.cost_usd.toFixed(3)}`}</TableCell></TableRow>)}</TableBody></Table>
+        {suiteGroups.length === 1 && <div className="border-t px-4 py-3 text-xs text-muted-foreground">Only one frozen suite has been published for this model configuration. Additional suites will appear here automatically once matching runs exist.</div>}
+      </CardContent>
+    </Card>
 
     {run && <PerformanceHistory items={displayRun.items} maxPoints={meta.summary.max_points} />}
 
-    {run && <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+    {run && <div className="grid min-w-0 gap-5 2xl:grid-cols-[360px_minmax(0,1fr)]">
       <Card><CardHeader><CardTitle className="text-base">Difficulty breakdown</CardTitle></CardHeader><CardContent className="space-y-5 p-0"><div><div className="border-b px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Numeric puzzle rating</div><Table><TableHeader><TableRow><TableHead>Rating band</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byRating.map((row) => <TableRow key={row.low}><TableCell className="font-mono">{row.low}–{row.low + 399}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div><div className="border-t"><div className="border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Named tier</div><Table><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>
 
-      <Card><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><div><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-emerald-500/70" /> model move</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm border bg-muted" /> built-in puzzle reply</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-rose-500/70" /> wrong / missing move</span><span>Click any row for its exact prompts and response.</span></div></div><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
-        <CardContent className="max-h-[640px] overflow-auto p-0"><Table><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><TableHead>Puzzle</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">Points</TableHead><TableHead>Model answer</TableHead><TableHead>Correct line</TableHead><TableHead>Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
+      <Card className="min-w-0 overflow-hidden"><CardHeader className="flex-row items-center justify-between gap-4 space-y-0"><div className="min-w-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-emerald-500/70" /> model move</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm border bg-muted" /> built-in puzzle reply</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-rose-500/70" /> wrong / missing move</span><span>Click any row for its exact prompts and response.</span></div></div><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
+        <CardContent className="min-w-0 max-h-[640px] overflow-auto p-0"><Table className="min-w-[1040px] table-fixed"><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><TableHead className="w-20">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead><TableHead className="w-20 text-right">Points</TableHead><TableHead className="w-[300px]">Model answer</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-[150px]">Outcome</TableHead></TableRow></TableHeader><TableBody>{displayRun.items.filter((item) => filter === "all" || (filter === "solved" ? item.solved : !item.solved)).map((item) => {
           const open = openPuzzle === item.puzzle_id
           const attempts = puzzleModelAttempts(item)
           const correctSolverMoves = item.plies_correct ?? (item.solved ? item.solver_plies ?? attempts.length : Math.round(item.score * (item.solver_plies ?? Math.ceil((item.solution?.length ?? 0) / 2))))
@@ -277,7 +358,7 @@ export function ModelDetail() {
           const rationale = item.answer_rationale ?? item.answer_explanation
           const hasAudit = Boolean(item.turns?.length || item.answer_raw || rationale)
           const outcome = item.solved ? "solved" : item.score > 0 ? "partial" : item.failure_reason?.replaceAll("_", " ") ?? "incorrect"
-          return <Fragment key={item.puzzle_id}><TableRow className={hasAudit ? "cursor-pointer" : undefined} onClick={() => hasAudit && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className={`size-4 ${item.score > 0 ? "text-amber-500" : "text-rose-500"}`} />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono text-xs tabular-nums">{item.rating}</TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="min-w-[260px] max-w-[380px] whitespace-normal"><span className="inline-flex flex-wrap items-center gap-1"><Continuation plies={modelLine} />{item.score > 0 && !item.solved && <span className="ml-1 text-xs text-amber-700 dark:text-amber-300">missed later</span>}{hasAudit && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</span></TableCell><TableCell className="min-w-[220px] max-w-[320px] whitespace-normal font-mono text-xs leading-6 text-emerald-700 dark:text-emerald-300" title={correctLine}>{correctLine || "—"}</TableCell><TableCell className="space-x-1"><Badge variant={item.solved ? "secondary" : "outline"} className={item.score > 0 && !item.solved ? "border-amber-500/30 text-amber-700 dark:text-amber-300" : undefined}>{outcome}</Badge>{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && hasAudit && <TableRow className="animate-in fade-in-0 slide-in-from-top-1 duration-200"><TableCell /><TableCell colSpan={6} className="p-4"><div className="space-y-3">{rationale ? <p className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</p> : null}{item.turns?.length ? <PromptTranscript turns={item.turns} /> : <ExactPromptBlock label="Visible model response" text={item.answer_raw ?? "—"} tone="schema" />}</div></TableCell></TableRow>}</Fragment>
+          return <Fragment key={item.puzzle_id}><TableRow className={hasAudit ? "cursor-pointer" : undefined} onClick={() => hasAudit && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className={`size-4 ${item.score > 0 ? "text-amber-500" : "text-rose-500"}`} />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono text-xs tabular-nums">{item.rating}</TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="whitespace-normal"><span className="inline-flex flex-wrap items-center gap-1"><Continuation plies={modelLine} />{item.score > 0 && !item.solved && <span className="ml-1 text-xs text-amber-700 dark:text-amber-300">missed later</span>}{hasAudit && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</span></TableCell><TableCell className="whitespace-normal font-mono text-xs leading-6 text-emerald-700 dark:text-emerald-300" title={correctLine}>{correctLine || "—"}</TableCell><TableCell className="space-x-1 whitespace-normal"><Badge variant={item.solved ? "secondary" : "outline"} className={item.score > 0 && !item.solved ? "border-amber-500/30 text-amber-700 dark:text-amber-300" : undefined}>{outcome}</Badge>{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && hasAudit && <TableRow className="animate-in fade-in-0 slide-in-from-top-1 duration-200"><TableCell /><TableCell colSpan={6} className="max-w-0 whitespace-normal p-4"><div className="min-w-0 max-w-full space-y-3 overflow-hidden">{rationale ? <p className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</p> : null}{item.turns?.length ? <PromptTranscript turns={item.turns} /> : <ExactPromptBlock label="Visible model response" text={item.answer_raw ?? "—"} tone="schema" />}</div></TableCell></TableRow>}</Fragment>
         })}</TableBody></Table></CardContent></Card>
     </div>}
   </div>

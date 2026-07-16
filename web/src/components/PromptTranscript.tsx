@@ -23,7 +23,7 @@ export function ExactPromptBlock({ label, text, tone = "user" }: { label: string
     window.setTimeout(() => setCopied(false), 1_500)
   }
 
-  return <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
+  return <div className="min-w-0 max-w-full overflow-hidden rounded-xl border bg-background shadow-xs">
     <div className={cn("flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2", tone === "system" ? "bg-violet-500/[0.06]" : tone === "schema" ? "bg-sky-500/[0.06]" : "bg-emerald-500/[0.05]") }>
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="font-mono text-[10px] uppercase">{tone}</Badge>
@@ -34,7 +34,7 @@ export function ExactPromptBlock({ label, text, tone = "user" }: { label: string
         {copied ? <Check className="text-emerald-600" /> : <Copy />}{copied ? "Copied" : "Copy exact text"}
       </Button>
     </div>
-    <pre className="max-h-[34rem] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-relaxed text-foreground sm:text-xs">{text}</pre>
+    <pre className="max-h-[34rem] min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-relaxed text-foreground [overflow-wrap:anywhere] sm:text-xs">{text}</pre>
   </div>
 }
 
@@ -42,17 +42,17 @@ type PromptTurn = NonNullable<PuzzleItem["turns"]>[number]
 
 export function PromptTranscript({ turns, includeResponses = true }: { turns: PromptTurn[]; includeResponses?: boolean }) {
   if (!turns.length) return <p className="text-xs text-muted-foreground">This legacy item does not contain a turn-level prompt transcript.</p>
-  return <div className="overflow-hidden rounded-xl border bg-muted/15">
+  return <div className="min-w-0 max-w-full overflow-hidden rounded-xl border bg-muted/15">
     <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
       <div className="flex items-center gap-2"><MessageSquareText className="size-4 text-emerald-600" /><span className="text-sm font-semibold">Exact prompt transcript</span></div>
       <span className="text-[10px] text-muted-foreground">Literal stored messages · no truncation or reconstruction</span>
     </div>
     <Accordion type="multiple" defaultValue={["turn-0"]}>
-      {turns.map((turn, index) => <AccordionItem key={`${turn.solver_ply}-${index}`} value={`turn-${index}`} className="px-4">
+      {turns.map((turn, index) => <AccordionItem key={`${turn.solver_ply}-${index}`} value={`turn-${index}`} className="min-w-0 px-4">
         <AccordionTrigger className="py-3">
           <span className="flex flex-wrap items-center gap-2"><span>Solver move {turn.solver_ply + 1}</span><Badge variant="secondary" className="font-mono text-[10px]">{turn.parsed_move ?? "unparsed"}</Badge></span>
         </AccordionTrigger>
-        <AccordionContent className="space-y-3">
+        <AccordionContent className="min-w-0 space-y-3">
           {turn.system_prompt ? <ExactPromptBlock label="Exact system prompt" text={turn.system_prompt} tone="system" /> : null}
           {turn.prompt ? <ExactPromptBlock label="Exact user prompt" text={turn.prompt} /> : null}
           {includeResponses ? <ExactPromptBlock label="Visible model response" text={turn.raw_response ?? "—"} tone="schema" /> : null}
