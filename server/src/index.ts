@@ -2,7 +2,15 @@ import type { Env } from "./types"
 import { error, json, preflight } from "./http"
 import { getCorpus, getExport, getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
-import { postFinishRun, postIngestTournament, postRegisterCorpus, postRegisterSuite, postRunItem, postStartRun } from "./ingest"
+import {
+  postFinishRun,
+  postIngestTournament,
+  postRegisterCorpus,
+  postRegisterSuite,
+  postRunItem,
+  postRunItemPayloadChunk,
+  postStartRun,
+} from "./ingest"
 import { postIngestGame, postLiveBoard } from "./games"
 import {
   getRandomRatedPuzzle,
@@ -50,6 +58,7 @@ export default {
         if (seg === "ingest/rated-pool/finish") return await postRatedPoolFinish(env, req)
         if (seg === "ingest/suite") return await postRegisterSuite(env, req)
         if (seg === "ingest/run/start") return await postStartRun(env, req)
+        if (seg === "ingest/run/item/chunk") return await postRunItemPayloadChunk(env, req)
         if (seg === "ingest/run/item") return await postRunItem(env, req)
         if (seg === "ingest/run/finish") return await postFinishRun(env, req)
         if (seg === "ingest/tournament") return await postIngestTournament(env, req, url)

@@ -3,10 +3,21 @@ import type {
   Env,
   RunFinishDoc,
   RunItemDoc,
+  RunItemPayloadChunkDoc,
   RunStartDoc,
   SuiteDoc,
   TournamentDoc,
 } from "./types"
+import {
+  encodeRunItemPayload,
+  isRunItemPayloadChunks,
+  reassembleRunItemPayload,
+  RUN_ITEM_PAYLOAD_INLINE_BYTES,
+  runItemPayloadReferenceJSON,
+  type EncodedRunItemPayload,
+  type RunItemPayloadChunks,
+  type StoredRunItemPayloadChunk,
+} from "./run_item_payloads"
 
 const now = () => new Date().toISOString()
 
@@ -242,6 +253,108 @@ interface PuzzleRatingEstimate {
   bounded: boolean
 }
 
+async function runItemPayloadChunkRows(
+  env: Env,
+  runId: string,
+  itemId: string,
+  descriptor: RunItemPayloadChunks,
+): Promise<StoredRunItemPayloadChunk[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT chunk_index, chunk_count, payload_chunk
+       FROM benchmark_item_payload_chunks
+      WHERE run_id=? AND item_id=? AND payload_sha256=?
+      ORDER BY chunk_index`,
+  ).bind(runId, itemId, descriptor.sha256).all<StoredRunItemPayloadChunk>()
+  return results ?? []
+}
+
+async function persistEncodedRunItemPayload(
+  env: Env,
+  runId: string,
+  itemId: string,
+  encoded: EncodedRunItemPayload,
+): Promise<void> {
+  const stamp = now()
+  await batchChunked(env, encoded.chunks.map((chunk, index) => env.DB.prepare(
+    `INSERT INTO benchmark_item_payload_chunks
+     (run_id, item_id, payload_sha256, chunk_index, chunk_count, payload_chunk, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(run_id, item_id, payload_sha256, chunk_index) DO UPDATE SET
+       chunk_count=excluded.chunk_count, payload_chunk=excluded.payload_chunk,
+       updated_at=excluded.updated_at`,
+  ).bind(
+    runId,
+    itemId,
+    encoded.descriptor.sha256,
+    index,
+    encoded.descriptor.chunk_count,
+    chunk,
+    stamp,
+    stamp,
+  )), 4)
+}
+
+export async function upsertRunItemPayloadChunk(
+  env: Env,
+  chunk: RunItemPayloadChunkDoc,
+): Promise<{ run_id: string; item_id: string; chunk_index: number }> {
+  const run = await env.DB.prepare(`SELECT run_id FROM benchmark_runs_v2 WHERE run_id=?`)
+    .bind(chunk.run_id).first<{ run_id: string }>()
+  if (!run) throw new Error(`unknown run: ${chunk.run_id}`)
+  const stamp = now()
+  await env.DB.prepare(
+    `INSERT INTO benchmark_item_payload_chunks
+     (run_id, item_id, payload_sha256, chunk_index, chunk_count, payload_chunk, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(run_id, item_id, payload_sha256, chunk_index) DO UPDATE SET
+       chunk_count=excluded.chunk_count, payload_chunk=excluded.payload_chunk,
+       updated_at=excluded.updated_at`,
+  ).bind(
+    chunk.run_id,
+    chunk.item_id,
+    chunk.payload_sha256,
+    chunk.chunk_index,
+    chunk.chunk_count,
+    chunk.payload_chunk,
+    stamp,
+    stamp,
+  ).run()
+  return { run_id: chunk.run_id, item_id: chunk.item_id, chunk_index: chunk.chunk_index }
+}
+
+interface ResolvedRunItemPayload {
+  payload: Record<string, unknown>
+  payloadJSON: string
+  descriptor: RunItemPayloadChunks | null
+}
+
+async function resolveRunItemPayload(env: Env, item: RunItemDoc): Promise<ResolvedRunItemPayload> {
+  if (isRunItemPayloadChunks(item.payload_chunks)) {
+    const rows = await runItemPayloadChunkRows(env, item.run_id, item.item_id, item.payload_chunks)
+    const payload = await reassembleRunItemPayload(item.payload_chunks, rows)
+    return {
+      payload,
+      payloadJSON: runItemPayloadReferenceJSON(item.payload_chunks),
+      descriptor: item.payload_chunks,
+    }
+  }
+  if (!item.payload) throw new Error("run item payload is required")
+  const payloadJSON = JSON.stringify(item.payload)
+  if (new TextEncoder().encode(payloadJSON).length <= RUN_ITEM_PAYLOAD_INLINE_BYTES) {
+    return { payload: item.payload, payloadJSON, descriptor: null }
+  }
+
+  // Backward compatibility: an older client may still POST a large inline
+  // payload. Stage its chunks before publishing the small reference row.
+  const encoded = await encodeRunItemPayload(item.payload)
+  await persistEncodedRunItemPayload(env, item.run_id, item.item_id, encoded)
+  return {
+    payload: item.payload,
+    payloadJSON: runItemPayloadReferenceJSON(encoded.descriptor),
+    descriptor: encoded.descriptor,
+  }
+}
+
 async function estimatePuzzleRating(env: Env, runId: string): Promise<PuzzleRatingEstimate | null> {
   const { results } = await env.DB.prepare(
     `SELECT item_rating AS rating, solved FROM benchmark_items_v2
@@ -277,6 +390,8 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
   const run = await env.DB.prepare(`SELECT run_id FROM benchmark_runs_v2 WHERE run_id=?`)
     .bind(item.run_id).first<{ run_id: string }>()
   if (!run) throw new Error(`unknown run: ${item.run_id}`)
+  const resolvedPayload = await resolveRunItemPayload(env, item)
+  const payload = resolvedPayload.payload
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO benchmark_items_v2
@@ -308,8 +423,8 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.response_format_valid == null ? null : item.response_format_valid ? 1 : 0,
       item.failure_reason ?? null,
       item.latency_ms ?? null,
-      typeof item.payload.rating === "number" ? item.payload.rating : null,
-      typeof item.payload.rating_deviation === "number" ? item.payload.rating_deviation : null,
+      typeof payload.rating === "number" ? payload.rating : null,
+      typeof payload.rating_deviation === "number" ? payload.rating_deviation : null,
       item.cost_usd ?? 0,
       item.prompt_tokens ?? 0,
       item.completion_tokens ?? 0,
@@ -318,7 +433,7 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.cache_write_tokens ?? 0,
       item.uncached_prompt_tokens ?? 0,
       item.cache_discount_usd ?? 0,
-      JSON.stringify(item.payload),
+      resolvedPayload.payloadJSON,
       stamp,
       stamp,
     ),
@@ -328,6 +443,16 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
        VALUES (?, 'item_upserted', ?, ?)`,
     ).bind(item.run_id, item.item_id, stamp),
   ])
+  if (resolvedPayload.descriptor) {
+    await env.DB.prepare(
+      `DELETE FROM benchmark_item_payload_chunks
+        WHERE run_id=? AND item_id=? AND payload_sha256<>?`,
+    ).bind(item.run_id, item.item_id, resolvedPayload.descriptor.sha256).run()
+  } else {
+    await env.DB.prepare(
+      `DELETE FROM benchmark_item_payload_chunks WHERE run_id=? AND item_id=?`,
+    ).bind(item.run_id, item.item_id).run()
+  }
   return { run_id: item.run_id, item_id: item.item_id }
 }
 

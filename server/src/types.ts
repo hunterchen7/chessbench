@@ -82,7 +82,26 @@ export interface RunItemDoc {
   cache_write_tokens?: number
   uncached_prompt_tokens?: number
   cache_discount_usd?: number
-  payload: Record<string, unknown>
+  /** Existing/small-item transport. Large-item syncs use payload_chunks instead. */
+  payload?: Record<string, unknown>
+  payload_chunks?: RunItemPayloadChunksDoc
+}
+
+export interface RunItemPayloadChunksDoc {
+  version: 1
+  encoding: "json-utf8-base64-v1"
+  sha256: string
+  byte_length: number
+  chunk_count: number
+}
+
+export interface RunItemPayloadChunkDoc {
+  run_id: string
+  item_id: string
+  payload_sha256: string
+  chunk_index: number
+  chunk_count: number
+  payload_chunk: string
 }
 
 export interface RunFinishDoc {

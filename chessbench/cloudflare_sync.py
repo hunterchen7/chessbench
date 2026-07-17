@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import urllib.error
 import urllib.request
@@ -10,6 +12,59 @@ from collections.abc import Callable
 from .database import BenchmarkStore
 
 PostDocument = Callable[[str, str, str, dict[str, object]], dict[str, object]]
+
+RUN_ITEM_PAYLOAD_INLINE_BYTES = 512 * 1024
+RUN_ITEM_PAYLOAD_CHUNK_BYTES = 128 * 1024
+RUN_ITEM_PAYLOAD_ENCODING = "json-utf8-base64-v1"
+
+
+def run_item_delivery_documents(
+    item: dict[str, object],
+) -> list[tuple[str, dict[str, object]]]:
+    """Return an inline delivery or idempotent chunks followed by its item row."""
+    payload = item.get("payload")
+    if not isinstance(payload, dict):
+        return [("ingest/run/item", item)]
+    payload_bytes = json.dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    if len(payload_bytes) <= RUN_ITEM_PAYLOAD_INLINE_BYTES:
+        return [("ingest/run/item", item)]
+
+    digest = hashlib.sha256(payload_bytes).hexdigest()
+    chunks = [
+        payload_bytes[offset : offset + RUN_ITEM_PAYLOAD_CHUNK_BYTES]
+        for offset in range(0, len(payload_bytes), RUN_ITEM_PAYLOAD_CHUNK_BYTES)
+    ]
+    run_id = str(item["run_id"])
+    item_id = str(item["item_id"])
+    deliveries: list[tuple[str, dict[str, object]]] = []
+    for index, chunk in enumerate(chunks):
+        deliveries.append(
+            (
+                "ingest/run/item/chunk",
+                {
+                    "run_id": run_id,
+                    "item_id": item_id,
+                    "payload_sha256": digest,
+                    "chunk_index": index,
+                    "chunk_count": len(chunks),
+                    "payload_chunk": base64.b64encode(chunk).decode("ascii"),
+                },
+            )
+        )
+    final_item = {key: value for key, value in item.items() if key != "payload"}
+    final_item["payload_chunks"] = {
+        "version": 1,
+        "encoding": RUN_ITEM_PAYLOAD_ENCODING,
+        "sha256": digest,
+        "byte_length": len(payload_bytes),
+        "chunk_count": len(chunks),
+    }
+    deliveries.append(("ingest/run/item", final_item))
+    return deliveries
 
 
 def post(
@@ -43,7 +98,8 @@ def sync_run(
     failed = 0
     for item in store.unsynced_item_documents(run_id):
         try:
-            post_document(api, token, "ingest/run/item", item)
+            for path, document in run_item_delivery_documents(item):
+                post_document(api, token, path, document)
         except (
             urllib.error.URLError,
             TimeoutError,

@@ -4,6 +4,12 @@ import { PUZZLE_RATING_PRIOR, PUZZLE_RATING_PROVISIONAL_CI_WIDTH } from "./db"
 import { includesTournaments } from "./export_filters"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
+import {
+  parseInlineRunItemPayload,
+  parseRunItemPayloadReference,
+  reassembleRunItemPayload,
+  type StoredRunItemPayloadChunk,
+} from "./run_item_payloads"
 
 interface RunRow {
   run_id: string
@@ -158,11 +164,32 @@ function publicRun(row: RunRow) {
 
 const isPrivateSuite = (row: RunRow) => row.suite_visibility === "private"
 
+interface StoredRunItemPayloadRow {
+  run_id: string
+  item_id: string
+  payload_json: string
+}
+
+async function storedRunItemPayload(
+  env: Env,
+  row: StoredRunItemPayloadRow,
+): Promise<Record<string, unknown>> {
+  const descriptor = parseRunItemPayloadReference(row.payload_json)
+  if (!descriptor) return parseInlineRunItemPayload(row.payload_json)
+  const { results } = await env.DB.prepare(
+    `SELECT chunk_index, chunk_count, payload_chunk
+       FROM benchmark_item_payload_chunks
+      WHERE run_id=? AND item_id=? AND payload_sha256=?
+      ORDER BY chunk_index`,
+  ).bind(row.run_id, row.item_id, descriptor.sha256).all<StoredRunItemPayloadChunk>()
+  return reassembleRunItemPayload(descriptor, results ?? [])
+}
+
 async function runItems(env: Env, runId: string): Promise<unknown[]> {
   const { results } = await env.DB.prepare(
-    `SELECT payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
-  ).bind(runId).all<{ payload_json: string }>()
-  return (results ?? []).map((item) => JSON.parse(item.payload_json))
+    `SELECT run_id, item_id, payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
+  ).bind(runId).all<StoredRunItemPayloadRow>()
+  return Promise.all((results ?? []).map((item) => storedRunItemPayload(env, item)))
 }
 
 function disclosure(row: RunRow, ownerAccess: boolean) {
@@ -271,7 +298,7 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
   ).bind(id).first<{ payload_json: string }>()
   const { results } = await env.DB.prepare(
-    `SELECT i.run_id, r.variant_key, r.condition_slug, i.solved, i.points,
+    `SELECT i.run_id, i.item_id, r.variant_key, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json,
             v.base_model, v.display_name, v.provider, v.provider_model_id,
             v.reasoning_json, v.max_output_tokens
@@ -283,13 +310,13 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
         AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
       ORDER BY i.solved DESC, r.variant_key ASC`,
   ).bind(id).all<{
-    run_id: string; variant_key: string; condition_slug: string; solved: number; points: number
+    run_id: string; item_id: string; variant_key: string; condition_slug: string; solved: number; points: number
     first_move_legal: number; failure_reason: string | null; payload_json: string
     base_model: string; display_name: string; provider: string; provider_model_id: string
     reasoning_json: string; max_output_tokens: number
   }>()
   const rows = results ?? []
-  const payloads = rows.map((row) => JSON.parse(row.payload_json) as Record<string, unknown>)
+  const payloads = await Promise.all(rows.map((row) => storedRunItemPayload(env, row)))
   if (!corpusItem && !payloads.length) return error(404, "puzzle not found")
   // Adaptive-pool positions are not duplicated into the small browsable
   // corpus. A published run item is self-contained, so it is also the exact
