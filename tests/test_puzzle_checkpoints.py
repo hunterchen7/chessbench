@@ -326,6 +326,29 @@ def test_runner_stops_after_consecutive_unsolved_and_restores_streak_on_resume()
     assert len(resumed.calls) == 1
 
 
+def test_unsolved_streak_stop_takes_precedence_over_an_earlier_provider_error():
+    puzzles = [replace(ONE_MOVE, id=f"mixed-streak-{index}") for index in range(12)]
+    model = UsageScriptedModel(
+        [
+            ModelError("transient transport failure"),
+            *[(_answer("a1a2", "MISS"), 8, 3, 1, 0.005)] * 10,
+            AssertionError("twelfth provider call must not be issued"),
+        ]
+    )
+
+    report, results = run_puzzles(
+        LLMAgent(model),
+        puzzles,
+        HEADLINE,
+        max_consecutive_unsolved=10,
+    )
+
+    assert len(results) == 10
+    assert report.n == 10
+    assert not any(result.solved for result in results)
+    assert len(model.calls) == 11
+
+
 def test_runner_paid_boundary_counts_provider_failures():
     second = replace(ONE_MOVE, id="one-checkpoint-2")
     model = UsageScriptedModel(

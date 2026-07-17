@@ -74,6 +74,7 @@ def run_puzzles(
     resume_f = open(resume_path, "a", encoding="utf-8") if resume_path else None
     consecutive_errors = 0
     consecutive_unsolved = 0
+    stopped_for_unsolved_streak = False
     issued_items = 0
     try:
         start = time.time()
@@ -84,6 +85,7 @@ def run_puzzles(
                 and max_consecutive_unsolved is not None
                 and consecutive_unsolved >= max_consecutive_unsolved
             ):
+                stopped_for_unsolved_streak = True
                 print(
                     f"  [stop] {consecutive_unsolved} consecutive unsolved puzzles; "
                     "leaving the remaining items resumable"
@@ -147,9 +149,14 @@ def run_puzzles(
                 print(
                     f"  [{i}/{len(puzzles)}] solve-rate {rate:.1%} ({time.time() - start:.1f}s)"
                 )
-        if errors:
+        if errors and not stopped_for_unsolved_streak:
             raise RuntimeError(
                 f"{errors}/{len(puzzles)} provider calls failed; successful items are persisted and missing items will retry"
+            )
+        if errors:
+            print(
+                f"  [warn] {errors} provider call(s) remain unscored and resumable; "
+                "the intentional unsolved-streak stop takes precedence"
             )
     finally:
         if log_f:
