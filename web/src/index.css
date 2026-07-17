@@ -155,11 +155,51 @@
 
 dialog { color: var(--foreground); }
 
+.puzzle-view-transition {
+  view-transition-name: puzzle-benchmark-view;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(puzzle-benchmark-view) {
+  animation: puzzle-view-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(puzzle-benchmark-view) {
+  animation: puzzle-view-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.puzzle-view-fallback-out {
+  animation: puzzle-view-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+.puzzle-view-fallback-in {
+  animation: puzzle-view-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes puzzle-view-out {
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes puzzle-view-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  ::view-transition-old(puzzle-benchmark-view),
+  ::view-transition-new(puzzle-benchmark-view),
+  .puzzle-view-fallback-out,
+  .puzzle-view-fallback-in {
+    animation: none;
   }
 }
