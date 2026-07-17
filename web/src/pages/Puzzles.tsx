@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select"
 
 const TIERS = ["all", "beginner", "novice", "intermediate", "advanced", "expert", "master"]
+const PAGE_SIZE = 120
 type SortKey = "puzzle" | "rating" | "tier" | "plays" | "popularity" | "you"
 
 function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): number {
@@ -40,7 +41,8 @@ export function PuzzleBrowser() {
   const [q, setQ] = useState("")
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "rating", direction: "asc" })
   const [mine, setMine] = useState<"all" | "unsolved" | "solved">("all")
-  const [limit, setLimit] = useState(120)
+  const [limit, setLimit] = useState(PAGE_SIZE)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const store = humanStore()
 
   const rows = useMemo(() => {
@@ -74,6 +76,24 @@ export function PuzzleBrowser() {
       return comparison * multiplier || a.position.rating - b.position.rating || a.position.puzzle_id.localeCompare(b.position.puzzle_id)
     })
   }, [entries, tier, q, sort.key, sort.direction, mine, store])
+
+  useEffect(() => {
+    setLimit(PAGE_SIZE)
+  }, [tier, q, sort.key, sort.direction, mine])
+
+  useEffect(() => {
+    const target = loadMoreRef.current
+    if (!target || limit >= rows.length) return
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setLimit((current) => Math.min(current + PAGE_SIZE, rows.length))
+      }
+    }, { rootMargin: "600px 0px" })
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [limit, rows.length])
 
   const toggleSort = (key: SortKey) => setSort((current) => ({
     key,
@@ -189,12 +209,9 @@ export function PuzzleBrowser() {
         </CardContent>
       </Card>
       {rows.length > limit && (
-        <button
-          onClick={() => setLimit((l) => l + 120)}
-          className="mx-auto block cursor-pointer rounded-md border px-4 py-2 text-sm hover:bg-secondary"
-        >
-          Show more ({rows.length - limit} remaining)
-        </button>
+        <div ref={loadMoreRef} className="py-2 text-center text-sm text-muted-foreground" role="status">
+          Loading more puzzles…
+        </div>
       )}
     </div>
   )
