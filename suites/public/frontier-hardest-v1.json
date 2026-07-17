@@ -1,0 +1,106 @@
+{
+ "name": "frontier-hardest-v1",
+ "version": "1.0.0",
+ "visibility": "public",
+ "kind": "puzzle",
+ "source": "suite:standard-lichess-v3@sha256:196077b0a7370043",
+ "description": "A focused three-position frontier probe containing the highest-rated puzzles in the active Standard suite. It tests raw UCI move finding on long, 3,000+ rated tactical lines without legal-move assistance or coaching.",
+ "seed": 0,
+ "items": [
+  {
+   "id": "sos2w",
+   "fen": "r1bq1r1k/pppn3p/6p1/5n1P/2BRQ3/2N5/PPP2P2/2K3NR b - - 0 15",
+   "moves": [
+    "f5d4",
+    "h5g6",
+    "d7f6",
+    "c3d5",
+    "c8e6",
+    "e4d4"
+   ],
+   "rating": 3093,
+   "rating_deviation": 99,
+   "popularity": 92,
+   "nb_plays": 1548,
+   "themes": [
+    "crushing",
+    "interference",
+    "long",
+    "middlegame",
+    "pin"
+   ],
+   "game_url": "https://lichess.org/iNzrwLdv/black#30",
+   "opening_tags": "French_Defense French_Defense_Rubinstein_Variation",
+   "source": "lichess",
+   "alternates": [],
+   "difficulty_band": ""
+  },
+  {
+   "id": "wSaKg",
+   "fen": "4rrk1/1bqR1pb1/p5p1/2p4p/2B1P3/1P3Q2/P4PPP/3R2K1 b - - 5 24",
+   "moves": [
+    "c7b6",
+    "d7f7",
+    "g8h8",
+    "f7g7",
+    "h8g7",
+    "d1d7"
+   ],
+   "rating": 3102,
+   "rating_deviation": 94,
+   "popularity": 91,
+   "nb_plays": 720,
+   "themes": [
+    "advantage",
+    "attraction",
+    "kingsideAttack",
+    "long",
+    "middlegame"
+   ],
+   "game_url": "https://lichess.org/dkXEyni3/black#48",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": [],
+   "difficulty_band": ""
+  },
+  {
+   "id": "Nf5Ym",
+   "fen": "3r4/4Nppk/1RP4p/Q3b3/8/4P1PP/2pq1PK1/8 w - - 0 37",
+   "moves": [
+    "a5e5",
+    "d2d3",
+    "b6b3",
+    "d3b3",
+    "c6c7",
+    "b3b7",
+    "e3e4",
+    "d8c8",
+    "e7c8",
+    "c2c1q",
+    "e5f5",
+    "h7h8",
+    "c8d6",
+    "b7c7",
+    "d6f7",
+    "h8g8"
+   ],
+   "rating": 3120,
+   "rating_deviation": 108,
+   "popularity": 92,
+   "nb_plays": 576,
+   "themes": [
+    "advancedPawn",
+    "advantage",
+    "endgame",
+    "promotion",
+    "veryLong"
+   ],
+   "game_url": "https://lichess.org/i6WeLX3f#73",
+   "opening_tags": "",
+   "source": "lichess",
+   "alternates": [],
+   "difficulty_band": ""
+  }
+ ],
+ "content_hash": "sha256:d79d1d5a511cbdf8"
+}
