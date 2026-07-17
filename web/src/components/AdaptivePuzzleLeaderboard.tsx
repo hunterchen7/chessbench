@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { effectiveReasoningEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
 import { cn } from "@/lib/utils"
 
 function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSessionProtocol } {
@@ -28,7 +29,7 @@ function runPath(run: RunIndexEntry) {
 type RatingSortKey = "model" | "rating" | "record" | "puzzles" | "cost" | "status"
 
 function reasoningEffort(run: RunIndexEntry) {
-  return run.condition.reasoning_effort ?? run.model_variant.reasoning.effort ?? "default"
+  return effectiveReasoningEffort(run.model_variant)
 }
 
 function statusRank(run: RunIndexEntry) {
@@ -54,7 +55,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
   const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
   const reasoningOptions = useMemo(() => Array.from(new Set(ratedRuns.map(reasoningEffort))).toSorted((a, b) => {
-    const order = ["minimal", "low", "medium", "high", "max", "default"]
+    const order = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
     const aRank = order.indexOf(a)
     const bRank = order.indexOf(b)
     return (aRank < 0 ? order.length : aRank) - (bRank < 0 ? order.length : bRank) || a.localeCompare(b)
@@ -131,7 +132,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <SelectTrigger className="w-full bg-background sm:w-48" aria-label="Filter by reasoning effort"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All reasoning efforts</SelectItem>
-              {reasoningOptions.map((effort) => <SelectItem key={effort} value={effort}>{effort === "default" ? "Default" : effort[0].toUpperCase() + effort.slice(1)} reasoning</SelectItem>)}
+              {reasoningOptions.map((effort) => <SelectItem key={effort} value={effort}>{reasoningEffortLabel(effort)}</SelectItem>)}
             </SelectContent>
           </Select>
           <span className="shrink-0 text-xs tabular-nums text-muted-foreground sm:ml-auto">{visibleRuns.length} of {ratedRuns.length} configurations</span>
@@ -156,7 +157,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           const estimate = rating(run)
           return <TableRow key={run.run_id} tabIndex={0} role="link" className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", run.status !== "completed" && "bg-sky-500/[0.025]")} onClick={() => navigate(runPath(run))} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(runPath(run)) }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
-            <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">seed {run.protocol.selection.seed} · {run.condition.reasoning_effort ?? "default"} reasoning</div></TableCell>
+            <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">seed {run.protocol.selection.seed} · {reasoningEffortLabel(reasoningEffort(run)).toLocaleLowerCase()}</div></TableCell>
             <TableCell className="text-right"><div className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums">{estimate ? <>{Math.round(estimate.rating).toLocaleString()} <span className="text-sm font-medium text-muted-foreground">±{estimate.rating_deviation == null ? "—" : Math.round(estimate.rating_deviation)}</span></> : "—"}</div>{estimate?.provisional ? <div className="text-[10px] uppercase tracking-wide text-muted-foreground">provisional</div> : null}</TableCell>
             <TableCell className="text-right"><div className="font-mono font-medium">{run.summary.solved}–{run.progress.completed - run.summary.solved}</div><div className="text-[10px] text-muted-foreground">{(run.summary.solve_rate * 100).toFixed(1)}% solved</div></TableCell>
             <TableCell className="text-right font-mono tabular-nums">{run.progress.completed}<span className="text-muted-foreground">/{run.progress.total}</span></TableCell>

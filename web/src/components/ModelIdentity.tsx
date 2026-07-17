@@ -1,14 +1,19 @@
 import { BrainCircuit, Cpu } from "lucide-react"
 import type { ModelVariant } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
+import { effectiveReasoningEffort, reasoningLabel, reasoningTitle } from "@/lib/modelReasoning"
 import { participantKind } from "@/lib/participants"
 
-export function reasoningLabel(variant: ModelVariant): string {
-  const { effort, max_tokens: tokens } = variant.reasoning ?? {}
-  if (tokens) return `${tokens >= 1000 ? `${(tokens / 1000).toFixed(tokens % 1000 ? 1 : 0)}k` : tokens} think`
-  if (effort && effort !== "none") return `${effort} think`
-  if (effort === "none") return "no think"
-  return "default think"
+const REASONING_BADGE_CLASSES: Record<string, string> = {
+  none: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300",
+  minimal: "border-sky-500/35 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  low: "border-cyan-500/35 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
+  medium: "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  high: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  xhigh: "border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-300",
+  max: "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+  budget: "border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  provider: "border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
 }
 
 export function ModelIdentity({ variant, compact = false }: { variant: ModelVariant; compact?: boolean }) {
@@ -20,7 +25,7 @@ export function ModelIdentity({ variant, compact = false }: { variant: ModelVari
         <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">
           {variant.provider}
         </Badge>
-        {kind === "model" ? <Badge className="h-5 gap-1 bg-violet-500/10 px-1.5 text-[10px] font-normal text-violet-700 dark:text-violet-300">
+        {kind === "model" ? <Badge variant="outline" title={reasoningTitle(variant)} className={`h-5 gap-1 px-1.5 text-[10px] font-normal ${REASONING_BADGE_CLASSES[effectiveReasoningEffort(variant)] ?? REASONING_BADGE_CLASSES.provider}`}>
           <BrainCircuit className="size-3" /> {reasoningLabel(variant)}
         </Badge> : <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px] font-normal"><Cpu className="size-3" /> {kind === "engine" ? "engine reference" : "reference baseline"}</Badge>}
         {!compact && kind === "model" && (
