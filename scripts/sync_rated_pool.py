@@ -55,7 +55,7 @@ def post(
             detail = exc.read().decode(errors="replace")
             if not retryable or attempt == attempts:
                 raise RuntimeError(f"{path} failed with HTTP {exc.code}: {detail}") from exc
-        except (urllib.error.URLError, TimeoutError, BrokenPipeError, ConnectionError):
+        except (urllib.error.URLError, TimeoutError, OSError):
             if attempt == attempts:
                 raise
         delay = min(30, 2 ** (attempt - 1))
