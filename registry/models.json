@@ -17,6 +17,14 @@
    "enabled": true
   },
   {
+   "label": "gpt-5.6-sol",
+   "provider": "openrouter",
+   "model_id": "openai/gpt-5.6-sol",
+   "family": "openai",
+   "notes": "OpenAI GPT-5.6 Sol (2026-07-09; frontier flagship)",
+   "enabled": true
+  },
+  {
    "label": "gpt-5.6-sol-pro",
    "provider": "openrouter",
    "model_id": "openai/gpt-5.6-sol-pro",
@@ -46,6 +54,14 @@
    "model_id": "anthropic/claude-opus-4.8",
    "family": "anthropic",
    "notes": "Anthropic Claude Opus 4.8 (2026; frontier reasoning model)",
+   "enabled": true
+  },
+  {
+   "label": "claude-fable-5",
+   "provider": "openrouter",
+   "model_id": "anthropic/claude-fable-5",
+   "family": "anthropic",
+   "notes": "Anthropic Claude Fable 5 (2026-06-09; Mythos-class frontier model)",
    "enabled": true
   },
   {
