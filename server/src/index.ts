@@ -9,6 +9,7 @@ import {
   postRegisterSuite,
   postRunItem,
   postRunItemPayloadChunk,
+  postRunItemPayloadChunks,
   postStartRun,
 } from "./ingest"
 import { postIngestGame, postLiveBoard } from "./games"
@@ -58,6 +59,7 @@ export default {
         if (seg === "ingest/rated-pool/finish") return await postRatedPoolFinish(env, req)
         if (seg === "ingest/suite") return await postRegisterSuite(env, req)
         if (seg === "ingest/run/start") return await postStartRun(env, req)
+        if (seg === "ingest/run/item/chunks") return await postRunItemPayloadChunks(env, req)
         if (seg === "ingest/run/item/chunk") return await postRunItemPayloadChunk(env, req)
         if (seg === "ingest/run/item") return await postRunItem(env, req)
         if (seg === "ingest/run/finish") return await postFinishRun(env, req)

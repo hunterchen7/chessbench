@@ -104,6 +104,14 @@ export interface RunItemPayloadChunkDoc {
   payload_chunk: string
 }
 
+export interface RunItemPayloadChunkBatchDoc {
+  run_id: string
+  item_id: string
+  payload_sha256: string
+  chunk_count: number
+  chunks: Array<{ chunk_index: number; payload_chunk: string }>
+}
+
 export interface RunFinishDoc {
   run_id: string
   status?: "completed" | "partial" | "failed"

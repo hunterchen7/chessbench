@@ -1,5 +1,17 @@
 export const RUN_ITEM_PAYLOAD_INLINE_BYTES = 512 * 1024
 export const RUN_ITEM_PAYLOAD_CHUNK_BYTES = 128 * 1024
+// Base64 expands by 4/3. A 16 MiB raw ceiling keeps the parsed request,
+// decoded chunks, and reconstructed payload comfortably inside Worker memory.
+export const RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 16 * 1024 * 1024
+export const RUN_ITEM_PAYLOAD_MAX_CHUNKS = Math.ceil(
+  RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES / RUN_ITEM_PAYLOAD_CHUNK_BYTES,
+)
+export const RUN_ITEM_PAYLOAD_CHUNK_BASE64_CHARS = 4 * Math.ceil(
+  RUN_ITEM_PAYLOAD_CHUNK_BYTES / 3,
+)
+export const RUN_ITEM_PAYLOAD_BATCH_BASE64_CHARS = 4 * Math.ceil(
+  RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES / 3,
+)
 export const RUN_ITEM_PAYLOAD_ENCODING = "json-utf8-base64-v1"
 export const RUN_ITEM_PAYLOAD_REFERENCE_KEY = "$chessbench_payload_chunks"
 
@@ -17,6 +29,14 @@ export interface StoredRunItemPayloadChunk {
   payload_chunk: string
 }
 
+export interface RunItemPayloadChunkBatch {
+  run_id: string
+  item_id: string
+  payload_sha256: string
+  chunk_count: number
+  chunks: Array<{ chunk_index: number; payload_chunk: string }>
+}
+
 export interface EncodedRunItemPayload {
   descriptor: RunItemPayloadChunks
   chunks: string[]
@@ -30,9 +50,37 @@ export function isRunItemPayloadChunks(value: unknown): value is RunItemPayloadC
   return value.version === 1 &&
     value.encoding === RUN_ITEM_PAYLOAD_ENCODING &&
     typeof value.sha256 === "string" && /^[0-9a-f]{64}$/.test(value.sha256) &&
-    Number.isInteger(value.byte_length) && Number(value.byte_length) >= 0 &&
+    Number.isInteger(value.byte_length) && Number(value.byte_length) > 0 &&
+    Number(value.byte_length) <= RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES &&
     Number.isInteger(value.chunk_count) && Number(value.chunk_count) > 0 &&
-    Number(value.chunk_count) <= 10_000
+    Number(value.chunk_count) <= RUN_ITEM_PAYLOAD_MAX_CHUNKS
+}
+
+export function isRunItemPayloadChunkBatch(value: unknown): value is RunItemPayloadChunkBatch {
+  if (!isObject(value) ||
+    typeof value.run_id !== "string" || !value.run_id ||
+    typeof value.item_id !== "string" || !value.item_id ||
+    typeof value.payload_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(value.payload_sha256) ||
+    !Number.isInteger(value.chunk_count) || Number(value.chunk_count) <= 0 ||
+    Number(value.chunk_count) > RUN_ITEM_PAYLOAD_MAX_CHUNKS ||
+    !Array.isArray(value.chunks) || value.chunks.length !== value.chunk_count
+  ) return false
+
+  let totalBase64Chars = 0
+  const indexes = new Set<number>()
+  for (const chunk of value.chunks) {
+    if (!isObject(chunk) ||
+      !Number.isInteger(chunk.chunk_index) || Number(chunk.chunk_index) < 0 ||
+      Number(chunk.chunk_index) >= value.chunk_count ||
+      typeof chunk.payload_chunk !== "string" || !chunk.payload_chunk ||
+      chunk.payload_chunk.length > RUN_ITEM_PAYLOAD_CHUNK_BASE64_CHARS ||
+      !/^[A-Za-z0-9+/]*={0,2}$/.test(chunk.payload_chunk)
+    ) return false
+    indexes.add(Number(chunk.chunk_index))
+    totalBase64Chars += chunk.payload_chunk.length
+  }
+  return indexes.size === value.chunk_count &&
+    totalBase64Chars <= RUN_ITEM_PAYLOAD_BATCH_BASE64_CHARS
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -59,6 +107,11 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 /** Encode one full JSON payload into D1-safe base64 rows without losing content. */
 export async function encodeRunItemPayload(payload: Record<string, unknown>): Promise<EncodedRunItemPayload> {
   const bytes = new TextEncoder().encode(JSON.stringify(payload))
+  if (bytes.length > RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES) {
+    throw new Error(
+      `run item payload is ${bytes.length} bytes; maximum is ${RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES}`,
+    )
+  }
   const chunks: string[] = []
   for (let offset = 0; offset < bytes.length; offset += RUN_ITEM_PAYLOAD_CHUNK_BYTES) {
     chunks.push(bytesToBase64(bytes.subarray(offset, offset + RUN_ITEM_PAYLOAD_CHUNK_BYTES)))

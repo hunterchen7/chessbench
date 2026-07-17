@@ -3,6 +3,7 @@ import type {
   Env,
   RunFinishDoc,
   RunItemDoc,
+  RunItemPayloadChunkBatchDoc,
   RunItemPayloadChunkDoc,
   RunStartDoc,
   SuiteDoc,
@@ -17,11 +18,14 @@ import {
   startRun,
   upsertRunItem,
   upsertRunItemPayloadChunk,
+  upsertRunItemPayloadChunks,
 } from "./db"
 import { error, json } from "./http"
 import {
+  isRunItemPayloadChunkBatch,
   isRunItemPayloadChunks,
-  RUN_ITEM_PAYLOAD_CHUNK_BYTES,
+  RUN_ITEM_PAYLOAD_CHUNK_BASE64_CHARS,
+  RUN_ITEM_PAYLOAD_MAX_CHUNKS,
 } from "./run_item_payloads"
 
 /** Register an immutable browsing corpus independently from model results. */
@@ -92,21 +96,32 @@ export async function postRunItem(env: Env, req: Request): Promise<Response> {
 export async function postRunItemPayloadChunk(env: Env, req: Request): Promise<Response> {
   if (!authorized(env, req)) return error(401, "unauthorized")
   const doc = (await req.json().catch(() => null)) as RunItemPayloadChunkDoc | null
-  const maxBase64Length = 4 * Math.ceil(RUN_ITEM_PAYLOAD_CHUNK_BYTES / 3)
   if (
     !doc ||
     typeof doc.run_id !== "string" || !doc.run_id ||
     typeof doc.item_id !== "string" || !doc.item_id ||
     typeof doc.payload_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(doc.payload_sha256) ||
     !Number.isInteger(doc.chunk_index) || doc.chunk_index < 0 ||
-    !Number.isInteger(doc.chunk_count) || doc.chunk_count <= 0 || doc.chunk_count > 10_000 ||
+    !Number.isInteger(doc.chunk_count) || doc.chunk_count <= 0 ||
+    doc.chunk_count > RUN_ITEM_PAYLOAD_MAX_CHUNKS ||
     doc.chunk_index >= doc.chunk_count ||
     typeof doc.payload_chunk !== "string" || !doc.payload_chunk ||
-    doc.payload_chunk.length > maxBase64Length || !/^[A-Za-z0-9+/]*={0,2}$/.test(doc.payload_chunk)
+    doc.payload_chunk.length > RUN_ITEM_PAYLOAD_CHUNK_BASE64_CHARS ||
+    !/^[A-Za-z0-9+/]*={0,2}$/.test(doc.payload_chunk)
   ) {
     return error(400, "invalid run item payload chunk")
   }
   return json({ ok: true, ...(await upsertRunItemPayloadChunk(env, doc)) })
+}
+
+/** POST /api/ingest/run/item/chunks — stage one complete payload in one HTTPS request. */
+export async function postRunItemPayloadChunks(env: Env, req: Request): Promise<Response> {
+  if (!authorized(env, req)) return error(401, "unauthorized")
+  const doc = (await req.json().catch(() => null)) as RunItemPayloadChunkBatchDoc | null
+  if (!isRunItemPayloadChunkBatch(doc)) {
+    return error(400, "invalid run item payload chunk batch")
+  }
+  return json({ ok: true, ...(await upsertRunItemPayloadChunks(env, doc)) })
 }
 
 /** POST /api/ingest/run/finish — complete, pause, or fail an existing run. */

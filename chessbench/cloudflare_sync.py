@@ -15,6 +15,7 @@ PostDocument = Callable[[str, str, str, dict[str, object]], dict[str, object]]
 
 RUN_ITEM_PAYLOAD_INLINE_BYTES = 512 * 1024
 RUN_ITEM_PAYLOAD_CHUNK_BYTES = 128 * 1024
+RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 16 * 1024 * 1024
 RUN_ITEM_PAYLOAD_ENCODING = "json-utf8-base64-v1"
 
 
@@ -32,6 +33,11 @@ def run_item_delivery_documents(
     ).encode("utf-8")
     if len(payload_bytes) <= RUN_ITEM_PAYLOAD_INLINE_BYTES:
         return [("ingest/run/item", item)]
+    if len(payload_bytes) > RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES:
+        raise ValueError(
+            f"run item payload is {len(payload_bytes)} bytes; "
+            f"maximum is {RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES}"
+        )
 
     digest = hashlib.sha256(payload_bytes).hexdigest()
     chunks = [
@@ -40,21 +46,24 @@ def run_item_delivery_documents(
     ]
     run_id = str(item["run_id"])
     item_id = str(item["item_id"])
-    deliveries: list[tuple[str, dict[str, object]]] = []
-    for index, chunk in enumerate(chunks):
-        deliveries.append(
-            (
-                "ingest/run/item/chunk",
-                {
-                    "run_id": run_id,
-                    "item_id": item_id,
-                    "payload_sha256": digest,
-                    "chunk_index": index,
-                    "chunk_count": len(chunks),
-                    "payload_chunk": base64.b64encode(chunk).decode("ascii"),
-                },
-            )
+    deliveries: list[tuple[str, dict[str, object]]] = [
+        (
+            "ingest/run/item/chunks",
+            {
+                "run_id": run_id,
+                "item_id": item_id,
+                "payload_sha256": digest,
+                "chunk_count": len(chunks),
+                "chunks": [
+                    {
+                        "chunk_index": index,
+                        "payload_chunk": base64.b64encode(chunk).decode("ascii"),
+                    }
+                    for index, chunk in enumerate(chunks)
+                ],
+            },
         )
+    ]
     final_item = {key: value for key, value in item.items() if key != "payload"}
     final_item["payload_chunks"] = {
         "version": 1,
@@ -104,6 +113,7 @@ def sync_run(
             urllib.error.URLError,
             TimeoutError,
             OSError,
+            ValueError,
             json.JSONDecodeError,
         ) as exc:
             print(f"  {run_id}/{item['item_id']}: {type(exc).__name__}: {exc}")

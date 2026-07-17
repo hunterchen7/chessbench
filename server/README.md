@@ -35,7 +35,8 @@ Ingest (Bearer `INGEST_TOKEN`):
 | POST | `/api/ingest/rated-pool/finish` | verify item count and atomically activate the pool |
 | POST | `/api/ingest/suite` | an exact frozen runnable suite |
 | POST | `/api/ingest/run/start` | immutable run manifest; validates suite hash and item count |
-| POST | `/api/ingest/run/item/chunk` | one idempotent chunk staged before a large full-audit item |
+| POST | `/api/ingest/run/item/chunks` | one bounded, idempotent batch containing a large item's complete chunk set |
+| POST | `/api/ingest/run/item/chunk` | backward-compatible single-chunk staging endpoint |
 | POST | `/api/ingest/run/item` | one idempotent paid result + full audit payload |
 | POST | `/api/ingest/run/finish` | terminal run state and frozen-prior Bayesian Puzzle Elo |
 | POST | `/api/ingest/tournament?id=<stem>` | a tournament document |

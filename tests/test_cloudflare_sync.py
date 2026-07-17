@@ -132,25 +132,26 @@ def test_large_run_item_is_chunked_without_truncating_payload():
     item = _large_item()
     deliveries = run_item_delivery_documents(item)
 
-    assert len(deliveries) > 2
-    assert all(path == "ingest/run/item/chunk" for path, _ in deliveries[:-1])
+    assert len(deliveries) == 2
+    assert deliveries[0][0] == "ingest/run/item/chunks"
     assert deliveries[-1][0] == "ingest/run/item"
+    batch = deliveries[0][1]
     final = deliveries[-1][1]
     assert "payload" not in final
     descriptor = final["payload_chunks"]
     assert isinstance(descriptor, dict)
-    assert descriptor["chunk_count"] == len(deliveries) - 1
+    assert descriptor["chunk_count"] == len(batch["chunks"])
 
     raw_chunks = [
-        base64.b64decode(str(document["payload_chunk"]))
-        for _, document in deliveries[:-1]
+        base64.b64decode(str(chunk["payload_chunk"]))
+        for chunk in batch["chunks"]
     ]
     assert all(len(chunk) <= RUN_ITEM_PAYLOAD_CHUNK_BYTES for chunk in raw_chunks)
     reconstructed = json.loads(b"".join(raw_chunks))
     assert reconstructed == item["payload"]
 
 
-def test_chunk_failure_keeps_item_unsynced_and_retry_replays_idempotently():
+def test_chunk_batch_failure_keeps_item_unsynced_and_retry_replays_once():
     class FakeStore:
         def __init__(self) -> None:
             self.item = _large_item()
@@ -173,11 +174,11 @@ def test_chunk_failure_keeps_item_unsynced_and_retry_replays_idempotently():
     store = FakeStore()
     first_calls: list[str] = []
 
-    def fail_second_chunk(
+    def fail_chunk_batch(
         api: str, token: str, path: str, document: dict[str, object]
     ) -> dict[str, object]:
         first_calls.append(path)
-        if path == "ingest/run/item/chunk" and first_calls.count(path) == 2:
+        if path == "ingest/run/item/chunks":
             raise OSError("temporary D1 failure")
         return {"ok": True}
 
@@ -186,10 +187,10 @@ def test_chunk_failure_keeps_item_unsynced_and_retry_replays_idempotently():
         "https://example.test",
         "secret",
         "large-run",
-        post_document=fail_second_chunk,
+        post_document=fail_chunk_batch,
     ) == (0, 1)
     assert store.synced == []
-    assert "ingest/run/item" not in first_calls
+    assert first_calls == ["ingest/run/start", "ingest/run/item/chunks"]
     assert "ingest/run/finish" not in first_calls
 
     retry_calls: list[str] = []
@@ -207,8 +208,10 @@ def test_chunk_failure_keeps_item_unsynced_and_retry_replays_idempotently():
         "large-run",
         post_document=succeed,
     ) == (1, 0)
-    assert retry_calls.count("ingest/run/item/chunk") == len(
-        run_item_delivery_documents(store.item)
-    ) - 1
-    assert retry_calls[-2:] == ["ingest/run/item", "ingest/run/finish"]
+    assert retry_calls == [
+        "ingest/run/start",
+        "ingest/run/item/chunks",
+        "ingest/run/item",
+        "ingest/run/finish",
+    ]
     assert store.synced == ["wwxHC"]

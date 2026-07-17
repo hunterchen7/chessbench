@@ -3,6 +3,7 @@ import type {
   Env,
   RunFinishDoc,
   RunItemDoc,
+  RunItemPayloadChunkBatchDoc,
   RunItemPayloadChunkDoc,
   RunStartDoc,
   SuiteDoc,
@@ -320,6 +321,34 @@ export async function upsertRunItemPayloadChunk(
     stamp,
   ).run()
   return { run_id: chunk.run_id, item_id: chunk.item_id, chunk_index: chunk.chunk_index }
+}
+
+export async function upsertRunItemPayloadChunks(
+  env: Env,
+  batch: RunItemPayloadChunkBatchDoc,
+): Promise<{ run_id: string; item_id: string; chunks: number }> {
+  const run = await env.DB.prepare(`SELECT run_id FROM benchmark_runs_v2 WHERE run_id=?`)
+    .bind(batch.run_id).first<{ run_id: string }>()
+  if (!run) throw new Error(`unknown run: ${batch.run_id}`)
+  const stamp = now()
+  await batchChunked(env, batch.chunks.map((chunk) => env.DB.prepare(
+    `INSERT INTO benchmark_item_payload_chunks
+     (run_id, item_id, payload_sha256, chunk_index, chunk_count, payload_chunk, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(run_id, item_id, payload_sha256, chunk_index) DO UPDATE SET
+       chunk_count=excluded.chunk_count, payload_chunk=excluded.payload_chunk,
+       updated_at=excluded.updated_at`,
+  ).bind(
+    batch.run_id,
+    batch.item_id,
+    batch.payload_sha256,
+    chunk.chunk_index,
+    batch.chunk_count,
+    chunk.payload_chunk,
+    stamp,
+    stamp,
+  )), 4)
+  return { run_id: batch.run_id, item_id: batch.item_id, chunks: batch.chunks.length }
 }
 
 interface ResolvedRunItemPayload {

@@ -3,6 +3,7 @@ import test from "node:test"
 
 import {
   encodeRunItemPayload,
+  isRunItemPayloadChunkBatch,
   parseInlineRunItemPayload,
   parseRunItemPayloadReference,
   reassembleRunItemPayload,
@@ -26,6 +27,19 @@ test("large full conversations round-trip through authenticated chunks", async (
   }
   const encoded = await encodeRunItemPayload(payload)
   assert.ok(encoded.chunks.length > 1)
+  const batch = {
+    run_id: "run-large",
+    item_id: "wwxHC",
+    payload_sha256: encoded.descriptor.sha256,
+    chunk_count: encoded.descriptor.chunk_count,
+    chunks: encoded.chunks.map((payload_chunk, chunk_index) => ({ chunk_index, payload_chunk })),
+  }
+  assert.equal(isRunItemPayloadChunkBatch(batch), true)
+  assert.equal(
+    isRunItemPayloadChunkBatch({ ...batch, chunks: batch.chunks.slice(1) }),
+    false,
+    "the batch endpoint requires one complete dense chunk set",
+  )
 
   const reference = runItemPayloadReferenceJSON(encoded.descriptor)
   assert.ok(reference.length < 512)
