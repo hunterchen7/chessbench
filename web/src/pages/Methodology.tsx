@@ -93,6 +93,16 @@ const FRONTIER_PRELIMINARY = [
     tokens: "15,568 / 15,518",
     reasoning: "Opaque",
   },
+  {
+    model: "Claude Fable 5",
+    effort: "High",
+    route: "Google Vertex global",
+    solved: "0/3 · 0.33 pt",
+    legal: "3/3",
+    cost: "$2.6261",
+    tokens: "50,449 / 7,056",
+    reasoning: "Readable",
+  },
 ] as const
 
 export function Methodology() {

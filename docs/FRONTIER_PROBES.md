@@ -28,6 +28,7 @@ puzzle at a time.
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 2026-07-17 | GPT-5.6 Sol · low | OpenAI only | 0/3 | 3/3 | 0.00/3 | $0.165756 | 5,477 / 5,447 | `d2d5`, `f3f7`, `e4d4` |
 | 2026-07-17 | GPT-5.6 Sol · high | OpenAI only | 1/3 | 3/3 | 1.00/3 | $0.480530 | 15,568 / 15,518 | `d2d5`, `d7f7`, `e4d4` |
+| 2026-07-17 | Claude Fable 5 · high | Google Vertex global only | 0/3 | 3/3 | 0.33/3 | $2.626052 | 50,449 / 7,056 | `c2c1q`, `d7f7` then `f7f8`, `e4d4` |
 
 The GPT-5.6 Sol low run is `6cdedf64bcbd4e988a9506f6651eba2c`.
 All three answers were legal first attempts but differed from the frozen
@@ -38,8 +39,18 @@ low on the other two positions.
 OpenAI exposed a reasoning-token count and encrypted `reasoning_details` blocks
 for both variants, but no readable reasoning text. ChessBench stores the opaque
 blocks for audit and same-puzzle continuity without presenting them as visible
-thought. These runs are too small for an ability claim; their purpose is to
-establish observed cost and failure-mode baselines before a larger evaluation.
+thought.
+
+The Claude Fable 5 high run is `b5039128ba454a02bcbe02ee909f7674`.
+It returned readable reasoning on every puzzle, which ChessBench stores in full
+alongside the exact prompts and provider payloads. On the hardest position it
+focused on the advanced c-pawn and chose immediate promotion. On the middle
+position it found the correct first move, `d7f7`, but then deviated with
+`f7f8`, earning one-third partial credit. These snippets are useful behavioral
+evidence, but are not treated as a complete or provider-hidden chain of thought.
+
+These runs are too small for an ability claim; their purpose is to establish
+observed cost and failure-mode baselines before a larger evaluation.
 
 This table is intentionally append-only for completed probe variants. Partial
 or provider-failed attempts remain in the durable database but are not reported
