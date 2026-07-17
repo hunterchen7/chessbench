@@ -1,12 +1,13 @@
 import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowRight, BarChart3, Check, Filter, Info } from "lucide-react"
+import { ArrowRight, BarChart3, Check, Filter, GitCompareArrows, Info } from "lucide-react"
 import type { ModelVariant, RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -31,6 +32,8 @@ interface PuzzleRunMatrixProps {
   openModels: string[]
   onOpenModelsChange: (models: string[]) => void
   exportLabel?: string
+  comparisonRunIds?: string[]
+  onComparisonRunIdsChange?: (ids: string[]) => void
 }
 
 const MATRIX_CLASS_NAME = "grid items-center transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
@@ -93,6 +96,8 @@ export function PuzzleRunMatrix({
   openModels,
   onOpenModelsChange,
   exportLabel = "Export this suite",
+  comparisonRunIds = [],
+  onComparisonRunIdsChange,
 }: PuzzleRunMatrixProps) {
   const navigate = useNavigate()
   const rows = useMemo(() => {
@@ -208,15 +213,18 @@ export function PuzzleRunMatrix({
                     </AccordionTrigger>
                     <AccordionContent className="pb-0">
                       <div className="border-t bg-muted/15 px-4 py-5">
-                        <div className="mb-4"><div className="text-sm font-semibold">Published runs</div><div className="mt-0.5 text-xs text-muted-foreground">Each row is a distinct prompt method and response protocol. Select one to inspect its complete result.</div></div>
+                        <div className="mb-4"><div className="text-sm font-semibold">Published runs</div><div className="mt-0.5 text-xs text-muted-foreground">Each row is a distinct prompt method and response protocol. Open one for its full result, or select two to four for a synchronized comparison.</div></div>
                         <div className="overflow-hidden rounded-lg border bg-background">
                           <Table>
                             <TableHeader><TableRow>
+                              {onComparisonRunIdsChange ? <TableHead className="w-14 text-center">Compare</TableHead> : null}
                               <TableHead>Method</TableHead><TableHead>Response</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead><TableHead className="text-right">Completed</TableHead>
                             </TableRow></TableHeader>
                             <TableBody>{visibleRuns.map((run) => {
                               const info = modeInfo(run.condition)!
                               const path = runDetailPath(run)
+                              const selectedForComparison = comparisonRunIds.includes(run.run_id)
+                              const comparisonFull = comparisonRunIds.length >= 4 && !selectedForComparison
                               return <TableRow
                                 key={run.run_id}
                                 role="link"
@@ -230,6 +238,18 @@ export function PuzzleRunMatrix({
                                   navigate(path)
                                 }}
                               >
+                                {onComparisonRunIdsChange ? <TableCell className="text-center"><Button
+                                  type="button"
+                                  variant={selectedForComparison ? "secondary" : "ghost"}
+                                  size="icon-sm"
+                                  aria-label={`${selectedForComparison ? "Remove" : "Add"} ${run.model_variant.display_name}, ${info.name}, ${responseStyleInfo(run.condition).label} ${selectedForComparison ? "from" : "to"} comparison`}
+                                  aria-pressed={selectedForComparison}
+                                  disabled={comparisonFull}
+                                  title={comparisonFull ? "Compare up to four runs" : selectedForComparison ? "Remove from comparison" : "Add to comparison"}
+                                  onClick={(event) => { event.stopPropagation(); onComparisonRunIdsChange(selectedForComparison ? comparisonRunIds.filter((id) => id !== run.run_id) : [...comparisonRunIds, run.run_id]) }}
+                                  onKeyDown={(event) => event.stopPropagation()}
+                                  className={selectedForComparison ? "text-violet-700 dark:text-violet-300" : "text-muted-foreground"}
+                                >{selectedForComparison ? <Check /> : <GitCompareArrows />}</Button></TableCell> : null}
                                 <TableCell><div className="font-medium">{info.displayN}. {info.name}</div><div className="text-[10px] text-muted-foreground">{info.blurb}</div></TableCell>
                                 <TableCell><ResponseStyleBadge condition={run.condition} /></TableCell>
                                 <TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{ratingText(run)}</div><div className="text-[10px] text-muted-foreground">{ratingNote(run)}</div></TableCell>

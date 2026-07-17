@@ -7,9 +7,12 @@ import { isModelVariant } from "@/lib/participants"
 import { MODES, type ModeNumber } from "@/lib/format"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { PuzzleRunMatrix } from "@/components/PuzzleRunMatrix"
+import { CompareTray } from "@/components/CompareTray"
 import { SuiteDescriptor } from "@/components/SuiteDescriptor"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { normalizeComparisonIds } from "@/lib/runComparison"
+import { cn } from "@/lib/utils"
 
 type Mode = ModeNumber
 
@@ -44,6 +47,8 @@ export function PuzzleLeaderboard() {
   const visibleModes = requestedModes.length ? MODES.map((mode) => mode.n).filter((mode) => requestedModes.includes(mode)) : MODES.map((mode) => mode.n)
   const openModels = searchParams.getAll("open")
   const suiteRuns = useMemo(() => standard.filter((run) => run.suite?.name === activeSuite), [standard, activeSuite])
+  const comparisonIds = normalizeComparisonIds(searchParams.getAll("compare")).filter((id) => suiteRuns.some((run) => run.run_id === id))
+  const comparisonRuns = comparisonIds.flatMap((id) => suiteRuns.find((run) => run.run_id === id) ? [suiteRuns.find((run) => run.run_id === id)!] : [])
 
   const totals = useMemo(() => ({
     models: new Set(suiteRuns.map((run) => run.model_variant.key)).size,
@@ -53,7 +58,7 @@ export function PuzzleLeaderboard() {
     cost: suiteRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }), [suiteRuns])
 
-  const setSuite = (value: string) => updateSearchParams((next) => next.set("suite", value))
+  const setSuite = (value: string) => updateSearchParams((next) => { next.set("suite", value); next.delete("compare") })
   const setOpenModels = (values: string[]) => updateSearchParams((next) => {
     next.delete("open")
     values.forEach((value) => next.append("open", value))
@@ -62,9 +67,13 @@ export function PuzzleLeaderboard() {
     if (modes.length === MODES.length) next.delete("modes")
     else next.set("modes", modes.join(","))
   })
+  const setComparisonIds = (ids: string[]) => updateSearchParams((next) => {
+    next.delete("compare")
+    normalizeComparisonIds(ids).forEach((id) => next.append("compare", id))
+  })
 
   return (
-    <div className="space-y-8">
+    <div className={cn("space-y-8", comparisonRuns.length && "pb-28")}>
       <section className="grid gap-6 border-b border-border/70 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div>
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><BarChart3 className="size-4" /> Standard tactics</div>
@@ -106,8 +115,11 @@ export function PuzzleLeaderboard() {
           onVisibleModesChange={setVisibleModes}
           openModels={openModels}
           onOpenModelsChange={setOpenModels}
+          comparisonRunIds={comparisonIds}
+          onComparisonRunIdsChange={setComparisonIds}
         />
       </section>
+      <CompareTray runs={comparisonRuns} onRemove={(id) => setComparisonIds(comparisonIds.filter((candidate) => candidate !== id))} onClear={() => setComparisonIds([])} />
     </div>
   )
 }
