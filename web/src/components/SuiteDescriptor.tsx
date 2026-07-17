@@ -58,6 +58,7 @@ export function SuiteDescriptor({ name }: { name: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-semibold">About this suite</h2>
             <Badge variant="outline" className="font-mono font-normal">{suite.name}</Badge>
+            {suite.current ? <Badge variant="secondary">Current release</Badge> : <Badge variant="outline">Historical release</Badge>}
           </div>
           <p className="mt-2 max-w-4xl text-sm leading-relaxed text-muted-foreground">{suite.description}</p>
         </div>

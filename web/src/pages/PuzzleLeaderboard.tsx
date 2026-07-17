@@ -85,16 +85,17 @@ export function PuzzleLeaderboard() {
     void loadSuiteCatalog().then((next) => {
       if (active) setSuiteCatalog(next)
     }).catch(() => {
-      if (active) setSuiteCatalog({ schema: "chessbench.suite_catalog.v1", suites: [] })
+      if (active) setSuiteCatalog({ schema: "chessbench.suite_catalog.v2", suites: [] })
     })
     return () => { active = false }
   }, [])
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => (suiteCatalog?.suites ?? [])
     .filter((entry) => /^standard-lichess-v\d+$/.test(entry.name))
-    .toSorted((a, b) => Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0)), [suiteCatalog])
+    .toSorted((a, b) => Number(Boolean(b.current)) - Number(Boolean(a.current)) || Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0)), [suiteCatalog])
   const requestedSuite = searchParams.get("suite")
-  const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : suites[0]?.name || "standard-lichess-v3"
+  const currentSuite = suites.find((entry) => entry.current) ?? suites[0]
+  const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : currentSuite?.name || "standard-lichess-v3"
   const requestedModes = searchParams.get("modes")?.split(",").map(Number).filter((value): value is Mode => MODES.some((mode) => mode.n === value)) ?? []
   const visibleModes = requestedModes.length ? MODES.map((mode) => mode.n).filter((mode) => requestedModes.includes(mode)) : MODES.map((mode) => mode.n)
   const openModels = searchParams.getAll("open")
@@ -152,18 +153,18 @@ export function PuzzleLeaderboard() {
           </p>
         </div>
         <div className="grid gap-3 lg:justify-items-end">
-          <div className="w-full lg:w-64">
+          <div className="w-full lg:w-[22rem]">
             <div className="mb-1.5 text-xs font-medium text-muted-foreground">Benchmark suite</div>
             <Select value={activeSuite} onValueChange={setSuite}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {suites.map((entry, index) => <SelectItem key={entry.name} value={entry.name}>
-                  {entry.name} · {entry.items}{index === 0 ? " · latest" : ""}
+                {suites.map((entry) => <SelectItem key={entry.name} value={entry.name}>
+                  {entry.name} · {entry.items} puzzles{entry.current ? " · current" : ""}
                 </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <PuzzleNav count={250} />
+          <PuzzleNav count={currentSuite?.items ?? 250} />
         </div>
       </section>
 

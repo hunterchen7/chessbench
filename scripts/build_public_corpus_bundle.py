@@ -152,23 +152,25 @@ def _historical_bundle() -> dict[str, object]:
 
 def _suite_catalog() -> dict[str, object]:
     suites: list[dict[str, object]] = []
+    current_names = {str(_read(path)["name"]) for path in RELEASES.values()}
     for path in sorted(PUBLIC_SUITES.glob("*.json")):
         suite = _read(path)
         description = str(suite.get("description", "")).strip()
         if not description:
             raise ValueError(f"{path.relative_to(ROOT)} is missing a suite description")
-        suites.append(
-            {
-                "name": suite["name"],
-                "version": suite["version"],
-                "kind": suite["kind"],
-                "visibility": suite["visibility"],
-                "items": len(suite.get("items", [])),  # type: ignore[arg-type]
-                "content_hash": suite["content_hash"],
-                "description": description,
-            }
-        )
-    return {"schema": "chessbench.suite_catalog.v1", "suites": suites}
+        entry: dict[str, object] = {
+            "name": suite["name"],
+            "version": suite["version"],
+            "kind": suite["kind"],
+            "visibility": suite["visibility"],
+            "items": len(suite.get("items", [])),  # type: ignore[arg-type]
+            "content_hash": suite["content_hash"],
+            "description": description,
+        }
+        if suite["name"] in current_names:
+            entry["current"] = True
+        suites.append(entry)
+    return {"schema": "chessbench.suite_catalog.v2", "suites": suites}
 
 
 def main() -> int:

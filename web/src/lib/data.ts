@@ -232,16 +232,17 @@ export interface SuiteCatalogEntry {
   items: number
   content_hash: string
   description: string
+  current?: boolean
 }
 
 export interface SuiteCatalog {
-  schema: "chessbench.suite_catalog.v1"
+  schema: "chessbench.suite_catalog.v2"
   suites: SuiteCatalogEntry[]
 }
 
 let suiteCatalogRequest: Promise<SuiteCatalog> | null = null
 export function loadSuiteCatalog(): Promise<SuiteCatalog> {
-  return suiteCatalogRequest ??= fetchJSON<SuiteCatalog>(`${DATA}suites.json`).catch((error) => {
+  return suiteCatalogRequest ??= fetchJSON<SuiteCatalog>(`${DATA}suites.json`, { cache: "no-store" }).catch((error) => {
     suiteCatalogRequest = null
     throw error
   })
@@ -409,8 +410,8 @@ export interface Dataset {
   apiBase: string | null
 }
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const response = await fetch(url)
+async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init)
   if (!response.ok) throw new Error(`${url}: ${response.status}`)
   return response.json() as Promise<T>
 }

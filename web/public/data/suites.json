@@ -1,5 +1,5 @@
 {
- "schema": "chessbench.suite_catalog.v1",
+ "schema": "chessbench.suite_catalog.v2",
  "suites": [
   {
    "name": "esoteric-seed-v1",
@@ -15,6 +15,7 @@
    "version": "2.0.0",
    "kind": "composed",
    "visibility": "public",
+   "current": true,
    "items": 51,
    "content_hash": "sha256:b6e7e9fdb5c1ba36",
    "description": "A 51-problem exact-answer benchmark spanning directmates, selfmates, reflexmates, helpmates, series movers, and proof games. Every stored solution is verifier-checked, and sourced historical compositions pass an explicit public-admission gate."
@@ -51,6 +52,7 @@
    "version": "3.0.0",
    "kind": "puzzle",
    "visibility": "public",
+   "current": true,
    "items": 250,
    "content_hash": "sha256:196077b0a7370043",
    "description": "A 250-position, rating-ordered Lichess tactical benchmark with exactly 25 puzzles in each of ten difficulty bands. Each band targets a diverse mix of mating, defensive, quiet, pawn, endgame, and tactical ideas while retaining strict calibration and provenance gates."
@@ -123,6 +125,7 @@
    "version": "1.0.0",
    "kind": "puzzle",
    "visibility": "public",
+   "current": true,
    "items": 135,
    "content_hash": "sha256:20e309892363e42e",
    "description": "A 135-position full-line calculation benchmark drawn from titled-player games. Models must return each complete forced UCI variation in one response, with positions editorially divided into Easy, Medium, and Hard sections."
