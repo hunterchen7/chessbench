@@ -6,6 +6,7 @@ from scripts.sync_registry import ACTIVE_SUITE_FILES, suite_track
 def test_live_registry_defaults_exclude_superseded_suites():
     assert ACTIVE_SUITE_FILES == (
         "standard-lichess-v3.json",
+        "frontier-hardest-v1.json",
         "woodpecker-masters-v1.json",
         "esoteric-seed-v2.json",
         "standard-smoke-v3.json",
