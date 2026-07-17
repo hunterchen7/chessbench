@@ -6,6 +6,7 @@ import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/da
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { PUZZLE_ELO_PRIOR, puzzlePerformanceRating, puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
+import { PUZZLE_OUTCOME_COLORS, puzzleOutcome, type PuzzleOutcome } from "@/lib/puzzleOutcome"
 import { isVisibleUiTrack } from "@/lib/uiTracks"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -66,6 +67,7 @@ interface PerformancePoint {
   rating: number
   score: number
   solved: boolean
+  outcome: PuzzleOutcome
   failureReason: string | null
   cumulativePoints: number
   elo: number
@@ -80,6 +82,8 @@ type AnswerSortKey = "puzzle" | "rating" | "points"
 const PERFORMANCE_VIEWBOX_HEIGHT = 280
 const ELO_PLOT_TOP = 16
 const ELO_PLOT_BOTTOM = 174
+const OUTCOME_RUG_TOP = 188
+const OUTCOME_RUG_HEIGHT = 9
 const POINTS_PLOT_TOP = 210
 const POINTS_PLOT_BOTTOM = 262
 
@@ -130,6 +134,7 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
         rating: item.rating,
         score: item.score,
         solved: item.solved,
+        outcome: puzzleOutcome(item),
         failureReason: item.failure_reason,
         cumulativePoints: points,
         elo,
@@ -199,7 +204,7 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
     <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between">
       <div className="space-y-1">
         <CardTitle className="text-base">Performance over suite</CardTitle>
-        <p className="max-w-3xl text-xs text-muted-foreground">A shared timeline for cumulative points and Bayesian complete-solve Puzzle Elo in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
+        <p className="max-w-3xl text-xs text-muted-foreground">A shared timeline for cumulative points, per-puzzle outcomes, and Bayesian complete-solve Puzzle Elo in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
         <span className="text-muted-foreground">{hoveredIndex == null ? "Final" : `Puzzle ${hoveredIndex + 1}/${history.length}`}</span>
@@ -208,9 +213,10 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
       </div>
     </CardHeader>
     <CardContent className="min-w-0">
+      <div className="mb-2 flex flex-wrap items-center justify-end gap-3 text-[10px] text-muted-foreground"><span className="font-medium uppercase tracking-wide">Puzzle outcomes</span><span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-emerald-500" /> Full</span><span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-amber-500" /> Partial</span><span className="inline-flex items-center gap-1"><span className="size-2 rounded-sm bg-rose-500" /> Zero</span></div>
       <div
         className="relative h-72 touch-pan-y overflow-hidden rounded-xl border bg-secondary/25 p-2 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-80"
-        aria-label="Combined Puzzle Elo and cumulative points timeline. Hover, tap, or use the arrow keys to inspect a puzzle."
+        aria-label="Combined Puzzle Elo, puzzle outcomes, and cumulative points timeline. Hover, tap, or use the arrow keys to inspect a puzzle."
         tabIndex={0}
         onPointerMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width) }}
         onPointerDown={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width) }}
@@ -227,6 +233,7 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
           <polyline points={chart.upperInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
           <polyline points={chart.lowerInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
           <polyline points={chart.eloLine} fill="none" className="stroke-violet-500" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+          {history.map((point, index) => <rect key={point.puzzleId} x={index / history.length * 1000 + 0.35} y={OUTCOME_RUG_TOP} width={Math.max(1, 1000 / history.length - 0.7)} height={OUTCOME_RUG_HEIGHT} rx="1" fill={PUZZLE_OUTCOME_COLORS[point.outcome]} opacity="0.9" />)}
           <line x1="0" y1={POINTS_PLOT_TOP} x2="1000" y2={POINTS_PLOT_TOP} className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
           <line x1="0" y1={POINTS_PLOT_BOTTOM} x2="1000" y2={POINTS_PLOT_BOTTOM} className="stroke-border" vectorEffect="non-scaling-stroke" />
           <polygon points={chart.pointsArea} className="fill-emerald-500" opacity="0.16" />

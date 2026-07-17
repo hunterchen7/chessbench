@@ -5,6 +5,7 @@ import type { PuzzleItem, Run } from "@/lib/data"
 import { puzzleContinuation, puzzleModelAttempts } from "@/lib/chess"
 import { comparisonRunLabel } from "@/lib/runComparison"
 import { puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
+import { PUZZLE_OUTCOME_COLORS, puzzleOutcome, type PuzzleOutcome } from "@/lib/puzzleOutcome"
 import { modeInfo, pct, responseStyleInfo } from "@/lib/format"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-type Outcome = "solved" | "partial" | "failed"
+type Outcome = PuzzleOutcome
 
 interface ComparisonPoint {
   item: PuzzleItem
@@ -35,7 +36,6 @@ interface ComparisonSeries {
 }
 
 const SERIES_COLORS = ["#8b5cf6", "#06b6d4", "#f59e0b", "#f43f5e"]
-const STATUS_COLORS: Record<Outcome, string> = { solved: "#10b981", partial: "#f59e0b", failed: "#f43f5e" }
 const CHART_WIDTH = 1000
 const ELO_TOP = 18
 const ELO_BOTTOM = 170
@@ -47,11 +47,6 @@ interface ChartScale {
   x: (index: number) => number
   eloY: (value: number) => number
   pointsY: (value: number) => number
-}
-
-function itemOutcome(item: PuzzleItem): Outcome {
-  if (item.solved) return "solved"
-  return item.score > 0 ? "partial" : "failed"
 }
 
 function outcomeLabel(point: ComparisonPoint): string {
@@ -90,7 +85,7 @@ function buildSeries(runs: Run[]): ComparisonSeries[] {
       const turns = item.turns ?? []
       const point: ComparisonPoint = {
         item,
-        outcome: itemOutcome(item),
+        outcome: puzzleOutcome(item),
         answer: modelAnswer(item),
         cumulativePoints,
         cumulativeRate: cumulativePoints / Math.max(1, run.summary.max_points),
@@ -144,7 +139,7 @@ const StaticComparisonPlot = memo(function StaticComparisonPlot({ series, chart,
     {series.map((entry, seriesIndex) => <g key={entry.run.run_id}>
       <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.eloY(point.elo)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2.25" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
       <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.pointsY(point.cumulativeRate)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-      {entry.points.map((point, index) => <rect key={point.item.puzzle_id} x={index / total * CHART_WIDTH + 0.35} y={RUG_TOP + seriesIndex * (RUG_HEIGHT + RUG_GAP)} width={Math.max(1, CHART_WIDTH / total - 0.7)} height={RUG_HEIGHT} rx="1" fill={STATUS_COLORS[point.outcome]} opacity="0.9" />)}
+      {entry.points.map((point, index) => <rect key={point.item.puzzle_id} x={index / total * CHART_WIDTH + 0.35} y={RUG_TOP + seriesIndex * (RUG_HEIGHT + RUG_GAP)} width={Math.max(1, CHART_WIDTH / total - 0.7)} height={RUG_HEIGHT} rx="1" fill={PUZZLE_OUTCOME_COLORS[point.outcome]} opacity="0.9" />)}
     </g>)}
   </>
 })
