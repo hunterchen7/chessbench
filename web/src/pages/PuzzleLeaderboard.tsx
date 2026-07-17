@@ -48,6 +48,7 @@ export function PuzzleLeaderboard() {
   const totals = useMemo(() => ({
     models: new Set(suiteRuns.map((run) => run.model_variant.key)).size,
     runs: suiteRuns.length,
+    solves: suiteRuns.reduce((sum, run) => sum + run.summary.solved, 0),
     attempts: suiteRuns.reduce((sum, run) => sum + run.progress.completed, 0),
     cost: suiteRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }), [suiteRuns])
@@ -93,7 +94,7 @@ export function PuzzleLeaderboard() {
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models.toLocaleString()}</div><div className="text-xs text-muted-foreground">model configurations</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><Layers3 className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{totals.runs.toLocaleString()}</div><div className="text-xs text-muted-foreground">completed benchmark runs</div></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">{totals.attempts.toLocaleString()}</div><div className="text-xs text-muted-foreground">completed puzzle attempts</div></div></CardContent></Card>
+        <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold tabular-nums">{totals.solves.toLocaleString()} / {totals.attempts.toLocaleString()}</div><div className="text-xs text-muted-foreground">full solves / completed attempts</div></div></CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totals.cost.toFixed(2)}</div><div className="text-xs text-muted-foreground">cost across all runs</div></div></CardContent></Card>
       </section>
 
