@@ -2,39 +2,21 @@ import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Activity, ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
-import type { RunIndexEntry } from "@/lib/data"
-import { MODES, modeInfo, pct, pointsText, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
+import { MODES, pct, type ModeNumber } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { isModelVariant } from "@/lib/participants"
 import { isVisibleUiTrack } from "@/lib/uiTracks"
-import { ModelIdentity } from "@/components/ModelIdentity"
-import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
-import { ExportButton } from "@/components/ExportButton"
-import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { PuzzleRunMatrix } from "@/components/PuzzleRunMatrix"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-type Mode = ModeNumber
-type ModeMap = Partial<Record<Mode, RunIndexEntry>>
-type SortKey = "model" | "rating" | "points" | "solved" | "legal" | "cost" | `mode-${Mode}`
-
-const puzzleRating = (run: RunIndexEntry) => run.summary.puzzle_performance_rating
-
-const puzzleRatingText = (run: RunIndexEntry) => {
-  const estimate = puzzleRating(run)
-  if (!estimate) return "—"
-  if (!estimate.bounded) return estimate.rating <= 0 ? "< 0" : "> 4000"
-  return String(Math.round(estimate.rating))
-}
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
     <div className="border-l border-border/70 pl-4 first:border-l-0 first:pl-0">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-1 font-mono text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
+      <div className="mt-1 font-mono text-3xl font-semibold tabular-nums tracking-[-0.04em] sm:text-4xl">{value}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{note}</div>
     </div>
   )
@@ -47,74 +29,31 @@ const TRACKS = [
 ]
 
 export function Leaderboard() {
-  const { runs, tournaments, apiBase } = useData()
-  const [view, setView] = useState<"compare" | "1" | "2" | "3" | "5">("2")
-  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
+  const { runs, apiBase } = useData()
   const [humans, setHumans] = useState<HumanRow[]>([])
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
-  const suites = useMemo(() => Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[], [standard])
+  const suites = useMemo(() => (Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[]).toSorted((a, b) => {
+    const aVersion = Number(a.match(/v(\d+)$/)?.[1] ?? 0)
+    const bVersion = Number(b.match(/v(\d+)$/)?.[1] ?? 0)
+    return bVersion - aVersion || b.localeCompare(a)
+  }), [standard])
   const [suite, setSuite] = useState("")
-  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: "mode-2", direction: "desc" })
+  const [visibleModes, setVisibleModes] = useState<ModeNumber[]>(() => MODES.map((mode) => mode.n))
+  const [openModels, setOpenModels] = useState<string[]>([])
   const activeSuite = suite || suites[0] || ""
+  const suiteRuns = useMemo(() => standard.filter((run) => run.suite?.name === activeSuite), [standard, activeSuite])
 
   useEffect(() => {
     if (apiBase) void fetchHumanLeaderboard(apiBase).then(setHumans)
   }, [apiBase])
 
-  const byVariant = useMemo(() => {
-    const grouped = new Map<string, ModeMap>()
-    for (const run of standard) {
-      if (activeSuite && run.suite?.name !== activeSuite) continue
-      if (responseStyleInfo(run.condition).key !== responseStyle) continue
-      const mode = modeInfo(run.condition)
-      if (!mode) continue
-      const record = grouped.get(run.model_variant.key) ?? {}
-      const current = record[mode.n]
-      if (!current || run.progress.completed > current.progress.completed || run.created > current.created) record[mode.n] = run
-      grouped.set(run.model_variant.key, record)
-    }
-    return grouped
-  }, [standard, activeSuite, responseStyle])
-
-  const rows = useMemo(() => Array.from(byVariant.entries()).map(([key, modes]) => {
-    const anchor = modes[2] ?? modes[3] ?? modes[5] ?? modes[1]!
-    return { key, modes, anchor }
-  }).filter((row) => row.anchor), [byVariant])
-
-  const compareRows = useMemo(() => rows.toSorted((a, b) => {
-    const multiplier = sort.direction === "asc" ? 1 : -1
-    if (sort.key === "model") return a.anchor.model_variant.display_name.localeCompare(b.anchor.model_variant.display_name) * multiplier
-    const mode = sort.key.startsWith("mode-") ? Number(sort.key.slice(5)) as Mode : 2
-    return ((a.modes[mode]?.summary.points ?? -1) - (b.modes[mode]?.summary.points ?? -1)) * multiplier
-  }), [rows, sort.key, sort.direction])
-
-  const single = useMemo(() => {
-    if (view === "compare") return []
-    const mode = Number(view) as Mode
-    const values = rows.flatMap((row) => row.modes[mode] ? [row.modes[mode]!] : [])
-    const multiplier = sort.direction === "asc" ? 1 : -1
-    return values.toSorted((a, b) => {
-      let comparison = 0
-      if (sort.key === "model") comparison = a.model_variant.display_name.localeCompare(b.model_variant.display_name)
-      else if (sort.key === "rating") comparison = (puzzleRating(a)?.rating ?? -1) - (puzzleRating(b)?.rating ?? -1)
-      else if (sort.key === "solved") comparison = a.summary.solve_rate - b.summary.solve_rate
-      else if (sort.key === "legal") comparison = a.summary.first_move_legal_rate - b.summary.first_move_legal_rate
-      else if (sort.key === "cost") comparison = (a.summary.cost_usd ?? Number.POSITIVE_INFINITY) - (b.summary.cost_usd ?? Number.POSITIVE_INFINITY)
-      else comparison = a.summary.points - b.summary.points
-      return comparison * multiplier || b.summary.points - a.summary.points
-    })
-  }, [rows, view, sort.key, sort.direction])
-
-  const toggleSort = (key: SortKey, defaultDirection: SortDirection = "desc") => setSort((current) => ({
-    key,
-    direction: current.key === key ? (current.direction === "asc" ? "desc" : "asc") : defaultDirection,
-  }))
-
   const modelRuns = runs.filter((run) => isVisibleUiTrack(run.track) && isModelVariant(run.model_variant))
-  const baseModels = new Set(modelRuns.map((run) => run.model_variant.base_key)).size
   const completed = modelRuns.filter((run) => run.status === "completed").length
   const active = modelRuns.filter((run) => run.status === "running" || run.status === "partial")
   const cost = modelRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
+  const puzzleRuns = modelRuns.filter((run) => run.track === "puzzle")
+  const puzzleAttempts = puzzleRuns.reduce((sum, run) => sum + run.progress.completed, 0)
+  const fullSolves = puzzleRuns.reduce((sum, run) => sum + run.summary.solved, 0)
 
   return (
     <div className="space-y-10">
@@ -132,9 +71,9 @@ export function Leaderboard() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-4 xl:grid-cols-2">
-          <Stat label="Base models" value={String(baseModels)} note="budget variants separate" />
-          <Stat label="Completed runs" value={String(completed)} note={`${modelRuns.length} visible manifests`} />
-          <Stat label="Game sets" value={String(tournaments.length)} note="match-point scoring" />
+          <Stat label="Puzzle attempts" value={puzzleAttempts.toLocaleString()} note="completed across all runs" />
+          <Stat label="Full solves" value={fullSolves.toLocaleString()} note="entire puzzle lines correct" />
+          <Stat label="Completed runs" value={completed.toLocaleString()} note={`${modelRuns.length} visible manifests`} />
           <Stat label="Recorded cost" value={`$${cost.toFixed(2)}`} note="provider-reported" />
         </div>
       </section>
@@ -177,59 +116,25 @@ export function Leaderboard() {
             <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle leaderboard</h2></div>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Compare Puzzle Elo and points across board-information methods. Each puzzle keeps its own isolated conversation across moves; changing methods changes the board assistance, not the model's memory.</p>
           </div>
-          <Link to="/puzzles" className="group inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Explore the full leaderboard <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {suites.length > 1 && <Select value={activeSuite} onValueChange={(value) => { setSuite(value); setOpenModels([]) }}>
+              <SelectTrigger size="sm" className="w-52 bg-background" aria-label="Benchmark suite"><SelectValue /></SelectTrigger>
+              <SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+            </Select>}
+            <Link to="/puzzles" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              Explore the full leaderboard <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </div>
         </div>
-
-        <Card className="gap-0 overflow-hidden border-border/70 py-0">
-          <div className="flex flex-wrap items-end justify-between gap-4 border-b bg-muted/25 px-4 py-3.5">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="space-y-1.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Response</div>
-                <ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} />
-              </div>
-              <div className="space-y-1.5">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Prompt method</div>
-                <Tabs value={view} onValueChange={(value) => { setView(value as typeof view); if (value === "compare") setSort({ key: "mode-2", direction: "desc" }); else setSort({ key: "points", direction: "desc" }) }}>
-                  <TabsList className="h-8 border bg-background p-0.5 shadow-xs">
-                    <TabsTrigger value="compare" className="h-6 px-2.5 text-xs">All modes</TabsTrigger>
-                    {MODES.map((mode) => <TabsTrigger key={mode.n} value={String(mode.n)} title={mode.blurb} className="h-6 px-2.5 text-xs">{mode.displayN}. {mode.name}</TabsTrigger>)}
-                  </TabsList>
-                </Tabs>
-              </div>
-              {suites.length > 1 && <div className="space-y-1.5"><div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Suite</div><Select value={activeSuite} onValueChange={setSuite}><SelectTrigger size="sm" className="w-48 bg-background"><SelectValue /></SelectTrigger><SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent></Select></div>}
-            </div>
-            <ExportButton track="puzzle" responseStyle={responseStyle} suite={activeSuite} mode={view === "compare" ? undefined : Number(view)} status="completed" label={view === "compare" ? "Export comparison" : `Export ${MODES.find((mode) => String(mode.n) === view)?.name ?? "view"}`} />
-          </div>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader><TableRow>
-                <TableHead className="w-12 text-center">#</TableHead><SortableTableHead label="Model configuration" active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model", "asc")} />
-                {view === "compare" ? MODES.map((mode) => <SortableTableHead key={mode.n} label={mode.name} active={sort.key === `mode-${mode.n}`} direction={sort.direction} align="right" onSort={() => toggleSort(`mode-${mode.n}`)} />) : <><SortableTableHead label="Puzzle Elo" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} /><SortableTableHead label="Points" active={sort.key === "points"} direction={sort.direction} align="right" onSort={() => toggleSort("points")} /><SortableTableHead label="Full solves" active={sort.key === "solved"} direction={sort.direction} align="right" onSort={() => toggleSort("solved")} /><SortableTableHead label="Legal first" active={sort.key === "legal"} direction={sort.direction} align="right" onSort={() => toggleSort("legal")} /><SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost", "asc")} /></>}
-              </TableRow></TableHeader>
-              <TableBody>
-                {(view === "compare" ? compareRows : single.map((run) => ({ key: run.model, modes: {} as ModeMap, anchor: run }))).map((row, index) => {
-                  const run = row.anchor
-                  const estimate = puzzleRating(run)
-                  return <TableRow key={row.key} className="group transition-colors hover:bg-muted/30">
-                    <TableCell className="text-center font-mono text-xs text-muted-foreground">{index === 0 ? <Trophy className="mx-auto size-4 text-amber-500" /> : index + 1}</TableCell>
-                    <TableCell><Link to={`/model/${encodeURIComponent(run.model_variant.key)}`} className="block cursor-pointer rounded-md focus-visible:ring-2 focus-visible:ring-ring/60"><ModelIdentity variant={run.model_variant} /></Link></TableCell>
-                    {view === "compare" ? MODES.map((mode) => {
-                      const cell = row.modes[mode.n]
-                      return <TableCell key={mode.n} className="text-right">{cell ? <><div className="font-mono font-semibold tabular-nums">{pointsText(cell.summary)}</div><div className="text-[11px] text-muted-foreground">{pct(cell.summary.solve_rate)} solved</div></> : <span className="text-muted-foreground">—</span>}</TableCell>
-                    }) : <><TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{puzzleRatingText(run)}</div><div className="text-[11px] text-muted-foreground">{estimate?.ci95 ? `95% ${Math.round(estimate.ci95[0])}–${Math.round(estimate.ci95[1])}` : "not estimated"}</div></TableCell><TableCell className="text-right font-mono font-semibold">{pointsText(run.summary)}</TableCell><TableCell className="text-right tabular-nums">{run.summary.solved}/{run.summary.n}</TableCell><TableCell className="text-right tabular-nums text-muted-foreground">{pct(run.summary.first_move_legal_rate)}</TableCell><TableCell className="text-right font-mono text-xs text-muted-foreground">{run.summary.cost_usd == null ? "—" : `$${run.summary.cost_usd.toFixed(3)}`}</TableCell></>}
-                  </TableRow>
-                })}
-                {(view === "compare" ? compareRows.length : single.length) === 0 && <TableRow><TableCell colSpan={view === "compare" ? MODES.length + 2 : 8} className="py-14 text-center"><div className="font-medium">No {responseStyle === "move_only" ? "move-only" : "rationale"} runs yet</div><div className="mt-1 text-sm text-muted-foreground">This response-style cell is ready for a published run.</div></TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/15 px-4 py-2.5 text-[11px] text-muted-foreground">
-            <span>{view === "compare" ? compareRows.length : single.length} model configuration{(view === "compare" ? compareRows.length : single.length) === 1 ? "" : "s"}</span>
-            <span>{responseStyle === "move_only" ? "Move only" : "Rationale"} · {view === "compare" ? "all prompt methods" : MODES.find((mode) => String(mode.n) === view)?.name}</span>
-          </div>
-        </Card>
+        <PuzzleRunMatrix
+          runs={suiteRuns}
+          suite={activeSuite}
+          visibleModes={visibleModes}
+          onVisibleModesChange={setVisibleModes}
+          openModels={openModels}
+          onOpenModelsChange={setOpenModels}
+          exportLabel="Export this suite"
+        />
       </section>
 
       {humans.length > 0 && <section>
