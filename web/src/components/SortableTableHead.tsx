@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react"
+import type { ReactNode } from "react"
 import { TableHead } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
@@ -11,6 +12,7 @@ export function SortableTableHead({
   align = "left",
   onSort,
   className,
+  suffix,
 }: {
   label: string
   active: boolean
@@ -18,6 +20,7 @@ export function SortableTableHead({
   align?: "left" | "center" | "right"
   onSort: () => void
   className?: string
+  suffix?: ReactNode
 }) {
   const Icon = active ? direction === "asc" ? ArrowUp : ArrowDown : ArrowUpDown
   return (
@@ -25,20 +28,21 @@ export function SortableTableHead({
       aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
       className={cn(align === "right" && "text-right", align === "center" && "text-center", className)}
     >
-      <button
-        type="button"
-        onClick={onSort}
-        className={cn(
-          "group inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60",
-          align === "right" && "ml-auto",
-          align === "center" && "mx-auto",
-          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-        )}
-        title={`Sort by ${label}${active ? direction === "asc" ? ", descending" : ", ascending" : ""}`}
-      >
-        {label}
-        <Icon className={cn("size-3.5", active ? "opacity-100" : "opacity-45 group-hover:opacity-90")} />
-      </button>
+      <span className={cn("flex items-center gap-0.5", align === "right" && "justify-end", align === "center" && "justify-center")}>
+        <button
+          type="button"
+          onClick={onSort}
+          className={cn(
+            "group inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60",
+            active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+          title={`Sort by ${label}${active ? direction === "asc" ? ", descending" : ", ascending" : ""}`}
+        >
+          {label}
+          <Icon className={cn("size-3.5", active ? "opacity-100" : "opacity-45 group-hover:opacity-90")} />
+        </button>
+        {suffix}
+      </span>
     </TableHead>
   )
 }

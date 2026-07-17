@@ -1,11 +1,14 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Activity, ArrowRight, CheckCircle2, CircleDollarSign, CircleHelp, Gauge, ShieldCheck, Target } from "lucide-react"
+import { Activity, ArrowRight, CheckCircle2, CircleDollarSign, CircleHelp, Gauge, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -22,6 +25,17 @@ function runPath(run: RunIndexEntry) {
   return `/model/${encodeURIComponent(run.model_variant.key)}?run=${encodeURIComponent(run.run_id)}`
 }
 
+type RatingSortKey = "model" | "rating" | "record" | "puzzles" | "cost" | "status"
+
+function reasoningEffort(run: RunIndexEntry) {
+  return run.condition.reasoning_effort ?? run.model_variant.reasoning.effort ?? "default"
+}
+
+function statusRank(run: RunIndexEntry) {
+  if (run.status === "running" || run.status === "partial") return 1
+  return rating(run)?.settled ? 3 : 2
+}
+
 function StatusBadge({ run }: { run: RunIndexEntry }) {
   const estimate = rating(run)
   if (run.status === "running" || run.status === "partial") {
@@ -35,10 +49,44 @@ function StatusBadge({ run }: { run: RunIndexEntry }) {
 
 export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const navigate = useNavigate()
-  const ratedRuns = useMemo(() => runs.filter(isRated).toSorted((a, b) => {
-    const status = Number(b.status === "completed") - Number(a.status === "completed")
-    return status || (rating(b)?.rating ?? -Infinity) - (rating(a)?.rating ?? -Infinity) || b.created.localeCompare(a.created)
-  }), [runs])
+  const [modelSearch, setModelSearch] = useState("")
+  const [reasoningFilter, setReasoningFilter] = useState("all")
+  const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
+  const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
+  const reasoningOptions = useMemo(() => Array.from(new Set(ratedRuns.map(reasoningEffort))).toSorted((a, b) => {
+    const order = ["minimal", "low", "medium", "high", "max", "default"]
+    const aRank = order.indexOf(a)
+    const bRank = order.indexOf(b)
+    return (aRank < 0 ? order.length : aRank) - (bRank < 0 ? order.length : bRank) || a.localeCompare(b)
+  }), [ratedRuns])
+  const visibleRuns = useMemo(() => {
+    const query = modelSearch.trim().toLocaleLowerCase()
+    const filtered = ratedRuns.filter((run) => {
+      if (reasoningFilter !== "all" && reasoningEffort(run) !== reasoningFilter) return false
+      if (!query) return true
+      return [run.model_variant.display_name, run.model_variant.label, run.model_variant.model_id, run.model_variant.provider]
+        .some((value) => value?.toLocaleLowerCase().includes(query))
+    })
+    const value = (run: RunIndexEntry) => {
+      if (sort.key === "model") return run.model_variant.display_name.toLocaleLowerCase()
+      if (sort.key === "rating") return rating(run)?.rating ?? -Infinity
+      if (sort.key === "record") return run.summary.solve_rate
+      if (sort.key === "puzzles") return run.progress.completed
+      if (sort.key === "cost") return run.summary.cost_usd ?? -Infinity
+      return statusRank(run)
+    }
+    return filtered.toSorted((a, b) => {
+      const aValue = value(a)
+      const bValue = value(b)
+      const comparison = typeof aValue === "string" && typeof bValue === "string" ? aValue.localeCompare(bValue) : Number(aValue) - Number(bValue)
+      return comparison * (sort.direction === "asc" ? 1 : -1)
+        || (rating(b)?.rating ?? -Infinity) - (rating(a)?.rating ?? -Infinity)
+        || a.model_variant.display_name.localeCompare(b.model_variant.display_name)
+    })
+  }, [modelSearch, ratedRuns, reasoningFilter, sort])
+  const toggleSort = (key: RatingSortKey, initialDirection: SortDirection = key === "model" ? "asc" : "desc") => setSort((current) => current.key === key
+    ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
+    : { key, direction: initialDirection })
   const protocol = ratedRuns[0]?.protocol
   const targetRd = protocol?.stopping.target_rating_deviation ?? 75
   const completed = ratedRuns.filter((run) => run.status === "completed")
@@ -68,17 +116,43 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     </Card>
 
     <Card className="overflow-hidden border-border/70">
-      <CardHeader className="border-b">
-        <CardTitle className="text-base">Model ratings</CardTitle>
-        <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Performance moves the rating; evidence narrows RD. Because settled sessions share an RD ≤ {targetRd} stopping rule, their final uncertainty is expected to be similar. Configurations include provider, reasoning budget, and output policy.</p>
+      <CardHeader className="gap-4 border-b">
+        <div className="space-y-1.5">
+          <CardTitle className="text-base">Model ratings</CardTitle>
+          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Performance moves the rating; evidence narrows RD. Because settled sessions share an RD ≤ {targetRd} stopping rule, their final uncertainty is expected to be similar. Configurations include provider, reasoning budget, and output policy.</p>
+        </div>
+        {ratedRuns.length > 0 ? <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="relative block w-full sm:max-w-xs">
+            <span className="sr-only">Filter model configurations</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="Filter model name…" className="bg-background pl-9" />
+          </label>
+          <Select value={reasoningFilter} onValueChange={setReasoningFilter}>
+            <SelectTrigger className="w-full bg-background sm:w-48" aria-label="Filter by reasoning effort"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All reasoning efforts</SelectItem>
+              {reasoningOptions.map((effort) => <SelectItem key={effort} value={effort}>{effort === "default" ? "Default" : effort[0].toUpperCase() + effort.slice(1)} reasoning</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground sm:ml-auto">{visibleRuns.length} of {ratedRuns.length} configurations</span>
+        </div> : null}
       </CardHeader>
       {ratedRuns.length === 0 ? <CardContent className="py-16 text-center">
         <div className="mx-auto grid size-11 place-items-center rounded-full bg-secondary"><Gauge className="size-5 text-muted-foreground" /></div>
         <div className="mt-3 font-medium">No adaptive ratings have been published yet</div>
         <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">The calibrated 100,000-puzzle pool and runner are ready. Fixed-suite results remain available in the suite lab while the first canonical session is published.</p>
       </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table className="min-w-[980px]">
-        <TableHeader><TableRow><TableHead className="w-14 text-center">#</TableHead><TableHead>Model configuration</TableHead><TableHead className="text-right"><span className="inline-flex items-center justify-end gap-1.5">Rating ± RD <Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain rating deviation"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs space-y-1 px-3 py-2 leading-relaxed"><p>Rating is estimated playing strength. RD is one standard deviation of uncertainty, not performance.</p><p>A 95% interval is approximately rating ± 1.96 RD. Settled runs intentionally converge near RD {targetRd}.</p></TooltipContent></Tooltip></span></TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Puzzles</TableHead><TableHead className="text-right">Cost</TableHead><TableHead>Status</TableHead><TableHead className="w-10" /></TableRow></TableHeader>
-        <TableBody>{ratedRuns.map((run, index) => {
+        <TableHeader><TableRow>
+          <TableHead className="w-14 text-center">#</TableHead>
+          <SortableTableHead label="Model configuration" active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model")} />
+          <SortableTableHead label="Rating ± RD" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain rating deviation"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs space-y-1 px-3 py-2 leading-relaxed"><p>Rating is estimated playing strength. RD is one standard deviation of uncertainty, not performance.</p><p>A 95% interval is approximately rating ± 1.96 RD. Settled runs intentionally converge near RD {targetRd}.</p></TooltipContent></Tooltip>} />
+          <SortableTableHead label="Record" active={sort.key === "record"} direction={sort.direction} align="right" onSort={() => toggleSort("record")} />
+          <SortableTableHead label="Puzzles" active={sort.key === "puzzles"} direction={sort.direction} align="right" onSort={() => toggleSort("puzzles")} />
+          <SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost")} />
+          <SortableTableHead label="Status" active={sort.key === "status"} direction={sort.direction} onSort={() => toggleSort("status")} />
+          <TableHead className="w-10" />
+        </TableRow></TableHeader>
+        <TableBody>{visibleRuns.length === 0 ? <TableRow><TableCell colSpan={8} className="h-32 text-center"><div className="font-medium">No matching model configurations</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilter("all") }}>Clear filters</button></TableCell></TableRow> : visibleRuns.map((run, index) => {
           const estimate = rating(run)
           return <TableRow key={run.run_id} tabIndex={0} role="link" className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", run.status !== "completed" && "bg-sky-500/[0.025]")} onClick={() => navigate(runPath(run))} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(runPath(run)) }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>

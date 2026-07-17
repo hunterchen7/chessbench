@@ -90,7 +90,7 @@ const POINTS_PLOT_TOP = 210
 const POINTS_PLOT_BOTTOM = 262
 
 function pointPosition(index: number, total: number, inset: number) {
-  const ratio = total === 1 ? 0.5 : index / (total - 1)
+  const ratio = (index + 0.5) / Math.max(1, total)
   return { ratio, left: `calc(${ratio * 100}% + ${inset * (1 - 2 * ratio)}px)` }
 }
 
@@ -168,7 +168,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
     const plottedItems = items.some((item) => "solver_rating_after" in item && item.solver_rating_after != null)
       ? history.length
       : totalItems
-    const index = Math.round(ratio * (plottedItems - 1))
+    const index = Math.min(plottedItems - 1, Math.floor(ratio * plottedItems))
     setHoveredIndex(index < history.length ? index : null)
   }
 
@@ -178,7 +178,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
     const eloMin = Math.floor((Math.min(...intervalValues) - 50) / 100) * 100
     const rawMax = Math.ceil((Math.max(...intervalValues) + 50) / 100) * 100
     const eloMax = Math.max(eloMin + 200, rawMax)
-    const x = (index: number) => chartItems === 1 ? 500 : index / (chartItems - 1) * 1000
+    const x = (index: number) => (index + 0.5) / chartItems * 1000
     const eloY = (rating: number) => ELO_PLOT_BOTTOM - (rating - eloMin) / (eloMax - eloMin) * (ELO_PLOT_BOTTOM - ELO_PLOT_TOP)
     const pointsY = (points: number) => POINTS_PLOT_BOTTOM - points / Math.max(1, maxPoints) * (POINTS_PLOT_BOTTOM - POINTS_PLOT_TOP)
     const eloLine = history.map((point, index) => `${x(index)},${eloY(point.elo)}`).join(" ")
