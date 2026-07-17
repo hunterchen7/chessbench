@@ -92,9 +92,13 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
   const outcome = point.solved ? "Solved" : point.score > 0 ? "Partial credit" : point.failureReason?.replaceAll("_", " ") ?? "Incorrect"
   const elo = Math.round(point.elo).toLocaleString()
   const delta = point.eloDelta == null ? null : Math.round(point.eloDelta)
-  const clampedLeft = `clamp(0.5rem, calc(${position.left} - 7rem), calc(100% - 14.5rem))`
+  const side = position.ratio < 0.5 ? "right" : "left"
+  const preferredLeft = side === "right"
+    ? `calc(${position.left} + 1rem)`
+    : `calc(${position.left} - 15rem)`
+  const clampedLeft = `clamp(0.5rem, ${preferredLeft}, calc(100% - 14.5rem))`
 
-  return <div role="tooltip" className="pointer-events-none absolute top-3 z-20 w-56 rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-xl backdrop-blur" style={{ left: clampedLeft }}>
+  return <div role="tooltip" data-side={side} className="pointer-events-none absolute top-3 z-20 w-56 rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-xl backdrop-blur" style={{ left: clampedLeft }}>
       <div className="flex items-center justify-between gap-4"><span className="font-mono text-xs font-semibold">{point.puzzleId}</span><span className="text-[10px] text-muted-foreground">#{index + 1} of {total}</span></div>
       <div className="mt-2 grid grid-cols-[auto_auto] gap-x-5 gap-y-1 text-[11px] leading-tight">
         <span className="text-muted-foreground">Result</span><span className={point.solved ? "text-right font-medium text-emerald-700 dark:text-emerald-300" : point.score > 0 ? "text-right font-medium text-amber-700 dark:text-amber-300" : "text-right font-medium text-rose-700 dark:text-rose-300"}>{outcome}</span>
