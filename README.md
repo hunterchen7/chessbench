@@ -258,21 +258,23 @@ model calls.
 
 ## Cloudflare sync and deployment
 
-Every push to `main` automatically builds the dashboard and deploys the Worker
-and its static assets through `.github/workflows/deploy-cloudflare.yml`. The
-workflow can also be rerun manually from the repository's **Actions** tab.
+Cloudflare Workers Builds deploys the Worker and dashboard assets from the
+connected GitHub repository. Configure the production build in the Cloudflare
+dashboard with branch `main`, root directory `/server/`, and these commands:
 
-Configure these GitHub Actions repository secrets before the first automated
-deployment:
+```bash
+# Build command
+pnpm install --frozen-lockfile && pnpm --dir ../web install --frozen-lockfile && pnpm --dir ../web build
 
-- `CLOUDFLARE_ACCOUNT_ID`: the account that owns the `chessbench` Worker.
-- `CLOUDFLARE_API_TOKEN`: a narrowly scoped Cloudflare token allowed to deploy
-  Workers in that account. Do not commit this token or place it in workflow
-  YAML.
+# Deploy command
+pnpm exec wrangler deploy
+```
 
-The workflow checks out a clean commit, so only files committed to `main` are
-published. D1 migrations and registry/result synchronization remain explicit
-operations; a dashboard deployment does not mutate benchmark data.
+Non-production branch builds are optional; use
+`pnpm exec wrangler versions upload` to create previews without promoting them
+to production. Cloudflare can manage the build API token automatically. D1
+migrations and registry/result synchronization remain explicit operations; a
+dashboard deployment does not mutate benchmark data.
 
 For manual deployment or initial infrastructure setup, set
 `CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token
