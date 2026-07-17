@@ -222,6 +222,38 @@ def test_run_only_completes_after_all_items_are_persisted(tmp_path):
         assert existing.status == "completed" and not existing.resumed
 
 
+def test_consecutive_miss_rule_completes_with_full_suite_denominator(tmp_path):
+    puzzle = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
+    with BenchmarkStore(tmp_path / "bench.db") as store:
+        run = store.start_run(_spec())
+        result = _result("p1", solved=False)
+        store.save_puzzle_result(run.run_id, 0, puzzle, result)
+
+        reason = store.finalize_stopped_puzzle_run(
+            run.run_id,
+            build_report("test", "condition", [result]),
+            consecutive_unsolved=10,
+        )
+
+        row = store.run_row(run.run_id)
+        summary = __import__("json").loads(str(row["summary_json"]))
+        assert row["status"] == "completed"
+        assert row["completed_items"] == 1
+        assert row["total_items"] == 2
+        assert row["completed_at"] is not None
+        assert summary["n"] == 2
+        assert summary["max_points"] == 2
+        assert summary["termination"] == {
+            "attempted": 1,
+            "kind": "consecutive_unsolved",
+            "threshold": 10,
+            "unattempted": 1,
+            "unattempted_score": 0,
+        }
+        assert reason == row["error"]
+        assert "1 remaining puzzle" in reason
+
+
 def test_cloudflare_outbox_only_marks_explicit_deliveries(tmp_path):
     p1 = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
     with BenchmarkStore(tmp_path / "bench.db") as store:

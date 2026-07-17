@@ -1050,6 +1050,67 @@ class BenchmarkStore:
                 )
             self._event(run_id, "completed", None, now)
 
+    def finalize_stopped_puzzle_run(
+        self,
+        run_id: str,
+        report: PuzzleReport,
+        *,
+        consecutive_unsolved: int,
+    ) -> str:
+        """Complete a puzzle run under the suite's consecutive-miss rule.
+
+        Unattempted tail items are not fabricated as model responses. They do,
+        however, remain in the 250-item scoring denominator and receive zero
+        points under the early-termination policy.
+        """
+        now = _now()
+        with self._transaction():
+            row = self._db.execute(
+                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            attempted = int(row["completed_items"])
+            total = int(row["total_items"])
+            if attempted >= total:
+                raise RuntimeError(
+                    f"cannot early-complete run {run_id}: {attempted}/{total} items persisted"
+                )
+            remaining = total - attempted
+            puzzle_word = "puzzle" if remaining == 1 else "puzzles"
+            reason = (
+                f"Stopped after {consecutive_unsolved} consecutive unsolved puzzles; "
+                f"{remaining} remaining {puzzle_word} "
+                f"{'was' if remaining == 1 else 'were'} not attempted and "
+                f"{'receives' if remaining == 1 else 'receive'} zero points under the suite policy."
+            )
+            summary = {
+                "n": total,
+                "solved": report.solved,
+                "solve_rate": report.solved / total if total else 0.0,
+                "mean_score": report.points / total if total else 0.0,
+                "first_move_legal_rate": report.first_move_legal_rate,
+                "response_format_valid_rate": report.response_format_valid_rate,
+                "points": report.points,
+                "max_points": total,
+                "puzzle_performance_rating": report.elo.to_dict(),
+                "termination": {
+                    "kind": "consecutive_unsolved",
+                    "threshold": consecutive_unsolved,
+                    "attempted": attempted,
+                    "unattempted": remaining,
+                    "unattempted_score": 0,
+                },
+            }
+            self._db.execute(
+                """UPDATE benchmark_run SET status='completed', summary_json=?, error=?,
+                   completed_at=?, updated_at=? WHERE run_id=?""",
+                (_canonical(summary), reason, now, now, run_id),
+            )
+            self._event(run_id, "completed_early", reason[:500], now)
+        return reason
+
     def mark_partial(self, run_id: str, error: str) -> None:
         now = _now()
         with self._transaction():

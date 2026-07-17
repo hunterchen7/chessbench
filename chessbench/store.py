@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,6 +97,26 @@ class RunRecord:
             item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
             items.append(item)
         rep = self.report
+        progress = self.progress or {"completed": rep.n, "total": rep.n}
+        early_completed = (
+            self.status == "completed"
+            and progress["completed"] < progress["total"]
+            and bool(self.error)
+        )
+        scoring_n = progress["total"] if early_completed else rep.n
+        threshold_match = re.search(r"Stopped after (\d+) consecutive", self.error or "")
+        termination = (
+            {
+                "kind": "consecutive_unsolved",
+                "threshold": int(threshold_match.group(1)) if threshold_match else None,
+                "attempted": progress["completed"],
+                "unattempted": progress["total"] - progress["completed"],
+                "unattempted_score": 0,
+                "message": self.error,
+            }
+            if early_completed
+            else None
+        )
         kind = (
             "woodpecker"
             if self.condition.puzzle_protocol.value == "full_line"
@@ -115,18 +136,19 @@ class RunRecord:
             "model_variant": self.model_variant,
             "suite": asdict(self.suite) if self.suite else None,
             "condition": _condition_dict(self.condition),
-            "progress": self.progress or {"completed": rep.n, "total": rep.n},
+            "progress": progress,
+            "termination": termination,
             "usage": self.usage,
             "error": self.error,
             "summary": {
-                "n": rep.n,
+                "n": scoring_n,
                 "solved": rep.solved,
-                "solve_rate": rep.solve_rate,
-                "mean_score": rep.mean_score,
+                "solve_rate": rep.solved / scoring_n if scoring_n else 0.0,
+                "mean_score": rep.points / scoring_n if scoring_n else 0.0,
                 "first_move_legal_rate": rep.first_move_legal_rate,
                 "response_format_valid_rate": rep.response_format_valid_rate,
                 "points": round(rep.points, 4),
-                "max_points": rep.max_points,
+                "max_points": scoring_n,
                 "cost_usd": self.cost_usd,
                 "puzzle_performance_rating": rep.elo.to_dict(),
             },

@@ -326,7 +326,14 @@ export async function finishRun(
   ).bind(doc.run_id).first<{ completed_items: number; total_items: number }>()
   if (!row) throw new Error(`unknown run: ${doc.run_id}`)
   const requested = doc.status ?? "completed"
-  if (requested === "completed" && row.completed_items !== row.total_items) {
+  const termination = doc.summary?.termination as Record<string, unknown> | undefined
+  const stoppedByPolicy =
+    requested === "completed" &&
+    termination?.kind === "consecutive_unsolved" &&
+    Number(termination.threshold) > 0 &&
+    Number(termination.attempted) === row.completed_items &&
+    Number(termination.unattempted) === row.total_items - row.completed_items
+  if (requested === "completed" && row.completed_items !== row.total_items && !stoppedByPolicy) {
     throw new Error(`cannot complete ${doc.run_id}: ${row.completed_items}/${row.total_items} items present`)
   }
   const stamp = now()
@@ -334,10 +341,12 @@ export async function finishRun(
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE benchmark_runs_v2 SET status=?, error=?, updated_at=?,
+       max_points=CASE WHEN ? THEN total_items ELSE max_points END,
        puzzle_rating=?, puzzle_rating_stderr=?, puzzle_rating_n=?, puzzle_rating_bounded=?,
        completed_at=CASE WHEN ?='completed' THEN ? ELSE completed_at END WHERE run_id=?`,
     ).bind(
       requested, doc.error?.slice(0, 2000) ?? null, stamp,
+      stoppedByPolicy ? 1 : 0,
       estimate?.rating ?? null, estimate?.stderr ?? null, estimate?.n ?? 0, estimate?.bounded ? 1 : 0,
       requested, stamp, doc.run_id,
     ),

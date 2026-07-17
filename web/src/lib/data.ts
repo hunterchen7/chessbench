@@ -137,6 +137,15 @@ export interface SuiteRef {
 export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed"
 export type Track = "puzzle" | "woodpecker" | "esoteric" | "game"
 
+export interface RunTermination {
+  kind: "consecutive_unsolved"
+  threshold: number | null
+  attempted: number
+  unattempted: number
+  unattempted_score: 0
+  message: string | null
+}
+
 export interface RunIndexEntry {
   run_id: string
   file: string
@@ -153,6 +162,7 @@ export interface RunIndexEntry {
   condition_slug: string
   suite: SuiteRef | null
   progress: { completed: number; total: number }
+  termination?: RunTermination | null
   summary: RunSummary
   usage?: {
     prompt_tokens: number
@@ -547,6 +557,7 @@ function normalizeIndex(raw: Record<string, unknown>): RunIndexEntry {
     condition_slug: condition.slug,
     suite,
     progress: (raw.progress as { completed: number; total: number } | undefined) ?? { completed: summary.n, total: summary.max_points },
+    termination: raw.termination as RunTermination | null | undefined,
     summary,
     usage: raw.usage as RunIndexEntry["usage"],
     error: raw.error as string | null | undefined,

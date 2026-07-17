@@ -117,7 +117,7 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
     </div>
 }
 
-function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoints: number }) {
+function PerformanceHistory({ items, maxPoints, totalItems, termination }: { items: PuzzleItem[]; maxPoints: number; totalItems: number; termination?: RunIndexEntry["termination"] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const history = useMemo(() => {
     let points = 0
@@ -163,13 +163,14 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
     const eloMin = Math.floor((Math.min(...intervalValues) - 50) / 100) * 100
     const rawMax = Math.ceil((Math.max(...intervalValues) + 50) / 100) * 100
     const eloMax = Math.max(eloMin + 200, rawMax)
-    const x = (index: number) => history.length === 1 ? 500 : index / (history.length - 1) * 1000
+    const x = (index: number) => totalItems === 1 ? 500 : index / (totalItems - 1) * 1000
     const eloY = (rating: number) => ELO_PLOT_BOTTOM - (rating - eloMin) / (eloMax - eloMin) * (ELO_PLOT_BOTTOM - ELO_PLOT_TOP)
     const pointsY = (points: number) => POINTS_PLOT_BOTTOM - points / Math.max(1, maxPoints) * (POINTS_PLOT_BOTTOM - POINTS_PLOT_TOP)
     const eloLine = history.map((point, index) => `${x(index)},${eloY(point.elo)}`).join(" ")
     const upperInterval = history.map((point, index) => `${x(index)},${eloY(point.eloCi95[1])}`)
     const lowerInterval = history.map((point, index) => `${x(index)},${eloY(point.eloCi95[0])}`)
-    const pointsLine = history.map((point, index) => `${x(index)},${pointsY(point.cumulativePoints)}`).join(" ")
+    const attemptedPointsLine = history.map((point, index) => `${x(index)},${pointsY(point.cumulativePoints)}`).join(" ")
+    const pointsLine = termination ? `${attemptedPointsLine} 1000,${pointsY(history.at(-1)!.cumulativePoints)}` : attemptedPointsLine
     return {
       eloMin,
       eloMax,
@@ -181,13 +182,14 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
       intervalBand: [...upperInterval, ...lowerInterval.toReversed()].join(" "),
       pointsLine,
       pointsArea: `0,${POINTS_PLOT_BOTTOM} ${pointsLine} 1000,${POINTS_PLOT_BOTTOM}`,
+      finalX: x(history.length - 1),
     }
-  }, [history, maxPoints])
+  }, [history, maxPoints, termination, totalItems])
   if (!history.length || !chart) return null
   const final = history.at(-1)!
   const hovered = hoveredIndex == null ? null : history[hoveredIndex]
   const displayed = hovered ?? final
-  const hoveredPosition = hoveredIndex == null ? null : pointPosition(hoveredIndex, history.length, 8)
+  const hoveredPosition = hoveredIndex == null ? null : pointPosition(hoveredIndex, totalItems, 8)
   const innerTop = (y: number) => `calc(${y / PERFORMANCE_VIEWBOX_HEIGHT * 100}% + ${8 - y / PERFORMANCE_VIEWBOX_HEIGHT * 16}px)`
   const inspectWithKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return
@@ -207,7 +209,7 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
         <p className="max-w-3xl text-xs text-muted-foreground">A shared timeline for cumulative points, per-puzzle outcomes, and Bayesian complete-solve Puzzle Elo in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-        <span className="text-muted-foreground">{hoveredIndex == null ? "Final" : `Puzzle ${hoveredIndex + 1}/${history.length}`}</span>
+        <span className="text-muted-foreground">{hoveredIndex == null ? (termination ? `Stopped at ${items.length}/${totalItems}` : "Final") : `Puzzle ${hoveredIndex + 1}/${totalItems}`}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-violet-500" /><span className="font-mono font-semibold text-violet-700 dark:text-violet-300">{Math.round(displayed.elo).toLocaleString()}</span><span className="font-mono text-muted-foreground">RD {Math.round(displayed.eloDeviation).toLocaleString()}</span>{displayed.eloProvisional ? <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase tracking-wide">provisional</Badge> : null}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-emerald-500" /><span className="font-mono font-semibold text-emerald-700 dark:text-emerald-300">{displayed.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)}</span></span>
       </div>
@@ -233,12 +235,14 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
           <polyline points={chart.upperInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
           <polyline points={chart.lowerInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
           <polyline points={chart.eloLine} fill="none" className="stroke-violet-500" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-          {history.map((point, index) => <rect key={point.puzzleId} x={index / history.length * 1000 + 0.35} y={OUTCOME_RUG_TOP} width={Math.max(1, 1000 / history.length - 0.7)} height={OUTCOME_RUG_HEIGHT} rx="1" fill={PUZZLE_OUTCOME_COLORS[point.outcome]} opacity="0.9" />)}
+          {history.map((point, index) => <rect key={point.puzzleId} x={index / totalItems * 1000 + 0.35} y={OUTCOME_RUG_TOP} width={Math.max(1, 1000 / totalItems - 0.7)} height={OUTCOME_RUG_HEIGHT} rx="1" fill={PUZZLE_OUTCOME_COLORS[point.outcome]} opacity="0.9" />)}
+          {termination ? <rect x={history.length / totalItems * 1000} y={OUTCOME_RUG_TOP} width={(totalItems - history.length) / totalItems * 1000} height={OUTCOME_RUG_HEIGHT} rx="1" className="fill-muted-foreground" opacity="0.22" /> : null}
           <line x1="0" y1={POINTS_PLOT_TOP} x2="1000" y2={POINTS_PLOT_TOP} className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
           <line x1="0" y1={POINTS_PLOT_BOTTOM} x2="1000" y2={POINTS_PLOT_BOTTOM} className="stroke-border" vectorEffect="non-scaling-stroke" />
           <polygon points={chart.pointsArea} className="fill-emerald-500" opacity="0.16" />
           <polyline points={chart.pointsLine} fill="none" className="stroke-emerald-500" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-          <line x1="1000" y1={chart.eloY(final.eloCi95[1])} x2="1000" y2={chart.eloY(final.eloCi95[0])} className="stroke-violet-500" strokeWidth="1.5" opacity="0.75" vectorEffect="non-scaling-stroke" />
+          <line x1={chart.finalX} y1={chart.eloY(final.eloCi95[1])} x2={chart.finalX} y2={chart.eloY(final.eloCi95[0])} className="stroke-violet-500" strokeWidth="1.5" opacity="0.75" vectorEffect="non-scaling-stroke" />
+          {termination ? <line x1={history.length / totalItems * 1000} y1={ELO_PLOT_TOP} x2={history.length / totalItems * 1000} y2={POINTS_PLOT_BOTTOM} className="stroke-amber-500" strokeWidth="1.5" opacity="0.8" vectorEffect="non-scaling-stroke" strokeDasharray="5 4" /> : null}
         </svg>
         <span className="pointer-events-none absolute left-3 top-2 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground">Elo {chart.eloMax.toLocaleString()}</span>
         <span className="pointer-events-none absolute left-3 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground" style={{ top: innerTop(ELO_PLOT_BOTTOM) }}>{chart.eloMin.toLocaleString()}</span>
@@ -248,11 +252,11 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
           <span className="pointer-events-none absolute inset-y-2 z-10 w-px bg-foreground/25" style={{ left: hoveredPosition.left }} />
           <span className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500 ring-2 ring-background" style={{ left: hoveredPosition.left, top: innerTop(chart.eloY(hovered.elo)) }} />
           <span className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-emerald-500 ring-2 ring-background" style={{ left: hoveredPosition.left, top: innerTop(chart.pointsY(hovered.cumulativePoints)) }} />
-          <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={8} />
+          <PerformanceTooltip point={hovered} index={hoveredIndex} total={totalItems} inset={8} />
         </> : null}
       </div>
       <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-        <span>{ratingOrdered ? `rating ${history[0].rating.toLocaleString()} → ${final.rating.toLocaleString()}` : `puzzle 1 → ${history.length}`}</span>
+        <span>{termination ? `${history.length} attempted · ${termination.unattempted} unattempted puzzles score zero` : ratingOrdered ? `rating ${history[0].rating.toLocaleString()} → ${final.rating.toLocaleString()}` : `puzzle 1 → ${history.length}`}</span>
         <span>violet band · 95% posterior · MAP prior {PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± {PUZZLE_ELO_PRIOR.sd.toLocaleString()}</span>
       </div>
     </CardContent>
@@ -468,6 +472,8 @@ export function ModelDetail() {
       </CardContent>
     </Card>
 
+    {meta.termination ? <Card className="border-amber-500/35 bg-amber-500/[0.055]"><CardContent className="flex gap-3 py-5"><Info className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-300" /><div><div className="font-semibold text-amber-950 dark:text-amber-100">Completed by the consecutive-miss stopping rule</div><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{meta.termination.message}</p><p className="mt-1 text-xs text-muted-foreground">The run remains a 250-puzzle benchmark: its {meta.termination.unattempted} unattempted tail puzzles receive zero points, while the answer sheet preserves only genuine model responses.</p></div></CardContent></Card> : null}
+
     <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
       <Stat icon={Check} label="Complete solves" value={`${meta.summary.solved}/${meta.summary.n}`} note={pct(meta.summary.solve_rate)} />
@@ -488,7 +494,7 @@ export function ModelDetail() {
       </CardContent>
     </Card>
 
-    {run && <PerformanceHistory items={displayRun.items} maxPoints={meta.summary.max_points} />}
+    {run && <PerformanceHistory items={displayRun.items} maxPoints={meta.summary.max_points} totalItems={meta.progress.total} termination={meta.termination} />}
 
     {run && <div className="grid min-w-0 gap-5 2xl:grid-cols-[360px_minmax(0,1fr)]">
       <Card><CardHeader><CardTitle className="text-base">Difficulty breakdown</CardTitle></CardHeader><CardContent className="space-y-5 p-0"><div><div className="border-b px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Numeric puzzle rating</div><Table><TableHeader><TableRow><TableHead>Rating band</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byRating.map((row) => <TableRow key={row.low}><TableCell className="font-mono">{row.low}–{row.low + 399}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div><div className="border-t"><div className="border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Named tier</div><Table><TableBody>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>

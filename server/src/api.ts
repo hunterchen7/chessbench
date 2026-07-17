@@ -54,6 +54,9 @@ const RUN_SELECT = `
     FROM benchmark_runs_v2 r JOIN model_variants_v2 v USING(variant_key)`
 
 function publicRun(row: RunRow) {
+  const stoppedByPolicy = row.status === "completed" && row.completed_items < row.total_items
+  const scoringItems = stoppedByPolicy ? row.total_items : row.completed_items
+  const threshold = Number(row.error?.match(/Stopped after (\d+) consecutive/)?.[1] ?? 0) || null
   return {
     run_id: row.run_id,
     file: row.run_id,
@@ -81,15 +84,23 @@ function publicRun(row: RunRow) {
         }
       : null,
     progress: { completed: row.completed_items, total: row.total_items },
+    termination: stoppedByPolicy ? {
+      kind: "consecutive_unsolved",
+      threshold,
+      attempted: row.completed_items,
+      unattempted: row.total_items - row.completed_items,
+      unattempted_score: 0,
+      message: row.error,
+    } : null,
     summary: {
-      n: row.completed_items,
+      n: scoringItems,
       solved: row.solved_items,
-      solve_rate: row.completed_items ? row.solved_items / row.completed_items : 0,
+      solve_rate: scoringItems ? row.solved_items / scoringItems : 0,
       first_move_legal_rate: row.completed_items ? row.legal_items / row.completed_items : 0,
       response_format_valid_rate: row.response_format_items
         ? row.response_format_valid_items / row.response_format_items
         : null,
-      mean_score: row.completed_items ? row.points / row.completed_items : 0,
+      mean_score: scoringItems ? row.points / scoringItems : 0,
       points: row.points,
       max_points: row.max_points,
       cost_usd: row.cost_usd,

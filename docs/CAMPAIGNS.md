@@ -46,10 +46,14 @@ JSON indexes, and optionally drains the local outbox before exiting. Use
 earlier provider failure.
 
 For a rating-ascending Standard campaign, `--max-consecutive-unsolved N` is an
-optional operational spend guard. Once a cell ends with N scored puzzles in a
-row without a full solve, the runner stops before the next paid item and leaves
-the cell partial and resumable. Partial credit still counts as unsolved for this
-guard. The option does not alter the benchmark condition or model identity.
+optional benchmark stopping rule. Once a cell ends with N scored puzzles in a
+row without a full solve, the runner stops before the next paid item and marks
+the cell completed by policy. Partial credit still counts as unsolved for this
+rule. The full suite remains the scoring denominator: unattempted harder
+puzzles receive zero points, while the audit trail contains only genuine model
+responses. The dashboard displays the stopping boundary and the number of
+unattempted items explicitly. The option does not alter the benchmark condition
+or model identity.
 
 Useful bounded launches include:
 

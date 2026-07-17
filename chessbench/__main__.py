@@ -1073,9 +1073,17 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         and incomplete
         and trailing_unsolved >= args.max_consecutive_unsolved
     ):
-        reason = (
-            f"operator stop after {trailing_unsolved} consecutive unsolved puzzles"
+        reason = store.finalize_stopped_puzzle_run(
+            handle.run_id,
+            report,
+            consecutive_unsolved=trailing_unsolved,
         )
+        row = store.run_row(handle.run_id)
+        export_snapshot(results, report, row)
+        store.close()
+        print(f"\ncompleted {handle.run_id}; {reason}; wrote JSON export -> {out}")
+        _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
+        return 0
     if reason is not None:
         store.mark_partial(handle.run_id, reason)
         durable = store.load_puzzle_results(handle.run_id)
