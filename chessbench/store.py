@@ -529,6 +529,7 @@ def list_runs(directory: str | Path) -> list[dict[str, object]]:
             "updated_at",
             "completed_at",
             "usage",
+            "protocol",
             "error",
         ):
             if optional in run:

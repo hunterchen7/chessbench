@@ -218,6 +218,7 @@ def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_pa
                 "reasoning_tokens": 25,
                 "cost_usd": 0.01,
             },
+            "protocol": {"kind": "adaptive_glicko2"},
             "updated_at": "2026-07-15T12:03:00+00:00",
             "completed_at": "2026-07-15T12:03:00+00:00",
             "error": None,
@@ -255,6 +256,7 @@ def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_pa
         "updated_at": "2026-07-15T12:03:00+00:00",
         "completed_at": "2026-07-15T12:03:00+00:00",
         "usage": rich["usage"],
+        "protocol": rich["protocol"],
         "error": None,
     }
     assert rich_entry["model_variant"]["max_output_tokens"] == 8192
