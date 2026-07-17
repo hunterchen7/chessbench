@@ -27,6 +27,15 @@ interface ModelRow {
   latestByMode: LatestByMode
 }
 
+const MATRIX_CLASS_NAME = "grid items-center transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+
+function methodColumnClassName(visible: boolean) {
+  return cn(
+    "min-w-0 overflow-hidden px-2 transition-[opacity,translate] duration-200 ease-out motion-reduce:transition-none",
+    visible ? "translate-x-0 opacity-100 delay-75" : "pointer-events-none -translate-x-2 opacity-0 delay-0",
+  )
+}
+
 const rating = (run?: RunIndexEntry) => run?.summary.puzzle_performance_rating
 
 function ratingText(run?: RunIndexEntry) {
@@ -139,7 +148,11 @@ export function PuzzleLeaderboard() {
       else next.set("modes", nextModes.join(","))
     })
   }
-  const matrixColumns = `minmax(250px, 1.4fr) repeat(${visibleModes.length}, minmax(185px, .85fr)) minmax(120px, .65fr)`
+  const matrixColumns = [
+    "minmax(250px, 1.4fr)",
+    ...MODES.map((item) => visibleModes.includes(item.n) ? "minmax(185px, .85fr)" : "minmax(0px, 0fr)"),
+    "minmax(120px, .65fr)",
+  ].join(" ")
   const matrixMinWidth = 390 + visibleModes.length * 195
 
   return (
@@ -204,15 +217,18 @@ export function PuzzleLeaderboard() {
         </Card> : <Card className="overflow-hidden border-border/70">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <div style={{ minWidth: matrixMinWidth }}>
+              <div
+                className="transition-[min-width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+                style={{ minWidth: matrixMinWidth }}
+              >
                 <div className="border-b bg-muted/35 px-4 py-3 pr-12">
-                  <div className="grid items-center gap-4" style={{ gridTemplateColumns: matrixColumns }}>
-                    <div className="text-xs font-medium text-muted-foreground">Model configuration</div>
-                    {visibleModes.map((mode) => {
-                      const info = MODES.find((item) => item.n === mode)!
-                      return <div key={mode} title={info.blurb}><div className="text-xs font-medium text-foreground">{info.displayN}. {info.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Puzzle Elo</div></div>
+                  <div className={MATRIX_CLASS_NAME} style={{ gridTemplateColumns: matrixColumns }}>
+                    <div className="pr-2 text-xs font-medium text-muted-foreground">Model configuration</div>
+                    {MODES.map((info) => {
+                      const visible = visibleModes.includes(info.n)
+                      return <div key={info.n} aria-hidden={!visible} className={methodColumnClassName(visible)} title={info.blurb}><div className="text-xs font-medium text-foreground">{info.displayN}. {info.name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Puzzle Elo</div></div>
                     })}
-                    <div className="text-right text-xs font-medium text-muted-foreground">Visible runs</div>
+                    <div className="pl-2 text-right text-xs font-medium text-muted-foreground">Visible runs</div>
                   </div>
                 </div>
                 <Accordion type="multiple" value={openModels} onValueChange={setOpenModels}>
@@ -229,10 +245,13 @@ export function PuzzleLeaderboard() {
                     const visibleCost = visibleRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
                     return <AccordionItem key={row.variant.key} value={row.variant.key} className="border-border/70">
                       <AccordionTrigger className="px-4 py-4 transition-colors duration-200 hover:bg-muted/35 data-[state=open]:bg-muted/30 [&>svg]:mt-3 [&>svg]:transition-transform [&>svg]:duration-300">
-                        <div className="grid min-w-0 flex-1 items-center gap-4" style={{ gridTemplateColumns: matrixColumns }}>
-                          <ModelIdentity variant={row.variant} />
-                          {visibleModes.map((mode) => <MethodRating key={mode} runs={methodRuns(row, mode)} />)}
-                          <div className="text-right">
+                        <div className={cn(MATRIX_CLASS_NAME, "min-w-0 flex-1")} style={{ gridTemplateColumns: matrixColumns }}>
+                          <div className="min-w-0 pr-2"><ModelIdentity variant={row.variant} /></div>
+                          {MODES.map((item) => {
+                            const visible = visibleModes.includes(item.n)
+                            return <div key={item.n} aria-hidden={!visible} className={methodColumnClassName(visible)}><MethodRating runs={methodRuns(row, item.n)} /></div>
+                          })}
+                          <div className="pl-2 text-right">
                             <div className="font-mono text-sm font-semibold tabular-nums">{visibleRuns.length} {visibleRuns.length === 1 ? "run" : "runs"}</div>
                             <div className="mt-0.5 text-[10px] text-muted-foreground">{visibleAttempts.toLocaleString()} attempts · ${visibleCost.toFixed(2)}</div>
                           </div>
