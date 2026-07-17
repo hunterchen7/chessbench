@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from "react"
+import { memo, useMemo, useState, type KeyboardEvent } from "react"
 import { Link } from "react-router-dom"
 import { GitCompareArrows, Rows3 } from "lucide-react"
 import type { PuzzleItem, Run } from "@/lib/data"
@@ -43,6 +43,12 @@ const RUG_TOP = 198
 const RUG_HEIGHT = 10
 const RUG_GAP = 6
 
+interface ChartScale {
+  x: (index: number) => number
+  eloY: (value: number) => number
+  pointsY: (value: number) => number
+}
+
 function itemOutcome(item: PuzzleItem): Outcome {
   if (item.solved) return "solved"
   return item.score > 0 ? "partial" : "failed"
@@ -58,6 +64,11 @@ function outcomeClass(outcome: Outcome): string {
   if (outcome === "solved") return "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
   if (outcome === "partial") return "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300"
   return "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+}
+
+function methodLabel(run: Run): string {
+  const mode = modeInfo(run.condition)
+  return `${mode ? `${mode.displayN}. ${mode.name}` : "Special protocol"} · ${responseStyleInfo(run.condition).label}`
 }
 
 function modelAnswer(item: PuzzleItem): string {
@@ -118,7 +129,7 @@ function ComparisonTooltip({ series, index }: { series: ComparisonSeries[]; inde
       {series.map((entry) => {
         const point = entry.points[index]
         return <div key={entry.run.run_id} className="rounded-lg border bg-background/65 p-2.5">
-          <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} /><span className="truncate text-xs font-semibold">{entry.run.model_variant.display_name}</span></div><Badge variant="outline" className={cn("h-5 shrink-0 px-1.5 text-[9px] capitalize", outcomeClass(point.outcome))}>{outcomeLabel(point)}</Badge></div>
+          <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-2"><span className="mt-1 size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} /><div className="min-w-0"><div className="truncate text-xs font-semibold">{entry.run.model_variant.display_name}</div><div className="mt-0.5 truncate text-[9px] text-muted-foreground">{methodLabel(entry.run)}</div></div></div><Badge variant="outline" className={cn("h-5 shrink-0 px-1.5 text-[9px] capitalize", outcomeClass(point.outcome))}>{outcomeLabel(point)}</Badge></div>
           <div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-[10px]"><div className="min-w-0"><div className="text-muted-foreground">Played line</div><div className="mt-0.5 truncate font-mono text-foreground" title={point.answer}>{point.answer}</div></div><div className="text-right font-mono tabular-nums"><div>{point.item.score.toFixed(2)} pt · {Math.round(point.elo).toLocaleString()} Elo</div><div className="mt-0.5 text-muted-foreground">{point.eloDelta == null ? "initial estimate" : `${point.eloDelta >= 0 ? "+" : ""}${Math.round(point.eloDelta)} Elo`} · {pct(point.cumulativeRate)} cumulative</div></div></div>
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 border-t pt-1.5 font-mono text-[9px] text-muted-foreground"><span>{point.promptTokens.toLocaleString()} in</span><span>{point.completionTokens.toLocaleString()} out</span><span>{point.reasoningTokens.toLocaleString()} reasoning</span><span>${point.cost.toFixed(4)}</span></div>
         </div>
@@ -126,6 +137,17 @@ function ComparisonTooltip({ series, index }: { series: ComparisonSeries[]; inde
     </div>
   </div>
 }
+
+const StaticComparisonPlot = memo(function StaticComparisonPlot({ series, chart, total, pointsTop, pointsBottom }: { series: ComparisonSeries[]; chart: ChartScale; total: number; pointsTop: number; pointsBottom: number }) {
+  return <>
+    {[ELO_TOP, (ELO_TOP + ELO_BOTTOM) / 2, ELO_BOTTOM, pointsTop, pointsBottom].map((y) => <line key={y} x1="0" y1={y} x2={CHART_WIDTH} y2={y} className="stroke-border" opacity={y === ELO_BOTTOM || y === pointsBottom ? 1 : 0.65} vectorEffect="non-scaling-stroke" strokeDasharray={y === ELO_BOTTOM || y === pointsBottom ? undefined : "3 4"} />)}
+    {series.map((entry, seriesIndex) => <g key={entry.run.run_id}>
+      <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.eloY(point.elo)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2.25" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.pointsY(point.cumulativeRate)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      {entry.points.map((point, index) => <rect key={point.item.puzzle_id} x={index / total * CHART_WIDTH + 0.35} y={RUG_TOP + seriesIndex * (RUG_HEIGHT + RUG_GAP)} width={Math.max(1, CHART_WIDTH / total - 0.7)} height={RUG_HEIGHT} rx="1" fill={STATUS_COLORS[point.outcome]} opacity="0.9" />)}
+    </g>)}
+  </>
+})
 
 function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
@@ -144,6 +166,11 @@ function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
     return { eloMin, eloMax, x, eloY, pointsY }
   }, [series, total, pointsBottom, pointsTop])
   const hoveredLeft = hoveredIndex == null ? null : `${pointLeft(hoveredIndex, total)}%`
+  const outcomeSummaries = useMemo(() => series.map((entry) => {
+    const counts: Record<Outcome, number> = { solved: 0, partial: 0, failed: 0 }
+    for (const point of entry.points) counts[point.outcome] += 1
+    return { run: entry.run, counts }
+  }), [series])
   const inspect = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return
     event.preventDefault()
@@ -168,7 +195,7 @@ function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
         <div className="relative text-[9px] text-muted-foreground" style={{ height: chartHeight }} aria-hidden="true">
           <span className="absolute left-0 font-medium uppercase tracking-wide" style={{ top: ELO_TOP }}>Puzzle Elo</span><span className="absolute right-0 font-mono" style={{ top: ELO_TOP }}>{chart.eloMax.toLocaleString()}</span><span className="absolute bottom-auto right-0 font-mono" style={{ top: ELO_BOTTOM - 8 }}>{chart.eloMin.toLocaleString()}</span>
           <span className="absolute left-0 font-medium uppercase tracking-wide" style={{ top: RUG_TOP - 18 }}>Outcomes</span>
-          {series.map((entry, index) => <span key={entry.run.run_id} className="absolute inset-x-0 flex items-center gap-1.5" style={{ top: RUG_TOP + index * (RUG_HEIGHT + RUG_GAP) - 1 }} title={comparisonRunLabel(entry.run)}><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} /><span className="truncate">{entry.run.model_variant.display_name}</span></span>)}
+          {series.map((entry, index) => <span key={entry.run.run_id} className="absolute inset-x-0 flex items-center gap-1.5" style={{ top: RUG_TOP + index * (RUG_HEIGHT + RUG_GAP) - 1 }} title={comparisonRunLabel(entry.run)}><span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} /><span className="truncate">{methodLabel(entry.run)} · {entry.run.model_variant.display_name}</span></span>)}
           <span className="absolute left-0 font-medium uppercase tracking-wide" style={{ top: pointsTop }}>Cumulative</span><span className="absolute right-0 font-mono" style={{ top: pointsTop }}>100%</span><span className="absolute right-0 font-mono" style={{ top: pointsBottom - 8 }}>0%</span>
         </div>
         <div
@@ -184,18 +211,14 @@ function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
           onKeyDown={inspect}
         >
           <svg viewBox={`0 0 ${CHART_WIDTH} ${chartHeight}`} preserveAspectRatio="none" className="size-full" role="img" aria-label="Overlaid Puzzle Elo and cumulative-points lines with one status tile per puzzle and run">
-            {[ELO_TOP, (ELO_TOP + ELO_BOTTOM) / 2, ELO_BOTTOM, pointsTop, pointsBottom].map((y) => <line key={y} x1="0" y1={y} x2={CHART_WIDTH} y2={y} className="stroke-border" opacity={y === ELO_BOTTOM || y === pointsBottom ? 1 : 0.65} vectorEffect="non-scaling-stroke" strokeDasharray={y === ELO_BOTTOM || y === pointsBottom ? undefined : "3 4"} />)}
-            {series.map((entry) => <g key={entry.run.run_id}>
-              <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.eloY(point.elo)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2.25" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-              <polyline points={entry.points.map((point, index) => `${chart.x(index)},${chart.pointsY(point.cumulativeRate)}`).join(" ")} fill="none" stroke={entry.color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-              {entry.points.map((point, index) => <rect key={point.item.puzzle_id} x={index / total * CHART_WIDTH + 0.35} y={RUG_TOP + series.indexOf(entry) * (RUG_HEIGHT + RUG_GAP)} width={Math.max(1, CHART_WIDTH / total - 0.7)} height={RUG_HEIGHT} rx="1" fill={STATUS_COLORS[point.outcome]} opacity="0.9" />)}
-            </g>)}
+            <StaticComparisonPlot series={series} chart={chart} total={total} pointsTop={pointsTop} pointsBottom={pointsBottom} />
             {hoveredIndex != null ? <g><line x1={chart.x(hoveredIndex)} y1="8" x2={chart.x(hoveredIndex)} y2={chartHeight - 8} className="stroke-foreground" opacity="0.35" vectorEffect="non-scaling-stroke" />{series.map((entry) => <g key={entry.run.run_id}><circle cx={chart.x(hoveredIndex)} cy={chart.eloY(entry.points[hoveredIndex].elo)} r="4" fill={entry.color} className="stroke-background" strokeWidth="2" vectorEffect="non-scaling-stroke" /><circle cx={chart.x(hoveredIndex)} cy={chart.pointsY(entry.points[hoveredIndex].cumulativeRate)} r="3.5" fill={entry.color} className="stroke-background" strokeWidth="2" vectorEffect="non-scaling-stroke" /></g>)}</g> : null}
           </svg>
           {hoveredIndex != null && hoveredLeft ? <ComparisonTooltip series={series} index={hoveredIndex} /> : null}
         </div>
       </div>
       <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[10px] text-muted-foreground"><span>Rating {series[0].points[0].item.rating.toLocaleString()} → {series[0].points.at(-1)!.item.rating.toLocaleString()}</span><span>{hoveredIndex == null ? "Hover to compare the same puzzle across every run" : `Puzzle ${hoveredIndex + 1}/${total}`}</span></div>
+      <div className="sr-only">{outcomeSummaries.map(({ run, counts }) => <span key={run.run_id}>{comparisonRunLabel(run)}: {counts.solved} full solves, {counts.partial} partial-credit puzzles, and {counts.failed} zero-point puzzles. </span>)}</div>
     </CardContent>
   </Card>
 }
