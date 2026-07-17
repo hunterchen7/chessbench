@@ -26,7 +26,17 @@ function PuzzleViewButtons({ view, onShowRated, onShowFixed, puzzleCount }: { vi
   </div>
 }
 
-function FixedPuzzleLeaderboard({ onShowRated }: { onShowRated: () => void }) {
+function FixedPuzzleLeaderboard({
+  onShowRated,
+  transitionClassName,
+  titleTransitionClassName,
+  onTransitionAnimationEnd,
+}: {
+  onShowRated: () => void
+  transitionClassName: string
+  titleTransitionClassName: string
+  onTransitionAnimationEnd: (event: AnimationEvent<HTMLDivElement>) => void
+}) {
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [suiteCatalog, setSuiteCatalog] = useState<SuiteCatalog | null>(null)
@@ -84,9 +94,9 @@ function FixedPuzzleLeaderboard({ onShowRated }: { onShowRated: () => void }) {
   })
 
   return (
-    <div className={cn("space-y-8", comparisonRuns.length && "pb-28")}>
+    <div className="space-y-8">
       <section className="grid gap-6 border-b border-border/70 pb-8 lg:min-h-[14.25rem] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-        <div>
+        <div className={titleTransitionClassName}>
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><BarChart3 className="size-4" /> Standard tactics</div>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle leaderboard</h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">
@@ -110,28 +120,30 @@ function FixedPuzzleLeaderboard({ onShowRated }: { onShowRated: () => void }) {
         </div>
       </section>
 
-      <SuiteDescriptor name={activeSuite} />
+      <div className={cn("space-y-8", comparisonRuns.length && "pb-28", transitionClassName)} onAnimationEnd={onTransitionAnimationEnd}>
+        <SuiteDescriptor name={activeSuite} />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models.toLocaleString()}</div><div className="text-xs text-muted-foreground">model configurations</div></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-4 pt-6"><Layers3 className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{totals.runs.toLocaleString()}</div><div className="text-xs text-muted-foreground">completed benchmark runs</div></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold tabular-nums">{totals.solves.toLocaleString()} / {totals.attempts.toLocaleString()}</div><div className="text-xs text-muted-foreground">full solves / completed attempts</div></div></CardContent></Card>
-        <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totals.cost.toFixed(2)}</div><div className="text-xs text-muted-foreground">cost across all runs</div></div></CardContent></Card>
-      </section>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Card><CardContent className="flex items-center gap-4 pt-6"><BarChart3 className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models.toLocaleString()}</div><div className="text-xs text-muted-foreground">model configurations</div></div></CardContent></Card>
+          <Card><CardContent className="flex items-center gap-4 pt-6"><Layers3 className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{totals.runs.toLocaleString()}</div><div className="text-xs text-muted-foreground">completed benchmark runs</div></div></CardContent></Card>
+          <Card><CardContent className="flex items-center gap-4 pt-6"><Database className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold tabular-nums">{totals.solves.toLocaleString()} / {totals.attempts.toLocaleString()}</div><div className="text-xs text-muted-foreground">full solves / completed attempts</div></div></CardContent></Card>
+          <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totals.cost.toFixed(2)}</div><div className="text-xs text-muted-foreground">cost across all runs</div></div></CardContent></Card>
+        </section>
 
-      <section>
-        <PuzzleRunMatrix
-          runs={suiteRuns}
-          suite={activeSuite}
-          visibleModes={visibleModes}
-          onVisibleModesChange={setVisibleModes}
-          openModels={openModels}
-          onOpenModelsChange={setOpenModels}
-          comparisonRunIds={comparisonIds}
-          onComparisonRunIdsChange={setComparisonIds}
-        />
-      </section>
-      <CompareTray runs={comparisonRuns} onRemove={(id) => setComparisonIds(comparisonIds.filter((candidate) => candidate !== id))} onClear={() => setComparisonIds([])} />
+        <section>
+          <PuzzleRunMatrix
+            runs={suiteRuns}
+            suite={activeSuite}
+            visibleModes={visibleModes}
+            onVisibleModesChange={setVisibleModes}
+            openModels={openModels}
+            onOpenModelsChange={setOpenModels}
+            comparisonRunIds={comparisonIds}
+            onComparisonRunIdsChange={setComparisonIds}
+          />
+        </section>
+        <CompareTray runs={comparisonRuns} onRemove={(id) => setComparisonIds(comparisonIds.filter((candidate) => candidate !== id))} onClear={() => setComparisonIds([])} />
+      </div>
     </div>
   )
 }
@@ -197,10 +209,19 @@ export function PuzzleLeaderboard() {
     fallbackPhase === "out" && "puzzle-view-fallback-out",
     fallbackPhase === "in" && "puzzle-view-fallback-in",
   )
-  if (fixed) return <div key="fixed" className={transitionClass} onAnimationEnd={finishTransition}><FixedPuzzleLeaderboard onShowRated={() => setView("rated")} /></div>
-  return <div key="rated" className={cn(transitionClass, "space-y-8")} onAnimationEnd={finishTransition}>
+  const titleTransitionClass = cn(
+    fallbackPhase === "out" && "puzzle-title-fallback-out",
+    fallbackPhase === "in" && "puzzle-title-fallback-in",
+  )
+  if (fixed) return <FixedPuzzleLeaderboard
+    onShowRated={() => setView("rated")}
+    transitionClassName={transitionClass}
+    titleTransitionClassName={titleTransitionClass}
+    onTransitionAnimationEnd={finishTransition}
+  />
+  return <div className="space-y-8">
     <section className="grid gap-6 border-b border-border/70 pb-8 lg:min-h-[14.25rem] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-      <div>
+      <div className={titleTransitionClass}>
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><Gauge className="size-4" /> Standard tactics</div>
         <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle rating leaderboard</h1>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">A Lichess-inspired adaptive rating: each model plays calibrated puzzles near its current strength until uncertainty settles. The headline test uses one unassisted, UCI-only prompt protocol.</p>
@@ -219,6 +240,6 @@ export function PuzzleLeaderboard() {
         <PuzzleViewButtons view="rated" onShowRated={() => setView("rated")} onShowFixed={() => setView("fixed")} puzzleCount={fixedSuiteOptions[0]?.items} />
       </div>
     </section>
-    <AdaptivePuzzleLeaderboard runs={runs} />
+    <div className={transitionClass} onAnimationEnd={finishTransition}><AdaptivePuzzleLeaderboard runs={runs} /></div>
   </div>
 }
