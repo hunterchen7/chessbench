@@ -1,0 +1,38 @@
+# Frontier puzzle probes
+
+Frontier probes are preliminary cost-and-behavior checks, not headline benchmark
+scores. They use the frozen `frontier-hardest-v1` suite
+(`sha256:1325fce9508b0931`), which contains the three highest-rated positions in
+the active Standard suite, ordered hardest first: 3,120, 3,102, and 3,093.
+
+Every probe uses Method 1: authoritative FEN plus explicit piece locations,
+side to move, UCI answers, no legal-move list, no coaching, no requested
+explanation, and no provider tools. Conversation state persists only between
+solver moves inside one puzzle. Provider-visible reasoning is captured when it
+is available, and the provider-native output allowance is left uncapped.
+
+The three lines contain at most 14 solver turns in total (8 + 3 + 3). A wrong
+or illegal move ends that puzzle immediately, so a run can use fewer calls.
+Models are first tested at low reasoning. Medium and high are separate variants
+and should be run only after the lower-effort cost and behavior are understood.
+
+Provider routes are chosen only after checking OpenRouter's current endpoint
+throughput and uptime. The exact route is part of the model variant so results
+from different hosts are never silently pooled. When a newly released model has
+no stable throughput history, that absence is recorded and the run proceeds one
+puzzle at a time.
+
+## Preliminary results
+
+| Date (UTC) | Model configuration | Route | Solved | Legal first | Points | Cost | Completion / reasoning tokens | First moves (hardest first) |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 2026-07-17 | GPT-5.6 Sol · low | OpenAI only | 0/3 | 3/3 | 0.00/3 | $0.165756 | 5,477 / 5,447 | `d2d5`, `f3f7`, `e4d4` |
+
+The GPT-5.6 Sol run is `6cdedf64bcbd4e988a9506f6651eba2c`. All three
+answers were legal first attempts but differed from the frozen solution move.
+The run is too small for an ability claim; its purpose is to establish an
+observed cost and failure-mode baseline before increasing reasoning effort.
+
+This table is intentionally append-only for completed probe variants. Partial
+or provider-failed attempts remain in the durable database but are not reported
+as completed results.
