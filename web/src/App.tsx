@@ -5,6 +5,7 @@ import { Layout } from "@/components/Layout"
 
 const Leaderboard = lazy(() => import("@/pages/Leaderboard").then((m) => ({ default: m.Leaderboard })))
 const ModelDetail = lazy(() => import("@/pages/ModelDetail").then((m) => ({ default: m.ModelDetail })))
+const RunComparison = lazy(() => import("@/pages/RunComparison").then((m) => ({ default: m.RunComparison })))
 const PuzzleLeaderboard = lazy(() => import("@/pages/PuzzleLeaderboard").then((m) => ({ default: m.PuzzleLeaderboard })))
 const PuzzleBrowser = lazy(() => import("@/pages/Puzzles").then((m) => ({ default: m.PuzzleBrowser })))
 const PuzzleStart = lazy(() => import("@/pages/PuzzleStart").then((m) => ({ default: m.PuzzleStart })))
@@ -27,6 +28,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Leaderboard />} />
               <Route path="model/:model" element={<ModelDetail />} />
+              <Route path="compare" element={<RunComparison />} />
               <Route path="puzzles" element={<PuzzleLeaderboard />} />
               <Route path="puzzles/browse" element={<PuzzleBrowser />} />
               <Route path="puzzles/play" element={<PuzzleStart />} />
