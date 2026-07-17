@@ -72,6 +72,18 @@ Your move.`,
   },
 ] as const
 
+const FRONTIER_PRELIMINARY = [
+  {
+    model: "GPT-5.6 Sol",
+    effort: "Low",
+    route: "OpenAI only",
+    solved: "0/3",
+    legal: "3/3",
+    cost: "$0.1658",
+    tokens: "5,477 / 5,447",
+  },
+] as const
+
 export function Methodology() {
   return (
     <div className="space-y-10">
@@ -93,6 +105,50 @@ export function Methodology() {
           <p>The model receives raw FEN, explicit piece locations, and the side to move, then replies with one UCI move. It receives no legal-move list, coaching, requested rationale, puzzle rating, theme, or indication that it is being benchmarked. An illegal or wrong move ends that puzzle. Conversation state continues between moves of the same puzzle and resets before the next one.</p>
           <p>A session stops after at least 50 puzzles once RD is at most 75, or at a 100-puzzle safety cap. The complete path—including seed, eligible band, selected puzzle, pre/post rating state, prompts, responses, reasoning metadata, tokens, and cost—is durable and resumable. Puzzle ratings never change.</p>
         </Prose></CardContent></Card>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Frontier probe lab</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Preliminary cost and behavior checks on the three hardest active-suite positions, not headline scores.</p>
+          </div>
+          <Badge variant="outline">3,120 · 3,102 · 3,093</Badge>
+        </div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="border-b bg-muted/35 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Model configuration</th>
+                    <th className="px-4 py-3 font-medium">Route</th>
+                    <th className="px-4 py-3 text-right font-medium">Solved</th>
+                    <th className="px-4 py-3 text-right font-medium">Legal first</th>
+                    <th className="px-4 py-3 text-right font-medium">Cost</th>
+                    <th className="px-4 py-3 text-right font-medium">Completion / reasoning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {FRONTIER_PRELIMINARY.map((row) => (
+                    <tr key={`${row.model}-${row.effort}-${row.route}`} className="border-b last:border-b-0">
+                      <td className="px-4 py-3 font-medium">{row.model} <Badge variant="secondary" className="ml-2">{row.effort}</Badge></td>
+                      <td className="px-4 py-3 text-muted-foreground">{row.route}</td>
+                      <td className="px-4 py-3 text-right font-mono">{row.solved}</td>
+                      <td className="px-4 py-3 text-right font-mono">{row.legal}</td>
+                      <td className="px-4 py-3 text-right font-mono">{row.cost}</td>
+                      <td className="px-4 py-3 text-right font-mono text-xs">{row.tokens}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+        <Prose>
+          <p>All probes use raw FEN plus piece locations, move-only UCI, no legal-move list, no coaching, no tools, and isolated conversation state per puzzle. The three lines require at most 14 model turns; a wrong move ends its puzzle early.</p>
+          <p>Runs begin at low reasoning and move upward as separate model variants. Routes are pinned only after checking OpenRouter throughput and uptime. Newly released endpoints without stable throughput history are advanced one puzzle at a time. Detailed run IDs, moves, and token accounting live in <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://github.com/hunterchen7/chessbench/blob/main/docs/FRONTIER_PROBES.md" target="_blank" rel="noreferrer">the frontier probe note</a>.</p>
+        </Prose>
       </section>
 
       <section className="space-y-4">
