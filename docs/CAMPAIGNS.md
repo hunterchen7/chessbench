@@ -45,6 +45,12 @@ JSON indexes, and optionally drains the local outbox before exiting. Use
 `--continue-on-error` only when later cells should be attempted despite an
 earlier provider failure.
 
+For a rating-ascending Standard campaign, `--max-consecutive-unsolved N` is an
+optional operational spend guard. Once a cell ends with N scored puzzles in a
+row without a full solve, the runner stops before the next paid item and leaves
+the cell partial and resumable. Partial credit still counts as unsolved for this
+guard. The option does not alter the benchmark condition or model identity.
+
 Useful bounded launches include:
 
 ```bash

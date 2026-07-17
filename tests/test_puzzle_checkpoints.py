@@ -288,6 +288,44 @@ def test_runner_can_stop_before_issuing_more_paid_items():
     assert len(model.calls) == 1
 
 
+def test_runner_stops_after_consecutive_unsolved_and_restores_streak_on_resume():
+    puzzles = [replace(ONE_MOVE, id=f"streak-{index}") for index in range(11)]
+    misses = [(_answer("a1a2", "MISS"), 8, 3, 1, 0.005)] * 10
+    model = UsageScriptedModel(
+        [*misses, AssertionError("eleventh provider call must not be issued")]
+    )
+
+    report, results = run_puzzles(
+        LLMAgent(model),
+        puzzles,
+        HEADLINE,
+        max_consecutive_unsolved=10,
+    )
+
+    assert len(results) == 10
+    assert report.n == 10
+    assert not any(result.solved for result in results)
+    assert len(model.calls) == 10
+
+    resumed = UsageScriptedModel(
+        [
+            (_answer("a1a2", "TENTH MISS"), 8, 3, 1, 0.005),
+            AssertionError("resume must stop before the next missing puzzle"),
+        ]
+    )
+    resumed_report, resumed_results = run_puzzles(
+        LLMAgent(resumed),
+        puzzles,
+        HEADLINE,
+        completed={result.puzzle_id: result for result in results[:9]},
+        max_consecutive_unsolved=10,
+    )
+
+    assert len(resumed_results) == 10
+    assert resumed_report.n == 10
+    assert len(resumed.calls) == 1
+
+
 def test_runner_paid_boundary_counts_provider_failures():
     second = replace(ONE_MOVE, id="one-checkpoint-2")
     model = UsageScriptedModel(

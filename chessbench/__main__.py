@@ -1025,6 +1025,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             condition,
             progress_every=args.progress,
             max_new_items=args.max_new_items,
+            max_consecutive_unsolved=args.max_consecutive_unsolved,
             completed=completed,
             checkpoints=checkpoints,
             on_checkpoint=persist_checkpoint,
@@ -1058,10 +1059,24 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             store.close()
         raise
     row = store.run_row(handle.run_id)
-    if args.max_new_items is not None and _usage_int(row.get("completed_items")) < len(
-        puzzles
-    ):
+    incomplete = _usage_int(row.get("completed_items")) < len(puzzles)
+    trailing_unsolved = 0
+    for result in reversed(results):
+        if result.solved:
+            break
+        trailing_unsolved += 1
+    reason: str | None = None
+    if args.max_new_items is not None and incomplete:
         reason = f"operator stop after {args.max_new_items} new item(s)"
+    elif (
+        args.max_consecutive_unsolved is not None
+        and incomplete
+        and trailing_unsolved >= args.max_consecutive_unsolved
+    ):
+        reason = (
+            f"operator stop after {trailing_unsolved} consecutive unsolved puzzles"
+        )
+    if reason is not None:
         store.mark_partial(handle.run_id, reason)
         durable = store.load_puzzle_results(handle.run_id)
         durable_results = [
@@ -1072,10 +1087,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         partial_report = build_report(entry.model_id, condition.slug(), durable_results)
         export_snapshot(durable_results, partial_report, store.run_row(handle.run_id))
         store.close()
-        print(
-            f"\npartial {handle.run_id}; stopped after {args.max_new_items} new "
-            f"item(s); wrote resumable JSON export -> {out}"
-        )
+        print(f"\npartial {handle.run_id}; {reason}; wrote resumable JSON export -> {out}")
         return 0
 
     # Each item already incremented the durable aggregate exactly once. Do not
@@ -1950,6 +1962,15 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "stop cleanly after N newly evaluated items; completed items remain "
             "durable and the same run resumes later"
+        ),
+    )
+    rmp.add_argument(
+        "--max-consecutive-unsolved",
+        type=int,
+        default=None,
+        help=(
+            "stop before the next paid item after N consecutive scored puzzles "
+            "without a full solve; the partial run remains resumable"
         ),
     )
     rmp.add_argument(

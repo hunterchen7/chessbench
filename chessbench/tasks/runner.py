@@ -45,6 +45,7 @@ def run_puzzles(
     log_path: str | Path | None = None,
     progress_every: int = 0,
     max_new_items: int | None = None,
+    max_consecutive_unsolved: int | None = None,
     resume_path: str | Path | None = None,
     completed: dict[str, PuzzleResult] | None = None,
     checkpoints: dict[str, PuzzleCheckpoint] | None = None,
@@ -60,6 +61,8 @@ def run_puzzles(
     """
     if max_new_items is not None and max_new_items < 1:
         raise ValueError("max_new_items must be positive")
+    if max_consecutive_unsolved is not None and max_consecutive_unsolved < 1:
+        raise ValueError("max_consecutive_unsolved must be positive")
     results: list[PuzzleResult] = []
     errors = 0
     done = dict(completed or {})
@@ -70,11 +73,22 @@ def run_puzzles(
     log_f = open(log_path, "w", encoding="utf-8") if log_path else None
     resume_f = open(resume_path, "a", encoding="utf-8") if resume_path else None
     consecutive_errors = 0
+    consecutive_unsolved = 0
     issued_items = 0
     try:
         start = time.time()
         for i, p in enumerate(puzzles, 1):
             cached = p.id in done
+            if (
+                not cached
+                and max_consecutive_unsolved is not None
+                and consecutive_unsolved >= max_consecutive_unsolved
+            ):
+                print(
+                    f"  [stop] {consecutive_unsolved} consecutive unsolved puzzles; "
+                    "leaving the remaining items resumable"
+                )
+                break
             if (
                 not cached
                 and max_new_items is not None
@@ -117,6 +131,7 @@ def run_puzzles(
                         ) from exc
                     continue
             results.append(res)
+            consecutive_unsolved = 0 if res.solved else consecutive_unsolved + 1
             if log_f:
                 log_f.write(json.dumps(asdict(res)) + "\n")
             # Only append genuine gradings to the legacy JSONL resume file.

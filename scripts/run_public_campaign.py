@@ -89,6 +89,15 @@ def main() -> int:
         help="refuse to start below this OpenRouter key balance (default: $1)",
     )
     parser.add_argument(
+        "--max-consecutive-unsolved",
+        type=int,
+        default=None,
+        help=(
+            "leave a cell partial and resumable after N consecutive puzzles "
+            "without a full solve"
+        ),
+    )
+    parser.add_argument(
         "--skip-credit-check",
         action="store_true",
         help="skip the read-only OpenRouter key-balance preflight",
@@ -121,9 +130,14 @@ def main() -> int:
         f"{total_items} model-item evaluations"
     )
 
-    commands = [
-        cell.command(db=args.db, data_root=args.data_root) for cell in cells
-    ]
+    commands = [cell.command(db=args.db, data_root=args.data_root) for cell in cells]
+    if args.max_consecutive_unsolved is not None:
+        if args.max_consecutive_unsolved < 1:
+            parser.error("--max-consecutive-unsolved must be positive")
+        for command in commands:
+            command.extend(
+                ["--max-consecutive-unsolved", str(args.max_consecutive_unsolved)]
+            )
     if args.dry_run:
         for cell, command in zip(cells, commands):
             print(f"{cell.key}\n  {shlex.join(command)}")
