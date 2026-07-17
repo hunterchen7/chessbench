@@ -197,7 +197,9 @@ export interface Run extends RunIndexEntry {
 }
 
 export interface PuzzleAnswer {
+  run_id?: string
   model: string
+  model_variant?: ModelVariant
   condition: string
   item: PuzzleItem
 }
@@ -641,7 +643,7 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
     const map = new Map(positions.map((entry) => [entry.position.puzzle_id, entry]))
     for (const run of full) for (const item of run.items) {
       const entry = map.get(item.puzzle_id) ?? { position: item, answers: [] }
-      entry.answers.push({ model: run.model, condition: run.condition.slug, item })
+      entry.answers.push({ model: run.model, model_variant: run.model_variant, condition: run.condition.slug, item })
       entry.aggregate = {
         solved: (entry.aggregate?.solved ?? 0) + Number(item.solved),
         total: (entry.aggregate?.total ?? 0) + 1,
@@ -666,7 +668,9 @@ export async function loadPuzzle(id: string): Promise<PuzzleEntry | null> {
       return {
         position: doc.position,
         answers: doc.answers.map((answer) => ({
+          run_id: answer.run_id == null ? undefined : String(answer.run_id),
           model: String(answer.model),
+          model_variant: answer.model_variant as ModelVariant | undefined,
           condition: String(answer.condition),
           item: { ...doc.position, ...(answer as unknown as Partial<PuzzleItem>) },
         })),

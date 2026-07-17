@@ -66,14 +66,21 @@
     "max_points": 325,
     "cost_usd": 0.22737577500000006,
     "puzzle_performance_rating": {
-     "rating": 1176.510900259018,
-     "stderr": 36.32964153599174,
+     "rating": 1177.379835397005,
+     "stderr": 36.27918754947099,
+     "rating_deviation": 36.27918754947099,
      "ci95": [
-      1105.304802848474,
-      1247.7169976695618
+      1106.2726278000418,
+      1248.4870429939683
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T06:51:25+00:00",
@@ -155,14 +162,21 @@
     "max_points": 325,
     "cost_usd": 0.14690634750000003,
     "puzzle_performance_rating": {
-     "rating": 1084.60995554924,
-     "stderr": 36.69287180343194,
+     "rating": 1085.7479609549046,
+     "stderr": 36.63509666734896,
+     "rating_deviation": 36.63509666734896,
      "ci95": [
-      1012.6919268145135,
-      1156.5279842839668
+      1013.9431714869006,
+      1157.5527504229085
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T06:02:12+00:00",
@@ -244,14 +258,21 @@
     "max_points": 325,
     "cost_usd": 0.37881929250000024,
     "puzzle_performance_rating": {
-     "rating": 1267.4258053302765,
-     "stderr": 36.25315710105581,
+     "rating": 1268.0479548871517,
+     "stderr": 36.204533073160356,
+     "rating_deviation": 36.204533073160356,
      "ci95": [
-      1196.3696174122072,
-      1338.4819932483458
+      1197.0870700637574,
+      1339.008839710546
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T07:29:30+00:00",
@@ -333,14 +354,21 @@
     "max_points": 325,
     "cost_usd": 0.25618947750000004,
     "puzzle_performance_rating": {
-     "rating": 1184.1056048870087,
-     "stderr": 36.31619241013559,
+     "rating": 1184.9535442888737,
+     "stderr": 36.26603129060067,
+     "rating_deviation": 36.26603129060067,
      "ci95": [
-      1112.9258677631428,
-      1255.2853420108745
+      1113.8721229592963,
+      1256.034965618451
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T06:33:58+00:00",
@@ -422,14 +450,21 @@
     "max_points": 325,
     "cost_usd": 0.8095663124999998,
     "puzzle_performance_rating": {
-     "rating": 1076.8484771251678,
-     "stderr": 36.746574879640136,
+     "rating": 1078.0111141502857,
+     "stderr": 36.687748204708434,
+     "rating_deviation": 36.687748204708434,
      "ci95": [
-      1004.8251903610732,
-      1148.8717638892624
+      1006.1031276690571,
+      1149.9191006315143
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T16:15:49+00:00",
@@ -511,14 +546,21 @@
     "max_points": 325,
     "cost_usd": 0.5970146985000004,
     "puzzle_performance_rating": {
-     "rating": 1130.7843625545502,
-     "stderr": 36.45627041845059,
+     "rating": 1131.7829973995686,
+     "stderr": 36.40318877236026,
+     "rating_deviation": 36.40318877236026,
      "ci95": [
-      1059.330072534387,
-      1202.2386525747133
+      1060.4327474057425,
+      1203.1332473933946
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T15:36:54+00:00",
@@ -600,14 +642,21 @@
     "max_points": 325,
     "cost_usd": 0.24788882250000005,
     "puzzle_performance_rating": {
-     "rating": 1161.3024771213531,
-     "stderr": 36.362393554860375,
+     "rating": 1162.2139029204845,
+     "stderr": 36.311242123516,
+     "rating_deviation": 36.311242123516,
      "ci95": [
-      1090.0321857538268,
-      1232.5727684888795
+      1091.0438683583932,
+      1233.383937482576
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T07:08:07+00:00",
@@ -689,14 +738,21 @@
     "max_points": 325,
     "cost_usd": 0.1760620949999998,
     "puzzle_performance_rating": {
-     "rating": 1138.4291350841522,
-     "stderr": 36.428779329898674,
+     "rating": 1139.4056789577007,
+     "stderr": 36.37625563220464,
+     "rating_deviation": 36.37625563220464,
      "ci95": [
-      1067.0287275975509,
-      1209.8295425707536
+      1068.1082179185796,
+      1210.7031399968218
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T06:21:59+00:00",
@@ -712,6 +768,539 @@
     "cache_discount_usd": 0.0
    },
    "error": null
+  },
+  {
+   "run_id": "7621848f7ae745dfa357dbd9b4a71da4",
+   "file": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-requi__suite-standard-lichess-v3--196077b0a7370043__cfg-941db47390520b72.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.5-flash",
+   "model_variant": {
+    "key": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-required-params",
+    "base_key": "gemini-3.5-flash",
+    "display_name": "gemini-3.5-flash",
+    "label": "gemini-3.5-flash \u00b7 provider default reasoning captured \u00b7 google-ai-studio only",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.5-flash",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0,
+    "provider_route": {
+     "only": [
+      "google-ai-studio"
+     ],
+     "order": [],
+     "allow_fallbacks": false,
+     "require_parameters": true
+    }
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T04:04:13+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "deep_coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "deep_coach_v1",
+    "slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__deep_coached__prompt-deep-coach-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 154,
+    "total": 250
+   },
+   "summary": {
+    "n": 250,
+    "solved": 94,
+    "solve_rate": 0.376,
+    "mean_score": 0.41606666666666664,
+    "first_move_legal_rate": 0.974025974025974,
+    "response_format_valid_rate": null,
+    "points": 104.0167,
+    "max_points": 250,
+    "cost_usd": 9.950590732500002,
+    "puzzle_performance_rating": {
+     "rating": 1712.3326770961285,
+     "stderr": 45.47212259745613,
+     "rating_deviation": 45.47212259745613,
+     "ci95": [
+      1623.2073168051145,
+      1801.4580373871424
+     ],
+     "n": 154,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-17T05:27:26+00:00",
+   "completed_at": "2026-07-17T05:27:26+00:00",
+   "usage": {
+    "cost_usd": 9.950590732500002,
+    "prompt_tokens": 790589,
+    "completion_tokens": 988673,
+    "reasoning_tokens": 986050,
+    "cache_read_tokens": 24325,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 766264,
+    "cache_discount_usd": 0.0
+   },
+   "error": "Stopped after 10 consecutive unsolved puzzles; 96 remaining puzzles were not attempted and receive zero points under the suite policy.",
+   "termination": {
+    "kind": "consecutive_unsolved",
+    "threshold": 10,
+    "attempted": 154,
+    "unattempted": 96,
+    "unattempted_score": 0,
+    "message": "Stopped after 10 consecutive unsolved puzzles; 96 remaining puzzles were not attempted and receive zero points under the suite policy."
+   }
+  },
+  {
+   "run_id": "7d89f0c25a2f466e9e14d0651df313fe",
+   "file": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-requi__suite-standard-lichess-v3--196077b0a7370043__cfg-b6ccd92b6430f7e3.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.5-flash",
+   "model_variant": {
+    "key": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-required-params",
+    "base_key": "gemini-3.5-flash",
+    "display_name": "gemini-3.5-flash",
+    "label": "gemini-3.5-flash \u00b7 provider default reasoning captured \u00b7 google-ai-studio only",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.5-flash",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0,
+    "provider_route": {
+     "only": [
+      "google-ai-studio"
+     ],
+     "order": [],
+     "allow_fallbacks": false,
+     "require_parameters": true
+    }
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T23:17:44+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 250,
+    "total": 250
+   },
+   "summary": {
+    "n": 250,
+    "solved": 104,
+    "solve_rate": 0.416,
+    "mean_score": 0.5373261437908496,
+    "first_move_legal_rate": 0.972,
+    "response_format_valid_rate": null,
+    "points": 134.3315,
+    "max_points": 250,
+    "cost_usd": 8.311123260000004,
+    "puzzle_performance_rating": {
+     "rating": 1824.058834463358,
+     "stderr": 44.93197562163668,
+     "rating_deviation": 44.93197562163668,
+     "ci95": [
+      1735.9921622449501,
+      1912.1255066817657
+     ],
+     "n": 250,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-17T00:37:18+00:00",
+   "completed_at": "2026-07-17T00:37:18+00:00",
+   "usage": {
+    "cost_usd": 8.311123260000004,
+    "prompt_tokens": 166296,
+    "completion_tokens": 905070,
+    "reasoning_tokens": 902993,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 166296,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "184270ddc13e4e74b53387fda29a6bfa",
+   "file": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-requi__suite-standard-lichess-v3--196077b0a7370043__cfg-ec6a456c64058c05.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.5-flash",
+   "model_variant": {
+    "key": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-required-params",
+    "base_key": "gemini-3.5-flash",
+    "display_name": "gemini-3.5-flash",
+    "label": "gemini-3.5-flash \u00b7 provider default reasoning captured \u00b7 google-ai-studio only",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.5-flash",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0,
+    "provider_route": {
+     "only": [
+      "google-ai-studio"
+     ],
+     "order": [],
+     "allow_fallbacks": false,
+     "require_parameters": true
+    }
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T01:07:00+00:00",
+   "condition": {
+    "legality": "legal_list",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "coached",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "json_schema_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "legal_list__fen_pieces__uci__coached__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 250,
+    "total": 250
+   },
+   "summary": {
+    "n": 250,
+    "solved": 123,
+    "solve_rate": 0.492,
+    "mean_score": 0.5765884220354809,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": 0.996,
+    "points": 144.1471,
+    "max_points": 250,
+    "cost_usd": 9.238415174999998,
+    "puzzle_performance_rating": {
+     "rating": 2041.344504803419,
+     "stderr": 44.0131651125681,
+     "rating_deviation": 44.0131651125681,
+     "ci95": [
+      1955.0787011827856,
+      2127.6103084240526
+     ],
+     "n": 250,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-17T02:29:53+00:00",
+   "completed_at": "2026-07-17T02:29:53+00:00",
+   "usage": {
+    "cost_usd": 9.238415174999998,
+    "prompt_tokens": 736363,
+    "completion_tokens": 914132,
+    "reasoning_tokens": 865455,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 736363,
+    "cache_discount_usd": 0.0
+   },
+   "error": null
+  },
+  {
+   "run_id": "b07f18c8b6bb4dd88232ff4d476fc99c",
+   "file": "gpt-5-6-luna--r-low-captured--o-provider__suite-standard-lichess-v3--196077b0a7370043__cfg-3205899d6ccf60bf.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low-captured--o-provider",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T04:52:07+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": true,
+    "response_protocol": "prompt_json_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__prompt-json-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__prompt-json-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 109,
+    "total": 250
+   },
+   "summary": {
+    "n": 250,
+    "solved": 41,
+    "solve_rate": 0.164,
+    "mean_score": 0.2,
+    "first_move_legal_rate": 0.8990825688073395,
+    "response_format_valid_rate": 0.981651376146789,
+    "points": 50.0,
+    "max_points": 250,
+    "cost_usd": 1.7324581725,
+    "puzzle_performance_rating": {
+     "rating": 1101.4655269682407,
+     "stderr": 45.843428685847854,
+     "rating_deviation": 45.843428685847854,
+     "ci95": [
+      1011.6124067439789,
+      1191.3186471925026
+     ],
+     "n": 109,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-17T05:38:55+00:00",
+   "completed_at": "2026-07-17T05:38:55+00:00",
+   "usage": {
+    "cost_usd": 1.7324581725,
+    "prompt_tokens": 127259,
+    "completion_tokens": 270405,
+    "reasoning_tokens": 255502,
+    "cache_read_tokens": 17995,
+    "cache_write_tokens": 65857,
+    "uncached_prompt_tokens": 43407,
+    "cache_discount_usd": 0.0
+   },
+   "error": "Stopped after 10 consecutive unsolved puzzles; 141 remaining puzzles were not attempted and receive zero points under the suite policy.",
+   "termination": {
+    "kind": "consecutive_unsolved",
+    "threshold": 10,
+    "attempted": 109,
+    "unattempted": 141,
+    "unattempted_score": 0,
+    "message": "Stopped after 10 consecutive unsolved puzzles; 141 remaining puzzles were not attempted and receive zero points under the suite policy."
+   }
+  },
+  {
+   "run_id": "2dfdb4a30a2e490a810f6fb744fd3f0d",
+   "file": "gpt-5-6-luna--r-low-captured--o-provider__suite-standard-lichess-v3--196077b0a7370043__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low-captured--o-provider",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T04:04:13+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 107,
+    "total": 250
+   },
+   "summary": {
+    "n": 250,
+    "solved": 37,
+    "solve_rate": 0.148,
+    "mean_score": 0.18366666666666664,
+    "first_move_legal_rate": 0.9439252336448598,
+    "response_format_valid_rate": null,
+    "points": 45.9167,
+    "max_points": 250,
+    "cost_usd": 1.5621681734999997,
+    "puzzle_performance_rating": {
+     "rating": 1052.8978370130062,
+     "stderr": 46.265848409243496,
+     "rating_deviation": 46.265848409243496,
+     "ci95": [
+      962.216774130889,
+      1143.5788998951234
+     ],
+     "n": 107,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-17T05:27:26+00:00",
+   "completed_at": "2026-07-17T05:27:26+00:00",
+   "usage": {
+    "cost_usd": 1.5621681734999997,
+    "prompt_tokens": 75230,
+    "completion_tokens": 250330,
+    "reasoning_tokens": 248614,
+    "cache_read_tokens": 1254,
+    "cache_write_tokens": 7465,
+    "uncached_prompt_tokens": 66511,
+    "cache_discount_usd": 0.0
+   },
+   "error": "Stopped after 10 consecutive unsolved puzzles; 143 remaining puzzles were not attempted and receive zero points under the suite policy.",
+   "termination": {
+    "kind": "consecutive_unsolved",
+    "threshold": 10,
+    "attempted": 107,
+    "unattempted": 143,
+    "unattempted_score": 0,
+    "message": "Stopped after 10 consecutive unsolved puzzles; 143 remaining puzzles were not attempted and receive zero points under the suite policy."
+   }
   },
   {
    "run_id": "d09b13f4f0a34bfdbb50cd86704588bb",
@@ -778,14 +1367,21 @@
     "max_points": 325,
     "cost_usd": 0.3307594207499999,
     "puzzle_performance_rating": {
-     "rating": 826.6585171222687,
-     "stderr": 42.41677832960458,
+     "rating": 829.1155956685543,
+     "stderr": 42.23193445040261,
+     "rating_deviation": 42.23193445040261,
      "ci95": [
-      743.5216315962437,
-      909.7954026482937
+      746.3410041457652,
+      911.8901871913434
      ],
      "n": 325,
-     "bounded": true
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": false,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
     }
    },
    "updated_at": "2026-07-16T04:57:44+00:00",
@@ -801,6 +1397,111 @@
     "cache_discount_usd": 0.0
    },
    "error": null
+  },
+  {
+   "run_id": "59cd8d6add7041b4a8b9926dcfc01e81",
+   "file": "minimax-m3--r-low-captured--o-provider--route-only-minimax-no-fallbacks-required-params__suite-standard-lichess-v3--196077b0a7370043__cfg-2a6518f02a5869bb.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "partial",
+   "model": "minimax/minimax-m3",
+   "model_variant": {
+    "key": "minimax-m3--r-low-captured--o-provider--route-only-minimax-no-fallbacks-required-params",
+    "base_key": "minimax-m3",
+    "display_name": "minimax-m3",
+    "label": "minimax-m3 \u00b7 low reasoning (captured) \u00b7 minimax only",
+    "provider": "openrouter",
+    "model_id": "minimax/minimax-m3",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0,
+    "provider_route": {
+     "only": [
+      "minimax"
+     ],
+     "order": [],
+     "allow_fallbacks": false,
+     "require_parameters": true
+    }
+   },
+   "provider": "openrouter",
+   "created": "2026-07-16T23:17:33+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 3,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "uci_candidates_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "standard-lichess-v3",
+    "version": "3.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:196077b0a7370043"
+   },
+   "progress": {
+    "completed": 1,
+    "total": 250
+   },
+   "summary": {
+    "n": 1,
+    "solved": 1,
+    "solve_rate": 1.0,
+    "mean_score": 1.0,
+    "first_move_legal_rate": 1.0,
+    "response_format_valid_rate": null,
+    "points": 1.0,
+    "max_points": 1,
+    "cost_usd": 0.0151701066,
+    "puzzle_performance_rating": {
+     "rating": 1517.9925002157688,
+     "stderr": 666.5420004117319,
+     "rating_deviation": 666.5420004117319,
+     "ci95": [
+      211.57017940877427,
+      2824.414821022763
+     ],
+     "n": 1,
+     "bounded": true,
+     "method": "bayesian_elo_v1",
+     "provisional": true,
+     "prior": {
+      "mean": 1500.0,
+      "sd": 700.0
+     }
+    }
+   },
+   "updated_at": "2026-07-16T23:25:02+00:00",
+   "completed_at": null,
+   "usage": {
+    "cost_usd": 0.0151701066,
+    "prompt_tokens": 18397,
+    "completion_tokens": 11750,
+    "reasoning_tokens": 8697,
+    "cache_read_tokens": 17899,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 498,
+    "cache_discount_usd": 0.0
+   },
+   "error": "operator stop after 1 new item(s)"
   }
  ]
 }

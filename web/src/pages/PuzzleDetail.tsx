@@ -9,6 +9,7 @@ import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleConti
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
+import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { ExactPromptBlock, PromptTranscript } from "@/components/PromptTranscript"
@@ -18,6 +19,11 @@ import { Button } from "@/components/ui/button"
 
 type Status = "playing" | "solved" | "revealed"
 const EMPTY_SOLUTION: string[] = []
+
+function fallbackModelName(model: string): string {
+  const providerName = model.split("/").at(-1) ?? model
+  return providerName.split("--r-")[0]
+}
 
 function ModelContinuation({ plies }: { plies: PuzzleContinuationPly[] }) {
   return <span className="inline-flex flex-wrap items-center gap-1 font-mono text-xs">
@@ -207,9 +213,9 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                   const playedSequence = puzzleContinuation(startFen, attemptedMoves, solution, correctSolverMoves)
                   const open = expanded === i
                   const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
-                  const model = a.model.includes("/") ? a.model.split("/")[1] : a.model
+                  const model = fallbackModelName(a.model)
                   return (
-                    <div key={i} className="rounded-md border">
+                    <div key={a.run_id ?? `${a.model}-${a.condition}-${i}`} className="rounded-md border">
                       <button
                         className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/35 disabled:cursor-default disabled:hover:bg-transparent"
                         onClick={() => setExpanded(open ? null : i)}
@@ -222,7 +228,9 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
                         ) : (
                           <X className="size-4 shrink-0 text-destructive/70" />
                         )}
-                        <span className="font-medium">{model}</span>
+                        <div className="w-48 shrink-0">
+                          {a.model_variant ? <ModelIdentity variant={a.model_variant} compact /> : <span className="block truncate font-medium" title={model}>{model}</span>}
+                        </div>
                         <span className="min-w-0 flex-1"><ModelContinuation plies={playedSequence} /></span>
                         <Badge variant="outline" className="ml-auto text-xs font-normal">
                           {a.condition.split("__")[0]}

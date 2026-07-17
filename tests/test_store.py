@@ -126,6 +126,43 @@ def test_list_runs_indexes_directory(tmp_path):
     assert index[0]["progress"] == {"completed": 2, "total": 2}
 
 
+def test_completed_cutoff_keeps_full_denominator_and_indexes_termination(tmp_path):
+    results = _results()
+    report = build_report("m", HEADLINE.slug(), results)
+    message = (
+        "Stopped after 10 consecutive unsolved puzzles; 248 remaining puzzles "
+        "were not attempted and receive zero points under the suite policy."
+    )
+    save_run(
+        RunRecord(
+            "m",
+            "openrouter",
+            HEADLINE,
+            report,
+            results,
+            _puzzles(),
+            status="completed",
+            progress={"completed": 2, "total": 250},
+            error=message,
+        ),
+        tmp_path / "cutoff.json",
+    )
+
+    [entry] = list_runs(tmp_path)
+    assert entry["status"] == "completed"
+    assert entry["progress"] == {"completed": 2, "total": 250}
+    assert entry["summary"]["n"] == 250
+    assert entry["summary"]["max_points"] == 250
+    assert entry["termination"] == {
+        "kind": "consecutive_unsolved",
+        "threshold": 10,
+        "attempted": 2,
+        "unattempted": 248,
+        "unattempted_score": 0,
+        "message": message,
+    }
+
+
 def test_export_preserves_rich_run_identity_and_is_filename_deterministic(tmp_path):
     from chessbench.__main__ import cmd_export
 

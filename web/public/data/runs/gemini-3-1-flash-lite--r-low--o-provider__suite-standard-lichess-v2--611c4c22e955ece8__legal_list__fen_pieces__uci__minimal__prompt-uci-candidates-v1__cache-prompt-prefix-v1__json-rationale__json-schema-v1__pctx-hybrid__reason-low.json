@@ -75,14 +75,21 @@
   "max_points": 325,
   "cost_usd": 0.24788882250000005,
   "puzzle_performance_rating": {
-   "rating": 1161.3024771213531,
-   "stderr": 36.362393554860375,
+   "rating": 1162.2139029204845,
+   "stderr": 36.311242123516,
+   "rating_deviation": 36.311242123516,
    "ci95": [
-    1090.0321857538268,
-    1232.5727684888795
+    1091.0438683583932,
+    1233.383937482576
    ],
    "n": 325,
-   "bounded": true
+   "bounded": true,
+   "method": "bayesian_elo_v1",
+   "provisional": false,
+   "prior": {
+    "mean": 1500.0,
+    "sd": 700.0
+   }
   }
  },
  "themes": [

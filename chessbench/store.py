@@ -526,5 +526,7 @@ def list_runs(directory: str | Path) -> list[dict[str, object]]:
         ):
             if optional in run:
                 entry[optional] = run[optional]
+        if run.get("termination") is not None:
+            entry["termination"] = run["termination"]
         out.append(entry)
     return out

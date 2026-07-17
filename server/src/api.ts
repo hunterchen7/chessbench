@@ -63,7 +63,7 @@ function publicRun(row: RunRow) {
     track: row.track,
     kind: row.track,
     status: row.status,
-    model: row.variant_key,
+    model: row.provider_model_id,
     model_variant: {
       key: row.variant_key,
       base_key: row.base_model,
@@ -254,8 +254,10 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
   ).bind(id).first<{ payload_json: string }>()
   if (!corpusItem) return error(404, "puzzle not found")
   const { results } = await env.DB.prepare(
-    `SELECT i.run_id, r.variant_key AS model, r.condition_slug, i.solved, i.points,
-            i.first_move_legal, i.failure_reason, i.payload_json
+    `SELECT i.run_id, r.variant_key, r.condition_slug, i.solved, i.points,
+            i.first_move_legal, i.failure_reason, i.payload_json,
+            v.base_model, v.display_name, v.provider, v.provider_model_id,
+            v.reasoning_json, v.max_output_tokens
        FROM benchmark_items_v2 i JOIN benchmark_runs_v2 r USING(run_id)
        JOIN model_variants_v2 v USING(variant_key)
       WHERE i.item_id=? AND r.track='puzzle'
@@ -264,14 +266,26 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
         AND LOWER(v.provider_model_id) NOT LIKE 'stockfish%'
       ORDER BY i.solved DESC, r.variant_key ASC`,
   ).bind(id).all<{
-    run_id: string; model: string; condition_slug: string; solved: number; points: number
+    run_id: string; variant_key: string; condition_slug: string; solved: number; points: number
     first_move_legal: number; failure_reason: string | null; payload_json: string
+    base_model: string; display_name: string; provider: string; provider_model_id: string
+    reasoning_json: string; max_output_tokens: number
   }>()
   const rows = results ?? []
   const payloads = rows.map((row) => JSON.parse(row.payload_json) as Record<string, unknown>)
   const position = JSON.parse(corpusItem.payload_json) as Record<string, unknown>
   const answers = rows.map((a, index) => ({
-    ...payloads[index], run_id: a.run_id, model: a.model, condition: a.condition_slug,
+    ...payloads[index], run_id: a.run_id, model: a.provider_model_id,
+    model_variant: {
+      key: a.variant_key,
+      base_key: a.base_model,
+      display_name: a.display_name,
+      provider: a.provider,
+      model_id: a.provider_model_id,
+      reasoning: JSON.parse(a.reasoning_json),
+      max_output_tokens: a.max_output_tokens,
+    },
+    condition: a.condition_slug,
     solved: !!a.solved, score: a.points, first_move_legal: !!a.first_move_legal,
     failure_reason: a.failure_reason,
   }))
