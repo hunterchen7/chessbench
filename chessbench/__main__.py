@@ -456,7 +456,7 @@ def cmd_composed(args: argparse.Namespace) -> int:
     model_id = provider_model_id or solver.name
     base_key = registry_entry.label if registry_entry else model_id
     display_name = (
-        registry_entry.label if registry_entry else model_id.rsplit("/", 1)[-1]
+        registry_entry.display if registry_entry else model_id.rsplit("/", 1)[-1]
     )
     variant = ModelVariant(
         base_key=base_key,
@@ -860,7 +860,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         raise ValueError("provider routing options require an OpenRouter model")
     variant = ModelVariant(
         base_key=entry.label,
-        display_name=entry.label,
+        display_name=entry.display,
         provider=entry.provider,
         model_id=entry.model_id,
         reasoning=ReasoningConfig(
@@ -1167,7 +1167,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
         raise ValueError("provider routing options require an OpenRouter model")
     variant = ModelVariant(
         base_key=entry.label,
-        display_name=entry.label,
+        display_name=entry.display,
         provider=entry.provider,
         model_id=entry.model_id,
         reasoning=ReasoningConfig(

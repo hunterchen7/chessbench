@@ -16,6 +16,17 @@ def test_roundtrip_and_upsert(tmp_path):
     assert get_model("a", path).model_id == "x/a2"            # upsert kept the new value
 
 
+def test_display_name_can_differ_from_stable_cli_label():
+    aliased = ModelEntry(
+        "gpt-5.6",
+        "openrouter",
+        "openai/gpt-5.6-terra",
+        display_name="gpt-5.6-terra",
+    )
+    assert aliased.display == "gpt-5.6-terra"
+    assert ModelEntry("plain", "openrouter", "example/plain").display == "plain"
+
+
 def test_bad_provider_rejected():
     with pytest.raises(ValueError, match="provider must be"):
         ModelEntry("x", "not-a-provider", "y")

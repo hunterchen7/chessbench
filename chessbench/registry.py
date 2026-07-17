@@ -23,6 +23,7 @@ class ModelEntry:
     label: str            # unique key + display name, e.g. "gpt-4o-mini"
     provider: str         # openrouter | openai | anthropic
     model_id: str         # provider wire name, e.g. "openai/gpt-4o-mini"
+    display_name: str = ""  # optional UI name when the CLI label is an alias
     family: str = ""      # e.g. "openai", "meta", "google"
     notes: str = ""
     enabled: bool = True
@@ -30,6 +31,11 @@ class ModelEntry:
     def __post_init__(self) -> None:
         if self.provider not in _PROVIDERS:
             raise ValueError(f"provider must be one of {_PROVIDERS}, got {self.provider!r}")
+
+    @property
+    def display(self) -> str:
+        """Human-facing name, kept separate from the stable CLI/identity label."""
+        return self.display_name.strip() or self.label
 
 
 def load_registry(path: str | Path = DEFAULT_REGISTRY) -> list[ModelEntry]:
