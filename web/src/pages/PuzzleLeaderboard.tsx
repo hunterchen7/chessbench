@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { type AnimationEvent, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { BarChart3, CircleDollarSign, Database, Gauge, Layers3 } from "lucide-react"
 import { useData } from "@/lib/useData"
@@ -141,8 +141,7 @@ export function PuzzleLeaderboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const fixed = searchParams.get("view") === "fixed"
   const [fallbackPhase, setFallbackPhase] = useState<"idle" | "out" | "in">("idle")
-  const fallbackTimer = useRef<number | null>(null)
-  const transitioning = useRef(false)
+  const pendingNavigation = useRef<(() => void) | null>(null)
   const fixedSuiteOptions = useMemo(() => {
     const byName = new Map<string, number>()
     runs.forEach((run) => {
@@ -154,39 +153,32 @@ export function PuzzleLeaderboard() {
       Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0),
     )
   }, [runs])
-  useEffect(() => () => {
-    if (fallbackTimer.current != null) window.clearTimeout(fallbackTimer.current)
-  }, [])
-
   const transitionTo = useCallback((update: (next: URLSearchParams) => void) => {
-    if (transitioning.current) return
-    const navigate = (viewTransition: boolean) => setSearchParams((current) => {
+    const navigate = () => setSearchParams((current) => {
       const next = new URLSearchParams(current)
       update(next)
       return next
-    }, { replace: true, viewTransition })
+    }, { replace: true })
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      navigate(false)
+      navigate()
       return
     }
-    if (typeof document.startViewTransition === "function") {
-      navigate(true)
-      return
-    }
-
-    transitioning.current = true
+    if (fallbackPhase !== "idle") return
+    pendingNavigation.current = navigate
     setFallbackPhase("out")
-    fallbackTimer.current = window.setTimeout(() => {
-      navigate(false)
+  }, [fallbackPhase, setSearchParams])
+
+  const finishTransition = (event: AnimationEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return
+    if (fallbackPhase === "out") {
+      pendingNavigation.current?.()
+      pendingNavigation.current = null
       setFallbackPhase("in")
-      fallbackTimer.current = window.setTimeout(() => {
-        setFallbackPhase("idle")
-        transitioning.current = false
-        fallbackTimer.current = null
-      }, 220)
-    }, 160)
-  }, [setSearchParams])
+    } else if (fallbackPhase === "in") {
+      setFallbackPhase("idle")
+    }
+  }
 
   const setView = (view: "rated" | "fixed") => transitionTo((next) => {
     if (view === "fixed") next.set("view", "fixed")
@@ -202,12 +194,11 @@ export function PuzzleLeaderboard() {
   })
 
   const transitionClass = cn(
-    "puzzle-view-transition",
     fallbackPhase === "out" && "puzzle-view-fallback-out",
     fallbackPhase === "in" && "puzzle-view-fallback-in",
   )
-  if (fixed) return <div key="fixed" className={transitionClass}><FixedPuzzleLeaderboard onShowRated={() => setView("rated")} /></div>
-  return <div key="rated" className={cn(transitionClass, "space-y-8")}>
+  if (fixed) return <div key="fixed" className={transitionClass} onAnimationEnd={finishTransition}><FixedPuzzleLeaderboard onShowRated={() => setView("rated")} /></div>
+  return <div key="rated" className={cn(transitionClass, "space-y-8")} onAnimationEnd={finishTransition}>
     <section className="grid gap-6 border-b border-border/70 pb-8 lg:min-h-[14.25rem] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
       <div>
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><Gauge className="size-4" /> Standard tactics</div>
