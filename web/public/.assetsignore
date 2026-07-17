@@ -1,0 +1,4 @@
+# Full run snapshots are durable in D1 and served by /api/runs/:id.
+# Keep them in public for local/offline use without uploading duplicate,
+# potentially over-limit files to Cloudflare Workers Assets.
+data/runs/**
