@@ -8,6 +8,7 @@ import { modeInfo, pct, pointsText, responseStyleInfo } from "@/lib/format"
 import { comparisonRunLabel, comparisonSuiteKey, MAX_COMPARISON_RUNS, normalizeComparisonIds } from "@/lib/runComparison"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
+import { RunComparisonResults } from "@/components/RunComparisonChart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -148,6 +149,8 @@ export function RunComparison() {
       </Card>
 
       {selectedEntries.length === 1 ? <Card className="border-dashed"><CardContent className="py-12 text-center"><div className="font-medium">Add one more compatible run to begin the overlay.</div><p className="mt-1 text-sm text-muted-foreground">Model, reasoning-budget, response-style, and prompt-method variants are all treated as distinct runs.</p></CardContent></Card> : null}
+      {selectedEntries.length >= 2 && compatible && loaded.length === selectedEntries.length ? <RunComparisonResults runs={loaded} /> : null}
+      {selectedEntries.length >= 2 && compatible && !loadError && loaded.length !== selectedEntries.length ? <Card><CardContent className="py-16 text-center text-sm text-muted-foreground"><span className="animate-pulse">Loading synchronized puzzle histories…</span></CardContent></Card> : null}
     </>}
   </div>
 }
