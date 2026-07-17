@@ -1,4 +1,6 @@
-# Full run snapshots are durable in D1 and served by /api/runs/:id.
-# Keep them in public for local/offline use without uploading duplicate,
-# potentially over-limit files to Cloudflare Workers Assets.
+# Result documents are durable in D1 and served by /api in production.
+# Keep local/offline fixtures in public without duplicating them in Workers Assets.
+data/index.json
 data/runs/**
+data/composed/**
+data/tournaments/**
