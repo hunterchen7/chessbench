@@ -8,6 +8,8 @@ import hashlib
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 from dataclasses import asdict
 from pathlib import Path
@@ -24,20 +26,42 @@ from chessbench.rated_pool import iter_rated_pool, load_rated_pool_manifest  # n
 DEFAULT_MANIFEST = ROOT / "corpora/pools/rated-lichess-v1.manifest.json"
 
 
-def post(api: str, token: str, path: str, document: dict[str, object]) -> dict[str, object]:
-    request = urllib.request.Request(
-        f"{api.rstrip('/')}/api/{path}",
-        data=json.dumps(document, separators=(",", ":")).encode(),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "ChessBench-Rated-Pool/1.0",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=180) as response:
-        return json.load(response)
+def post(
+    api: str,
+    token: str,
+    path: str,
+    document: dict[str, object],
+    *,
+    attempts: int = 6,
+) -> dict[str, object]:
+    data = json.dumps(document, separators=(",", ":")).encode()
+    for attempt in range(1, attempts + 1):
+        request = urllib.request.Request(
+            f"{api.rstrip('/')}/api/{path}",
+            data=data,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "ChessBench-Rated-Pool/1.0",
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=180) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as exc:
+            retryable = exc.code == 429 or exc.code >= 500
+            detail = exc.read().decode(errors="replace")
+            if not retryable or attempt == attempts:
+                raise RuntimeError(f"{path} failed with HTTP {exc.code}: {detail}") from exc
+        except (urllib.error.URLError, TimeoutError, BrokenPipeError, ConnectionError):
+            if attempt == attempts:
+                raise
+        delay = min(30, 2 ** (attempt - 1))
+        print(f"{path}: transient failure; retrying in {delay}s ({attempt}/{attempts})")
+        time.sleep(delay)
+    raise AssertionError("unreachable")
 
 
 def random_key(puzzle_id: str) -> int:
@@ -86,9 +110,18 @@ def main() -> int:
         print("the complete content-addressed pool is already active; nothing to upload")
         return 0
 
+    stored = int(started.get("stored_items", 0))
+    # Replay the last batch: an interrupted HTTP response may arrive after D1
+    # committed its rows, and replaying also repairs its normalized tags.
+    resume_at = max(0, stored - args.batch_size)
+    if stored:
+        print(f"resuming from {resume_at:,}; D1 already contains {stored:,} puzzle rows")
+
     batch: list[dict[str, object]] = []
-    uploaded = 0
-    for puzzle in iter_rated_pool(args.manifest, verify_artifact=False):
+    uploaded = resume_at
+    for index, puzzle in enumerate(iter_rated_pool(args.manifest, verify_artifact=False)):
+        if index < resume_at:
+            continue
         batch.append(upload_item(puzzle))
         if len(batch) < args.batch_size:
             continue

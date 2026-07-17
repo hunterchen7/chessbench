@@ -198,18 +198,44 @@ export async function postRatedPoolStart(env: Env, req: Request): Promise<Respon
   ) return error(400, "invalid rated pool manifest")
 
   const existing = await env.DB.prepare(
-    `SELECT p.active, COUNT(i.puzzle_id) AS stored_items
+    `SELECT p.active, p.name, p.version, p.item_count,
+            COUNT(i.puzzle_id) AS stored_items
        FROM rated_puzzle_pools p
        LEFT JOIN rated_puzzles i USING(content_hash)
       WHERE p.content_hash=?
-      GROUP BY p.content_hash, p.active`,
-  ).bind(doc.content_hash).first<{ active: number; stored_items: number }>()
+      GROUP BY p.content_hash, p.active, p.name, p.version, p.item_count`,
+  ).bind(doc.content_hash).first<{
+    active: number
+    name: string
+    version: string
+    item_count: number
+    stored_items: number
+  }>()
+  if (
+    existing &&
+    (existing.name !== doc.name || existing.version !== doc.version || existing.item_count !== doc.items)
+  ) return error(409, "content hash already exists with different pool metadata")
   if (existing?.active && Number(existing.stored_items) === doc.items) {
     return json({
       ok: true,
       content_hash: doc.content_hash,
       expected_items: doc.items,
+      stored_items: Number(existing.stored_items),
       already_active: true,
+    })
+  }
+
+  // Preserve an incomplete content-addressed staging pool so interrupted
+  // uploads can resume. Item uploads are idempotent and the client replays the
+  // final stored batch to repair any request whose response was interrupted.
+  if (existing) {
+    return json({
+      ok: true,
+      content_hash: doc.content_hash,
+      expected_items: doc.items,
+      stored_items: Number(existing.stored_items),
+      already_active: false,
+      resumed: true,
     })
   }
 
@@ -230,7 +256,9 @@ export async function postRatedPoolStart(env: Env, req: Request): Promise<Respon
     ok: true,
     content_hash: doc.content_hash,
     expected_items: doc.items,
+    stored_items: 0,
     already_active: false,
+    resumed: false,
   })
 }
 
