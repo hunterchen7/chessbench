@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from .categories import categorize_puzzle
 from .core import metrics
 from .rating import RatingEstimate, puzzle_elo
 from .tasks.puzzles import PuzzleResult
@@ -15,6 +16,20 @@ class ThemeStat:
     theme: str
     solved: int = 0
     total: int = 0
+    elo: RatingEstimate | None = None
+
+    @property
+    def accuracy(self) -> float:
+        return self.solved / self.total if self.total else 0.0
+
+
+@dataclass
+class CategoryStat:
+    dimension: str
+    value: str
+    solved: int
+    total: int
+    elo: RatingEstimate
 
     @property
     def accuracy(self) -> float:
@@ -37,6 +52,7 @@ class PuzzleReport:
     curve: metrics.RatingCurve
     elo: RatingEstimate           # Bayesian puzzle-Elo performance rating
     themes: list[ThemeStat] = field(default_factory=list)
+    categories: list[CategoryStat] = field(default_factory=list)
 
     @property
     def solve_rate(self) -> float:
@@ -83,21 +99,59 @@ def build_report(agent: str, condition: str, results: list[PuzzleResult]) -> Puz
     curve = metrics.bucketize([(r.rating, r.solved) for r in results])
     elo = puzzle_elo([(float(r.rating), r.solved) for r in results])
 
-    theme_map: dict[str, ThemeStat] = defaultdict(lambda: ThemeStat(""))
+    theme_items: dict[str, list[tuple[float, bool]]] = defaultdict(list)
+    category_items: dict[tuple[str, str], list[tuple[float, bool]]] = defaultdict(list)
     for r in results:
         for th in r.themes:
-            st = theme_map[th]
-            st.theme = th
-            st.total += 1
-            st.solved += 1 if r.solved else 0
-    themes = sorted(theme_map.values(), key=lambda s: (-s.total, s.theme))
+            theme_items[th].append((float(r.rating), r.solved))
+        for dimension, values in categorize_puzzle(r.themes, r.rating).items():
+            for value in values:
+                category_items[(dimension, value)].append((float(r.rating), r.solved))
+    # Specialty estimates use the same puzzle-rating likelihood as the headline
+    # score, with a tighter prior centered on the run's overall strength. Sparse
+    # tags therefore shrink toward the overall rating instead of producing wild
+    # one-puzzle spikes; sample size and uncertainty remain explicit.
+    specialty_prior_sd = 300.0
+    themes = sorted(
+        (
+            ThemeStat(
+                theme=theme,
+                solved=sum(solved for _, solved in pairs),
+                total=len(pairs),
+                elo=puzzle_elo(
+                    pairs,
+                    prior_mean=elo.rating,
+                    prior_sd=specialty_prior_sd,
+                ),
+            )
+            for theme, pairs in theme_items.items()
+        ),
+        key=lambda stat: (-stat.total, stat.theme),
+    )
+    categories = sorted(
+        (
+            CategoryStat(
+                dimension=dimension,
+                value=value,
+                solved=sum(solved for _, solved in pairs),
+                total=len(pairs),
+                elo=puzzle_elo(
+                    pairs,
+                    prior_mean=elo.rating,
+                    prior_sd=specialty_prior_sd,
+                ),
+            )
+            for (dimension, value), pairs in category_items.items()
+        ),
+        key=lambda stat: (stat.dimension, -stat.total, stat.value),
+    )
 
     return PuzzleReport(
         agent=agent, condition=condition, n=n, solved=solved, mean_score=mean_score,
         first_move_legal=first_legal, total_illegal_attempts=illegal_attempts,
         failures_illegal=fail_illegal, failures_wrong=fail_wrong,
         response_format_expected=format_expected, response_format_valid=format_valid,
-        curve=curve, elo=elo, themes=themes,
+        curve=curve, elo=elo, themes=themes, categories=categories,
     )
 
 
@@ -130,7 +184,15 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
             f"  {b.low:>4}-{b.high:<4} {b.total:>5}   {b.solved:>5}   {b.accuracy:>5.1%}   [{clo:.0%}-{chi:.0%}]"
         )
     if rep.themes:
-        lines += ["", f"top themes (by count, first {top_themes}):", "  theme                 n    acc"]
+        lines += [
+            "",
+            f"top themes (by count, first {top_themes}):",
+            "  theme                 n    acc     Elo (RD)",
+        ]
         for st in rep.themes[:top_themes]:
-            lines.append(f"  {st.theme:<20} {st.total:>4}   {st.accuracy:>5.1%}")
+            assert st.elo is not None
+            lines.append(
+                f"  {st.theme:<20} {st.total:>4}   {st.accuracy:>5.1%}   "
+                f"{st.elo.rating:>4.0f} ({st.elo.stderr:.0f})"
+            )
     return "\n".join(lines)

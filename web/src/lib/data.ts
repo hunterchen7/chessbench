@@ -169,7 +169,20 @@ export interface RunIndexEntry {
 
 export interface Run extends RunIndexEntry {
   schema: string
-  themes: { theme: string; n: number; accuracy: number }[]
+  themes: Array<{
+    theme: string
+    n: number
+    accuracy: number
+    puzzle_performance_rating?: RunSummary["puzzle_performance_rating"]
+  }>
+  category_ratings?: Array<{
+    dimension: string
+    value: string
+    n: number
+    solved: number
+    accuracy: number
+    puzzle_performance_rating: RunSummary["puzzle_performance_rating"]
+  }>
   items: PuzzleItem[]
 }
 
@@ -580,6 +593,7 @@ export async function loadRun(file: string): Promise<Run> {
     ...meta,
     schema: String(raw.schema ?? "chessbench.run.v1"),
     themes: (raw.themes as Run["themes"] | undefined) ?? [],
+    category_ratings: (raw.category_ratings as Run["category_ratings"] | undefined) ?? [],
     items: (raw.items as PuzzleItem[] | undefined) ?? [],
   }
 }

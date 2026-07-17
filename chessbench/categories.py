@@ -59,6 +59,33 @@ _MOTIF = {
 
 DIMENSIONS = ("tier", "phase", "goal", "length", "mate_pattern", "motif")
 
+# Broad families for the controlled theme-profile benchmark. Membership stays
+# multi-label because Lichess themes describe different aspects of a position;
+# the scheduler draws globally unique puzzles while satisfying family quotas.
+PROFILE_FAMILY_THEMES: dict[str, frozenset[str]] = {
+    "mate": frozenset({"mate", "mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5"}),
+    "defense": frozenset({"defensiveMove", "equality"}),
+    "quiet_moves": frozenset({"quietMove", "zugzwang"}),
+    "pawn_play": frozenset({"advancedPawn", "promotion", "underPromotion", "enPassant"}),
+    "endgames": frozenset({
+        "endgame", "rookEndgame", "bishopEndgame", "pawnEndgame",
+        "knightEndgame", "queenEndgame", "queenRookEndgame",
+    }),
+    "sacrifices": frozenset({"sacrifice"}),
+    "forks": frozenset({"fork", "doubleCheck"}),
+    "pins_and_skewers": frozenset({"pin", "skewer", "xRayAttack"}),
+    "deflection_and_removal": frozenset({
+        "attraction", "capturingDefender", "clearance", "deflection", "interference",
+    }),
+    "discovered_attacks": frozenset({"discoveredAttack", "discoveredCheck"}),
+    "king_attacks": frozenset({
+        "attackingF2F7", "exposedKing", "kingsideAttack", "queensideAttack",
+    }),
+    "material_and_tempo": frozenset({
+        "hangingPiece", "intermezzo", "trappedPiece", "zwischenzug",
+    }),
+}
+
 
 def categorize_puzzle(themes: list[str], rating: int) -> dict[str, list[str]]:
     """Bucket a puzzle's themes into dimensions and add its difficulty tier."""
@@ -76,6 +103,16 @@ def categorize_puzzle(themes: list[str], rating: int) -> dict[str, list[str]]:
         elif theme in _MOTIF:
             buckets["motif"].append(theme)
     return {d: v for d, v in buckets.items() if v}
+
+
+def profile_families(themes: list[str]) -> list[str]:
+    """Return every controlled profile family represented by Lichess themes."""
+    present = set(themes)
+    return [
+        family
+        for family, members in PROFILE_FAMILY_THEMES.items()
+        if present & members
+    ]
 
 
 # --- Composed problems ---

@@ -98,6 +98,8 @@ def test_run_record_export_is_self_contained_and_valid(tmp_path):
     assert run["summary"]["max_points"] == 2
     assert run["status"] == "completed"
     assert run["progress"] == {"completed": 2, "total": 2}
+    assert run["themes"][0]["puzzle_performance_rating"]["rating"]
+    assert {row["dimension"] for row in run["category_ratings"]} >= {"motif", "tier"}
     items = run["items"]
     assert len(items) == 2
     assert items[0]["rating"] == 1200  # ordered easy -> hard

@@ -131,8 +131,24 @@ class RunRecord:
                 "puzzle_performance_rating": rep.elo.to_dict(),
             },
             "themes": [
-                {"theme": t.theme, "n": t.total, "accuracy": t.accuracy}
+                {
+                    "theme": t.theme,
+                    "n": t.total,
+                    "accuracy": t.accuracy,
+                    "puzzle_performance_rating": t.elo.to_dict() if t.elo else None,
+                }
                 for t in rep.themes
+            ],
+            "category_ratings": [
+                {
+                    "dimension": category.dimension,
+                    "value": category.value,
+                    "n": category.total,
+                    "solved": category.solved,
+                    "accuracy": category.accuracy,
+                    "puzzle_performance_rating": category.elo.to_dict(),
+                }
+                for category in rep.categories
             ],
             "items": items,
         }

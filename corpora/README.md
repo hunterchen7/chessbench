@@ -16,6 +16,7 @@ protocols, private suites, superseded releases, and diagnostic-only files.
 | `public/woodpecker-public-v1.json` | Woodpecker | 120 | Lichess CC0, 2026-07-05 full dump |
 | `public/standard-lichess-v2.json` | Standard | 325 | 300 calibrated core + 25 adaptively gated 3000+ puzzles |
 | `public/standard-lichess-v3.json` | Standard | 250 | 25 tasks in each of ten rating bands, with within-band type diversity |
+| `pools/rated-lichess-v1.csv.zst` | Rated sessions | 100,000 | Calibrated Lichess pool for randomized adaptive Glicko-2 sessions |
 | `public/woodpecker-masters-v1.json` | Woodpecker | 135 | 50 Easy, 50 Medium, 35 Hard; titled-player source games |
 | `public/esoteric-seed-v2.json` | Esoteric | 51 | v1 sources + one owner-approved, attributed YACPDB composition |
 
@@ -87,6 +88,20 @@ Held-out contents and their 256-bit selection seed stay outside Git. Only member
 published from `corpora/manifests/`. A Lichess held-out split prevents benchmark-specific tuning but is only
 semi-private because its source pool is public; sealed certification suites should use post-cutoff generated or
 newly commissioned problems.
+
+## Randomized rated sessions
+
+`rated-lichess-v1` is deliberately a pool rather than a frozen, ordered suite. A rated session starts a model
+configuration as a fresh solver, samples unseen positions around its current rating, and updates the solver rating
+after each completed puzzle. The random stream is seeded and recorded per run, but puzzle order is not globally
+fixed because the next rating neighborhood depends on prior results.
+
+The pool contains exactly 100,000 positions from the 2026-07-05 Lichess snapshot. Ratings 600–2799 generally
+require at least 1,000 human plays and RD at most 90. The 400–599 band uses at least 750 plays and RD at most 100;
+the scarce 2800–3199 frontier uses at least 500 plays and RD at most 120. Every band has an explicit quota, every
+solution is legal, source games and shown positions are unique, and all existing fixed benchmark releases are
+excluded. The compressed artifact is content-addressed by both its compressed and canonical CSV hashes; rebuild it
+with `python3 scripts/build_rated_pool.py`.
 
 Esoteric private-MVP imports may retain unreviewed source rights, but they must remain in ignored private storage and
 carry source IDs so they can be removed or replaced. Generated originals require both the native verifier and an

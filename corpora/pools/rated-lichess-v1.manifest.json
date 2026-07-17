@@ -1,0 +1,468 @@
+{
+ "schema": "chessbench.rated_puzzle_pool.v1",
+ "name": "rated-lichess-v1",
+ "title": "Rated sessions \u2014 calibrated Lichess pool v1",
+ "version": "1.0.0",
+ "visibility": "public",
+ "item_type": "puzzle",
+ "session_protocol": "adaptive_glicko2",
+ "description": "A 100,000-position, content-addressed Lichess puzzle pool for randomized adaptive rating sessions. Dense bands require at least 1,000 human plays and RD at most 90; only the scarce rating extremes use documented relaxations.",
+ "items": 100000,
+ "content_hash": "sha256:c0f866e19b180bf5169c",
+ "created": "2026-07-17T04:16:11+00:00",
+ "source": {
+  "title": "Lichess puzzle database",
+  "url": "https://database.lichess.org/#puzzles",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "snapshot": "2026-07-05",
+  "source_sha256": "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247e",
+  "scanned": 6057356
+ },
+ "artifact": {
+  "file": "rated-lichess-v1.csv.zst",
+  "format": "lichess_csv_zstd",
+  "sha256": "6a00c248b21abe5372ab6222be720727c0f0a7ace4b969a09738b7db64a23dd7",
+  "uncompressed_sha256": "c0f866e19b180bf5169c182a207a472b1eda909a432fc0eaeae0f6ff816ddabd",
+  "bytes": 5169815
+ },
+ "selection": {
+  "algorithm": "lowest-stable-sha256-priority-per-rating-band",
+  "seed": 20260717,
+  "one_puzzle_per_source_game": true,
+  "excluded_releases": [
+   {
+    "name": "standard-heldout-v1",
+    "content_hash": "sha256:f14812b7f258972236a2",
+    "items": 325
+   },
+   {
+    "name": "woodpecker-masters-heldout-v1",
+    "content_hash": "sha256:1f12d8179825576cb7b7",
+    "items": 135
+   },
+   {
+    "name": "standard-lichess-v2",
+    "content_hash": "sha256:5732b7cefa909aac3fa5",
+    "items": 325
+   },
+   {
+    "name": "standard-lichess-v3",
+    "content_hash": "sha256:4b51505e0fc2702fa338",
+    "items": 250
+   },
+   {
+    "name": "standard-public-v1",
+    "content_hash": "sha256:16f9f90ec25f16440b86",
+    "items": 240
+   },
+   {
+    "name": "standard-seed-v1",
+    "content_hash": "sha256:f0d48f423f4333f033d4",
+    "items": 100
+   },
+   {
+    "name": "woodpecker-masters-v1",
+    "content_hash": "sha256:c411950e6bc1d935879d",
+    "items": 135
+   },
+   {
+    "name": "woodpecker-public-v1",
+    "content_hash": "sha256:ababdbdcc2b42b75dd00",
+    "items": 120
+   },
+   {
+    "name": "woodpecker-seed-v1",
+    "content_hash": "sha256:44e52b3476cebad1106b",
+    "items": 60
+   }
+  ],
+  "bands": [
+   {
+    "rating": [
+     400,
+     600
+    ],
+    "target": 3000,
+    "eligible": 5619,
+    "minimum_plays": 750,
+    "maximum_rating_deviation": 100,
+    "minimum_popularity": 85
+   },
+   {
+    "rating": [
+     600,
+     800
+    ],
+    "target": 5000,
+    "eligible": 5917,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     800,
+     1000
+    ],
+    "target": 9500,
+    "eligible": 59874,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     1000,
+     1200
+    ],
+    "target": 9500,
+    "eligible": 205189,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     1200,
+     1400
+    ],
+    "target": 9500,
+    "eligible": 284584,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     1400,
+     1600
+    ],
+    "target": 9500,
+    "eligible": 337986,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     1600,
+     1800
+    ],
+    "target": 9500,
+    "eligible": 284149,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     1800,
+     2000
+    ],
+    "target": 9500,
+    "eligible": 216795,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     2000,
+     2200
+    ],
+    "target": 9500,
+    "eligible": 149134,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     2200,
+     2400
+    ],
+    "target": 9500,
+    "eligible": 68677,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     2400,
+     2600
+    ],
+    "target": 9500,
+    "eligible": 21011,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     2600,
+     2800
+    ],
+    "target": 4000,
+    "eligible": 4482,
+    "minimum_plays": 1000,
+    "maximum_rating_deviation": 90,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     2800,
+     3000
+    ],
+    "target": 2100,
+    "eligible": 7633,
+    "minimum_plays": 500,
+    "maximum_rating_deviation": 120,
+    "minimum_popularity": 80
+   },
+   {
+    "rating": [
+     3000,
+     3200
+    ],
+    "target": 400,
+    "eligible": 427,
+    "minimum_plays": 500,
+    "maximum_rating_deviation": 120,
+    "minimum_popularity": 80
+   }
+  ]
+ },
+ "validation": {
+  "valid": true,
+  "unique_ids": 100000,
+  "unique_source_games": 100000,
+  "unique_positions": 100000,
+  "rating": {
+   "min": 400,
+   "p25": 1173,
+   "median": 1672,
+   "p75": 2207,
+   "max": 3191
+  },
+  "rating_deviation": {
+   "min": 62,
+   "median": 78,
+   "p95": 91,
+   "max": 120
+  },
+  "plays": {
+   "min": 500,
+   "median": 2082,
+   "p95": 14428,
+   "max": 235664
+  },
+  "popularity": {
+   "min": 80,
+   "median": 93
+  },
+  "selected_by_rating_band": {
+   "400-599": 3000,
+   "600-799": 5000,
+   "800-999": 9500,
+   "1000-1199": 9500,
+   "1200-1399": 9500,
+   "1400-1599": 9500,
+   "1600-1799": 9500,
+   "1800-1999": 9500,
+   "2000-2199": 9500,
+   "2200-2399": 9500,
+   "2400-2599": 9500,
+   "2600-2799": 4000,
+   "2800-2999": 2100,
+   "3000-3199": 400
+  },
+  "solver_plies": {
+   "1": 8393,
+   "2": 46196,
+   "3": 31346,
+   "4": 9351,
+   "5": 2976,
+   "6": 1033,
+   "7": 453,
+   "8": 152,
+   "9": 59,
+   "10": 24,
+   "11": 8,
+   "12": 5,
+   "13": 2,
+   "14": 1,
+   "15": 1
+  },
+  "theme_counts": {
+   "endgame": 48433,
+   "middlegame": 46225,
+   "short": 46042,
+   "crushing": 45254,
+   "long": 31193,
+   "advantage": 29971,
+   "mate": 24409,
+   "master": 14823,
+   "veryLong": 14005,
+   "fork": 13766,
+   "mateIn2": 10862,
+   "sacrifice": 10094,
+   "oneMove": 8393,
+   "mateIn1": 8381,
+   "kingsideAttack": 7875,
+   "defensiveMove": 7744,
+   "pin": 7345,
+   "advancedPawn": 7300,
+   "discoveredAttack": 6191,
+   "quietMove": 6087,
+   "opening": 5342,
+   "rookEndgame": 5199,
+   "deflection": 5152,
+   "attraction": 5118,
+   "pawnEndgame": 4812,
+   "exposedKing": 4176,
+   "hangingPiece": 3827,
+   "mateIn3": 3716,
+   "promotion": 2663,
+   "discoveredCheck": 2600,
+   "skewer": 2412,
+   "backRankMate": 1862,
+   "clearance": 1859,
+   "masterVsMaster": 1626,
+   "queensideAttack": 1535,
+   "zugzwang": 1533,
+   "bishopEndgame": 1521,
+   "trappedPiece": 1460,
+   "intermezzo": 1344,
+   "queenEndgame": 1128,
+   "mateIn4": 1047,
+   "knightEndgame": 1017,
+   "capturingDefender": 938,
+   "operaMate": 880,
+   "pillsburysMate": 875,
+   "doubleCheck": 821,
+   "attackingF2F7": 678,
+   "queenRookEndgame": 644,
+   "interference": 479,
+   "xRayAttack": 424,
+   "mateIn5": 403,
+   "epauletteMate": 371,
+   "smotheredMate": 280,
+   "anastasiaMate": 240,
+   "arabianMate": 236,
+   "hookMate": 202,
+   "collinearMove": 201,
+   "cornerMate": 199,
+   "enPassant": 195,
+   "triangleMate": 147,
+   "bodenMate": 143,
+   "morphysMate": 142,
+   "blindSwineMate": 142,
+   "killBoxMate": 141,
+   "swallowstailMate": 138,
+   "dovetailMate": 114,
+   "superGM": 101,
+   "castling": 94,
+   "doubleBishopMate": 82,
+   "underPromotion": 68,
+   "vukovicMate": 68,
+   "balestraMate": 44
+  },
+  "category_counts": {
+   "goal": {
+    "crushing": 45254,
+    "advantage": 29971,
+    "mate": 24409
+   },
+   "length": {
+    "short": 46042,
+    "long": 31193,
+    "veryLong": 14005,
+    "oneMove": 8393
+   },
+   "mate_pattern": {
+    "mateIn2": 10862,
+    "mateIn1": 8381,
+    "mateIn3": 3716,
+    "backRankMate": 1862,
+    "mateIn4": 1047,
+    "mateIn5": 403,
+    "epauletteMate": 371,
+    "smotheredMate": 280,
+    "anastasiaMate": 240,
+    "arabianMate": 236,
+    "hookMate": 202,
+    "cornerMate": 199,
+    "bodenMate": 143,
+    "killBoxMate": 141,
+    "swallowstailMate": 138,
+    "dovetailMate": 114,
+    "doubleBishopMate": 82,
+    "vukovicMate": 68
+   },
+   "motif": {
+    "fork": 13766,
+    "sacrifice": 10094,
+    "kingsideAttack": 7875,
+    "defensiveMove": 7744,
+    "pin": 7345,
+    "advancedPawn": 7300,
+    "discoveredAttack": 6191,
+    "quietMove": 6087,
+    "deflection": 5152,
+    "attraction": 5118,
+    "exposedKing": 4176,
+    "hangingPiece": 3827,
+    "promotion": 2663,
+    "skewer": 2412,
+    "clearance": 1859,
+    "queensideAttack": 1535,
+    "zugzwang": 1533,
+    "trappedPiece": 1460,
+    "intermezzo": 1344,
+    "capturingDefender": 938,
+    "doubleCheck": 821,
+    "attackingF2F7": 678,
+    "interference": 479,
+    "xRayAttack": 424,
+    "enPassant": 195,
+    "castling": 94,
+    "underPromotion": 68
+   },
+   "phase": {
+    "endgame": 48433,
+    "middlegame": 46225,
+    "opening": 5342,
+    "rookEndgame": 5199,
+    "pawnEndgame": 4812,
+    "bishopEndgame": 1521,
+    "queenEndgame": 1128,
+    "knightEndgame": 1017,
+    "queenRookEndgame": 644
+   },
+   "tier": {
+    "novice": 19000,
+    "intermediate": 19000,
+    "advanced": 19000,
+    "expert": 19000,
+    "beginner": 17500,
+    "master": 6500
+   }
+  },
+  "profile_family_counts": {
+   "endgames": 48433,
+   "mate": 24409,
+   "forks": 14499,
+   "king_attacks": 13914,
+   "deflection_and_removal": 12587,
+   "sacrifices": 10094,
+   "pins_and_skewers": 10082,
+   "defense": 7744,
+   "pawn_play": 7480,
+   "quiet_moves": 7027,
+   "discovered_attacks": 6983,
+   "material_and_tempo": 6484
+  }
+ }
+}

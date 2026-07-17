@@ -1,6 +1,11 @@
 """Categorization: difficulty tiers and theme->dimension bucketing."""
 
-from chessbench.categories import categorize_composed, categorize_puzzle, difficulty_tier
+from chessbench.categories import (
+    categorize_composed,
+    categorize_puzzle,
+    difficulty_tier,
+    profile_families,
+)
 
 
 def test_difficulty_tiers():
@@ -25,6 +30,14 @@ def test_categorize_puzzle_buckets_themes():
 def test_categorize_puzzle_omits_empty_dimensions():
     cats = categorize_puzzle([], rating=900)
     assert cats == {"tier": ["beginner"]}  # only the tier when there are no themes
+
+
+def test_profile_families_are_broad_and_multilabel():
+    assert profile_families(["fork", "sacrifice", "endgame"]) == [
+        "endgames",
+        "sacrifices",
+        "forks",
+    ]
 
 
 def test_categorize_composed():
