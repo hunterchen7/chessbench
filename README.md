@@ -258,7 +258,26 @@ model calls.
 
 ## Cloudflare sync and deployment
 
-Set `CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token as the Worker's `INGEST_TOKEN` secret. Register exact corpora/suites before syncing results:
+Every push to `main` automatically builds the dashboard and deploys the Worker
+and its static assets through `.github/workflows/deploy-cloudflare.yml`. The
+workflow can also be rerun manually from the repository's **Actions** tab.
+
+Configure these GitHub Actions repository secrets before the first automated
+deployment:
+
+- `CLOUDFLARE_ACCOUNT_ID`: the account that owns the `chessbench` Worker.
+- `CLOUDFLARE_API_TOKEN`: a narrowly scoped Cloudflare token allowed to deploy
+  Workers in that account. Do not commit this token or place it in workflow
+  YAML.
+
+The workflow checks out a clean commit, so only files committed to `main` are
+published. D1 migrations and registry/result synchronization remain explicit
+operations; a dashboard deployment does not mutate benchmark data.
+
+For manual deployment or initial infrastructure setup, set
+`CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token
+as the Worker's `INGEST_TOKEN` secret. Register exact corpora/suites before
+syncing results:
 
 ```bash
 pnpm --dir server migrate:remote
