@@ -103,6 +103,16 @@ const FRONTIER_PRELIMINARY = [
     tokens: "50,449 / 7,056",
     reasoning: "Readable",
   },
+  {
+    model: "Kimi K3",
+    effort: "High",
+    route: "MoonshotAI INT4",
+    solved: "0/3 · 0.33 pt",
+    legal: "3/3",
+    cost: "$0.7647",
+    tokens: "50,322 / 50,245",
+    reasoning: "Readable",
+  },
 ] as const
 
 export function Methodology() {
