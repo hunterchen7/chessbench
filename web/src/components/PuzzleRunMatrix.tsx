@@ -70,11 +70,14 @@ function methodRuns(row: ModelRow, mode: PuzzleMode) {
 function MethodRating({ runs }: { runs: RunIndexEntry[] }) {
   if (!runs.length) return <div className="text-xs text-muted-foreground/70">Not run</div>
   return <div className="grid gap-1.5">{runs.map((run) => <div key={run.run_id} className="min-w-0 rounded-lg border border-border/60 bg-background/60 px-2.5 py-2 shadow-xs">
-    <div className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-1.5"><ResponseStyleBadge condition={run.condition} compact />{run.termination ? <Badge variant="outline" className="border-amber-500/35 bg-amber-500/8 text-[9px] text-amber-700 dark:text-amber-300">Stopped early</Badge> : null}</div>
-      <span className="font-mono text-lg font-semibold leading-none tabular-nums">{ratingText(run)}</span>
-    </div>
-    <div className="mt-1.5 text-right text-[10px] leading-none text-muted-foreground">{ratingNote(run)}</div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5 gap-y-1.5">
+        <div className="min-w-0"><ResponseStyleBadge condition={run.condition} compact /></div>
+        <span className="shrink-0 text-right font-mono text-base font-semibold leading-none tabular-nums">{ratingText(run)}</span>
+        <div className="col-span-2 whitespace-nowrap text-right text-[10px] leading-none text-muted-foreground">{ratingNote(run)}</div>
+        {run.termination ? <div className="col-span-2">
+          <Badge variant="outline" className="border-amber-500/35 bg-amber-500/8 px-1.5 text-[9px] text-amber-700 dark:text-amber-300">Stopped early</Badge>
+        </div> : null}
+      </div>
   </div>)}</div>
 }
 
