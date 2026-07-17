@@ -18,7 +18,15 @@ import { Button } from "@/components/ui/button"
 
 type Mode = ModeNumber
 
-function FixedPuzzleLeaderboard() {
+function PuzzleViewButtons({ view, onShowRated, onShowFixed, puzzleCount }: { view: "rated" | "fixed"; onShowRated: () => void; onShowFixed: () => void; puzzleCount?: number }) {
+  return <div className="flex flex-wrap gap-2 lg:justify-end">
+    <Button size="sm" variant={view === "rated" ? "default" : "outline"} className="h-10 w-40" onClick={onShowRated}><Gauge /> Rated leaderboard</Button>
+    <Button size="sm" variant={view === "fixed" ? "default" : "outline"} className="h-10 w-36" onClick={onShowFixed}><Layers3 /> Fixed suite lab</Button>
+    <PuzzleNav count={puzzleCount} hideLeaderboard />
+  </div>
+}
+
+function FixedPuzzleLeaderboard({ onShowRated }: { onShowRated: () => void }) {
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [suiteCatalog, setSuiteCatalog] = useState<SuiteCatalog | null>(null)
@@ -45,6 +53,7 @@ function FixedPuzzleLeaderboard() {
   const requestedSuite = searchParams.get("suite")
   const currentSuite = suites.find((entry) => entry.current) ?? suites[0]
   const activeSuite = requestedSuite && suites.some((entry) => entry.name === requestedSuite) ? requestedSuite : currentSuite?.name || "standard-lichess-v3"
+  const activeSuiteEntry = suites.find((entry) => entry.name === activeSuite)
   const requestedModes = searchParams.get("modes")?.split(",").map(Number).filter((value): value is Mode => MODES.some((mode) => mode.n === value)) ?? []
   const visibleModes = requestedModes.length ? MODES.map((mode) => mode.n).filter((mode) => requestedModes.includes(mode)) : MODES.map((mode) => mode.n)
   const openModels = searchParams.getAll("open")
@@ -76,7 +85,7 @@ function FixedPuzzleLeaderboard() {
 
   return (
     <div className={cn("space-y-8", comparisonRuns.length && "pb-28")}>
-      <section className="grid gap-6 border-b border-border/70 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+      <section className="grid gap-6 border-b border-border/70 pb-8 lg:min-h-[14.25rem] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <div>
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><BarChart3 className="size-4" /> Standard tactics</div>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle leaderboard</h1>
@@ -84,19 +93,20 @@ function FixedPuzzleLeaderboard() {
             Compare every model across four board-information and coaching methods. Points decide performance within a run; Bayesian Puzzle Elo estimates the source-puzzle rating at which the model would score about 50%, with rating deviation preserving uncertainty.
           </p>
         </div>
-        <div className="grid gap-3 lg:justify-items-end">
+        <div className="grid w-full gap-3 lg:justify-items-end lg:pt-[4.75rem]">
           <div className="w-full lg:w-[22rem]">
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Benchmark suite</div>
-            <Select value={activeSuite} onValueChange={setSuite}>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Benchmark dataset</div>
+            <Select value={activeSuite} onValueChange={(value) => { if (value === "rated") onShowRated(); else setSuite(value) }}>
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="rated">Adaptive rating · current</SelectItem>
                 {suites.map((entry) => <SelectItem key={entry.name} value={entry.name}>
                   {entry.name} · {entry.items} puzzles{entry.current ? " · current" : ""}
                 </SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <PuzzleNav count={currentSuite?.items ?? 250} />
+          <PuzzleViewButtons view="fixed" onShowRated={onShowRated} onShowFixed={() => {}} puzzleCount={activeSuiteEntry?.items ?? currentSuite?.items ?? 250} />
         </div>
       </section>
 
@@ -130,25 +140,54 @@ export function PuzzleLeaderboard() {
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const fixed = searchParams.get("view") === "fixed"
+  const fixedSuiteOptions = useMemo(() => {
+    const byName = new Map<string, number>()
+    runs.forEach((run) => {
+      const name = run.suite?.name
+      if (run.track !== "puzzle" || run.status !== "completed" || !name || !/^standard-lichess-v\d+$/.test(name)) return
+      byName.set(name, Math.max(byName.get(name) ?? 0, run.progress.total))
+    })
+    return Array.from(byName, ([name, items]) => ({ name, items })).toSorted((a, b) =>
+      Number(b.name.match(/v(\d+)$/)?.[1] ?? 0) - Number(a.name.match(/v(\d+)$/)?.[1] ?? 0),
+    )
+  }, [runs])
   const setView = (view: "rated" | "fixed") => setSearchParams((current) => {
     const next = new URLSearchParams(current)
     if (view === "fixed") next.set("view", "fixed")
-    else next.delete("view")
+    else {
+      next.delete("view")
+      next.delete("suite")
+    }
+    return next
+  }, { replace: true })
+  const openFixedSuite = (suite: string) => setSearchParams((current) => {
+    const next = new URLSearchParams(current)
+    next.set("view", "fixed")
+    next.set("suite", suite)
+    next.delete("compare")
     return next
   }, { replace: true })
 
-  if (fixed) return <FixedPuzzleLeaderboard />
+  if (fixed) return <FixedPuzzleLeaderboard onShowRated={() => setView("rated")} />
   return <div className="space-y-8">
-    <section className="grid gap-6 border-b border-border/70 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+    <section className="grid gap-6 border-b border-border/70 pb-8 lg:min-h-[14.25rem] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
       <div>
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><Gauge className="size-4" /> Standard tactics</div>
         <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle rating leaderboard</h1>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">A Lichess-inspired adaptive rating: each model plays calibrated puzzles near its current strength until uncertainty settles. The headline test uses one unassisted, UCI-only prompt protocol.</p>
       </div>
-      <div className="flex flex-wrap gap-2 lg:justify-end">
-        <Button size="sm" className="h-10" onClick={() => setView("rated")}><Gauge /> Rated leaderboard</Button>
-        <Button size="sm" variant="outline" className="h-10" onClick={() => setView("fixed")}><Layers3 /> Fixed suite lab</Button>
-        <PuzzleNav hideLeaderboard />
+      <div className="grid w-full gap-3 lg:w-auto lg:justify-items-end lg:pt-[4.75rem]">
+        {fixedSuiteOptions.length > 0 ? <div className="w-full lg:w-[22rem]">
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">Benchmark dataset</div>
+          <Select value="rated" onValueChange={(value) => { if (value !== "rated") openFixedSuite(value) }}>
+            <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rated">Adaptive rating · current</SelectItem>
+              {fixedSuiteOptions.map((suite) => <SelectItem key={suite.name} value={suite.name}>{suite.name} · {suite.items} puzzles</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div> : null}
+        <PuzzleViewButtons view="rated" onShowRated={() => setView("rated")} onShowFixed={() => setView("fixed")} puzzleCount={fixedSuiteOptions[0]?.items} />
       </div>
     </section>
     <AdaptivePuzzleLeaderboard runs={runs} />
