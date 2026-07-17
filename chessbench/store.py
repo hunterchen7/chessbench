@@ -70,6 +70,9 @@ class RunRecord:
     error: str | None = None
     updated_at: str | None = None
     completed_at: str | None = None
+    protocol: dict[str, object] | None = None
+    rating_summary: dict[str, object] | None = None
+    termination: dict[str, object] | None = None
 
     def to_dict(self) -> dict[str, object]:
         items = []
@@ -93,6 +96,9 @@ class RunRecord:
                 "solver_plies": r.solver_plies,
                 "plies_correct": r.plies_correct,
                 "turns": r.turns,
+                "solver_rating_before": r.solver_rating_before,
+                "solver_rating_after": r.solver_rating_after,
+                "rated_selection": r.rated_selection,
             }
             item.update(_position_fields(self.puzzles.get(r.puzzle_id)))
             items.append(item)
@@ -105,7 +111,7 @@ class RunRecord:
         )
         scoring_n = progress["total"] if early_completed else rep.n
         threshold_match = re.search(r"Stopped after (\d+) consecutive", self.error or "")
-        termination = (
+        inferred_termination = (
             {
                 "kind": "consecutive_unsolved",
                 "threshold": int(threshold_match.group(1)) if threshold_match else None,
@@ -137,7 +143,8 @@ class RunRecord:
             "suite": asdict(self.suite) if self.suite else None,
             "condition": _condition_dict(self.condition),
             "progress": progress,
-            "termination": termination,
+            "termination": self.termination or inferred_termination,
+            "protocol": self.protocol,
             "usage": self.usage,
             "error": self.error,
             "summary": {
@@ -150,7 +157,7 @@ class RunRecord:
                 "points": round(rep.points, 4),
                 "max_points": scoring_n,
                 "cost_usd": self.cost_usd,
-                "puzzle_performance_rating": rep.elo.to_dict(),
+                "puzzle_performance_rating": self.rating_summary or rep.elo.to_dict(),
             },
             "themes": [
                 {

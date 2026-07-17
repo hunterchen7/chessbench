@@ -12,7 +12,7 @@ The exact canonical, previous, and diagnostic suite inventory is maintained in
 | Esoteric | Selfmates, helpmates, reflexmates, proof games, and studies | Up to 1 verifier-awarded point per problem |
 | Games | Play complete games against other variants | Win 1, draw 0.5, loss 0 |
 
-Leaderboards rank total points under an identical frozen suite and condition. The dashboard also reports a secondary Bayesian Puzzle Elo, fitted from complete solves against source puzzle ratings with a frozen weak `Normal(1500, 700²)` prior. Every estimate includes a rating deviation and 95% posterior interval, so even early all-solve or all-miss prefixes remain finite without pretending to be precise. Partial credit affects points only. Puzzle Elo is diagnostic—not the official score, not a head-to-head game rating, and not directly comparable to a human over-the-board Elo.
+The primary Standard leaderboard is an adaptive, Lichess-inspired puzzle rating. A model configuration starts at 1500/RD 500, plays deterministic unused puzzles near its current strength, and updates only its own Glicko-2 state; source puzzle ratings stay frozen. Sessions stop after at least 50 puzzles when RD reaches 75, or at a 100-puzzle cap. The canonical prompt is raw FEN plus piece locations, UCI move only, with no legal list, coaching, or requested rationale. Fixed 250-puzzle suites remain available as controlled prompt-ablation labs and retain their secondary Bayesian Puzzle Elo analysis.
 
 ## Evaluation protocol
 
@@ -217,6 +217,9 @@ Run a frozen suite with durable item-level persistence:
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 3 --reasoning high
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 4 --reasoning-tokens 4096
+
+# Primary adaptive rating (durable, deterministic, auto-publishes on completion)
+python3 -m chessbench rate-model --model my-model --reasoning low
 ```
 
 Mode 4 is written to the Woodpecker track. `--reasoning` and `--reasoning-tokens` are mutually exclusive.

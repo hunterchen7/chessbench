@@ -17,6 +17,8 @@ interface RunRow {
   max_output_tokens: number
   condition_slug: string
   condition_json: string
+  protocol_json: string | null
+  summary_json: string | null
   suite_name: string | null
   suite_version: string | null
   suite_hash: string | null
@@ -54,9 +56,38 @@ const RUN_SELECT = `
     FROM benchmark_runs_v2 r JOIN model_variants_v2 v USING(variant_key)`
 
 function publicRun(row: RunRow) {
-  const stoppedByPolicy = row.status === "completed" && row.completed_items < row.total_items
+  const protocol = row.protocol_json
+    ? JSON.parse(row.protocol_json) as Record<string, unknown>
+    : null
+  const storedSummary = row.summary_json
+    ? JSON.parse(row.summary_json) as Record<string, unknown>
+    : null
+  const storedTermination = storedSummary?.termination as Record<string, unknown> | undefined
+  const adaptive = protocol?.kind === "adaptive_glicko2"
+  const stoppedByPolicy =
+    row.status === "completed" &&
+    row.completed_items < row.total_items &&
+    storedTermination?.kind === "consecutive_unsolved"
   const scoringItems = stoppedByPolicy ? row.total_items : row.completed_items
   const threshold = Number(row.error?.match(/Stopped after (\d+) consecutive/)?.[1] ?? 0) || null
+  const storedRating = storedSummary?.puzzle_performance_rating as Record<string, unknown> | undefined
+  const puzzleRating = adaptive && storedRating
+    ? storedRating
+    : row.puzzle_rating == null ? null : {
+        rating: row.puzzle_rating,
+        stderr: row.puzzle_rating_stderr,
+        rating_deviation: row.puzzle_rating_stderr,
+        ci95: row.puzzle_rating_stderr == null ? null : [
+          row.puzzle_rating - 1.96 * row.puzzle_rating_stderr,
+          row.puzzle_rating + 1.96 * row.puzzle_rating_stderr,
+        ],
+        n: row.puzzle_rating_n,
+        bounded: Boolean(row.puzzle_rating_bounded),
+        method: "bayesian_elo_v1",
+        provisional: row.puzzle_rating_stderr == null ||
+          2 * 1.96 * row.puzzle_rating_stderr > PUZZLE_RATING_PROVISIONAL_CI_WIDTH,
+        prior: PUZZLE_RATING_PRIOR,
+      }
   return {
     run_id: row.run_id,
     file: row.run_id,
@@ -75,6 +106,7 @@ function publicRun(row: RunRow) {
     },
     condition: JSON.parse(row.condition_json),
     condition_slug: row.condition_slug,
+    protocol,
     suite: row.suite_name
       ? {
           name: row.suite_name,
@@ -84,7 +116,7 @@ function publicRun(row: RunRow) {
         }
       : null,
     progress: { completed: row.completed_items, total: row.total_items },
-    termination: stoppedByPolicy ? {
+    termination: adaptive && storedTermination ? storedTermination : stoppedByPolicy ? {
       kind: "consecutive_unsolved",
       threshold,
       attempted: row.completed_items,
@@ -104,21 +136,7 @@ function publicRun(row: RunRow) {
       points: row.points,
       max_points: row.max_points,
       cost_usd: row.cost_usd,
-      puzzle_performance_rating: row.puzzle_rating == null ? null : {
-        rating: row.puzzle_rating,
-        stderr: row.puzzle_rating_stderr,
-        rating_deviation: row.puzzle_rating_stderr,
-        ci95: row.puzzle_rating_stderr == null ? null : [
-          row.puzzle_rating - 1.96 * row.puzzle_rating_stderr,
-          row.puzzle_rating + 1.96 * row.puzzle_rating_stderr,
-        ],
-        n: row.puzzle_rating_n,
-        bounded: Boolean(row.puzzle_rating_bounded),
-        method: "bayesian_elo_v1",
-        provisional: row.puzzle_rating_stderr == null ||
-          2 * 1.96 * row.puzzle_rating_stderr > PUZZLE_RATING_PROVISIONAL_CI_WIDTH,
-        prior: PUZZLE_RATING_PRIOR,
-      },
+      puzzle_performance_rating: puzzleRating,
     },
     usage: {
       prompt_tokens: row.prompt_tokens,
@@ -252,7 +270,6 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
     `SELECT c.payload_json FROM corpus_items c JOIN corpus_releases r USING(content_hash)
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
   ).bind(id).first<{ payload_json: string }>()
-  if (!corpusItem) return error(404, "puzzle not found")
   const { results } = await env.DB.prepare(
     `SELECT i.run_id, r.variant_key, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json,
@@ -273,7 +290,13 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
   }>()
   const rows = results ?? []
   const payloads = rows.map((row) => JSON.parse(row.payload_json) as Record<string, unknown>)
-  const position = JSON.parse(corpusItem.payload_json) as Record<string, unknown>
+  if (!corpusItem && !payloads.length) return error(404, "puzzle not found")
+  // Adaptive-pool positions are not duplicated into the small browsable
+  // corpus. A published run item is self-contained, so it is also the exact
+  // solver-facing position for its detail page.
+  const position = corpusItem
+    ? JSON.parse(corpusItem.payload_json) as Record<string, unknown>
+    : payloads[0]
   const answers = rows.map((a, index) => ({
     ...payloads[index], run_id: a.run_id, model: a.provider_model_id,
     model_variant: {

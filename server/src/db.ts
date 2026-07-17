@@ -130,16 +130,28 @@ export async function registerCorpus(env: Env, doc: CorpusDoc): Promise<{ conten
 export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: string; completed_items: number }> {
   const stamp = doc.created_at ?? now()
   const v = doc.model_variant
+  const adaptive = doc.protocol?.kind === "adaptive_glicko2"
   if (doc.suite?.content_hash && SUITE_TRACKS.has(doc.track)) {
-    const suite = await env.DB.prepare(
-      `SELECT track, item_count FROM benchmark_suites WHERE content_hash=?`,
-    ).bind(doc.suite.content_hash).first<{ track: string; item_count: number }>()
-    if (!suite) throw new Error(`suite ${doc.suite.content_hash} is not registered`)
-    if (suite.track !== doc.track) {
-      throw new Error(`suite track ${suite.track} cannot start a ${doc.track} run`)
-    }
-    if (suite.item_count !== doc.total_items) {
-      throw new Error(`suite has ${suite.item_count} items, run declared ${doc.total_items}`)
+    if (adaptive) {
+      const pool = await env.DB.prepare(
+        `SELECT item_count, active FROM rated_puzzle_pools WHERE content_hash=?`,
+      ).bind(doc.suite.content_hash).first<{ item_count: number; active: number }>()
+      if (!pool) throw new Error(`rated pool ${doc.suite.content_hash} is not registered`)
+      if (!pool.active) throw new Error(`rated pool ${doc.suite.content_hash} is not active`)
+      if (pool.item_count < doc.total_items) {
+        throw new Error(`rated pool has ${pool.item_count} items, run may need ${doc.total_items}`)
+      }
+    } else {
+      const suite = await env.DB.prepare(
+        `SELECT track, item_count FROM benchmark_suites WHERE content_hash=?`,
+      ).bind(doc.suite.content_hash).first<{ track: string; item_count: number }>()
+      if (!suite) throw new Error(`suite ${doc.suite.content_hash} is not registered`)
+      if (suite.track !== doc.track) {
+        throw new Error(`suite track ${suite.track} cannot start a ${doc.track} run`)
+      }
+      if (suite.item_count !== doc.total_items) {
+        throw new Error(`suite has ${suite.item_count} items, run declared ${doc.total_items}`)
+      }
     }
   }
   await env.DB.batch([
@@ -166,11 +178,12 @@ export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: st
     env.DB.prepare(
       `INSERT INTO benchmark_runs_v2
        (run_id, track, variant_key, condition_slug, condition_json, suite_name, suite_version,
-        suite_hash, suite_visibility, status, total_items, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?)
+        suite_hash, suite_visibility, protocol_json, status, total_items, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?)
        ON CONFLICT(run_id) DO UPDATE SET
          status=CASE WHEN benchmark_runs_v2.status='completed' THEN 'completed' ELSE 'running' END,
          total_items=excluded.total_items, condition_json=excluded.condition_json,
+         protocol_json=excluded.protocol_json,
          updated_at=excluded.updated_at, error=NULL`,
     ).bind(
       doc.run_id,
@@ -182,6 +195,7 @@ export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: st
       doc.suite?.version ?? null,
       doc.suite?.content_hash ?? null,
       doc.suite?.visibility ?? null,
+      doc.protocol ? JSON.stringify(doc.protocol) : null,
       doc.total_items,
       stamp,
       now(),
@@ -322,8 +336,8 @@ export async function finishRun(
   doc: RunFinishDoc,
 ): Promise<{ run_id: string; status: string; completed_items: number; total_items: number }> {
   const row = await env.DB.prepare(
-    `SELECT completed_items, total_items FROM benchmark_runs_v2 WHERE run_id=?`,
-  ).bind(doc.run_id).first<{ completed_items: number; total_items: number }>()
+    `SELECT completed_items, total_items, protocol_json FROM benchmark_runs_v2 WHERE run_id=?`,
+  ).bind(doc.run_id).first<{ completed_items: number; total_items: number; protocol_json: string | null }>()
   if (!row) throw new Error(`unknown run: ${doc.run_id}`)
   const requested = doc.status ?? "completed"
   const termination = doc.summary?.termination as Record<string, unknown> | undefined
@@ -333,21 +347,47 @@ export async function finishRun(
     Number(termination.threshold) > 0 &&
     Number(termination.attempted) === row.completed_items &&
     Number(termination.unattempted) === row.total_items - row.completed_items
-  if (requested === "completed" && row.completed_items !== row.total_items && !stoppedByPolicy) {
+  const protocol = row.protocol_json ? JSON.parse(row.protocol_json) as Record<string, unknown> : null
+  const stopping = protocol?.stopping as Record<string, unknown> | undefined
+  const suppliedRating = doc.summary?.puzzle_performance_rating as Record<string, unknown> | undefined
+  const finalDeviation = Number(suppliedRating?.rating_deviation ?? suppliedRating?.stderr)
+  const settledRating =
+    requested === "completed" &&
+    protocol?.kind === "adaptive_glicko2" &&
+    termination?.kind === "rating_settled" &&
+    Number(termination.attempted) === row.completed_items &&
+    row.completed_items >= Number(stopping?.minimum_puzzles ?? Infinity) &&
+    finalDeviation <= Number(stopping?.target_rating_deviation ?? -Infinity) &&
+    suppliedRating?.settled === true &&
+    row.completed_items < row.total_items
+  if (requested === "completed" && row.completed_items !== row.total_items && !stoppedByPolicy && !settledRating) {
     throw new Error(`cannot complete ${doc.run_id}: ${row.completed_items}/${row.total_items} items present`)
   }
   const stamp = now()
-  const estimate = await estimatePuzzleRating(env, doc.run_id)
+  const adaptive = protocol?.kind === "adaptive_glicko2"
+  const estimate = adaptive ? null : await estimatePuzzleRating(env, doc.run_id)
+  const rating = adaptive && typeof suppliedRating?.rating === "number"
+    ? {
+        rating: suppliedRating.rating,
+        stderr: typeof suppliedRating.rating_deviation === "number"
+          ? suppliedRating.rating_deviation
+          : typeof suppliedRating.stderr === "number" ? suppliedRating.stderr : null,
+        n: typeof suppliedRating.n === "number" ? suppliedRating.n : row.completed_items,
+        bounded: suppliedRating.bounded !== false,
+      }
+    : estimate
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE benchmark_runs_v2 SET status=?, error=?, updated_at=?,
        max_points=CASE WHEN ? THEN total_items ELSE max_points END,
        puzzle_rating=?, puzzle_rating_stderr=?, puzzle_rating_n=?, puzzle_rating_bounded=?,
+       summary_json=?,
        completed_at=CASE WHEN ?='completed' THEN ? ELSE completed_at END WHERE run_id=?`,
     ).bind(
       requested, doc.error?.slice(0, 2000) ?? null, stamp,
       stoppedByPolicy ? 1 : 0,
-      estimate?.rating ?? null, estimate?.stderr ?? null, estimate?.n ?? 0, estimate?.bounded ? 1 : 0,
+      rating?.rating ?? null, rating?.stderr ?? null, rating?.n ?? 0, rating?.bounded ? 1 : 0,
+      doc.summary ? JSON.stringify(doc.summary) : null,
       requested, stamp, doc.run_id,
     ),
     env.DB.prepare(

@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from .tasks.games import GameRecord, MoveRecord
 
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 DEFAULT_DB = Path("runs/chessbench.db")
 
 
@@ -53,6 +53,7 @@ class RunSpec:
     suite_version: str | None = None
     suite_hash: str | None = None
     suite_visibility: str | None = None
+    protocol: dict[str, object] | None = None
 
     @property
     def natural_key(self) -> str:
@@ -61,6 +62,7 @@ class RunSpec:
             "variant": self.variant.to_dict(),
             "condition": self.condition.to_dict(),
             "suite_hash": self.suite_hash,
+            "protocol": self.protocol,
         }
         return hashlib.sha256(_canonical(manifest).encode()).hexdigest()
 
@@ -131,6 +133,7 @@ CREATE TABLE IF NOT EXISTS benchmark_run (
   suite_version TEXT,
   suite_hash TEXT,
   suite_visibility TEXT,
+  protocol_json TEXT,
   status TEXT NOT NULL CHECK(status IN ('queued','running','partial','completed','failed')),
   total_items INTEGER NOT NULL,
   completed_items INTEGER NOT NULL DEFAULT 0,
@@ -385,6 +388,8 @@ class BenchmarkStore:
                 self._db.executescript(_PUZZLE_CHECKPOINT_SCHEMA)
             if version < 5:
                 self._migrate_cache_usage()
+            if version < 6:
+                self._migrate_rated_sessions()
             self._db.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     def _migrate_cache_usage(self) -> None:
@@ -405,6 +410,14 @@ class BenchmarkStore:
                     self._db.execute(
                         f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
                     )
+
+    def _migrate_rated_sessions(self) -> None:
+        present = {
+            str(row[1])
+            for row in self._db.execute("PRAGMA table_info(benchmark_run)").fetchall()
+        }
+        if "protocol_json" not in present:
+            self._db.execute("ALTER TABLE benchmark_run ADD COLUMN protocol_json TEXT")
 
     @contextmanager
     def _transaction(self) -> Iterator[None]:
@@ -487,9 +500,9 @@ class BenchmarkStore:
             self._db.execute(
                 """INSERT INTO benchmark_run
                    (run_id, natural_key, track, variant_key, condition_slug, condition_json,
-                    suite_name, suite_version, suite_hash, suite_visibility, status,
+                    suite_name, suite_version, suite_hash, suite_visibility, protocol_json, status,
                     total_items, created_at, started_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)""",
                 (
                     run_id,
                     natural_key,
@@ -501,6 +514,7 @@ class BenchmarkStore:
                     spec.suite_version,
                     spec.suite_hash,
                     spec.suite_visibility,
+                    _canonical(spec.protocol) if spec.protocol else None,
                     spec.total_items,
                     now,
                     now,
@@ -993,7 +1007,8 @@ class BenchmarkStore:
         now = _now()
         with self._transaction():
             row = self._db.execute(
-                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?",
+                """SELECT total_items, completed_items, protocol_json
+                   FROM benchmark_run WHERE run_id=?""",
                 (run_id,),
             ).fetchone()
             if row is None:
@@ -1027,7 +1042,8 @@ class BenchmarkStore:
         now = _now()
         with self._transaction():
             row = self._db.execute(
-                "SELECT total_items, completed_items FROM benchmark_run WHERE run_id=?",
+                """SELECT total_items, completed_items, protocol_json
+                   FROM benchmark_run WHERE run_id=?""",
                 (run_id,),
             ).fetchone()
             if row is None:
@@ -1049,6 +1065,74 @@ class BenchmarkStore:
                     (_canonical(summary), cost_usd, now, now, run_id),
                 )
             self._event(run_id, "completed", None, now)
+
+    def finalize_rated_puzzle_run(
+        self,
+        run_id: str,
+        report: PuzzleReport,
+        *,
+        rating: dict[str, object],
+        termination: dict[str, object],
+    ) -> None:
+        """Complete an adaptive session at convergence or its safety cap."""
+        now = _now()
+        with self._transaction():
+            row = self._db.execute(
+                """SELECT total_items, completed_items, protocol_json
+                   FROM benchmark_run WHERE run_id=?""",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            attempted = int(row["completed_items"])
+            maximum = int(row["total_items"])
+            kind = str(termination.get("kind") or "")
+            protocol = json.loads(row["protocol_json"] or "{}")
+            stopping = protocol.get("stopping", {})
+            minimum = int(stopping.get("minimum_puzzles", 0))
+            target_deviation = float(stopping.get("target_rating_deviation", -1))
+            final_deviation = float(
+                rating.get("rating_deviation", rating.get("stderr", float("inf")))
+            )
+            if protocol.get("kind") != "adaptive_glicko2":
+                raise RuntimeError("rated completion requires an adaptive_glicko2 protocol")
+            if attempted != report.n:
+                raise RuntimeError(
+                    f"cannot complete rated run {run_id}: report has {report.n} "
+                    f"items but {attempted} are persisted"
+                )
+            if kind == "rating_settled":
+                if (
+                    not bool(rating.get("settled"))
+                    or attempted < minimum
+                    or final_deviation > target_deviation
+                    or attempted >= maximum
+                    or int(termination.get("attempted", -1)) != attempted
+                ):
+                    raise RuntimeError("rating_settled termination is inconsistent")
+            elif kind == "maximum_puzzles":
+                if attempted != maximum:
+                    raise RuntimeError("maximum_puzzles termination is inconsistent")
+            else:
+                raise ValueError(f"unsupported rated-session termination: {kind!r}")
+            summary = {
+                "n": report.n,
+                "solved": report.solved,
+                "solve_rate": report.solve_rate,
+                "mean_score": report.mean_score,
+                "first_move_legal_rate": report.first_move_legal_rate,
+                "response_format_valid_rate": report.response_format_valid_rate,
+                "points": report.points,
+                "max_points": report.max_points,
+                "puzzle_performance_rating": rating,
+                "termination": termination,
+            }
+            self._db.execute(
+                """UPDATE benchmark_run SET status='completed', summary_json=?,
+                   completed_at=?, updated_at=?, error=NULL WHERE run_id=?""",
+                (_canonical(summary), now, now, run_id),
+            )
+            self._event(run_id, "completed", kind, now)
 
     def finalize_stopped_puzzle_run(
         self,
@@ -1235,6 +1319,9 @@ class BenchmarkStore:
             if row["suite_name"]
             else None,
             "total_items": row["total_items"],
+            "protocol": json.loads(row["protocol_json"])
+            if row["protocol_json"]
+            else None,
             "created_at": row["created_at"],
         }
 

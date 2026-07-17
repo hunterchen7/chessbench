@@ -66,6 +66,73 @@ def _generic_spec(track: str = "composed") -> RunSpec:
     )
 
 
+def test_adaptive_protocol_is_durable_and_can_finish_at_convergence(tmp_path):
+    base = _spec()
+    protocol = {
+        "kind": "adaptive_glicko2",
+        "version": "rated_session_v1",
+        "stopping": {
+            "minimum_puzzles": 1,
+            "maximum_puzzles": 100,
+            "target_rating_deviation": 75,
+        },
+    }
+    spec = RunSpec(
+        base.track,
+        base.variant,
+        base.condition,
+        100,
+        suite_name="rated-pool",
+        suite_version="1.0.0",
+        suite_hash="sha256:pool",
+        suite_visibility="public",
+        protocol=protocol,
+    )
+    puzzle = Puzzle(
+        "rated-1",
+        "6k1/8/8/8/8/8/8/6K1 w - - 0 1",
+        ["g1f2", "g8f7"],
+        1500,
+        rating_deviation=80,
+    )
+    result = _result("rated-1")
+    result.solver_rating_before = {
+        "rating": 1500.0,
+        "rating_deviation": 500.0,
+        "volatility": 0.09,
+    }
+    result.solver_rating_after = {
+        "rating": 1736.8,
+        "rating_deviation": 74.0,
+        "volatility": 0.09,
+    }
+    rating = {
+        "rating": 1736.8,
+        "rating_deviation": 74.0,
+        "stderr": 74.0,
+        "ci95": [1588.8, 1884.8],
+        "n": 1,
+        "bounded": True,
+        "settled": True,
+    }
+    termination = {"kind": "rating_settled", "attempted": 1, "maximum": 100}
+
+    with BenchmarkStore(tmp_path / "rated.db") as store:
+        run = store.start_run(spec)
+        assert store.run_start_document(run.run_id)["protocol"] == protocol
+        store.save_puzzle_result(run.run_id, 0, puzzle, result)
+        report = build_report("test/model", spec.condition.slug(), [result])
+        store.finalize_rated_puzzle_run(
+            run.run_id, report, rating=rating, termination=termination
+        )
+        row = store.run_row(run.run_id)
+        assert row["status"] == "completed"
+        assert row["completed_items"] == 1
+        finish = store.run_finish_document(run.run_id)
+        assert finish["summary"]["termination"] == termination
+        assert finish["summary"]["puzzle_performance_rating"] == rating
+
+
 def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
     puzzle = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
     with BenchmarkStore(tmp_path / "bench.db") as store:

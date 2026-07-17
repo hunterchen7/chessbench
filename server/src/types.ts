@@ -59,6 +59,7 @@ export interface RunStartDoc {
     visibility?: string | null
   } | null
   total_items: number
+  protocol?: Record<string, unknown> | null
   created_at?: string
 }
 

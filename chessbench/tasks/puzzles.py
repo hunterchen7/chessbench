@@ -95,6 +95,12 @@ class PuzzleResult:
     turns: list[dict[str, object]] = field(default_factory=list)
     answer_response_format_valid: bool | None = None
     answer_response_format_error: str | None = None
+    # Populated by adaptive rated sessions. They live on the result itself so
+    # a resumed run can reconstruct and audit every rating transition without
+    # relying on mutable process state.
+    solver_rating_before: dict[str, object] | None = None
+    solver_rating_after: dict[str, object] | None = None
+    rated_selection: dict[str, object] | None = None
 
 
 @dataclass

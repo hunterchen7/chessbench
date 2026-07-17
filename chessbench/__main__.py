@@ -1111,6 +1111,352 @@ def cmd_run_model(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rate_model(args: argparse.Namespace) -> int:
+    """Run or resume the canonical deterministic adaptive rating protocol."""
+    from .agents import LLMAgent
+    from .database import BenchmarkStore, RunSpec
+    from .rated_pool import iter_rated_pool, load_rated_pool_manifest
+    from .rated_sessions import (
+        DeterministicPuzzleSelector,
+        GlickoState,
+        RatedSessionConfig,
+        rating_summary,
+        session_protocol,
+        update_solver_rating,
+    )
+    from .registry import get_model
+    from .report import build_report
+    from .tasks.puzzles import grade_puzzle
+    from .variants import ModelVariant, ProviderRoute, ReasoningConfig
+
+    if args.max_new_items is not None and args.max_new_items < 1:
+        raise ValueError("--max-new-items must be positive")
+    if args.request_timeout <= 0:
+        raise ValueError("--request-timeout must be positive")
+    config = RatedSessionConfig(
+        seed=args.seed,
+        target_radius=args.target_radius,
+        min_puzzles=args.min_puzzles,
+        max_puzzles=args.max_puzzles,
+        target_deviation=args.target_rd,
+    )
+    condition = Condition(
+        legality=Legality.FREE_FORM,
+        representation=Representation.FEN_PIECES,
+        notation=Notation.UCI,
+        prompt_style=PromptStyle.MINIMAL,
+        context_mode=ContextMode.HYBRID,
+        retry_attempts=0,
+        explain=False,
+        temperature=args.temperature,
+        reasoning_effort=args.reasoning,
+        reasoning_max_tokens=args.reasoning_tokens,
+        reasoning_exclude=not args.capture_reasoning,
+        max_output_tokens=args.max_output_tokens,
+        cache_policy=CachePolicy(args.cache_policy),
+        prompt_version="rated_raw_uci_v1",
+    )
+    entry = get_model(args.model)
+    provider_route = ProviderRoute(
+        only=tuple(args.provider_only),
+        order=tuple(args.provider_order),
+        allow_fallbacks=args.provider_allow_fallbacks,
+        require_parameters=args.require_provider_parameters,
+    )
+    if entry.provider != "openrouter" and not provider_route.is_default:
+        raise ValueError("provider routing options require an OpenRouter model")
+    variant = ModelVariant(
+        base_key=entry.label,
+        display_name=entry.label,
+        provider=entry.provider,
+        model_id=entry.model_id,
+        reasoning=ReasoningConfig(
+            effort=condition.reasoning_effort,
+            max_tokens=condition.reasoning_max_tokens,
+            exclude=condition.reasoning_exclude,
+        ),
+        max_output_tokens=condition.max_output_tokens,
+        provider_route=provider_route,
+    )
+
+    manifest_path = Path(args.pool_manifest)
+    manifest = load_rated_pool_manifest(manifest_path)
+    pool_name = str(manifest["name"])
+    pool_version = str(manifest["version"])
+    pool_hash = str(manifest["content_hash"])
+    pool_visibility = str(manifest.get("visibility") or "public")
+    puzzles = list(iter_rated_pool(manifest_path, verify_artifact=False))
+    puzzles_by_id = {puzzle.id: puzzle for puzzle in puzzles}
+    selector = DeterministicPuzzleSelector(
+        puzzles, pool_hash=pool_hash, config=config
+    )
+    protocol = session_protocol(
+        pool_name=pool_name,
+        pool_version=pool_version,
+        pool_hash=pool_hash,
+        config=config,
+    )
+    spec = RunSpec(
+        "puzzle",
+        variant,
+        condition,
+        config.max_puzzles,
+        suite_name=pool_name,
+        suite_version=pool_version,
+        suite_hash=pool_hash,
+        suite_visibility=pool_visibility,
+        protocol=protocol,
+    )
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    store = BenchmarkStore(args.db)
+    handle = (
+        store.find_run(spec)
+        if args.export_only
+        else store.start_run(spec, force=args.force)
+    )
+    if handle is None:
+        store.close()
+        raise SystemExit("no durable rated session matches this model and protocol")
+    if handle.status == "completed" and not args.force and not args.export_only:
+        print(f"skip (completed): {variant.label} × {pool_name} × rated session")
+        store.close()
+        _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
+        return 0
+    if not args.export_only:
+        store.acquire_run_lock(handle.run_id)
+    out = _run_model_output_path(
+        out_dir,
+        variant_key=variant.key,
+        condition_slug=condition.slug(),
+        suite_name=pool_name,
+        suite_hash=pool_hash,
+        run_id=handle.run_id,
+    )
+
+    completed = store.load_puzzle_results(handle.run_id)
+    ordered_results = list(completed.values())
+    state = GlickoState()
+    used: list[str] = []
+    for sequence, result in enumerate(ordered_results):
+        expected, _selection = selector.select(
+            state, sequence=sequence, excluded=used
+        )
+        if expected.id != result.puzzle_id:
+            store.close()
+            raise RuntimeError(
+                "rated-session replay diverged at puzzle "
+                f"{sequence + 1}: expected {expected.id}, found {result.puzzle_id}"
+            )
+        before = state
+        state = update_solver_rating(
+            state,
+            puzzle_rating=expected.rating,
+            puzzle_deviation=expected.rating_deviation,
+            solved=result.solved,
+        )
+        if result.solver_rating_before is not None:
+            recorded = GlickoState.from_dict(result.solver_rating_before)
+            if abs(recorded.rating - before.rating) > 0.01:
+                store.close()
+                raise RuntimeError("stored rated-session state failed replay validation")
+        used.append(expected.id)
+
+    def current_termination() -> dict[str, object] | None:
+        attempts = len(ordered_results)
+        if config.settled(state, attempts):
+            return {
+                "kind": "rating_settled",
+                "attempted": attempts,
+                "maximum": config.max_puzzles,
+                "target_rating_deviation": config.target_deviation,
+                "message": (
+                    f"Rating settled after {attempts} puzzles at "
+                    f"RD {state.deviation:.1f}."
+                ),
+            }
+        if attempts >= config.max_puzzles:
+            return {
+                "kind": "maximum_puzzles",
+                "attempted": attempts,
+                "maximum": config.max_puzzles,
+                "target_rating_deviation": config.target_deviation,
+                "message": (
+                    f"Reached the {config.max_puzzles}-puzzle safety cap at "
+                    f"RD {state.deviation:.1f}."
+                ),
+            }
+        return None
+
+    def export_snapshot(*, termination: dict[str, object] | None = None) -> None:
+        row = store.run_row(handle.run_id)
+        report = build_report(entry.model_id, condition.slug(), ordered_results)
+        total_cost = _usage_float(row.get("cost_usd"))
+        record = RunRecord(
+            model=entry.model_id,
+            provider=entry.provider,
+            condition=condition,
+            report=report,
+            results=ordered_results,
+            puzzles={result.puzzle_id: puzzles_by_id[result.puzzle_id] for result in ordered_results},
+            suite=SuiteRef(pool_name, pool_version, pool_visibility, pool_hash),
+            cost_usd=total_cost,
+            run_id=handle.run_id,
+            model_variant=variant.to_dict(),
+            created=str(row.get("created_at") or ""),
+            status=str(row.get("status") or "partial"),
+            progress={
+                "completed": _usage_int(row.get("completed_items")),
+                "total": config.max_puzzles,
+            },
+            usage={
+                "cost_usd": total_cost,
+                "prompt_tokens": _usage_int(row.get("prompt_tokens")),
+                "completion_tokens": _usage_int(row.get("completion_tokens")),
+                "reasoning_tokens": _usage_int(row.get("reasoning_tokens")),
+                "cache_read_tokens": _usage_int(row.get("cache_read_tokens")),
+                "cache_write_tokens": _usage_int(row.get("cache_write_tokens")),
+                "uncached_prompt_tokens": _usage_int(row.get("uncached_prompt_tokens")),
+                "cache_discount_usd": _usage_float(row.get("cache_discount_usd")),
+            },
+            error=str(row["error"]) if row.get("error") else None,
+            updated_at=str(row.get("updated_at") or ""),
+            completed_at=str(row["completed_at"]) if row.get("completed_at") else None,
+            protocol=protocol,
+            rating_summary=rating_summary(
+                state, attempts=len(ordered_results), config=config
+            ),
+            termination=termination,
+        )
+        save_run(record, out)
+
+    if args.export_only:
+        export_snapshot(termination=current_termination())
+        store.close()
+        print(f"exported {len(ordered_results)} rated attempts without inference -> {out}")
+        return 0
+
+    print(
+        f"rating {variant.label} from {pool_name} "
+        f"({len(ordered_results)} durable; stop at RD ≤ {config.target_deviation:g} "
+        f"after {config.min_puzzles}–{config.max_puzzles} puzzles)"
+    )
+    model = _build_model(
+        entry.provider,
+        entry.model_id,
+        reasoning_effort=condition.reasoning_effort,
+        reasoning_max_tokens=condition.reasoning_max_tokens,
+        reasoning_exclude=condition.reasoning_exclude,
+        request_timeout=args.request_timeout,
+        provider_preferences=provider_route.to_request(),
+    )
+    agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
+    checkpoints = store.load_puzzle_checkpoints(handle.run_id)
+    new_items = 0
+    try:
+        while current_termination() is None:
+            sequence = len(ordered_results)
+            if args.max_new_items is not None and new_items >= args.max_new_items:
+                break
+            puzzle, selection = selector.select(
+                state, sequence=sequence, excluded=used
+            )
+
+            def persist_checkpoint(checkpoint) -> None:
+                store.save_puzzle_checkpoint(
+                    handle.run_id, sequence, puzzle.id, checkpoint
+                )
+
+            before = state
+            result = grade_puzzle(
+                agent,
+                puzzle,
+                condition,
+                checkpoint=checkpoints.get(puzzle.id),
+                on_checkpoint=persist_checkpoint,
+            )
+            after = update_solver_rating(
+                before,
+                puzzle_rating=puzzle.rating,
+                puzzle_deviation=puzzle.rating_deviation,
+                solved=result.solved,
+            )
+            result = replace(
+                result,
+                solver_rating_before=before.to_dict(),
+                solver_rating_after=after.to_dict(),
+                rated_selection=selection.to_dict(),
+            )
+            prompt_tokens, completion_tokens, reasoning_tokens, item_cost = (
+                _turn_usage_totals(result.turns)
+            )
+            cache_read, cache_write, uncached_prompt, cache_discount = (
+                _turn_cache_totals(result.turns)
+            )
+            inserted = store.save_puzzle_result(
+                handle.run_id,
+                sequence,
+                puzzle,
+                result,
+                cost_usd=item_cost,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                reasoning_tokens=reasoning_tokens,
+                cache_read_tokens=cache_read,
+                cache_write_tokens=cache_write,
+                uncached_prompt_tokens=uncached_prompt,
+                cache_discount_usd=cache_discount,
+            )
+            if not inserted:
+                raise RuntimeError(f"rated puzzle {puzzle.id} was already persisted")
+            ordered_results.append(result)
+            used.append(puzzle.id)
+            state = after
+            new_items += 1
+            if args.progress and (
+                len(ordered_results) % args.progress == 0
+                or current_termination() is not None
+            ):
+                print(
+                    f"  {len(ordered_results):>3}/{config.max_puzzles}  "
+                    f"rating {state.rating:,.0f} ± {state.deviation:.0f}  "
+                    f"solved {sum(item.solved for item in ordered_results)}"
+                )
+    except BaseException as exc:
+        store.mark_partial(handle.run_id, str(exc))
+        try:
+            export_snapshot()
+        finally:
+            store.close()
+        raise
+
+    termination = current_termination()
+    if termination is None:
+        reason = f"operator stop after {new_items} new item(s)"
+        store.mark_partial(handle.run_id, reason)
+        export_snapshot()
+        store.close()
+        print(f"partial {handle.run_id}; {reason}; resumable export -> {out}")
+        return 0
+
+    report = build_report(entry.model_id, condition.slug(), ordered_results)
+    summary = rating_summary(state, attempts=len(ordered_results), config=config)
+    store.finalize_rated_puzzle_run(
+        handle.run_id,
+        report,
+        rating=summary,
+        termination=termination,
+    )
+    export_snapshot(termination=termination)
+    store.close()
+    print(
+        f"completed {handle.run_id}: {state.rating:,.0f} ± {state.deviation:.0f} "
+        f"after {len(ordered_results)} puzzles; export -> {out}"
+    )
+    _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
+    return 0
+
+
 def cmd_category_leaderboard(args: argparse.Namespace) -> int:
     """Per-category rankings from saved run records (offline)."""
     from .leaderboards import (
@@ -2015,6 +2361,58 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_condition_args(rmp)
     rmp.set_defaults(func=cmd_run_model)
+
+    rated = sub.add_parser(
+        "rate-model",
+        help="run the canonical adaptive Glicko puzzle-rating session",
+    )
+    rated.add_argument("--model", required=True, help="registry label")
+    rated.add_argument(
+        "--pool-manifest",
+        default="corpora/pools/rated-lichess-v1.manifest.json",
+    )
+    rated.add_argument("--seed", type=int, default=0)
+    rated.add_argument("--target-radius", type=int, default=100)
+    rated.add_argument("--min-puzzles", type=int, default=50)
+    rated.add_argument("--max-puzzles", type=int, default=100)
+    rated.add_argument("--target-rd", type=float, default=75.0)
+    rated.add_argument("--out-dir", default="web/public/data/runs")
+    rated.add_argument("--db", default="runs/chessbench.db")
+    rated.add_argument("--no-sync", action="store_true")
+    rated.add_argument("--force", action="store_true")
+    rated.add_argument("--export-only", action="store_true")
+    rated.add_argument("--max-new-items", type=int, default=None)
+    rated.add_argument("--progress", type=int, default=5)
+    rated.add_argument("--request-timeout", type=float, default=120.0)
+    rated.add_argument("--temperature", type=float, default=1.0)
+    rated.add_argument(
+        "--reasoning",
+        default=None,
+        choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+    )
+    rated.add_argument("--reasoning-tokens", type=int, default=None)
+    rated.add_argument(
+        "--capture-reasoning",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    rated.add_argument("--max-output-tokens", type=int, default=0)
+    rated.add_argument(
+        "--cache-policy",
+        default=CachePolicy.PROMPT_PREFIX_V1.value,
+        choices=[policy.value for policy in CachePolicy],
+    )
+    rated_provider = rated.add_mutually_exclusive_group()
+    rated_provider.add_argument("--provider-only", action="append", default=[])
+    rated_provider.add_argument("--provider-order", action="append", default=[])
+    rated.add_argument(
+        "--no-provider-fallbacks",
+        dest="provider_allow_fallbacks",
+        action="store_false",
+        default=True,
+    )
+    rated.add_argument("--require-provider-parameters", action="store_true")
+    rated.set_defaults(func=cmd_rate_model)
 
     wp = sub.add_parser(
         "woodpecker", help="run puzzles as one-shot complete variations"
