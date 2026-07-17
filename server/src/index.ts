@@ -4,6 +4,12 @@ import { getCorpus, getExport, getIndex, getPuzzle, getPuzzles, getRun, getTourn
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
 import { postFinishRun, postIngestTournament, postRegisterCorpus, postRegisterSuite, postRunItem, postStartRun } from "./ingest"
 import { postIngestGame, postLiveBoard } from "./games"
+import {
+  getRandomRatedPuzzle,
+  postRatedPoolFinish,
+  postRatedPoolItems,
+  postRatedPoolStart,
+} from "./rated_puzzles"
 
 // chessbench backend: a JSON API under /api/* over Cloudflare D1, with the built
 // Vite SPA served from the same origin via the [assets] binding. Non-/api requests
@@ -27,6 +33,7 @@ export default {
         if (seg === "health") return json({ ok: true, service: "chessbench", time: new Date().toISOString() })
         if (seg === "index" || seg === "runs") return await getIndex(env)
         if (seg === "export") return await getExport(env, url, req)
+        if (seg === "puzzles/random") return await getRandomRatedPuzzle(env, url)
         if (seg === "puzzles") return await getPuzzles(env)
         if (seg.startsWith("puzzles/")) return await getPuzzle(env, rest(seg, "puzzles/"))
         if (seg.startsWith("corpora/")) return await getCorpus(env, rest(seg, "corpora/"))
@@ -38,6 +45,9 @@ export default {
       } else if (req.method === "POST") {
         if (seg === "human/solve") return await postHumanSolve(env, req)
         if (seg === "ingest/corpus") return await postRegisterCorpus(env, req)
+        if (seg === "ingest/rated-pool/start") return await postRatedPoolStart(env, req)
+        if (seg === "ingest/rated-pool/items") return await postRatedPoolItems(env, req)
+        if (seg === "ingest/rated-pool/finish") return await postRatedPoolFinish(env, req)
         if (seg === "ingest/suite") return await postRegisterSuite(env, req)
         if (seg === "ingest/run/start") return await postStartRun(env, req)
         if (seg === "ingest/run/item") return await postRunItem(env, req)
