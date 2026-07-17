@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { Activity, ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
+import { ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { MODES, pct, type ModeNumber } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { isModelVariant } from "@/lib/participants"
 import { isVisibleUiTrack } from "@/lib/uiTracks"
-import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { PuzzleRunMatrix } from "@/components/PuzzleRunMatrix"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -49,7 +47,6 @@ export function Leaderboard() {
 
   const modelRuns = runs.filter((run) => isVisibleUiTrack(run.track) && isModelVariant(run.model_variant))
   const completed = modelRuns.filter((run) => run.status === "completed").length
-  const active = modelRuns.filter((run) => run.status === "running" || run.status === "partial")
   const cost = modelRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
   const puzzleRuns = modelRuns.filter((run) => run.track === "puzzle")
   const puzzleAttempts = puzzleRuns.reduce((sum, run) => sum + run.progress.completed, 0)
@@ -93,22 +90,6 @@ export function Leaderboard() {
           </Link>
         ))}
       </section>
-
-      {active.length > 0 && (
-        <section className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><Activity className="size-4 text-amber-600" /> Runs with durable progress</div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {active.slice(0, 6).map((run) => {
-              const ratio = run.progress.total ? run.progress.completed / run.progress.total : 0
-              return <div key={run.run_id} className="rounded-lg border bg-background/70 p-3">
-                <div className="flex items-center justify-between gap-3"><span className="truncate text-sm font-medium">{run.model_variant.display_name}</span><Badge variant="outline">{run.status}</Badge></div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-amber-500" style={{ width: `${ratio * 100}%` }} /></div>
-                <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px] text-muted-foreground"><ResponseStyleBadge condition={run.condition} compact /><span>{run.progress.completed}/{run.progress.total}</span></div>
-              </div>
-            })}
-          </div>
-        </section>
-      )}
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
