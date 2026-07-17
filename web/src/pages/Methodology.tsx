@@ -183,7 +183,8 @@ export function Methodology() {
           <CardContent><Prose>
             <p>Standard and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
             <p>The canonical public Standard v3 suite executes puzzles from lowest to highest source rating, with puzzle ID as the deterministic tie-breaker. This makes the failure frontier visible in trajectory charts. Historical v2 runs retain their original ID-sorted order and content hash.</p>
-            <p>For tactical puzzles, a secondary performance rating is fitted from complete solves against the source puzzle ratings and shown with a 95% confidence interval. Points remain the official ranking score; this rating is a diagnostic and is not directly comparable to human over-the-board Elo.</p>
+            <p>For tactical puzzles, a secondary Bayesian Puzzle Elo is fitted from complete solves against the source puzzle ratings. The frozen estimator uses the ordinary Elo solve-probability curve with a weak Gaussian prior of <span className="font-mono text-foreground">1,500 ± 700</span>. This prevents early all-solve or all-miss prefixes from becoming infinite; the dashboard always pairs the estimate with its rating deviation and 95% posterior interval.</p>
+            <p>A run is marked provisional while that 95% interval is wider than 400 rating points. Partial-line credit affects points but never counts as a draw in the rating model. Points remain the official ranking score; Puzzle Elo is diagnostic and is not directly comparable to human over-the-board Elo.</p>
             <p>Games use ordinary match points: win = 1, draw = 0.5, loss = 0. Leaderboards do not convert performance to Elo.</p>
           </Prose></CardContent>
         </Card>

@@ -35,7 +35,7 @@ class PuzzleReport:
     response_format_expected: int
     response_format_valid: int
     curve: metrics.RatingCurve
-    elo: RatingEstimate           # MLE puzzle-Elo (performance rating)
+    elo: RatingEstimate           # Bayesian puzzle-Elo performance rating
     themes: list[ThemeStat] = field(default_factory=list)
 
     @property
@@ -110,9 +110,10 @@ def format_report(rep: PuzzleReport, top_themes: int = 8) -> str:
         f"solved:     {rep.solved}/{rep.n} = {rep.solve_rate:.1%}  (95% CI {lo:.1%}-{hi:.1%})",
         f"points:     {rep.points:.2f}/{rep.max_points} (partial credit for correct sequence plies)",
         (
-            f"puzzleElo: {rep.elo.rating:.0f} (95% CI {rep.elo.ci95()[0]:.0f}-{rep.elo.ci95()[1]:.0f}; secondary diagnostic)"
-            if rep.elo.bounded
-            else f"puzzleElo: {'≥' if rep.solved == rep.n and rep.n else '≤'}{rep.elo.rating:.0f} (unbounded; secondary diagnostic)"
+            f"puzzleElo: {rep.elo.rating:.0f} "
+            f"(RD {rep.elo.stderr:.0f}; 95% interval "
+            f"{rep.elo.ci95()[0]:.0f}-{rep.elo.ci95()[1]:.0f}; "
+            f"{'provisional; ' if rep.elo.to_dict()['provisional'] else ''}secondary diagnostic)"
         ),
         f"legalMove%: {rep.first_move_legal_rate:.1%} first-attempt legal  "
         f"({rep.total_illegal_attempts} illegal attempts total)",

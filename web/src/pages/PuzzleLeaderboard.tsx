@@ -162,7 +162,7 @@ export function PuzzleLeaderboard() {
           <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><BarChart3 className="size-4" /> Standard tactics</div>
           <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle leaderboard</h1>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">
-            Compare every model across four board-information and coaching methods. Points decide performance within a run; Puzzle Elo estimates the human puzzle rating at which the model would score about 50%.
+            Compare every model across four board-information and coaching methods. Points decide performance within a run; Bayesian Puzzle Elo estimates the source-puzzle rating at which the model would score about 50%, with rating deviation preserving uncertainty.
           </p>
         </div>
         <div className="grid gap-3 lg:justify-items-end">

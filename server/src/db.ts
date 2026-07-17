@@ -10,6 +10,9 @@ import type {
 
 const now = () => new Date().toISOString()
 
+export const PUZZLE_RATING_PRIOR = { mean: 1500, sd: 700 } as const
+export const PUZZLE_RATING_PROVISIONAL_CI_WIDTH = 400
+
 /** Run D1 statements in transactional chunks (keeps each batch within limits). */
 async function batchChunked(env: Env, stmts: D1PreparedStatement[], size = 40): Promise<void> {
   for (let i = 0; i < stmts.length; i += size) await env.DB.batch(stmts.slice(i, i + size))
@@ -233,23 +236,22 @@ async function estimatePuzzleRating(env: Env, runId: string): Promise<PuzzleRati
   const items = results ?? []
   const n = items.length
   if (!n) return null
-  const wins = items.reduce((sum, item) => sum + Number(Boolean(item.solved)), 0)
-  if (wins === 0) return { rating: 0, stderr: null, n, bounded: false }
-  if (wins === n) return { rating: 4000, stderr: null, n, bounded: false }
   const expected = (rating: number, puzzle: number) => 1 / (1 + 10 ** ((puzzle - rating) / 400))
-  const gradient = (rating: number) => items.reduce(
-    (sum, item) => sum + Number(Boolean(item.solved)) - expected(rating, item.rating), 0,
-  )
-  let low = 0
-  let high = 4000
+  const derivative = Math.log(10) / 400
+  const priorPrecision = 1 / PUZZLE_RATING_PRIOR.sd ** 2
+  const gradient = (rating: number) =>
+    -(rating - PUZZLE_RATING_PRIOR.mean) * priorPrecision + derivative * items.reduce(
+      (sum, item) => sum + Number(Boolean(item.solved)) - expected(rating, item.rating), 0,
+    )
+  let low = PUZZLE_RATING_PRIOR.mean - 10 * PUZZLE_RATING_PRIOR.sd
+  let high = PUZZLE_RATING_PRIOR.mean + 10 * PUZZLE_RATING_PRIOR.sd
   for (let i = 0; i < 200 && high - low >= 0.0001; i += 1) {
     const middle = (low + high) / 2
     if (gradient(middle) > 0) low = middle
     else high = middle
   }
   const rating = (low + high) / 2
-  const derivative = Math.log(10) / 400
-  const information = items.reduce((sum, item) => {
+  const information = priorPrecision + items.reduce((sum, item) => {
     const score = expected(rating, item.rating)
     return sum + derivative ** 2 * score * (1 - score)
   }, 0)

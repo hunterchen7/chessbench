@@ -1,5 +1,6 @@
 import type { Env } from "./types"
 import { authorized } from "./auth"
+import { PUZZLE_RATING_PRIOR, PUZZLE_RATING_PROVISIONAL_CI_WIDTH } from "./db"
 import { includesTournaments } from "./export_filters"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
@@ -95,12 +96,17 @@ function publicRun(row: RunRow) {
       puzzle_performance_rating: row.puzzle_rating == null ? null : {
         rating: row.puzzle_rating,
         stderr: row.puzzle_rating_stderr,
+        rating_deviation: row.puzzle_rating_stderr,
         ci95: row.puzzle_rating_stderr == null ? null : [
           row.puzzle_rating - 1.96 * row.puzzle_rating_stderr,
           row.puzzle_rating + 1.96 * row.puzzle_rating_stderr,
         ],
         n: row.puzzle_rating_n,
         bounded: Boolean(row.puzzle_rating_bounded),
+        method: "bayesian_elo_v1",
+        provisional: row.puzzle_rating_stderr == null ||
+          2 * 1.96 * row.puzzle_rating_stderr > PUZZLE_RATING_PROVISIONAL_CI_WIDTH,
+        prior: PUZZLE_RATING_PRIOR,
       },
     },
     usage: {

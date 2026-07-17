@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "build:web": "cd ../web && pnpm build",
-    "deploy": "pnpm build:web && wrangler deploy",
+    "deploy": "pnpm build:web && node scripts/prepare_deploy_assets.mjs && wrangler deploy",
     "migrate:local": "wrangler d1 migrations apply chessbench --local",
     "migrate:remote": "wrangler d1 migrations apply chessbench --remote",
     "test": "node --test tests/*.test.mjs && python3 -m unittest discover -s tests -p 'test_*.py'",

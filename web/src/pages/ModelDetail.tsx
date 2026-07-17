@@ -5,7 +5,7 @@ import { useData } from "@/lib/useData"
 import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
-import { puzzlePerformanceRating } from "@/lib/puzzleRating"
+import { PUZZLE_ELO_PRIOR, puzzlePerformanceRating, puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
 import { isVisibleUiTrack } from "@/lib/uiTracks"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -67,8 +67,11 @@ interface PerformancePoint {
   solved: boolean
   failureReason: string | null
   cumulativePoints: number
-  elo: number | null
+  elo: number
   eloDelta: number | null
+  eloCi95: [number, number]
+  eloDeviation: number
+  eloProvisional: boolean
 }
 
 type AnswerSortKey = "puzzle" | "rating" | "points"
@@ -82,7 +85,7 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
   const position = pointPosition(index, total, inset)
   const translate = position.ratio < 0.18 ? "0" : position.ratio > 0.82 ? "-100%" : "-50%"
   const outcome = point.solved ? "Solved" : point.score > 0 ? "Partial credit" : point.failureReason?.replaceAll("_", " ") ?? "Incorrect"
-  const elo = point.elo == null ? "Not bounded" : Math.round(point.elo).toLocaleString()
+  const elo = Math.round(point.elo).toLocaleString()
   const delta = point.eloDelta == null ? null : Math.round(point.eloDelta)
 
   return <>
@@ -95,6 +98,8 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
         <span className="text-muted-foreground">This puzzle</span><span className="text-right font-mono">+{point.score.toFixed(2)} pt</span>
         <span className="text-muted-foreground">Cumulative</span><span className="text-right font-mono">{point.cumulativePoints.toFixed(2)} pts</span>
         <span className="text-muted-foreground">Puzzle Elo</span><span className="text-right font-mono">{elo}{delta == null ? "" : ` (${delta >= 0 ? "+" : ""}${delta})`}</span>
+        <span className="text-muted-foreground">95% interval</span><span className="text-right font-mono">{Math.round(point.eloCi95[0]).toLocaleString()}–{Math.round(point.eloCi95[1]).toLocaleString()}</span>
+        <span className="text-muted-foreground">Rating deviation</span><span className="text-right font-mono">{Math.round(point.eloDeviation).toLocaleString()}{point.eloProvisional ? " · provisional" : ""}</span>
       </div>
     </div>
   </>
@@ -105,14 +110,13 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
   const history = useMemo(() => {
     let points = 0
     let previousElo: number | null = null
-    const prefix: PuzzleItem[] = []
-    return items.map((item) => {
+    const trajectory = puzzlePerformanceTrajectory(items)
+    return items.map((item, index) => {
       points += item.score
-      prefix.push(item)
-      const estimate = puzzlePerformanceRating(prefix)
-      const elo = estimate.bounded ? estimate.rating : null
-      const eloDelta = elo == null || previousElo == null ? null : elo - previousElo
-      if (elo != null) previousElo = elo
+      const estimate = trajectory[index]
+      const elo = estimate.rating
+      const eloDelta = previousElo == null ? null : elo - previousElo
+      previousElo = elo
       return {
         puzzleId: item.puzzle_id,
         rating: item.rating,
@@ -122,6 +126,9 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
         cumulativePoints: points,
         elo,
         eloDelta,
+        eloCi95: estimate.ci95,
+        eloDeviation: estimate.rating_deviation,
+        eloProvisional: estimate.provisional,
       } satisfies PerformancePoint
     })
   }, [items])
@@ -137,45 +144,57 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
     setHoveredIndex(Math.round(ratio * (history.length - 1)))
   }
 
-  const eloValues = history.flatMap((point) => point.elo == null ? [] : [point.elo])
-  const eloMin = eloValues.length ? Math.floor((Math.min(...eloValues) - 50) / 100) * 100 : 0
-  const rawMax = eloValues.length ? Math.ceil((Math.max(...eloValues) + 50) / 100) * 100 : 4000
+  const intervalValues = history.flatMap((point) => point.eloCi95)
+  const eloMin = intervalValues.length ? Math.floor((Math.min(...intervalValues) - 50) / 100) * 100 : 0
+  const rawMax = intervalValues.length ? Math.ceil((Math.max(...intervalValues) + 50) / 100) * 100 : 4000
   const eloMax = Math.max(eloMin + 200, rawMax)
-  const linePoints = history.flatMap((point, index) => point.elo == null ? [] : [
-    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${116 - (point.elo - eloMin) / (eloMax - eloMin) * 100}`,
-  ]).join(" ")
+  const chartY = (rating: number) => 116 - (rating - eloMin) / (eloMax - eloMin) * 100
+  const linePoints = history.map((point, index) =>
+    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.elo)}`,
+  ).join(" ")
+  const upperIntervalPoints = history.map((point, index) =>
+    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.eloCi95[1])}`,
+  )
+  const lowerIntervalPoints = history.map((point, index) =>
+    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.eloCi95[0])}`,
+  )
+  const intervalBandPoints = [...upperIntervalPoints, ...lowerIntervalPoints.toReversed()].join(" ")
   const final = history.at(-1)!
   const hovered = hoveredIndex == null ? null : history[hoveredIndex]
-  const finalElo = history.findLast((point) => point.elo != null)?.elo ?? null
-  const displayedElo = hovered?.elo ?? finalElo
-  const firstEloIndex = history.findIndex((point) => point.elo != null)
+  const displayedEstimate = hovered ?? final
+  const finalElo = final.elo
   const pointsScale = Math.max(1, final.cumulativePoints)
-  const hoveredEloY = hovered?.elo == null ? null : (116 - (hovered.elo - eloMin) / (eloMax - eloMin) * 100) / 128 * 100
+  const hoveredEloY = hovered == null ? null : chartY(hovered.elo) / 128 * 100
 
   return <Card>
     <CardHeader className="space-y-1">
       <CardTitle className="text-base">Performance over suite</CardTitle>
-      <p className="text-xs text-muted-foreground">Cumulative points and complete-solve puzzle Elo after each puzzle in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. Hover either chart to inspect an individual result.</p>
+      <p className="text-xs text-muted-foreground">Cumulative points and Bayesian complete-solve Puzzle Elo after each puzzle in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
     </CardHeader>
-    <CardContent className="grid gap-5 lg:grid-cols-2">
-      <div>
+    <CardContent className="grid min-w-0 gap-5 lg:grid-cols-2">
+      <div className="min-w-0">
         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Points accumulation</div>
         <div className="relative flex h-32 touch-pan-y items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 12) }} onMouseLeave={() => setHoveredIndex(null)}>{history.map((point, index) => <div key={point.puzzleId} className={`min-w-0 flex-1 transition-colors ${hoveredIndex === index ? "bg-emerald-500" : "bg-emerald-500/70"}`} style={{ height: `${Math.max(2, point.cumulativePoints / pointsScale * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.cumulativePoints.toFixed(2)} points`} />)}{hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={12} />}</div>
         <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>{ratingOrdered ? `rating ${history[0].rating.toLocaleString()}` : "puzzle 1"}</span><span>{ratingOrdered ? `rating ${final.rating.toLocaleString()} · ` : ""}{final.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
       </div>
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span>{displayedElo != null && <span className="font-mono text-violet-700 dark:text-violet-300">{Math.round(displayedElo).toLocaleString()}</span>}</div>
+      <div className="min-w-0">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span><span className="ml-auto inline-flex flex-wrap items-center justify-end gap-1.5 normal-case tracking-normal"><span className="font-mono text-xs text-violet-700 dark:text-violet-300">{Math.round(displayedEstimate.elo).toLocaleString()}</span><span className="font-mono">RD {Math.round(displayedEstimate.eloDeviation).toLocaleString()}</span>{displayedEstimate.eloProvisional && <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase tracking-wide">provisional</Badge>}</span></div>
         <div className="relative h-32 touch-pan-y overflow-hidden rounded-lg border bg-secondary/30 p-2" aria-label="Puzzle Elo estimate after each puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 8) }} onMouseLeave={() => setHoveredIndex(null)}>
-          {eloValues.length ? <svg viewBox="0 0 1000 128" preserveAspectRatio="none" className="size-full overflow-visible text-violet-500" role="img" aria-label={`Puzzle Elo changed from the first bounded estimate after puzzle ${firstEloIndex + 1} to ${Math.round(finalElo ?? 0)}`}>
+          <svg viewBox="0 0 1000 128" preserveAspectRatio="none" className="size-full overflow-visible text-violet-500" role="img" aria-label={`Bayesian Puzzle Elo changed from ${Math.round(history[0].elo)} after puzzle 1 to ${Math.round(finalElo)}`}>
             <line x1="0" y1="16" x2="1000" y2="16" className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
             <line x1="0" y1="116" x2="1000" y2="116" className="stroke-border" vectorEffect="non-scaling-stroke" />
+            <polygon points={intervalBandPoints} fill="currentColor" opacity="0.12" />
+            <polyline points={upperIntervalPoints.join(" ")} fill="none" stroke="currentColor" strokeWidth="1" opacity="0.32" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
+            <polyline points={lowerIntervalPoints.join(" ")} fill="none" stroke="currentColor" strokeWidth="1" opacity="0.32" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
             <polyline points={linePoints} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-          </svg> : <div className="grid size-full place-items-center text-center text-xs text-muted-foreground">A bounded Elo estimate needs at least one solve and one miss.</div>}
-          {eloValues.length > 0 && <><span className="absolute left-2 top-1 font-mono text-[9px] text-muted-foreground">{eloMax}</span><span className="absolute bottom-1 left-2 font-mono text-[9px] text-muted-foreground">{eloMin}</span></>}
+            <line x1="1000" y1={chartY(final.eloCi95[1])} x2="1000" y2={chartY(final.eloCi95[0])} stroke="currentColor" strokeWidth="1.5" opacity="0.7" vectorEffect="non-scaling-stroke" />
+            <circle cx="1000" cy={chartY(finalElo)} r="4" fill="currentColor" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <><span className="absolute left-2 top-1 font-mono text-[9px] text-muted-foreground">{eloMax}</span><span className="absolute bottom-1 left-2 font-mono text-[9px] text-muted-foreground">{eloMin}</span></>
           {hoveredIndex != null && hoveredEloY != null && <span className="pointer-events-none absolute z-10 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500 ring-2 ring-background" style={{ left: pointPosition(hoveredIndex, history.length, 8).left, top: `${hoveredEloY}%` }} />}
           {hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={8} />}
         </div>
-        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>{firstEloIndex >= 0 ? `first estimate · puzzle ${firstEloIndex + 1}` : "not yet bounded"}</span><span>complete-solve MLE</span></div>
+        <div className="mt-2 flex flex-wrap justify-between gap-x-3 text-[11px] text-muted-foreground"><span>shaded band · 95% posterior</span><span>MAP · prior {PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± {PUZZLE_ELO_PRIOR.sd.toLocaleString()}</span></div>
       </div>
     </CardContent>
   </Card>
@@ -304,16 +323,10 @@ export function ModelDetail() {
     }, new Map<number, { low: number; n: number; solved: number; points: number }>()),
   ).map(([, band]) => band).toSorted((a, b) => a.low - b.low)
   const performance = puzzlePerformanceRating(displayRun.items)
-  const performanceValue = !run
-    ? "—"
-    : performance.bounded
-      ? Math.round(performance.rating).toLocaleString()
-      : performance.n === 0
-        ? "—"
-        : displayRun.items.every((item) => item.solved) ? "≥4,000" : "≤0"
+  const performanceValue = !run || performance.n === 0 ? "—" : Math.round(performance.rating).toLocaleString()
   const performanceNote = performance.ci95
-    ? `95% CI ${Math.round(performance.ci95[0]).toLocaleString()}–${Math.round(performance.ci95[1]).toLocaleString()}`
-    : performance.n ? "outside the calibrated 0–4,000 range" : "requires puzzle outcomes"
+    ? `${performance.provisional ? "provisional · " : ""}RD ${Math.round(performance.rating_deviation).toLocaleString()} · 95% ${Math.round(performance.ci95[0]).toLocaleString()}–${Math.round(performance.ci95[1]).toLocaleString()}`
+    : "requires puzzle outcomes"
 
   const sameSuite = (candidate: (typeof mine)[number]) =>
     (candidate.suite?.content_hash ?? candidate.suite?.name) === (meta.suite?.content_hash ?? meta.suite?.name)

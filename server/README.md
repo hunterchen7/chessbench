@@ -32,7 +32,7 @@ Ingest (Bearer `INGEST_TOKEN`):
 | POST | `/api/ingest/suite` | an exact frozen runnable suite |
 | POST | `/api/ingest/run/start` | immutable run manifest; validates suite hash and item count |
 | POST | `/api/ingest/run/item` | one idempotent paid result + full audit payload |
-| POST | `/api/ingest/run/finish` | terminal run state and derived rating |
+| POST | `/api/ingest/run/finish` | terminal run state and frozen-prior Bayesian Puzzle Elo |
 | POST | `/api/ingest/tournament?id=<stem>` | a tournament document |
 
 The same owner token may be used with `?include_private=1` on a run-detail or export request. Without both the

@@ -3,7 +3,13 @@
 import math
 import random
 
-from chessbench.rating import elo_trajectory, expected_score, puzzle_elo, tournament_elo
+from chessbench.rating import (
+    elo_trajectory,
+    expected_score,
+    puzzle_elo,
+    puzzle_elo_trajectory,
+    tournament_elo,
+)
 
 
 def test_expected_score():
@@ -41,9 +47,27 @@ def test_puzzle_elo_recovers_synthetic_truth():
     assert lo < true < hi
 
 
-def test_puzzle_elo_extremes_are_flagged():
-    assert not puzzle_elo([(1500.0, True), (1500.0, True)]).bounded  # solved all
-    assert not puzzle_elo([(1500.0, False), (1500.0, False)]).bounded  # solved none
+def test_puzzle_elo_extremes_are_finite_and_provisional():
+    wins = puzzle_elo([(1500.0, True), (1500.0, True)])
+    losses = puzzle_elo([(1500.0, False), (1500.0, False)])
+    assert wins.bounded and losses.bounded
+    assert math.isfinite(wins.rating) and math.isfinite(losses.rating)
+    assert wins.rating > 1500 > losses.rating
+    assert wins.to_dict()["provisional"] and losses.to_dict()["provisional"]
+
+
+def test_puzzle_elo_persists_method_prior_and_rating_deviation():
+    payload = puzzle_elo([(1500.0, True), (1500.0, False)]).to_dict()
+    assert payload["method"] == "bayesian_elo_v1"
+    assert payload["prior"] == {"mean": 1500.0, "sd": 700.0}
+    assert payload["rating_deviation"] == payload["stderr"]
+
+
+def test_puzzle_elo_trajectory_is_finite_from_first_result():
+    trajectory = puzzle_elo_trajectory([(900.0, True)] * 4 + [(1800.0, False)])
+    assert len(trajectory) == 5
+    assert all(math.isfinite(point.rating) for point in trajectory)
+    assert all(point.ci95()[0] < point.rating < point.ci95()[1] for point in trajectory)
 
 
 def test_elo_trajectory_moves_the_right_way():

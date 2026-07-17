@@ -117,9 +117,13 @@ export interface RunSummary {
   puzzle_performance_rating?: {
     rating: number
     stderr: number | null
+    rating_deviation?: number | null
     ci95: [number, number] | null
     n: number
     bounded: boolean
+    method?: "bayesian_elo_v1" | "maximum_likelihood" | string
+    provisional?: boolean
+    prior?: { mean: number; sd: number } | null
   } | null
 }
 
