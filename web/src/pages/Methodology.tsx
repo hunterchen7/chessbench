@@ -81,6 +81,17 @@ const FRONTIER_PRELIMINARY = [
     legal: "3/3",
     cost: "$0.1658",
     tokens: "5,477 / 5,447",
+    reasoning: "Opaque",
+  },
+  {
+    model: "GPT-5.6 Sol",
+    effort: "High",
+    route: "OpenAI only",
+    solved: "1/3",
+    legal: "3/3",
+    cost: "$0.4805",
+    tokens: "15,568 / 15,518",
+    reasoning: "Opaque",
   },
 ] as const
 
@@ -118,7 +129,7 @@ export function Methodology() {
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-[860px] text-left text-sm">
                 <thead className="border-b bg-muted/35 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-medium">Model configuration</th>
@@ -127,6 +138,7 @@ export function Methodology() {
                     <th className="px-4 py-3 text-right font-medium">Legal first</th>
                     <th className="px-4 py-3 text-right font-medium">Cost</th>
                     <th className="px-4 py-3 text-right font-medium">Completion / reasoning</th>
+                    <th className="px-4 py-3 font-medium">Reasoning text</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -138,6 +150,7 @@ export function Methodology() {
                       <td className="px-4 py-3 text-right font-mono">{row.legal}</td>
                       <td className="px-4 py-3 text-right font-mono">{row.cost}</td>
                       <td className="px-4 py-3 text-right font-mono text-xs">{row.tokens}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{row.reasoning}</td>
                     </tr>
                   ))}
                 </tbody>

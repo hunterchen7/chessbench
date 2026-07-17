@@ -27,11 +27,19 @@ puzzle at a time.
 | Date (UTC) | Model configuration | Route | Solved | Legal first | Points | Cost | Completion / reasoning tokens | First moves (hardest first) |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 2026-07-17 | GPT-5.6 Sol · low | OpenAI only | 0/3 | 3/3 | 0.00/3 | $0.165756 | 5,477 / 5,447 | `d2d5`, `f3f7`, `e4d4` |
+| 2026-07-17 | GPT-5.6 Sol · high | OpenAI only | 1/3 | 3/3 | 1.00/3 | $0.480530 | 15,568 / 15,518 | `d2d5`, `d7f7`, `e4d4` |
 
-The GPT-5.6 Sol run is `6cdedf64bcbd4e988a9506f6651eba2c`. All three
-answers were legal first attempts but differed from the frozen solution move.
-The run is too small for an ability claim; its purpose is to establish an
-observed cost and failure-mode baseline before increasing reasoning effort.
+The GPT-5.6 Sol low run is `6cdedf64bcbd4e988a9506f6651eba2c`.
+All three answers were legal first attempts but differed from the frozen
+solution move. The high run is `5886eb76a3b84b65a5729e0d1533f14d`; it solved
+the 3,102-rated line completely and made the same legal-but-wrong first moves as
+low on the other two positions.
+
+OpenAI exposed a reasoning-token count and encrypted `reasoning_details` blocks
+for both variants, but no readable reasoning text. ChessBench stores the opaque
+blocks for audit and same-puzzle continuity without presenting them as visible
+thought. These runs are too small for an ability claim; their purpose is to
+establish observed cost and failure-mode baselines before a larger evaluation.
 
 This table is intentionally append-only for completed probe variants. Partial
 or provider-failed attempts remain in the durable database but are not reported
