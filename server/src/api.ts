@@ -297,6 +297,12 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
     `SELECT c.payload_json FROM corpus_items c JOIN corpus_releases r USING(content_hash)
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
   ).bind(id).first<{ payload_json: string }>()
+  const ratedPoolItem = corpusItem ? null : await env.DB.prepare(
+    `SELECT p.payload_json FROM rated_puzzles p
+       JOIN rated_puzzle_pools pool USING(content_hash)
+      WHERE p.puzzle_id=? AND pool.active=1
+      ORDER BY pool.updated_at DESC LIMIT 1`,
+  ).bind(id).first<{ payload_json: string }>()
   const { results } = await env.DB.prepare(
     `SELECT i.run_id, i.item_id, r.variant_key, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json,
@@ -317,13 +323,15 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
   }>()
   const rows = results ?? []
   const payloads = await Promise.all(rows.map((row) => storedRunItemPayload(env, row)))
-  if (!corpusItem && !payloads.length) return error(404, "puzzle not found")
+  if (!corpusItem && !ratedPoolItem && !payloads.length) return error(404, "puzzle not found")
   // Adaptive-pool positions are not duplicated into the small browsable
-  // corpus. A published run item is self-contained, so it is also the exact
-  // solver-facing position for its detail page.
+  // corpus. Prefer their active-pool payload, then fall back to a published
+  // run item from older deployments where only run payloads were available.
   const position = corpusItem
     ? JSON.parse(corpusItem.payload_json) as Record<string, unknown>
-    : payloads[0]
+    : ratedPoolItem
+      ? JSON.parse(ratedPoolItem.payload_json) as Record<string, unknown>
+      : payloads[0]
   const answers = rows.map((a, index) => ({
     ...payloads[index], run_id: a.run_id, model: a.provider_model_id,
     model_variant: {

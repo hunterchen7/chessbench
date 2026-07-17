@@ -14,6 +14,7 @@ import {
 } from "./ingest"
 import { postIngestGame, postLiveBoard } from "./games"
 import {
+  getRatedPuzzlePage,
   getRandomRatedPuzzle,
   postRatedPoolFinish,
   postRatedPoolItems,
@@ -43,6 +44,7 @@ export default {
         if (seg === "index" || seg === "runs") return await getIndex(env)
         if (seg === "export") return await getExport(env, url, req)
         if (seg === "puzzles/random") return await getRandomRatedPuzzle(env, url)
+        if (seg === "puzzles/rated") return await getRatedPuzzlePage(env, url)
         if (seg === "puzzles") return await getPuzzles(env)
         if (seg.startsWith("puzzles/")) return await getPuzzle(env, rest(seg, "puzzles/"))
         if (seg.startsWith("corpora/")) return await getCorpus(env, rest(seg, "corpora/"))

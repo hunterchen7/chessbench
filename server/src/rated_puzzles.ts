@@ -1,6 +1,11 @@
 import type { Env } from "./types"
 import { authorized } from "./auth"
 import { error, json } from "./http"
+import {
+  MAX_RATED_PUZZLE_PAGE,
+  MAX_RATED_PUZZLE_PAGE_SIZE,
+  ratedPuzzlePageParams,
+} from "./rated_puzzle_pages"
 
 interface RatedPoolDoc {
   schema: "chessbench.rated_puzzle_pool.v1"
@@ -114,6 +119,74 @@ async function selectRatedPuzzle(
   }
 
   return (await run(">=")) ?? await run("<")
+}
+
+/** GET /api/puzzles/rated — one stable rating-ordered page from the active pool. */
+export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> {
+  const pagination = ratedPuzzlePageParams(url.searchParams)
+  if (!pagination) {
+    return error(
+      400,
+      `page must be 1-${MAX_RATED_PUZZLE_PAGE}; per_page must be 1-${MAX_RATED_PUZZLE_PAGE_SIZE}`,
+    )
+  }
+
+  const pool = await env.DB.prepare(
+    `SELECT content_hash, name, version, item_count, updated_at
+       FROM rated_puzzle_pools WHERE active=1 ORDER BY updated_at DESC LIMIT 1`,
+  ).first<{
+    content_hash: string
+    name: string
+    version: string
+    item_count: number
+    updated_at: string
+  }>()
+  if (!pool) return error(404, "no active rated puzzle pool")
+
+  const totalPages = Math.ceil(pool.item_count / pagination.perPage)
+  if (pagination.page > totalPages) return error(404, "rated puzzle page is out of range")
+  const offset = (pagination.page - 1) * pagination.perPage
+  const { results } = await env.DB.prepare(
+    `SELECT puzzle_id, rating, rating_deviation, popularity, plays, payload_json
+       FROM rated_puzzles
+      WHERE content_hash=?
+      ORDER BY rating ASC, puzzle_id ASC
+      LIMIT ? OFFSET ?`,
+  ).bind(pool.content_hash, pagination.perPage, offset).all<RatedPuzzleRow>()
+
+  const puzzles = (results ?? []).map((row) => ({
+    ...JSON.parse(row.payload_json) as Record<string, unknown>,
+    puzzle_id: row.puzzle_id,
+    rating: row.rating,
+    rating_deviation: row.rating_deviation,
+    popularity: row.popularity,
+    plays: row.plays,
+  }))
+  return json({
+    schema: "chessbench.rated_puzzle_page.v1",
+    pool: {
+      name: pool.name,
+      version: pool.version,
+      content_hash: pool.content_hash,
+      items: pool.item_count,
+      updated_at: pool.updated_at,
+    },
+    pagination: {
+      page: pagination.page,
+      per_page: pagination.perPage,
+      total_items: pool.item_count,
+      total_pages: totalPages,
+      returned: puzzles.length,
+      has_previous: pagination.page > 1,
+      has_next: pagination.page < totalPages,
+    },
+    puzzles,
+  }, {
+    headers: {
+      "Cache-Control": "public, max-age=30, stale-while-revalidate=300",
+      "ETag": `W/\"${pool.content_hash}:${pagination.page}:${pagination.perPage}\"`,
+    },
+  })
 }
 
 /** GET /api/puzzles/random — non-deterministic, indexed adaptive-pool draw. */
