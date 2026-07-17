@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { BarChart3, CircleDollarSign, Database, Layers3 } from "lucide-react"
+import { BarChart3, CircleDollarSign, Database, Gauge, Layers3 } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadSuiteCatalog, type SuiteCatalog } from "@/lib/data"
 import { isModelVariant } from "@/lib/participants"
@@ -13,10 +13,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { normalizeComparisonIds } from "@/lib/runComparison"
 import { cn } from "@/lib/utils"
+import { AdaptivePuzzleLeaderboard } from "@/components/AdaptivePuzzleLeaderboard"
+import { Button } from "@/components/ui/button"
 
 type Mode = ModeNumber
 
-export function PuzzleLeaderboard() {
+function FixedPuzzleLeaderboard() {
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const [suiteCatalog, setSuiteCatalog] = useState<SuiteCatalog | null>(null)
@@ -122,4 +124,33 @@ export function PuzzleLeaderboard() {
       <CompareTray runs={comparisonRuns} onRemove={(id) => setComparisonIds(comparisonIds.filter((candidate) => candidate !== id))} onClear={() => setComparisonIds([])} />
     </div>
   )
+}
+
+export function PuzzleLeaderboard() {
+  const { runs } = useData()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const fixed = searchParams.get("view") === "fixed"
+  const setView = (view: "rated" | "fixed") => setSearchParams((current) => {
+    const next = new URLSearchParams(current)
+    if (view === "fixed") next.set("view", "fixed")
+    else next.delete("view")
+    return next
+  }, { replace: true })
+
+  if (fixed) return <FixedPuzzleLeaderboard />
+  return <div className="space-y-8">
+    <section className="grid gap-6 border-b border-border/70 pb-8 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div>
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300"><Gauge className="size-4" /> Standard tactics</div>
+        <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Puzzle rating leaderboard</h1>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">A Lichess-inspired adaptive rating: each model plays calibrated puzzles near its current strength until uncertainty settles. The headline test uses one unassisted, UCI-only prompt protocol.</p>
+      </div>
+      <div className="flex flex-wrap gap-2 lg:justify-end">
+        <Button size="sm" className="h-10" onClick={() => setView("rated")}><Gauge /> Rated leaderboard</Button>
+        <Button size="sm" variant="outline" className="h-10" onClick={() => setView("fixed")}><Layers3 /> Fixed suite lab</Button>
+        <PuzzleNav hideLeaderboard />
+      </div>
+    </section>
+    <AdaptivePuzzleLeaderboard runs={runs} />
+  </div>
 }

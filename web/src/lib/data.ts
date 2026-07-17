@@ -78,6 +78,19 @@ export interface PuzzleItem extends PuzzlePosition {
   moves_played?: string[]
   solver_plies?: number
   plies_correct?: number
+  solver_rating_before?: RatedPuzzleState | null
+  solver_rating_after?: RatedPuzzleState | null
+  rated_selection?: {
+    puzzle_id: string
+    sequence: number
+    target_rating: number
+    minimum_rating: number
+    maximum_rating: number
+    radius: number
+    eligible_count: number
+    seed: number
+    selector_version: string
+  } | null
   turns?: Array<{
     solver_ply: number
     system_prompt?: string | null
@@ -104,6 +117,51 @@ export interface PuzzleItem extends PuzzlePosition {
   }>
 }
 
+export interface RatedPuzzleState {
+  rating: number
+  rating_deviation: number
+  volatility: number
+  provisional: boolean
+  ci95: [number, number]
+}
+
+export interface RatedSessionProtocol {
+  kind: "adaptive_glicko2"
+  version: string
+  canonical: boolean
+  pool: { name: string; version: string; content_hash: string }
+  selection: {
+    version: string
+    seed: number
+    target_radius: number
+    without_replacement: boolean
+    deterministic: boolean
+  }
+  rating: {
+    version: string
+    initial: RatedPuzzleState
+    tau: number
+    puzzles_frozen: boolean
+    calendar_aging: boolean
+    full_solve_is_win: boolean
+    partial_credit_affects_rating: boolean
+  }
+  stopping: {
+    minimum_puzzles: number
+    maximum_puzzles: number
+    target_rating_deviation: number
+  }
+  prompt: {
+    version: string
+    legal_moves_supplied: boolean
+    coaching: boolean
+    rationale_requested: boolean
+    illegal_move: string
+    wrong_move: string
+    notation: "uci"
+  }
+}
+
 export interface RunSummary {
   n: number
   solved: number
@@ -123,6 +181,8 @@ export interface RunSummary {
     bounded: boolean
     method?: "bayesian_elo_v1" | "maximum_likelihood" | string
     provisional?: boolean
+    settled?: boolean
+    volatility?: number
     prior?: { mean: number; sd: number } | null
   } | null
 }
@@ -138,12 +198,14 @@ export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed
 export type Track = "puzzle" | "woodpecker" | "esoteric" | "game"
 
 export interface RunTermination {
-  kind: "consecutive_unsolved"
-  threshold: number | null
+  kind: "consecutive_unsolved" | "rating_settled" | "maximum_puzzles"
+  threshold?: number | null
   attempted: number
-  unattempted: number
-  unattempted_score: 0
-  message: string | null
+  unattempted?: number
+  unattempted_score?: 0
+  maximum?: number
+  target_rating_deviation?: number
+  message?: string | null
 }
 
 export interface RunIndexEntry {
@@ -160,6 +222,7 @@ export interface RunIndexEntry {
   completed_at?: string | null
   condition: Condition
   condition_slug: string
+  protocol?: RatedSessionProtocol | Record<string, unknown> | null
   suite: SuiteRef | null
   progress: { completed: number; total: number }
   termination?: RunTermination | null
@@ -557,6 +620,7 @@ function normalizeIndex(raw: Record<string, unknown>): RunIndexEntry {
     completed_at: raw.completed_at as string | null | undefined,
     condition,
     condition_slug: condition.slug,
+    protocol: raw.protocol as RunIndexEntry["protocol"],
     suite,
     progress: (raw.progress as { completed: number; total: number } | undefined) ?? { completed: summary.n, total: summary.max_points },
     termination: raw.termination as RunTermination | null | undefined,

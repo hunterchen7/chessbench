@@ -8,11 +8,11 @@ const LINKS = [
   { to: "/puzzles/browse", label: "Puzzle browser", icon: ListFilter },
 ]
 
-export function PuzzleNav({ count }: { count?: number }) {
+export function PuzzleNav({ count, hideLeaderboard = false }: { count?: number; hideLeaderboard?: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Standard puzzle views">
       <div className="inline-flex rounded-lg border bg-card/70 p-1 shadow-sm">
-        {LINKS.map(({ to, label, icon: Icon, end }) => (
+        {LINKS.filter(({ label }) => !hideLeaderboard || label !== "Leaderboard").map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

@@ -76,7 +76,7 @@ export function Methodology() {
   return (
     <div className="space-y-10">
       <header className="max-w-4xl">
-        <Badge variant="outline">Protocol v5 · deep-coach ablation</Badge>
+        <Badge variant="outline">Rated session v1 · adaptive Glicko-2</Badge>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">A points-first, tool-free chess evaluation</h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           Every run pins the puzzle suite, prompt condition, conversation policy, provider model identifier,
@@ -87,7 +87,16 @@ export function Methodology() {
       </header>
 
       <section className="space-y-4">
-        <div><h2 className="text-xl font-semibold">Four prompt methods</h2><p className="mt-1 text-sm text-muted-foreground">Board information and coaching depth are independent from how conversation state is handled.</p></div>
+        <div><h2 className="text-xl font-semibold">The headline rating protocol</h2><p className="mt-1 text-sm text-muted-foreground">One unassisted chess task replaces prompt-method shopping on the primary leaderboard.</p></div>
+        <Card className="border-emerald-500/25 bg-emerald-500/[0.04]"><CardContent className="pt-6"><Prose>
+          <p>Every model configuration starts at <span className="font-mono text-foreground">1,500</span> with RD <span className="font-mono text-foreground">500</span> and volatility <span className="font-mono text-foreground">0.09</span>. After each puzzle, a frozen-puzzle Glicko-2 update changes only the solver. The next unused puzzle is selected deterministically from a ±100 band around that new rating.</p>
+          <p>The model receives raw FEN, explicit piece locations, and the side to move, then replies with one UCI move. It receives no legal-move list, coaching, requested rationale, puzzle rating, theme, or indication that it is being benchmarked. An illegal or wrong move ends that puzzle. Conversation state continues between moves of the same puzzle and resets before the next one.</p>
+          <p>A session stops after at least 50 puzzles once RD is at most 75, or at a 100-puzzle safety cap. The complete path—including seed, eligible band, selected puzzle, pre/post rating state, prompts, responses, reasoning metadata, tokens, and cost—is durable and resumable. Puzzle ratings never change.</p>
+        </Prose></CardContent></Card>
+      </section>
+
+      <section className="space-y-4">
+        <div><h2 className="text-xl font-semibold">Fixed-suite ablation lab</h2><p className="mt-1 text-sm text-muted-foreground">The older four-method matrix remains available to study prompt sensitivity; it no longer defines the headline rating.</p></div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {HELP.map(([n, name, tag, description]) => <Card key={n}>
             <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Badge variant="secondary">Method {n}</Badge>{name}</CardTitle></CardHeader>
@@ -182,9 +191,10 @@ export function Methodology() {
           <CardHeader><CardTitle className="text-base">Points</CardTitle></CardHeader>
           <CardContent><Prose>
             <p>Standard and composed puzzles are worth <span className="font-mono text-foreground">1 point</span> each. A complete solution earns 1; a correct prefix of a multi-move line earns <span className="font-mono text-foreground">correct solver plies / required solver plies</span>.</p>
-            <p>The canonical public Standard v3 suite executes puzzles from lowest to highest source rating, with puzzle ID as the deterministic tie-breaker. This makes the failure frontier visible in trajectory charts. Historical v2 runs retain their original ID-sorted order and content hash.</p>
+            <p>Fixed suites execute puzzles from lowest to highest source rating, with puzzle ID as the deterministic tie-breaker. They remain controlled ablations: every participant sees the identical positions in the identical order.</p>
+            <p>The primary leaderboard instead reports the solver&apos;s adaptive Glicko-2 state against frozen puzzle opponents. Complete solves are wins; misses are losses. It starts at 1,500/RD 500 and displays the changing 95% interval at every step. Partial-line credit remains diagnostic and never becomes a draw.</p>
             <p>For tactical puzzles, a secondary Bayesian Puzzle Elo is fitted from complete solves against the source puzzle ratings. The frozen estimator uses the ordinary Elo solve-probability curve with a weak Gaussian prior of <span className="font-mono text-foreground">1,500 ± 700</span>. This prevents early all-solve or all-miss prefixes from becoming infinite; the dashboard always pairs the estimate with its rating deviation and 95% posterior interval.</p>
-            <p>A run is marked provisional while that 95% interval is wider than 400 rating points. Partial-line credit affects points but never counts as a draw in the rating model. Points remain the official ranking score; Puzzle Elo is diagnostic and is not directly comparable to human over-the-board Elo.</p>
+            <p>The Bayesian Puzzle Elo estimator is retained only for fixed-suite analysis. A fixed run is provisional while that 95% interval is wider than 400 rating points. Neither rating should be presented as human over-the-board Elo.</p>
             <p>Games use ordinary match points: win = 1, draw = 0.5, loss = 0. Leaderboards do not convert performance to Elo.</p>
           </Prose></CardContent>
         </Card>
