@@ -4,6 +4,7 @@ import { ArrowLeft, BrainCircuit, Eye, Radio, Sparkles, Trophy } from "lucide-re
 import { loadTournament, type Tournament } from "@/lib/data"
 import { Board } from "@/components/Board"
 import { GameReplay } from "@/components/GameReplay"
+import { BoardDetailSkeleton } from "@/components/LoadingSkeletons"
 import { GameExportActions } from "@/components/GameExportActions"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -99,7 +100,7 @@ export function TournamentDetail() {
   const toggleGameSort = (key: typeof gameSort.key, direction: SortDirection = "asc") => setGameSort((current) => ({ key, direction: current.key === key ? current.direction === "asc" ? "desc" : "asc" : direction }))
 
   if (err) return <p className="text-destructive">Failed to load: {err}</p>
-  if (!t) return <p className="animate-pulse text-muted-foreground">Loading tournament…</p>
+  if (!t) return <BoardDetailSkeleton label="Loading match and game records" />
 
   const selectedIndex = gameParam == null ? null : Number(gameParam) - 1
   const selectedGame = selectedIndex == null || !Number.isInteger(selectedIndex) ? null : t.games[selectedIndex]

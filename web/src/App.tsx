@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react"
 import { HashRouter, Route, Routes } from "react-router-dom"
 import { DataProvider } from "@/lib/useData"
 import { Layout } from "@/components/Layout"
+import { AppLoadingSkeleton } from "@/components/LoadingSkeletons"
 
 const Leaderboard = lazy(() => import("@/pages/Leaderboard").then((m) => ({ default: m.Leaderboard })))
 const ModelDetail = lazy(() => import("@/pages/ModelDetail").then((m) => ({ default: m.ModelDetail })))
@@ -17,13 +18,11 @@ const EsotericDetail = lazy(() => import("@/pages/EsotericDetail").then((m) => (
 const Methodology = lazy(() => import("@/pages/Methodology").then((m) => ({ default: m.Methodology })))
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })))
 
-const Loading = () => <div className="py-20 text-center text-sm text-muted-foreground">Loading view…</div>
-
 export default function App() {
   return (
     <DataProvider>
       <HashRouter>
-        <Suspense fallback={<Loading />}>
+        <Suspense fallback={<AppLoadingSkeleton />}>
           <Routes>
             <Route element={<Layout />}>
               <Route index element={<Leaderboard />} />

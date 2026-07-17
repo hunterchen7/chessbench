@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Braces, FileCheck2, LoaderCircle } from "lucide-react"
+import { Braces, FileCheck2 } from "lucide-react"
 import { loadPromptCatalog, type PromptCatalog as PromptCatalogData } from "@/lib/data"
 import { ExactPromptBlock } from "@/components/PromptTranscript"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 type ResponseStyle = "move_only" | "json_rationale"
@@ -27,7 +28,7 @@ export function PromptCatalog() {
   const selectedStyle = selectedMethod?.styles.find((item) => item.style === style) ?? selectedMethod?.styles[0]
 
   if (error) return <Card className="border-destructive/30"><CardContent className="py-6 text-sm text-destructive">The exact prompt catalog could not be loaded: {error}</CardContent></Card>
-  if (!catalog || !selectedMethod || !selectedStyle) return <Card><CardContent className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" /> Loading exact prompts…</CardContent></Card>
+  if (!catalog || !selectedMethod || !selectedStyle) return <Card aria-label="Loading exact prompts" aria-busy="true"><CardContent className="grid gap-4 p-5 lg:grid-cols-[220px_minmax(0,1fr)]"><div className="space-y-2">{Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-12 w-full" />)}</div><div className="space-y-4"><div className="flex justify-between gap-4"><div className="space-y-2"><Skeleton className="h-6 w-52" /><Skeleton className="h-3 w-80 max-w-full" /></div><Skeleton className="h-9 w-44" /></div><Skeleton className="h-48 w-full" /><Skeleton className="h-64 w-full" /></div></CardContent></Card>
 
   const schemaText = selectedStyle.provider_response_format == null ? null : JSON.stringify(selectedStyle.provider_response_format, null, 2)
   return <div className="space-y-4" id="exact-prompts">

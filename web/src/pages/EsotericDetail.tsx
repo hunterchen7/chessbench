@@ -8,6 +8,7 @@ import { uciLineToSan } from "@/lib/chess"
 import { pct } from "@/lib/format"
 import { participantKind } from "@/lib/participants"
 import { Board } from "@/components/Board"
+import { BoardDetailSkeleton } from "@/components/LoadingSkeletons"
 import { ComposedAttemptAudit } from "@/components/ComposedAttemptAudit"
 import { StipulationTooltip } from "@/components/StipulationTooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,7 +31,7 @@ export function EsotericDetail() {
   }, [entry])
 
   if (error) return <p className="text-sm text-destructive">Failed to load problem audit: {error}</p>
-  if (!data) return <p className="animate-pulse text-muted-foreground">Loading…</p>
+  if (!data) return <BoardDetailSkeleton label={`Loading esoteric problem ${id}`} />
   if (!entry)
     return (
       <div className="space-y-2">

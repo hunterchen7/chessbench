@@ -9,6 +9,7 @@ import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleConti
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
+import { BoardDetailSkeleton } from "@/components/LoadingSkeletons"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
@@ -44,7 +45,7 @@ export function PuzzleDetail() {
     return () => { active = false }
   }, [id])
   if (error) return <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6"><p className="font-medium text-destructive">Failed to load puzzle {id}</p><p className="text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button></div>
-  if (entry === undefined) return <div className="py-20 text-center text-sm text-muted-foreground">Loading puzzle…</div>
+  if (entry === undefined) return <BoardDetailSkeleton label={`Loading puzzle ${id}`} />
   if (entry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
   return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} />
 }

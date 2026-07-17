@@ -9,6 +9,7 @@ import { isVisibleUiTrack } from "@/lib/uiTracks"
 import { PuzzleRunMatrix } from "@/components/PuzzleRunMatrix"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -28,7 +29,7 @@ const TRACKS = [
 
 export function Leaderboard() {
   const { runs, apiBase } = useData()
-  const [humans, setHumans] = useState<HumanRow[]>([])
+  const [humans, setHumans] = useState<HumanRow[] | null>(null)
   const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
   const suites = useMemo(() => (Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[]).toSorted((a, b) => {
     const aVersion = Number(a.match(/v(\d+)$/)?.[1] ?? 0)
@@ -42,7 +43,8 @@ export function Leaderboard() {
   const suiteRuns = useMemo(() => standard.filter((run) => run.suite?.name === activeSuite), [standard, activeSuite])
 
   useEffect(() => {
-    if (apiBase) void fetchHumanLeaderboard(apiBase).then(setHumans)
+    if (apiBase) void fetchHumanLeaderboard(apiBase).then(setHumans).catch(() => setHumans([]))
+    else setHumans([])
   }, [apiBase])
 
   const modelRuns = runs.filter((run) => isVisibleUiTrack(run.track) && isModelVariant(run.model_variant))
@@ -118,7 +120,8 @@ export function Leaderboard() {
         />
       </section>
 
-      {humans.length > 0 && <section>
+      {apiBase && humans === null ? <section><Card aria-label="Loading human puzzle points" aria-busy="true"><CardHeader><Skeleton className="h-5 w-44" /><Skeleton className="h-3 w-72" /></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-16 rounded-lg" />)}</CardContent></Card></section> : null}
+      {humans && humans.length > 0 && <section>
         <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Users className="size-4" /> Human puzzle points</CardTitle><CardDescription>Optional browser solves, ranked by verified points.</CardDescription></CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{humans.slice(0, 6).map((human, index) => <div key={`${human.handle}-${index}`} className="flex items-center justify-between rounded-lg border p-3"><div><div className="text-sm font-medium">{human.handle || `anon #${index + 1}`}</div><div className="text-xs text-muted-foreground">{human.solved} solved · {pct(human.accuracy)}</div></div><div className="font-mono font-semibold">{human.points}/{human.max_points}</div></div>)}</CardContent>
         </Card>

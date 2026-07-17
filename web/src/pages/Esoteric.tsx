@@ -12,6 +12,7 @@ import { participantKind } from "@/lib/participants"
 import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { SuiteDescriptor } from "@/components/SuiteDescriptor"
+import { TablePageSkeleton } from "@/components/LoadingSkeletons"
 import { StipulationTooltip } from "@/components/StipulationTooltip"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -54,7 +55,7 @@ export function Esoteric() {
   }, [data, kind])
 
   if (error) return <p className="text-sm text-destructive">Failed to load esoteric problems: {error}</p>
-  if (!data) return <p className="animate-pulse text-muted-foreground">Loading esoteric problems…</p>
+  if (!data) return <TablePageSkeleton label="Loading esoteric problems" />
   if (data.problems.size === 0)
     return (
       <div className="space-y-2">

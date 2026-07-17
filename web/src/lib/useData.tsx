@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { loadDataset, type Dataset } from "./data"
+import { AppLoadingSkeleton } from "@/components/LoadingSkeletons"
 
 const Ctx = createContext<Dataset | null>(null)
 const ACTIVE_REFRESH_MS = 10_000
@@ -63,9 +64,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       </div>
     )
   if (!data)
-    return (
-      <div className="mx-auto max-w-2xl p-10 text-muted-foreground animate-pulse">Loading chessbench…</div>
-    )
+    return <AppLoadingSkeleton />
   return <Ctx.Provider value={data}>{children}</Ctx.Provider>
 }
 
