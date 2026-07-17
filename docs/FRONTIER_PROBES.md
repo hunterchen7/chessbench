@@ -29,7 +29,7 @@ puzzle at a time.
 | 2026-07-17 | GPT-5.6 Sol · low | OpenAI only | 0/3 | 3/3 | 0.00/3 | $0.165756 | 5,477 / 5,447 | `d2d5`, `f3f7`, `e4d4` |
 | 2026-07-17 | GPT-5.6 Sol · high | OpenAI only | 1/3 | 3/3 | 1.00/3 | $0.480530 | 15,568 / 15,518 | `d2d5`, `d7f7`, `e4d4` |
 | 2026-07-17 | Claude Fable 5 · high | Google Vertex global only | 0/3 | 3/3 | 0.33/3 | $2.626052 | 50,449 / 7,056 | `c2c1q`, `d7f7` then `f7f8`, `e4d4` |
-| 2026-07-17 | Kimi K3 · high | MoonshotAI INT4 only | 0/3 | 3/3 | 0.33/3 | $0.764671 | 50,322 / 50,245 | `c2c1q`, `c4f7`, `h5g6` then `e4h4` |
+| 2026-07-17 | Kimi K3 · high requested* | MoonshotAI INT4 only | 0/3 | 3/3 | 0.33/3 | $0.764671 | 50,322 / 50,245 | `c2c1q`, `c4f7`, `h5g6` then `e4h4` |
 
 The GPT-5.6 Sol low run is `6cdedf64bcbd4e988a9506f6651eba2c`.
 All three answers were legal first attempts but differed from the frozen
@@ -56,6 +56,12 @@ its visible move answer. It focused on promotion in the first position, missed
 the middle tactic, and found `h5g6` on the third position before deviating with
 `e4h4`, again earning one-third partial credit. The earlier Kimi K3 low request
 timed out before producing a durable chess answer and was not retried.
+
+\* The run identity records the requested `high` effort exactly. OpenRouter's
+current Kimi K3 model card says the upstream endpoint supports only `max`
+(default) reasoning and that finer effort levels are still forthcoming. The
+provider response does not expose the effective effort, so this result must not
+be interpreted as a verified high-versus-max compute ablation.
 
 These runs are too small for an ability claim; their purpose is to establish
 observed cost and failure-mode baselines before a larger evaluation.

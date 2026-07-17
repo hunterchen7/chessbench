@@ -105,7 +105,7 @@ const FRONTIER_PRELIMINARY = [
   },
   {
     model: "Kimi K3",
-    effort: "High",
+    effort: "High requested*",
     route: "MoonshotAI INT4",
     solved: "0/3 · 0.33 pt",
     legal: "3/3",
@@ -181,6 +181,7 @@ export function Methodology() {
         <Prose>
           <p>All probes use raw FEN plus piece locations, move-only UCI, no legal-move list, no coaching, no tools, and isolated conversation state per puzzle. The three lines require at most 14 model turns; a wrong move ends its puzzle early.</p>
           <p>Runs begin at low reasoning and move upward as separate model variants. Routes are pinned only after checking OpenRouter throughput and uptime. Newly released endpoints without stable throughput history are advanced one puzzle at a time. Detailed run IDs, moves, and token accounting live in <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://github.com/hunterchen7/chessbench/blob/main/docs/FRONTIER_PROBES.md" target="_blank" rel="noreferrer">the frontier probe note</a>.</p>
+          <p>* Kimi K3 records the requested high setting, but its current OpenRouter card advertises only default/max reasoning. The provider did not report the effective effort, so it is not a verified high-versus-max ablation.</p>
         </Prose>
       </section>
 
