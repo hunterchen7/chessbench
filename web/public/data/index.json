@@ -2,6 +2,162 @@
  "schema": "chessbench.index.v2",
  "runs": [
   {
+   "run_id": "191cc44924684b929be4190979a75f2c",
+   "file": "gemini-3-1-flash-lite--r-default-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-default-captured--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 provider default reasoning captured",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:47:17+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 56,
+    "total": 100
+   },
+   "summary": {
+    "n": 56,
+    "solved": 22,
+    "solve_rate": 0.39285714285714285,
+    "mean_score": 0.49107142857142855,
+    "first_move_legal_rate": 0.9285714285714286,
+    "response_format_valid_rate": null,
+    "points": 27.5,
+    "max_points": 56,
+    "cost_usd": 0.006344414999999997,
+    "puzzle_performance_rating": {
+     "rating": 893.0826882082871,
+     "stderr": 74.9662327000332,
+     "rating_deviation": 74.9662327000332,
+     "ci95": [
+      743.1502228082206,
+      1043.0151536083536
+     ],
+     "n": 56,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08994853266226394,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:49:08+00:00",
+   "completed_at": "2026-07-17T07:49:08+00:00",
+   "usage": {
+    "cost_usd": 0.006344414999999997,
+    "prompt_tokens": 23498,
+    "completion_tokens": 356,
+    "reasoning_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 23498,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 56,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 56 puzzles at RD 75.0."
+   }
+  },
+  {
    "run_id": "a600ea9b09854b77881b78fe835910aa",
    "file": "gemini-3-1-flash-lite--r-low--o-provider__suite-standard-lichess-v2--611c4c22e955ece8__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__json-rationale__json-schema-v1__pctx-hybrid__reason-low.json",
    "track": "puzzle",
@@ -770,6 +926,318 @@
    "error": null
   },
   {
+   "run_id": "e82af1bf09dc439094fea230f5b4db40",
+   "file": "gemini-3-1-flash-lite--r-low-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__cfg-785bec8eaeac67b0.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-low-captured--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T06:48:27+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 57,
+    "total": 100
+   },
+   "summary": {
+    "n": 57,
+    "solved": 23,
+    "solve_rate": 0.40350877192982454,
+    "mean_score": 0.52046783625731,
+    "first_move_legal_rate": 0.8771929824561403,
+    "response_format_valid_rate": null,
+    "points": 29.6667,
+    "max_points": 57,
+    "cost_usd": 0.03257520750000001,
+    "puzzle_performance_rating": {
+     "rating": 911.1543082713017,
+     "stderr": 74.98998391888357,
+     "rating_deviation": 74.98998391888357,
+     "ci95": [
+      761.1743404335346,
+      1061.1342761090689
+     ],
+     "n": 57,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08993616297461479,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T06:52:07+00:00",
+   "completed_at": "2026-07-17T06:52:07+00:00",
+   "usage": {
+    "cost_usd": 0.03257520750000001,
+    "prompt_tokens": 26053,
+    "completion_tokens": 17594,
+    "reasoning_tokens": 17202,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 26053,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 57,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 57 puzzles at RD 75.0."
+   }
+  },
+  {
+   "run_id": "f4939ad6bf334fed94ebc90720a948c8",
+   "file": "gemini-3-1-flash-lite--r-minimal-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__cfg-b5f99c4bc17a0f14.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.1-flash-lite",
+   "model_variant": {
+    "key": "gemini-3-1-flash-lite--r-minimal-captured--o-provider",
+    "base_key": "gemini-3.1-flash-lite",
+    "display_name": "gemini-3.1-flash-lite",
+    "label": "gemini-3.1-flash-lite \u00b7 minimal reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.1-flash-lite",
+    "reasoning": {
+     "effort": "minimal",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:55:49+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "minimal",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-minimal__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-minimal__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 62,
+    "total": 100
+   },
+   "summary": {
+    "n": 62,
+    "solved": 33,
+    "solve_rate": 0.532258064516129,
+    "mean_score": 0.6317204301075269,
+    "first_move_legal_rate": 0.9516129032258065,
+    "response_format_valid_rate": null,
+    "points": 39.1667,
+    "max_points": 62,
+    "cost_usd": 0.008508555,
+    "puzzle_performance_rating": {
+     "rating": 1121.3760504651377,
+     "stderr": 74.96420887955635,
+     "rating_deviation": 74.96420887955635,
+     "ci95": [
+      971.447632706025,
+      1271.3044682242505
+     ],
+     "n": 62,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08994397006378453,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:58:19+00:00",
+   "completed_at": "2026-07-17T07:58:19+00:00",
+   "usage": {
+    "cost_usd": 0.008508555,
+    "prompt_tokens": 31642,
+    "completion_tokens": 456,
+    "reasoning_tokens": 0,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 31642,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 62,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 62 puzzles at RD 75.0."
+   }
+  },
+  {
    "run_id": "7621848f7ae745dfa357dbd9b4a71da4",
    "file": "gemini-3-5-flash--r-default-captured--o-provider--route-only-google-ai-studio-no-fallbacks-requi__suite-standard-lichess-v3--196077b0a7370043__cfg-941db47390520b72.json",
    "track": "puzzle",
@@ -1093,6 +1561,474 @@
    "error": null
   },
   {
+   "run_id": "726d84bda105429f9ada1f6d5c09a338",
+   "file": "gemini-3-5-flash--r-default-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.5-flash",
+   "model_variant": {
+    "key": "gemini-3-5-flash--r-default-captured--o-provider",
+    "base_key": "gemini-3.5-flash",
+    "display_name": "gemini-3.5-flash",
+    "label": "gemini-3.5-flash \u00b7 provider default reasoning captured",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.5-flash",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:52:26+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 54,
+    "total": 100
+   },
+   "summary": {
+    "n": 54,
+    "solved": 30,
+    "solve_rate": 0.5555555555555556,
+    "mean_score": 0.6111111111111112,
+    "first_move_legal_rate": 0.9629629629629629,
+    "response_format_valid_rate": null,
+    "points": 33.0,
+    "max_points": 54,
+    "cost_usd": 0.05186214,
+    "puzzle_performance_rating": {
+     "rating": 1504.9250780728341,
+     "stderr": 74.97079218123196,
+     "rating_deviation": 74.97079218123196,
+     "ci95": [
+      1354.98349371037,
+      1654.8666624352982
+     ],
+     "n": 54,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.0899383572912361,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:54:56+00:00",
+   "completed_at": "2026-07-17T07:54:56+00:00",
+   "usage": {
+    "cost_usd": 0.05186214,
+    "prompt_tokens": 32284,
+    "completion_tokens": 440,
+    "reasoning_tokens": 5,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 32284,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 54,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 54 puzzles at RD 75.0."
+   }
+  },
+  {
+   "run_id": "d1b199b079c7493482d6ed749c2e03bf",
+   "file": "gemini-3-5-flash--r-low-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "google/gemini-3.5-flash",
+   "model_variant": {
+    "key": "gemini-3-5-flash--r-low-captured--o-provider",
+    "base_key": "gemini-3.5-flash",
+    "display_name": "gemini-3.5-flash",
+    "label": "gemini-3.5-flash \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "google/gemini-3.5-flash",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T06:58:36+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 57,
+    "total": 100
+   },
+   "summary": {
+    "n": 57,
+    "solved": 32,
+    "solve_rate": 0.5614035087719298,
+    "mean_score": 0.6692982456140351,
+    "first_move_legal_rate": 0.8771929824561403,
+    "response_format_valid_rate": null,
+    "points": 38.15,
+    "max_points": 57,
+    "cost_usd": 0.6399473850000001,
+    "puzzle_performance_rating": {
+     "rating": 1527.835328241725,
+     "stderr": 74.96456388016857,
+     "rating_deviation": 74.96456388016857,
+     "ci95": [
+      1377.9062004813877,
+      1677.7644560020622
+     ],
+     "n": 57,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08997972341344458,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:09:29+00:00",
+   "completed_at": "2026-07-17T07:09:29+00:00",
+   "usage": {
+    "cost_usd": 0.6399473850000001,
+    "prompt_tokens": 36117,
+    "completion_tokens": 65804,
+    "reasoning_tokens": 65333,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 36117,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 57,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 57 puzzles at RD 75.0."
+   }
+  },
+  {
+   "run_id": "62f989f1f5714fa4838a1037535f0d71",
+   "file": "gpt-5-6-luna--r-low-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-low-captured--o-provider",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:10:05+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 58,
+    "total": 100
+   },
+   "summary": {
+    "n": 58,
+    "solved": 26,
+    "solve_rate": 0.4482758620689655,
+    "mean_score": 0.5330459770114943,
+    "first_move_legal_rate": 0.9827586206896551,
+    "response_format_valid_rate": null,
+    "points": 30.9167,
+    "max_points": 58,
+    "cost_usd": 0.8524199475000004,
+    "puzzle_performance_rating": {
+     "rating": 1015.5765170873988,
+     "stderr": 74.98729109325583,
+     "rating_deviation": 74.98729109325583,
+     "ci95": [
+      865.601934900887,
+      1165.5510992739105
+     ],
+     "n": 58,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.0898804476385024,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:34:43+00:00",
+   "completed_at": "2026-07-17T07:34:43+00:00",
+   "usage": {
+    "cost_usd": 0.8524199475000004,
+    "prompt_tokens": 52564,
+    "completion_tokens": 134326,
+    "reasoning_tokens": 133323,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 10041,
+    "uncached_prompt_tokens": 42523,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 58,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 58 puzzles at RD 75.0."
+   }
+  },
+  {
    "run_id": "b07f18c8b6bb4dd88232ff4d476fc99c",
    "file": "gpt-5-6-luna--r-low-captured--o-provider__suite-standard-lichess-v3--196077b0a7370043__cfg-3205899d6ccf60bf.json",
    "track": "puzzle",
@@ -1303,6 +2239,318 @@
    }
   },
   {
+   "run_id": "834b77cf0d794691aa2d45ee9f91ee62",
+   "file": "gpt-5-6-luna--r-minimal-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__cfg-c786ced06e113230.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "openai/gpt-5.6-luna",
+   "model_variant": {
+    "key": "gpt-5-6-luna--r-minimal-captured--o-provider",
+    "base_key": "gpt-5.6-luna",
+    "display_name": "gpt-5.6-luna",
+    "label": "gpt-5.6-luna \u00b7 minimal reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "openai/gpt-5.6-luna",
+    "reasoning": {
+     "effort": "minimal",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:59:23+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "minimal",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-minimal__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-minimal__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 62,
+    "total": 100
+   },
+   "summary": {
+    "n": 62,
+    "solved": 25,
+    "solve_rate": 0.4032258064516129,
+    "mean_score": 0.4817204301075269,
+    "first_move_legal_rate": 0.9838709677419355,
+    "response_format_valid_rate": null,
+    "points": 29.8667,
+    "max_points": 62,
+    "cost_usd": 0.9238486950000002,
+    "puzzle_performance_rating": {
+     "rating": 1097.7355757116493,
+     "stderr": 74.94844455697418,
+     "rating_deviation": 74.94844455697418,
+     "ci95": [
+      947.8386865977009,
+      1247.6324648255977
+     ],
+     "n": 62,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08991845905435263,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T08:25:38+00:00",
+   "completed_at": "2026-07-17T08:25:38+00:00",
+   "usage": {
+    "cost_usd": 0.9238486950000002,
+    "prompt_tokens": 50237,
+    "completion_tokens": 146833,
+    "reasoning_tokens": 145802,
+    "cache_read_tokens": 0,
+    "cache_write_tokens": 7782,
+    "uncached_prompt_tokens": 42455,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 62,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 62 puzzles at RD 74.9."
+   }
+  },
+  {
+   "run_id": "594c7e1264e64285a0248d899766d139",
+   "file": "mercury-2--r-default-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "inception/mercury-2",
+   "model_variant": {
+    "key": "mercury-2--r-default-captured--o-provider",
+    "base_key": "mercury-2",
+    "display_name": "mercury-2",
+    "label": "mercury-2 \u00b7 provider default reasoning captured",
+    "provider": "openrouter",
+    "model_id": "inception/mercury-2",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:49:33+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 55,
+    "total": 100
+   },
+   "summary": {
+    "n": 55,
+    "solved": 22,
+    "solve_rate": 0.4,
+    "mean_score": 0.46090909090909093,
+    "first_move_legal_rate": 0.9636363636363636,
+    "response_format_valid_rate": null,
+    "points": 25.35,
+    "max_points": 55,
+    "cost_usd": 0.42619304474999997,
+    "puzzle_performance_rating": {
+     "rating": 1021.1066427374271,
+     "stderr": 74.9800960433003,
+     "rating_deviation": 74.9800960433003,
+     "ci95": [
+      871.1464506508265,
+      1171.0668348240279
+     ],
+     "n": 55,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08995950646636443,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T08:15:06+00:00",
+   "completed_at": "2026-07-17T08:15:06+00:00",
+   "usage": {
+    "cost_usd": 0.42619304474999997,
+    "prompt_tokens": 41924,
+    "completion_tokens": 565786,
+    "reasoning_tokens": 565035,
+    "cache_read_tokens": 19211,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 22713,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 55,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 55 puzzles at RD 75.0."
+   }
+  },
+  {
    "run_id": "d09b13f4f0a34bfdbb50cd86704588bb",
    "file": "mercury-2--r-low--o8192t__suite-standard-lichess-v2--611c4c22e955ece8__free_form__fen_pieces__uci__minimal__prompt-uci-candidates-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low.json",
    "track": "puzzle",
@@ -1397,6 +2645,162 @@
     "cache_discount_usd": 0.0
    },
    "error": null
+  },
+  {
+   "run_id": "e9cc05569c0d4f6fab370dde81c7c9f4",
+   "file": "mercury-2--r-low-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "inception/mercury-2",
+   "model_variant": {
+    "key": "mercury-2--r-low-captured--o-provider",
+    "base_key": "mercury-2",
+    "display_name": "mercury-2",
+    "label": "mercury-2 \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "inception/mercury-2",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T06:59:22+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 60,
+    "total": 100
+   },
+   "summary": {
+    "n": 60,
+    "solved": 24,
+    "solve_rate": 0.4,
+    "mean_score": 0.45555555555555555,
+    "first_move_legal_rate": 0.9833333333333333,
+    "response_format_valid_rate": null,
+    "points": 27.3333,
+    "max_points": 60,
+    "cost_usd": 0.06802379099999999,
+    "puzzle_performance_rating": {
+     "rating": 788.2988959288513,
+     "stderr": 74.98171614011255,
+     "rating_deviation": 74.98171614011255,
+     "ci95": [
+      638.3354636486262,
+      938.2623282090764
+     ],
+     "n": 60,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08996515937072513,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:14:08+00:00",
+   "completed_at": "2026-07-17T07:14:08+00:00",
+   "usage": {
+    "cost_usd": 0.06802379099999999,
+    "prompt_tokens": 34849,
+    "completion_tokens": 83120,
+    "reasoning_tokens": 82384,
+    "cache_read_tokens": 10406,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 24443,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 60,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 60 puzzles at RD 75.0."
+   }
   },
   {
    "run_id": "59cd8d6add7041b4a8b9926dcfc01e81",
@@ -1502,6 +2906,474 @@
     "cache_discount_usd": 0.0
    },
    "error": "operator stop after 1 new item(s)"
+  },
+  {
+   "run_id": "5da92790bc894173a54cedd0cd1f4eb1",
+   "file": "mistral-small-4--r-default-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "mistralai/mistral-small-2603",
+   "model_variant": {
+    "key": "mistral-small-4--r-default-captured--o-provider",
+    "base_key": "mistral-small-4",
+    "display_name": "mistral-small-4",
+    "label": "mistral-small-4 \u00b7 provider default reasoning captured",
+    "provider": "openrouter",
+    "model_id": "mistralai/mistral-small-2603",
+    "reasoning": {
+     "effort": null,
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:07:06+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": null,
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 84,
+    "total": 100
+   },
+   "summary": {
+    "n": 84,
+    "solved": 3,
+    "solve_rate": 0.03571428571428571,
+    "mean_score": 0.047619047619047616,
+    "first_move_legal_rate": 0.5714285714285714,
+    "response_format_valid_rate": null,
+    "points": 4.0,
+    "max_points": 84,
+    "cost_usd": 0.0028299050999999998,
+    "puzzle_performance_rating": {
+     "rating": 400.0,
+     "stderr": 74.99709498347629,
+     "rating_deviation": 74.99709498347629,
+     "ci95": [
+      250.00581003304742,
+      549.9941899669526
+     ],
+     "n": 84,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08953572255482992,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:09:23+00:00",
+   "completed_at": "2026-07-17T07:09:23+00:00",
+   "usage": {
+    "cost_usd": 0.0028299050999999998,
+    "prompt_tokens": 18648,
+    "completion_tokens": 430,
+    "reasoning_tokens": 0,
+    "cache_read_tokens": 2128,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 16520,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 84,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 84 puzzles at RD 75.0."
+   }
+  },
+  {
+   "run_id": "d2352fc03b5c4f08bffab7b30022065b",
+   "file": "mistral-small-4--r-high-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-high__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "mistralai/mistral-small-2603",
+   "model_variant": {
+    "key": "mistral-small-4--r-high-captured--o-provider",
+    "base_key": "mistral-small-4",
+    "display_name": "mistral-small-4",
+    "label": "mistral-small-4 \u00b7 high reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "mistralai/mistral-small-2603",
+    "reasoning": {
+     "effort": "high",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T06:44:53+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "high",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-high__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-high__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 88,
+    "total": 100
+   },
+   "summary": {
+    "n": 88,
+    "solved": 9,
+    "solve_rate": 0.10227272727272728,
+    "mean_score": 0.11742424242424243,
+    "first_move_legal_rate": 0.5454545454545454,
+    "response_format_valid_rate": null,
+    "points": 10.3333,
+    "max_points": 88,
+    "cost_usd": 0.352617979725,
+    "puzzle_performance_rating": {
+     "rating": 400.0,
+     "stderr": 74.99970498268351,
+     "rating_deviation": 74.99970498268351,
+     "ci95": [
+      250.00059003463298,
+      549.999409965367
+     ],
+     "n": 88,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": true,
+     "volatility": 0.08965740915842156,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T07:51:16+00:00",
+   "completed_at": "2026-07-17T07:51:16+00:00",
+   "usage": {
+    "cost_usd": 0.352617979725,
+    "prompt_tokens": 20519,
+    "completion_tokens": 560591,
+    "reasoning_tokens": 442978,
+    "cache_read_tokens": 2720,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 17799,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "rating_settled",
+    "attempted": 88,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Rating settled after 88 puzzles at RD 75.0."
+   }
+  },
+  {
+   "run_id": "3c2023a5b3de4484bdffd23b02ba8169",
+   "file": "mistral-small-4--r-low-captured--o-provider__suite-rated-lichess-v1--c0f866e19b180bf5__free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured.json",
+   "track": "puzzle",
+   "kind": "puzzle",
+   "status": "completed",
+   "model": "mistralai/mistral-small-2603",
+   "model_variant": {
+    "key": "mistral-small-4--r-low-captured--o-provider",
+    "base_key": "mistral-small-4",
+    "display_name": "mistral-small-4",
+    "label": "mistral-small-4 \u00b7 low reasoning (captured)",
+    "provider": "openrouter",
+    "model_id": "mistralai/mistral-small-2603",
+    "reasoning": {
+     "effort": "low",
+     "max_tokens": null,
+     "exclude": false
+    },
+    "max_output_tokens": 0
+   },
+   "provider": "openrouter",
+   "created": "2026-07-17T07:15:52+00:00",
+   "condition": {
+    "legality": "free_form",
+    "representation": "fen_pieces",
+    "notation": "uci",
+    "prompt_style": "minimal",
+    "context_mode": "hybrid",
+    "puzzle_protocol": "move_by_move",
+    "retry_attempts": 0,
+    "otb_illegal_limit": 2,
+    "explain": false,
+    "response_protocol": "plain_text_v1",
+    "temperature": 1.0,
+    "include_side_to_move": true,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "max_output_tokens": 0,
+    "cache_policy": "prompt_prefix_v1",
+    "prompt_version": "rated_raw_uci_v1",
+    "slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+    "reasoning_exclude": false
+   },
+   "condition_slug": "free_form__fen_pieces__uci__minimal__prompt-rated-raw-uci-v1__cache-prompt-prefix-v1__plain-text-v1__pctx-hybrid__reason-low__reasoning-captured",
+   "suite": {
+    "name": "rated-lichess-v1",
+    "version": "1.0.0",
+    "visibility": "public",
+    "content_hash": "sha256:c0f866e19b180bf5169c"
+   },
+   "progress": {
+    "completed": 100,
+    "total": 100
+   },
+   "summary": {
+    "n": 100,
+    "solved": 12,
+    "solve_rate": 0.12,
+    "mean_score": 0.125,
+    "first_move_legal_rate": 0.63,
+    "response_format_valid_rate": null,
+    "points": 12.5,
+    "max_points": 100,
+    "cost_usd": 0.4563085353750001,
+    "puzzle_performance_rating": {
+     "rating": 400.0,
+     "stderr": 75.1604459786748,
+     "rating_deviation": 75.1604459786748,
+     "ci95": [
+      249.6791080426504,
+      550.3208919573497
+     ],
+     "n": 100,
+     "bounded": true,
+     "method": "lichess_glicko2_frozen_puzzles_v1",
+     "provisional": false,
+     "settled": false,
+     "volatility": 0.08959768284281583,
+     "prior": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09
+     }
+    }
+   },
+   "updated_at": "2026-07-17T08:38:36+00:00",
+   "completed_at": "2026-07-17T08:38:36+00:00",
+   "usage": {
+    "cost_usd": 0.4563085353750001,
+    "prompt_tokens": 23198,
+    "completion_tokens": 705859,
+    "reasoning_tokens": 561212,
+    "cache_read_tokens": 3008,
+    "cache_write_tokens": 0,
+    "uncached_prompt_tokens": 20190,
+    "cache_discount_usd": 0.0
+   },
+   "protocol": {
+    "kind": "adaptive_glicko2",
+    "version": "rated_session_v1",
+    "canonical": true,
+    "pool": {
+     "name": "rated-lichess-v1",
+     "version": "1.0.0",
+     "content_hash": "sha256:c0f866e19b180bf5169c"
+    },
+    "selection": {
+     "version": "deterministic_rating_band_v1",
+     "seed": 0,
+     "target_radius": 100,
+     "without_replacement": true,
+     "deterministic": true
+    },
+    "rating": {
+     "version": "lichess_glicko2_frozen_puzzles_v1",
+     "initial": {
+      "rating": 1500.0,
+      "rating_deviation": 500.0,
+      "volatility": 0.09,
+      "provisional": true,
+      "ci95": [
+       500.0,
+       2500.0
+      ]
+     },
+     "tau": 0.75,
+     "puzzles_frozen": true,
+     "calendar_aging": false,
+     "full_solve_is_win": true,
+     "partial_credit_affects_rating": false
+    },
+    "stopping": {
+     "minimum_puzzles": 50,
+     "maximum_puzzles": 100,
+     "target_rating_deviation": 75.0
+    },
+    "prompt": {
+     "version": "rated_raw_uci_v1",
+     "legal_moves_supplied": false,
+     "coaching": false,
+     "rationale_requested": false,
+     "illegal_move": "puzzle_loss",
+     "wrong_move": "puzzle_loss",
+     "notation": "uci"
+    }
+   },
+   "error": null,
+   "termination": {
+    "kind": "maximum_puzzles",
+    "attempted": 100,
+    "maximum": 100,
+    "target_rating_deviation": 75.0,
+    "message": "Reached the 100-puzzle safety cap at RD 75.2."
+   }
   }
  ]
 }
