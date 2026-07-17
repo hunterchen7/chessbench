@@ -113,6 +113,36 @@ const FRONTIER_PRELIMINARY = [
     tokens: "50,322 / 50,245",
     reasoning: "Readable",
   },
+  {
+    model: "GPT-5.6 Sol",
+    effort: "Max",
+    route: "OpenAI only",
+    solved: "0/3",
+    legal: "3/3",
+    cost: "$3.2418",
+    tokens: "109,048 / 109,017",
+    reasoning: "Summaries + opaque",
+  },
+  {
+    model: "Claude Fable 5",
+    effort: "Max",
+    route: "Google Vertex global",
+    solved: "Provider error",
+    legal: "—",
+    cost: "$0 billed",
+    tokens: "10 / 6,656",
+    reasoning: "Readable checkpoint",
+  },
+  {
+    model: "Kimi K3",
+    effort: "Max*",
+    route: "MoonshotAI INT4",
+    solved: "0/3 · 0.33 pt",
+    legal: "3/3",
+    cost: "$1.2885",
+    tokens: "83,804 / 83,727",
+    reasoning: "Readable",
+  },
 ] as const
 
 export function Methodology() {
@@ -154,7 +184,7 @@ export function Methodology() {
                   <tr>
                     <th className="px-4 py-3 font-medium">Model configuration</th>
                     <th className="px-4 py-3 font-medium">Route</th>
-                    <th className="px-4 py-3 text-right font-medium">Solved</th>
+                    <th className="px-4 py-3 text-right font-medium">Outcome</th>
                     <th className="px-4 py-3 text-right font-medium">Legal first</th>
                     <th className="px-4 py-3 text-right font-medium">Cost</th>
                     <th className="px-4 py-3 text-right font-medium">Completion / reasoning</th>
@@ -181,7 +211,8 @@ export function Methodology() {
         <Prose>
           <p>All probes use raw FEN plus piece locations, move-only UCI, no legal-move list, no coaching, no tools, and isolated conversation state per puzzle. The three lines require at most 14 model turns; a wrong move ends its puzzle early.</p>
           <p>Runs begin at low reasoning and move upward as separate model variants. Routes are pinned only after checking OpenRouter throughput and uptime. Newly released endpoints without stable throughput history are advanced one puzzle at a time. Detailed run IDs, moves, and token accounting live in <a className="text-emerald-700 hover:underline dark:text-emerald-300" href="https://github.com/hunterchen7/chessbench/blob/main/docs/FRONTIER_PROBES.md" target="_blank" rel="noreferrer">the frontier probe note</a>.</p>
-          <p>* Kimi K3 records the requested high setting, but its current OpenRouter card advertises only default/max reasoning. The provider did not report the effective effort, so it is not a verified high-versus-max ablation.</p>
+          <p>Sol max produced no solves despite using 109,017 reasoning tokens; additional reasoning did not monotonically improve this three-item sample. Fable max is shown as a provider error, not scored as a chess loss: its first request returned no move and was not retried.</p>
+          <p>* Kimi K3 records the requested effort, but its current OpenRouter card advertises only default/max reasoning. The provider did not report the effective setting for the earlier high request, so the two rows are stochastic replicates rather than a verified effort ablation.</p>
         </Prose>
       </section>
 

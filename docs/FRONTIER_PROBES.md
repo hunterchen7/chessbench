@@ -30,6 +30,8 @@ puzzle at a time.
 | 2026-07-17 | GPT-5.6 Sol · high | OpenAI only | 1/3 | 3/3 | 1.00/3 | $0.480530 | 15,568 / 15,518 | `d2d5`, `d7f7`, `e4d4` |
 | 2026-07-17 | Claude Fable 5 · high | Google Vertex global only | 0/3 | 3/3 | 0.33/3 | $2.626052 | 50,449 / 7,056 | `c2c1q`, `d7f7` then `f7f8`, `e4d4` |
 | 2026-07-17 | Kimi K3 · high requested* | MoonshotAI INT4 only | 0/3 | 3/3 | 0.33/3 | $0.764671 | 50,322 / 50,245 | `c2c1q`, `c4f7`, `h5g6` then `e4h4` |
+| 2026-07-17 | GPT-5.6 Sol · max | OpenAI only | 0/3 | 3/3 | 0.00/3 | $3.241814 | 109,048 / 109,017 | `c2c1q`, `c4f7`, `e4d4` |
+| 2026-07-17 | Kimi K3 · max* | MoonshotAI INT4 only | 0/3 | 3/3 | 0.33/3 | $1.288504 | 83,804 / 83,727 | `c2c1q`, `c4f7`, `h5g6` then `h1h7` |
 
 The GPT-5.6 Sol low run is `6cdedf64bcbd4e988a9506f6651eba2c`.
 All three answers were legal first attempts but differed from the frozen
@@ -63,9 +65,34 @@ current Kimi K3 model card says the upstream endpoint supports only `max`
 provider response does not expose the effective effort, so this result must not
 be interpreted as a verified high-versus-max compute ablation.
 
+The GPT-5.6 Sol max run is `858f4499707b4927b842a3c9490be40e`.
+It returned no full solves or partial credit, cost $3.241814, and used 109,017
+reasoning tokens. It chose the same wrong first move as Kimi on every position.
+Provider-native reasoning details contained both encrypted continuation state
+and readable summaries. Max therefore performed worse than Sol high on this
+three-item probe while costing 6.7 times as much; the sample is too small to
+establish a monotonic compute effect.
+
+The Kimi K3 max run is `5957d47bae4245419fe5422e686c5cc9`.
+It reproduced the high-requested run's zero full solves and one-third partial
+credit, with a different second wrong move on the final line. It cost $1.288504
+and used 83,727 reasoning tokens. Because the upstream advertises default/max
+only, these two Kimi rows are best understood as stochastic replicates rather
+than an effort ablation.
+
+## Provider-failed max attempt
+
+Claude Fable 5 max run `50d49ebb2e2b494a82d6aa8ecd3c6772`
+stopped on its first puzzle after Google Vertex returned an HTTP 200 envelope
+containing a 502 `provider_unavailable` error. It produced no visible move or
+scored item, billed $0, and reported 261 prompt, 10 completion, and 6,656
+reasoning tokens in the durable checkpoint. The exact prompt, response envelope,
+headers, reasoning, and error remain available for audit. It was not retried,
+and the other two puzzles were not started.
+
 These runs are too small for an ability claim; their purpose is to establish
 observed cost and failure-mode baselines before a larger evaluation.
 
-This table is intentionally append-only for completed probe variants. Partial
-or provider-failed attempts remain in the durable database but are not reported
-as completed results.
+The scored table is intentionally append-only for completed probe variants.
+Provider-failed attempts are documented separately so they remain visible
+without being mistaken for zero-score chess results.
