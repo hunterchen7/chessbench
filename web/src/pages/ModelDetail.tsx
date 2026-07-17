@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
+import { Fragment, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
@@ -76,6 +76,12 @@ interface PerformancePoint {
 
 type AnswerSortKey = "puzzle" | "rating" | "points"
 
+const PERFORMANCE_VIEWBOX_HEIGHT = 280
+const ELO_PLOT_TOP = 16
+const ELO_PLOT_BOTTOM = 174
+const POINTS_PLOT_TOP = 210
+const POINTS_PLOT_BOTTOM = 262
+
 function pointPosition(index: number, total: number, inset: number) {
   const ratio = total === 1 ? 0.5 : index / (total - 1)
   return { ratio, left: `calc(${ratio * 100}% + ${inset * (1 - 2 * ratio)}px)` }
@@ -83,14 +89,12 @@ function pointPosition(index: number, total: number, inset: number) {
 
 function PerformanceTooltip({ point, index, total, inset }: { point: PerformancePoint; index: number; total: number; inset: number }) {
   const position = pointPosition(index, total, inset)
-  const translate = position.ratio < 0.18 ? "0" : position.ratio > 0.82 ? "-100%" : "-50%"
   const outcome = point.solved ? "Solved" : point.score > 0 ? "Partial credit" : point.failureReason?.replaceAll("_", " ") ?? "Incorrect"
   const elo = Math.round(point.elo).toLocaleString()
   const delta = point.eloDelta == null ? null : Math.round(point.eloDelta)
+  const clampedLeft = `clamp(0.5rem, calc(${position.left} - 7rem), calc(100% - 14.5rem))`
 
-  return <>
-    <span className="pointer-events-none absolute inset-y-2 z-10 w-px bg-foreground/25" style={{ left: position.left }} />
-    <div role="tooltip" className="pointer-events-none absolute top-2 z-20 min-w-48 rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-lg backdrop-blur" style={{ left: position.left, transform: `translateX(${translate})` }}>
+  return <div role="tooltip" className="pointer-events-none absolute top-3 z-20 w-56 rounded-lg border bg-popover/95 p-3 text-popover-foreground shadow-xl backdrop-blur" style={{ left: clampedLeft }}>
       <div className="flex items-center justify-between gap-4"><span className="font-mono text-xs font-semibold">{point.puzzleId}</span><span className="text-[10px] text-muted-foreground">#{index + 1} of {total}</span></div>
       <div className="mt-2 grid grid-cols-[auto_auto] gap-x-5 gap-y-1 text-[11px] leading-tight">
         <span className="text-muted-foreground">Result</span><span className={point.solved ? "text-right font-medium text-emerald-700 dark:text-emerald-300" : point.score > 0 ? "text-right font-medium text-amber-700 dark:text-amber-300" : "text-right font-medium text-rose-700 dark:text-rose-300"}>{outcome}</span>
@@ -102,7 +106,6 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
         <span className="text-muted-foreground">Rating deviation</span><span className="text-right font-mono">{Math.round(point.eloDeviation).toLocaleString()}{point.eloProvisional ? " · provisional" : ""}</span>
       </div>
     </div>
-  </>
 }
 
 function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoints: number }) {
@@ -132,69 +135,113 @@ function PerformanceHistory({ items, maxPoints }: { items: PuzzleItem[]; maxPoin
       } satisfies PerformancePoint
     })
   }, [items])
-  if (!history.length) return null
   const ratingOrdered = items.every((item, index) => {
     if (index === 0) return true
     const previous = items[index - 1]
     return previous.rating < item.rating || (previous.rating === item.rating && previous.puzzle_id <= item.puzzle_id)
   })
 
-  const hoverAt = (clientX: number, left: number, width: number, inset: number) => {
+  const hoverAt = (clientX: number, left: number, width: number) => {
+    const inset = 8
     const ratio = Math.max(0, Math.min(1, (clientX - left - inset) / Math.max(1, width - inset * 2)))
     setHoveredIndex(Math.round(ratio * (history.length - 1)))
   }
 
-  const intervalValues = history.flatMap((point) => point.eloCi95)
-  const eloMin = intervalValues.length ? Math.floor((Math.min(...intervalValues) - 50) / 100) * 100 : 0
-  const rawMax = intervalValues.length ? Math.ceil((Math.max(...intervalValues) + 50) / 100) * 100 : 4000
-  const eloMax = Math.max(eloMin + 200, rawMax)
-  const chartY = (rating: number) => 116 - (rating - eloMin) / (eloMax - eloMin) * 100
-  const linePoints = history.map((point, index) =>
-    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.elo)}`,
-  ).join(" ")
-  const upperIntervalPoints = history.map((point, index) =>
-    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.eloCi95[1])}`,
-  )
-  const lowerIntervalPoints = history.map((point, index) =>
-    `${history.length === 1 ? 500 : index / (history.length - 1) * 1000},${chartY(point.eloCi95[0])}`,
-  )
-  const intervalBandPoints = [...upperIntervalPoints, ...lowerIntervalPoints.toReversed()].join(" ")
+  const chart = useMemo(() => {
+    if (!history.length) return null
+    const intervalValues = history.flatMap((point) => point.eloCi95)
+    const eloMin = Math.floor((Math.min(...intervalValues) - 50) / 100) * 100
+    const rawMax = Math.ceil((Math.max(...intervalValues) + 50) / 100) * 100
+    const eloMax = Math.max(eloMin + 200, rawMax)
+    const x = (index: number) => history.length === 1 ? 500 : index / (history.length - 1) * 1000
+    const eloY = (rating: number) => ELO_PLOT_BOTTOM - (rating - eloMin) / (eloMax - eloMin) * (ELO_PLOT_BOTTOM - ELO_PLOT_TOP)
+    const pointsY = (points: number) => POINTS_PLOT_BOTTOM - points / Math.max(1, maxPoints) * (POINTS_PLOT_BOTTOM - POINTS_PLOT_TOP)
+    const eloLine = history.map((point, index) => `${x(index)},${eloY(point.elo)}`).join(" ")
+    const upperInterval = history.map((point, index) => `${x(index)},${eloY(point.eloCi95[1])}`)
+    const lowerInterval = history.map((point, index) => `${x(index)},${eloY(point.eloCi95[0])}`)
+    const pointsLine = history.map((point, index) => `${x(index)},${pointsY(point.cumulativePoints)}`).join(" ")
+    return {
+      eloMin,
+      eloMax,
+      eloY,
+      pointsY,
+      eloLine,
+      upperInterval,
+      lowerInterval,
+      intervalBand: [...upperInterval, ...lowerInterval.toReversed()].join(" "),
+      pointsLine,
+      pointsArea: `0,${POINTS_PLOT_BOTTOM} ${pointsLine} 1000,${POINTS_PLOT_BOTTOM}`,
+    }
+  }, [history, maxPoints])
+  if (!history.length || !chart) return null
   const final = history.at(-1)!
   const hovered = hoveredIndex == null ? null : history[hoveredIndex]
-  const displayedEstimate = hovered ?? final
-  const finalElo = final.elo
-  const pointsScale = Math.max(1, final.cumulativePoints)
-  const hoveredEloY = hovered == null ? null : chartY(hovered.elo) / 128 * 100
+  const displayed = hovered ?? final
+  const hoveredPosition = hoveredIndex == null ? null : pointPosition(hoveredIndex, history.length, 8)
+  const innerTop = (y: number) => `calc(${y / PERFORMANCE_VIEWBOX_HEIGHT * 100}% + ${8 - y / PERFORMANCE_VIEWBOX_HEIGHT * 16}px)`
+  const inspectWithKeys = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return
+    event.preventDefault()
+    setHoveredIndex((current) => {
+      if (event.key === "Home") return 0
+      if (event.key === "End") return history.length - 1
+      const startingIndex = current ?? history.length - 1
+      return Math.max(0, Math.min(history.length - 1, startingIndex + (event.key === "ArrowLeft" ? -1 : 1)))
+    })
+  }
 
   return <Card>
-    <CardHeader className="space-y-1">
-      <CardTitle className="text-base">Performance over suite</CardTitle>
-      <p className="text-xs text-muted-foreground">Cumulative points and Bayesian complete-solve Puzzle Elo after each puzzle in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
-    </CardHeader>
-    <CardContent className="grid min-w-0 gap-5 lg:grid-cols-2">
-      <div className="min-w-0">
-        <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Points accumulation</div>
-        <div className="relative flex h-44 touch-pan-y items-end gap-px overflow-hidden rounded-lg border bg-secondary/30 p-3" aria-label="Cumulative points by puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 12) }} onMouseLeave={() => setHoveredIndex(null)}>{history.map((point, index) => <div key={point.puzzleId} className={`min-w-0 flex-1 transition-colors ${hoveredIndex === index ? "bg-emerald-500" : "bg-emerald-500/70"}`} style={{ height: `${Math.max(2, point.cumulativePoints / pointsScale * 100)}%` }} aria-label={`After puzzle ${index + 1}: ${point.cumulativePoints.toFixed(2)} points`} />)}{hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={12} />}</div>
-        <div className="mt-2 flex justify-between text-[11px] text-muted-foreground"><span>{ratingOrdered ? `rating ${history[0].rating.toLocaleString()}` : "puzzle 1"}</span><span>{ratingOrdered ? `rating ${final.rating.toLocaleString()} · ` : ""}{final.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)} points</span></div>
+    <CardHeader className="gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <CardTitle className="text-base">Performance over suite</CardTitle>
+        <p className="max-w-3xl text-xs text-muted-foreground">A shared timeline for cumulative points and Bayesian complete-solve Puzzle Elo in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</p>
       </div>
-      <div className="min-w-0">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"><span>Puzzle Elo trajectory</span><span className="ml-auto inline-flex flex-wrap items-center justify-end gap-1.5 normal-case tracking-normal"><span className="font-mono text-xs text-violet-700 dark:text-violet-300">{Math.round(displayedEstimate.elo).toLocaleString()}</span><span className="font-mono">RD {Math.round(displayedEstimate.eloDeviation).toLocaleString()}</span>{displayedEstimate.eloProvisional && <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase tracking-wide">provisional</Badge>}</span></div>
-        <div className="relative h-44 touch-pan-y overflow-hidden rounded-lg border bg-secondary/30 p-2" aria-label="Puzzle Elo estimate after each puzzle" onMouseMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width, 8) }} onMouseLeave={() => setHoveredIndex(null)}>
-          <svg viewBox="0 0 1000 128" preserveAspectRatio="none" className="size-full overflow-visible text-violet-500" role="img" aria-label={`Bayesian Puzzle Elo changed from ${Math.round(history[0].elo)} after puzzle 1 to ${Math.round(finalElo)}`}>
-            <line x1="0" y1="16" x2="1000" y2="16" className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
-            <line x1="0" y1="116" x2="1000" y2="116" className="stroke-border" vectorEffect="non-scaling-stroke" />
-            <polygon points={intervalBandPoints} fill="currentColor" opacity="0.12" />
-            <polyline points={upperIntervalPoints.join(" ")} fill="none" stroke="currentColor" strokeWidth="1" opacity="0.32" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
-            <polyline points={lowerIntervalPoints.join(" ")} fill="none" stroke="currentColor" strokeWidth="1" opacity="0.32" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
-            <polyline points={linePoints} fill="none" stroke="currentColor" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
-            <line x1="1000" y1={chartY(final.eloCi95[1])} x2="1000" y2={chartY(final.eloCi95[0])} stroke="currentColor" strokeWidth="1.5" opacity="0.7" vectorEffect="non-scaling-stroke" />
-            <circle cx="1000" cy={chartY(finalElo)} r="4" fill="currentColor" vectorEffect="non-scaling-stroke" />
-          </svg>
-          <><span className="absolute left-2 top-1 font-mono text-[9px] text-muted-foreground">{eloMax}</span><span className="absolute bottom-1 left-2 font-mono text-[9px] text-muted-foreground">{eloMin}</span></>
-          {hoveredIndex != null && hoveredEloY != null && <span className="pointer-events-none absolute z-10 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500 ring-2 ring-background" style={{ left: pointPosition(hoveredIndex, history.length, 8).left, top: `${hoveredEloY}%` }} />}
-          {hovered && hoveredIndex != null && <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={8} />}
-        </div>
-        <div className="mt-2 flex flex-wrap justify-between gap-x-3 text-[11px] text-muted-foreground"><span>shaded band · 95% posterior</span><span>MAP · prior {PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± {PUZZLE_ELO_PRIOR.sd.toLocaleString()}</span></div>
+      <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
+        <span className="text-muted-foreground">{hoveredIndex == null ? "Final" : `Puzzle ${hoveredIndex + 1}/${history.length}`}</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-violet-500" /><span className="font-mono font-semibold text-violet-700 dark:text-violet-300">{Math.round(displayed.elo).toLocaleString()}</span><span className="font-mono text-muted-foreground">RD {Math.round(displayed.eloDeviation).toLocaleString()}</span>{displayed.eloProvisional ? <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase tracking-wide">provisional</Badge> : null}</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-emerald-500" /><span className="font-mono font-semibold text-emerald-700 dark:text-emerald-300">{displayed.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)}</span></span>
+      </div>
+    </CardHeader>
+    <CardContent className="min-w-0">
+      <div
+        className="relative h-72 touch-pan-y overflow-hidden rounded-xl border bg-secondary/25 p-2 outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-80"
+        aria-label="Combined Puzzle Elo and cumulative points timeline. Hover, tap, or use the arrow keys to inspect a puzzle."
+        tabIndex={0}
+        onPointerMove={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width) }}
+        onPointerDown={(event) => { const rect = event.currentTarget.getBoundingClientRect(); hoverAt(event.clientX, rect.left, rect.width) }}
+        onPointerLeave={() => setHoveredIndex(null)}
+        onFocus={() => setHoveredIndex((current) => current ?? history.length - 1)}
+        onBlur={() => setHoveredIndex(null)}
+        onKeyDown={inspectWithKeys}
+      >
+        <svg viewBox={`0 0 1000 ${PERFORMANCE_VIEWBOX_HEIGHT}`} preserveAspectRatio="none" className="size-full overflow-visible" role="img" aria-label={`Bayesian Puzzle Elo changed from ${Math.round(history[0].elo)} to ${Math.round(final.elo)} while cumulative points reached ${final.cumulativePoints.toFixed(2)} of ${maxPoints.toFixed(0)}`}>
+          <line x1="0" y1={ELO_PLOT_TOP} x2="1000" y2={ELO_PLOT_TOP} className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
+          <line x1="0" y1={(ELO_PLOT_TOP + ELO_PLOT_BOTTOM) / 2} x2="1000" y2={(ELO_PLOT_TOP + ELO_PLOT_BOTTOM) / 2} className="stroke-border" opacity="0.65" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
+          <line x1="0" y1={ELO_PLOT_BOTTOM} x2="1000" y2={ELO_PLOT_BOTTOM} className="stroke-border" vectorEffect="non-scaling-stroke" />
+          <polygon points={chart.intervalBand} className="fill-violet-500" opacity="0.12" />
+          <polyline points={chart.upperInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
+          <polyline points={chart.lowerInterval.join(" ")} fill="none" className="stroke-violet-500" strokeWidth="1" opacity="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="3 3" />
+          <polyline points={chart.eloLine} fill="none" className="stroke-violet-500" strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+          <line x1="0" y1={POINTS_PLOT_TOP} x2="1000" y2={POINTS_PLOT_TOP} className="stroke-border" vectorEffect="non-scaling-stroke" strokeDasharray="3 4" />
+          <line x1="0" y1={POINTS_PLOT_BOTTOM} x2="1000" y2={POINTS_PLOT_BOTTOM} className="stroke-border" vectorEffect="non-scaling-stroke" />
+          <polygon points={chart.pointsArea} className="fill-emerald-500" opacity="0.16" />
+          <polyline points={chart.pointsLine} fill="none" className="stroke-emerald-500" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+          <line x1="1000" y1={chart.eloY(final.eloCi95[1])} x2="1000" y2={chart.eloY(final.eloCi95[0])} className="stroke-violet-500" strokeWidth="1.5" opacity="0.75" vectorEffect="non-scaling-stroke" />
+        </svg>
+        <span className="pointer-events-none absolute left-3 top-2 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground">Elo {chart.eloMax.toLocaleString()}</span>
+        <span className="pointer-events-none absolute left-3 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground" style={{ top: innerTop(ELO_PLOT_BOTTOM) }}>{chart.eloMin.toLocaleString()}</span>
+        <span className="pointer-events-none absolute left-3 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground" style={{ top: innerTop(POINTS_PLOT_TOP) }}>Points {maxPoints.toFixed(0)}</span>
+        <span className="pointer-events-none absolute bottom-2 left-3 rounded bg-background/80 px-1 font-mono text-[9px] text-muted-foreground">0</span>
+        {hovered && hoveredIndex != null && hoveredPosition ? <>
+          <span className="pointer-events-none absolute inset-y-2 z-10 w-px bg-foreground/25" style={{ left: hoveredPosition.left }} />
+          <span className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-500 ring-2 ring-background" style={{ left: hoveredPosition.left, top: innerTop(chart.eloY(hovered.elo)) }} />
+          <span className="pointer-events-none absolute z-10 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-emerald-500 ring-2 ring-background" style={{ left: hoveredPosition.left, top: innerTop(chart.pointsY(hovered.cumulativePoints)) }} />
+          <PerformanceTooltip point={hovered} index={hoveredIndex} total={history.length} inset={8} />
+        </> : null}
+      </div>
+      <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+        <span>{ratingOrdered ? `rating ${history[0].rating.toLocaleString()} → ${final.rating.toLocaleString()}` : `puzzle 1 → ${history.length}`}</span>
+        <span>violet band · 95% posterior · MAP prior {PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± {PUZZLE_ELO_PRIOR.sd.toLocaleString()}</span>
       </div>
     </CardContent>
   </Card>
