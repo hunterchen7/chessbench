@@ -1134,6 +1134,88 @@ class BenchmarkStore:
             )
             self._event(run_id, "completed", kind, now)
 
+    def finalize_rounded_rated_puzzle_run(
+        self,
+        run_id: str,
+        report: PuzzleReport,
+        *,
+        rating: dict[str, object],
+    ) -> None:
+        """Accept a near-threshold adaptive rating with an explicit audit trail.
+
+        This is intentionally narrower than a generic operator override: the
+        minimum sample size must have been reached and the exact RD must round
+        to the protocol's configured whole-number target.
+        """
+        now = _now()
+        with self._transaction():
+            row = self._db.execute(
+                """SELECT total_items, completed_items, protocol_json
+                   FROM benchmark_run WHERE run_id=?""",
+                (run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(run_id)
+            attempted = int(row["completed_items"])
+            maximum = int(row["total_items"])
+            protocol = json.loads(row["protocol_json"] or "{}")
+            stopping = protocol.get("stopping", {})
+            minimum = int(stopping.get("minimum_puzzles", 0))
+            target_deviation = float(
+                stopping.get("target_rating_deviation", -1)
+            )
+            final_deviation = float(
+                rating.get("rating_deviation", rating.get("stderr", float("inf")))
+            )
+            if protocol.get("kind") != "adaptive_glicko2":
+                raise RuntimeError("rounded completion requires an adaptive_glicko2 protocol")
+            if attempted != report.n:
+                raise RuntimeError(
+                    f"cannot complete rated run {run_id}: report has {report.n} "
+                    f"items but {attempted} are persisted"
+                )
+            if attempted < minimum or attempted >= maximum:
+                raise RuntimeError("rounded completion is outside the adaptive sample window")
+            if final_deviation <= target_deviation:
+                raise RuntimeError("rating already satisfies the exact stopping threshold")
+            if final_deviation >= target_deviation + 0.5:
+                raise RuntimeError(
+                    "rating deviation is too far above the target to round down"
+                )
+
+            accepted_rating = dict(rating)
+            accepted_rating["accepted_rounded"] = True
+            termination = {
+                "kind": "operator_rounded",
+                "attempted": attempted,
+                "maximum": maximum,
+                "target_rating_deviation": target_deviation,
+                "actual_rating_deviation": final_deviation,
+                "display_rating_deviation": round(final_deviation),
+                "message": (
+                    f"Operator accepted RD {final_deviation:.2f} as "
+                    f"{target_deviation:g} after {attempted} puzzles."
+                ),
+            }
+            summary = {
+                "n": report.n,
+                "solved": report.solved,
+                "solve_rate": report.solve_rate,
+                "mean_score": report.mean_score,
+                "first_move_legal_rate": report.first_move_legal_rate,
+                "response_format_valid_rate": report.response_format_valid_rate,
+                "points": report.points,
+                "max_points": report.max_points,
+                "puzzle_performance_rating": accepted_rating,
+                "termination": termination,
+            }
+            self._db.execute(
+                """UPDATE benchmark_run SET status='completed', summary_json=?,
+                   completed_at=?, updated_at=?, error=NULL WHERE run_id=?""",
+                (_canonical(summary), now, now, run_id),
+            )
+            self._event(run_id, "completed", "operator_rounded", now)
+
     def finalize_stopped_puzzle_run(
         self,
         run_id: str,

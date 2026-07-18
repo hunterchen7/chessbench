@@ -133,6 +133,100 @@ def test_adaptive_protocol_is_durable_and_can_finish_at_convergence(tmp_path):
         assert finish["summary"]["puzzle_performance_rating"] == rating
 
 
+def test_adaptive_protocol_can_explicitly_accept_a_rounded_deviation(tmp_path):
+    base = _spec()
+    protocol = {
+        "kind": "adaptive_glicko2",
+        "version": "rated_session_v1",
+        "stopping": {
+            "minimum_puzzles": 1,
+            "maximum_puzzles": 100,
+            "target_rating_deviation": 75,
+        },
+    }
+    spec = RunSpec(
+        base.track,
+        base.variant,
+        base.condition,
+        100,
+        suite_name="rated-pool",
+        suite_version="1.0.0",
+        suite_hash="sha256:rounded-pool",
+        suite_visibility="private",
+        protocol=protocol,
+    )
+    puzzle = Puzzle(
+        "rated-rounded",
+        "6k1/8/8/8/8/8/8/6K1 w - - 0 1",
+        ["g1f2", "g8f7"],
+        1500,
+        rating_deviation=80,
+    )
+    result = _result("rated-rounded")
+    rating = {
+        "rating": 1600.0,
+        "rating_deviation": 75.39,
+        "stderr": 75.39,
+        "settled": False,
+    }
+
+    with BenchmarkStore(tmp_path / "rated-rounded.db") as store:
+        run = store.start_run(spec)
+        store.save_puzzle_result(run.run_id, 0, puzzle, result)
+        report = build_report("test/model", spec.condition.slug(), [result])
+        store.finalize_rounded_rated_puzzle_run(
+            run.run_id,
+            report,
+            rating=rating,
+        )
+        row = store.run_row(run.run_id)
+        summary = __import__("json").loads(str(row["summary_json"]))
+        assert row["status"] == "completed"
+        assert summary["puzzle_performance_rating"]["accepted_rounded"] is True
+        assert summary["termination"]["kind"] == "operator_rounded"
+        assert summary["termination"]["actual_rating_deviation"] == 75.39
+
+
+def test_adaptive_protocol_rejects_rounding_too_far_above_target(tmp_path):
+    base = _spec()
+    protocol = {
+        "kind": "adaptive_glicko2",
+        "stopping": {
+            "minimum_puzzles": 1,
+            "maximum_puzzles": 100,
+            "target_rating_deviation": 75,
+        },
+    }
+    spec = RunSpec(
+        base.track,
+        base.variant,
+        base.condition,
+        100,
+        suite_name="rated-pool",
+        suite_hash="sha256:unsettled-pool",
+        protocol=protocol,
+    )
+    puzzle = Puzzle(
+        "rated-unsettled",
+        "6k1/8/8/8/8/8/8/6K1 w - - 0 1",
+        ["g1f2", "g8f7"],
+        1500,
+        rating_deviation=80,
+    )
+    result = _result("rated-unsettled")
+
+    with BenchmarkStore(tmp_path / "rated-unsettled.db") as store:
+        run = store.start_run(spec)
+        store.save_puzzle_result(run.run_id, 0, puzzle, result)
+        report = build_report("test/model", spec.condition.slug(), [result])
+        with pytest.raises(RuntimeError, match="too far above"):
+            store.finalize_rounded_rated_puzzle_run(
+                run.run_id,
+                report,
+                rating={"rating": 1600.0, "rating_deviation": 75.5},
+            )
+
+
 def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
     puzzle = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
     with BenchmarkStore(tmp_path / "bench.db") as store:

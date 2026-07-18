@@ -1131,6 +1131,8 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
 
     if args.max_new_items is not None and args.max_new_items < 1:
         raise ValueError("--max-new-items must be positive")
+    if args.accept_rounded_rating and args.export_only:
+        raise ValueError("--accept-rounded-rating and --export-only are mutually exclusive")
     if args.request_timeout <= 0:
         raise ValueError("--request-timeout must be positive")
     config = RatedSessionConfig(
@@ -1212,7 +1214,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
     store = BenchmarkStore(args.db)
     handle = (
         store.find_run(spec)
-        if args.export_only
+        if args.export_only or args.accept_rounded_rating
         else store.start_run(spec, force=args.force)
     )
     if handle is None:
@@ -1288,10 +1290,19 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
             }
         return None
 
-    def export_snapshot(*, termination: dict[str, object] | None = None) -> None:
+    def export_snapshot(
+        *,
+        termination: dict[str, object] | None = None,
+        accepted_rounded: bool = False,
+    ) -> None:
         row = store.run_row(handle.run_id)
         report = build_report(entry.model_id, condition.slug(), ordered_results)
         total_cost = _usage_float(row.get("cost_usd"))
+        snapshot_rating = rating_summary(
+            state, attempts=len(ordered_results), config=config
+        )
+        if accepted_rounded:
+            snapshot_rating["accepted_rounded"] = True
         record = RunRecord(
             model=entry.model_id,
             provider=entry.provider,
@@ -1323,9 +1334,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
             updated_at=str(row.get("updated_at") or ""),
             completed_at=str(row["completed_at"]) if row.get("completed_at") else None,
             protocol=protocol,
-            rating_summary=rating_summary(
-                state, attempts=len(ordered_results), config=config
-            ),
+            rating_summary=snapshot_rating,
             termination=termination,
         )
         save_run(record, out)
@@ -1334,6 +1343,36 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
         export_snapshot(termination=current_termination())
         store.close()
         print(f"exported {len(ordered_results)} rated attempts without inference -> {out}")
+        return 0
+
+    if args.accept_rounded_rating:
+        report = build_report(entry.model_id, condition.slug(), ordered_results)
+        summary = rating_summary(state, attempts=len(ordered_results), config=config)
+        store.finalize_rounded_rated_puzzle_run(
+            handle.run_id,
+            report,
+            rating=summary,
+        )
+        termination = {
+            "kind": "operator_rounded",
+            "attempted": len(ordered_results),
+            "maximum": config.max_puzzles,
+            "target_rating_deviation": config.target_deviation,
+            "actual_rating_deviation": state.deviation,
+            "display_rating_deviation": round(state.deviation),
+            "message": (
+                f"Operator accepted RD {state.deviation:.2f} as "
+                f"{config.target_deviation:g} after {len(ordered_results)} puzzles."
+            ),
+        }
+        export_snapshot(termination=termination, accepted_rounded=True)
+        store.close()
+        print(
+            f"completed {handle.run_id}: operator accepted "
+            f"{state.rating:,.0f} ± {state.deviation:.2f} after "
+            f"{len(ordered_results)} puzzles; export -> {out}"
+        )
+        _sync_completed_run(args.db, handle.run_id, disabled=args.no_sync)
         return 0
 
     print(
@@ -2381,6 +2420,14 @@ def main(argv: list[str] | None = None) -> int:
     rated.add_argument("--no-sync", action="store_true")
     rated.add_argument("--force", action="store_true")
     rated.add_argument("--export-only", action="store_true")
+    rated.add_argument(
+        "--accept-rounded-rating",
+        action="store_true",
+        help=(
+            "complete an existing adaptive run without inference when its exact "
+            "RD is less than 0.5 above the configured whole-number target"
+        ),
+    )
     rated.add_argument("--max-new-items", type=int, default=None)
     rated.add_argument("--progress", type=int, default=5)
     rated.add_argument("--request-timeout", type=float, default=120.0)
