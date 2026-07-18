@@ -5,6 +5,9 @@ import {
   MAX_RATED_PUZZLE_PAGE,
   MAX_RATED_PUZZLE_PAGE_SIZE,
   ratedPuzzlePageParams,
+  ratedPuzzleTierBounds,
+  type RatedPuzzlePageParams,
+  type RatedPuzzleSort,
 } from "./rated_puzzle_pages"
 import { ratedPuzzleSummary } from "./puzzle_payloads"
 
@@ -35,6 +38,14 @@ interface RatedPuzzleRow {
   popularity: number
   plays: number
   payload_json: string
+}
+
+const RATED_BROWSE_SORT_COLUMNS: Record<RatedPuzzleSort, string> = {
+  rating: "p.rating",
+  rating_deviation: "p.rating_deviation",
+  popularity: "p.popularity",
+  plays: "p.plays",
+  puzzle_id: "p.puzzle_id",
 }
 
 const PROFILE_FAMILIES = new Set([
@@ -124,11 +135,11 @@ async function selectRatedPuzzle(
 
 /** GET /api/puzzles/rated — one stable rating-ordered page from the active pool. */
 export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> {
-  const pagination = ratedPuzzlePageParams(url.searchParams)
-  if (!pagination) {
+  const query = ratedPuzzlePageParams(url.searchParams)
+  if (!query) {
     return error(
       400,
-      `page must be 1-${MAX_RATED_PUZZLE_PAGE}; per_page must be 1-${MAX_RATED_PUZZLE_PAGE_SIZE}`,
+      `invalid rated puzzle query; page must be 1-${MAX_RATED_PUZZLE_PAGE} and per_page 1-${MAX_RATED_PUZZLE_PAGE_SIZE}`,
     )
   }
 
@@ -144,16 +155,59 @@ export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> 
   }>()
   if (!pool) return error(404, "no active rated puzzle pool")
 
-  const totalPages = Math.ceil(pool.item_count / pagination.perPage)
-  if (pagination.page > totalPages) return error(404, "rated puzzle page is out of range")
-  const offset = (pagination.page - 1) * pagination.perPage
-  const { results } = await env.DB.prepare(
-    `SELECT puzzle_id, rating, rating_deviation, popularity, plays, payload_json
-       FROM rated_puzzles
-      WHERE content_hash=?
-      ORDER BY rating ASC, puzzle_id ASC
-      LIMIT ? OFFSET ?`,
-  ).bind(pool.content_hash, pagination.perPage, offset).all<RatedPuzzleRow>()
+  const from = query.theme
+    ? `rated_puzzles p JOIN rated_puzzle_tags t
+         ON t.content_hash=p.content_hash AND t.puzzle_id=p.puzzle_id`
+    : "rated_puzzles p"
+  const where = ["p.content_hash=?"]
+  const bindings: Array<string | number> = [pool.content_hash]
+  if (query.theme) {
+    where.push("t.tag=?")
+    bindings.push(`theme:${query.theme}`)
+  }
+  if (query.idPrefix) {
+    where.push("p.puzzle_id LIKE ?")
+    bindings.push(`${query.idPrefix}%`)
+  }
+
+  let minimumRating = query.minRating
+  let maximumRating = query.maxRating
+  if (query.tier) {
+    const [tierMinimum, tierMaximum] = ratedPuzzleTierBounds(query.tier)
+    minimumRating = Math.max(minimumRating ?? tierMinimum, tierMinimum)
+    maximumRating = Math.min(maximumRating ?? tierMaximum, tierMaximum)
+  }
+  if (minimumRating != null) {
+    where.push("p.rating>=?")
+    bindings.push(minimumRating)
+  }
+  if (maximumRating != null) {
+    where.push("p.rating<=?")
+    bindings.push(maximumRating)
+  }
+  if (minimumRating != null && maximumRating != null && minimumRating > maximumRating) where.push("0")
+
+  const predicate = where.join(" AND ")
+  const direction = query.direction.toUpperCase()
+  const sortColumn = RATED_BROWSE_SORT_COLUMNS[query.sort]
+  const order = query.sort === "puzzle_id"
+    ? `${sortColumn} ${direction}`
+    : `${sortColumn} ${direction}, p.puzzle_id ${direction}`
+  const offset = (query.page - 1) * query.perPage
+  const [countResult, pageResult] = await env.DB.batch([
+    env.DB.prepare(`SELECT COUNT(*) AS count FROM ${from} WHERE ${predicate}`).bind(...bindings),
+    env.DB.prepare(
+      `SELECT p.puzzle_id, p.rating, p.rating_deviation, p.popularity, p.plays, p.payload_json
+         FROM ${from}
+        WHERE ${predicate}
+        ORDER BY ${order}
+        LIMIT ? OFFSET ?`,
+    ).bind(...bindings, query.perPage, offset),
+  ])
+  const totalItems = Number((countResult.results[0] as { count?: number } | undefined)?.count ?? 0)
+  const totalPages = totalItems ? Math.ceil(totalItems / query.perPage) : 0
+  if (query.page > Math.max(1, totalPages)) return error(404, "rated puzzle page is out of range")
+  const results = pageResult.results as unknown as RatedPuzzleRow[]
 
   const puzzles = (results ?? []).map((row) => ratedPuzzleSummary(
     JSON.parse(row.payload_json) as Record<string, unknown>,
@@ -169,21 +223,38 @@ export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> 
       updated_at: pool.updated_at,
     },
     pagination: {
-      page: pagination.page,
-      per_page: pagination.perPage,
-      total_items: pool.item_count,
+      page: query.page,
+      per_page: query.perPage,
+      total_items: totalItems,
       total_pages: totalPages,
       returned: puzzles.length,
-      has_previous: pagination.page > 1,
-      has_next: pagination.page < totalPages,
+      has_previous: query.page > 1,
+      has_next: query.page < totalPages,
+    },
+    query: {
+      sort: query.sort,
+      direction: query.direction,
+      tier: query.tier,
+      theme: query.theme,
+      id_prefix: query.idPrefix,
+      min_rating: query.minRating,
+      max_rating: query.maxRating,
     },
     puzzles,
   }, {
     headers: {
-      "Cache-Control": "public, max-age=30, stale-while-revalidate=300",
-      "ETag": `W/\"${pool.content_hash}:${pagination.page}:${pagination.perPage}\"`,
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=600",
+      "ETag": ratedPuzzlePageEtag(pool.content_hash, query),
     },
   })
+}
+
+function ratedPuzzlePageEtag(poolHash: string, query: RatedPuzzlePageParams): string {
+  const key = [
+    poolHash, query.page, query.perPage, query.sort, query.direction, query.tier ?? "",
+    query.theme ?? "", query.idPrefix ?? "", query.minRating ?? "", query.maxRating ?? "",
+  ].join(":")
+  return `W/\"${key}\"`
 }
 
 /** GET /api/puzzles/random — non-deterministic, indexed adaptive-pool draw. */

@@ -17,7 +17,7 @@ Read (public, permissive CORS):
 | GET | `/api/corpora/:track` | active result-free public corpus (`standard`, `woodpecker`, `esoteric`) |
 | GET | `/api/puzzles` | position bank + per-puzzle model solve stats |
 | GET | `/api/puzzles/:id` | one position + how every model answered |
-| GET | `/api/puzzles/rated?page=1&per_page=100` | stable rating-ordered page from the active 100k pool (maximum 200 rows) |
+| GET | `/api/puzzles/rated?page=1&per_page=600` | sortable, filterable page from the active 100k pool (maximum 1,000 rows) |
 | GET | `/api/puzzles/random` | random puzzle from the active 100k rated pool; accepts category/rating filters |
 | GET | `/api/tournaments` | tournament index |
 | GET | `/api/tournaments/:id` | full tournament document |
@@ -92,6 +92,19 @@ GET /api/puzzles/random?rating=1650&radius=200
 GET /api/puzzles/random?min_rating=1400&max_rating=1750
 GET /api/puzzles/random?category=family:quiet_moves&rating=1800&radius=250
 GET /api/puzzles/random?category=theme:fork&rating=1500&exclude=abc12,def34
+```
+
+### Rated-pool browsing
+
+Rated-pool pages are globally sorted and filtered by the Worker before pagination. Supported sort columns are
+`rating`, `rating_deviation`, `popularity`, `plays`, and `puzzle_id`; `direction` is `asc` or `desc`. Optional
+filters are `tier`, `theme`, `id_prefix`, `min_rating`, and `max_rating`. Each complete query URL has its own
+cache identity, so prefetched pages and previously visited sort/filter combinations can reuse HTTP-cached results.
+
+```text
+GET /api/puzzles/rated?page=1&per_page=600
+GET /api/puzzles/rated?sort=plays&direction=desc&tier=expert&page=1&per_page=600
+GET /api/puzzles/rated?theme=fork&min_rating=1800&max_rating=2400&page=1&per_page=600
 ```
 
 Use either `rating` + `radius` or explicit `min_rating` + `max_rating`. An unprefixed category matching one of the
