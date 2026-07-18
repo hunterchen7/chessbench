@@ -194,20 +194,29 @@ export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> 
     ? `${sortColumn} ${direction}`
     : `${sortColumn} ${direction}, p.puzzle_id ${direction}`
   const offset = (query.page - 1) * query.perPage
-  const [countResult, pageResult] = await env.DB.batch([
-    env.DB.prepare(`SELECT COUNT(*) AS count FROM ${from} WHERE ${predicate}`).bind(...bindings),
-    env.DB.prepare(
-      `SELECT p.puzzle_id, p.rating, p.rating_deviation, p.popularity, p.plays, p.payload_json
-         FROM ${from}
-        WHERE ${predicate}
-        ORDER BY ${order}
-        LIMIT ? OFFSET ?`,
-    ).bind(...bindings, query.perPage, offset),
-  ])
-  const totalItems = Number((countResult.results[0] as { count?: number } | undefined)?.count ?? 0)
-  const totalPages = totalItems ? Math.ceil(totalItems / query.perPage) : 0
-  if (query.page > Math.max(1, totalPages)) return error(404, "rated puzzle page is out of range")
-  const results = pageResult.results as unknown as RatedPuzzleRow[]
+  const pageStatement = env.DB.prepare(
+    `SELECT p.puzzle_id, p.rating, p.rating_deviation, p.popularity, p.plays, p.payload_json
+       FROM ${from}
+      WHERE ${predicate}
+      ORDER BY ${order}
+      LIMIT ? OFFSET ?`,
+  ).bind(...bindings, query.perPage, offset)
+  let totalItems: number | null = null
+  let totalPages: number | null = null
+  let results: RatedPuzzleRow[]
+  if (query.includeTotal) {
+    const [countResult, pageResult] = await env.DB.batch([
+      env.DB.prepare(`SELECT COUNT(*) AS count FROM ${from} WHERE ${predicate}`).bind(...bindings),
+      pageStatement,
+    ])
+    totalItems = Number((countResult.results[0] as { count?: number } | undefined)?.count ?? 0)
+    totalPages = totalItems ? Math.ceil(totalItems / query.perPage) : 0
+    if (query.page > Math.max(1, totalPages)) return error(404, "rated puzzle page is out of range")
+    results = pageResult.results as unknown as RatedPuzzleRow[]
+  } else {
+    const pageResult = await pageStatement.all<RatedPuzzleRow>()
+    results = pageResult.results ?? []
+  }
 
   const puzzles = (results ?? []).map((row) => ratedPuzzleSummary(
     JSON.parse(row.payload_json) as Record<string, unknown>,
@@ -229,7 +238,7 @@ export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> 
       total_pages: totalPages,
       returned: puzzles.length,
       has_previous: query.page > 1,
-      has_next: query.page < totalPages,
+      has_next: totalPages == null ? puzzles.length === query.perPage : query.page < totalPages,
     },
     query: {
       sort: query.sort,
@@ -253,6 +262,7 @@ function ratedPuzzlePageEtag(poolHash: string, query: RatedPuzzlePageParams): st
   const key = [
     poolHash, query.page, query.perPage, query.sort, query.direction, query.tier ?? "",
     query.theme ?? "", query.idPrefix ?? "", query.minRating ?? "", query.maxRating ?? "",
+    query.includeTotal ? "total" : "no-total",
   ].join(":")
   return `W/\"${key}\"`
 }

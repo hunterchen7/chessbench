@@ -8,6 +8,7 @@ export interface RatedPuzzlePageParams {
   idPrefix: string | null
   minRating: number | null
   maxRating: number | null
+  includeTotal: boolean
 }
 
 export const RATED_PUZZLE_SORTS = ["rating", "rating_deviation", "popularity", "plays", "puzzle_id"] as const
@@ -17,8 +18,8 @@ export type RatedPuzzleSort = typeof RATED_PUZZLE_SORTS[number]
 export type RatedPuzzleDirection = typeof RATED_PUZZLE_DIRECTIONS[number]
 export type RatedPuzzleTier = typeof RATED_PUZZLE_TIERS[number]
 
-export const DEFAULT_RATED_PUZZLE_PAGE_SIZE = 600
-export const MAX_RATED_PUZZLE_PAGE_SIZE = 1000
+export const DEFAULT_RATED_PUZZLE_PAGE_SIZE = 10_000
+export const MAX_RATED_PUZZLE_PAGE_SIZE = 10_000
 export const MAX_RATED_PUZZLE_PAGE = 100_000
 
 const TIER_BOUNDS: Record<RatedPuzzleTier, readonly [number, number]> = {
@@ -74,6 +75,7 @@ export function ratedPuzzlePageParams(params: URLSearchParams): RatedPuzzlePageP
   const idPrefix = params.get("id_prefix")?.trim() || null
   const minRating = optionalIntegerParam(params, "min_rating", 0, 4000)
   const maxRating = optionalIntegerParam(params, "max_rating", 0, 4000)
+  const includeTotalRaw = params.get("include_total") ?? "1"
 
   if (
     page == null || perPage == null ||
@@ -83,6 +85,7 @@ export function ratedPuzzlePageParams(params: URLSearchParams): RatedPuzzlePageP
     (theme != null && !/^[A-Za-z0-9_-]{1,80}$/.test(theme)) ||
     (idPrefix != null && !/^[A-Za-z0-9_-]{1,32}$/.test(idPrefix)) ||
     minRating === null || maxRating === null ||
+    !["0", "1"].includes(includeTotalRaw) ||
     (minRating != null && maxRating != null && minRating > maxRating)
   ) return null
 
@@ -96,5 +99,6 @@ export function ratedPuzzlePageParams(params: URLSearchParams): RatedPuzzlePageP
     idPrefix,
     minRating: minRating ?? null,
     maxRating: maxRating ?? null,
+    includeTotal: includeTotalRaw === "1",
   }
 }

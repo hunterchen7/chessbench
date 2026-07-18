@@ -283,6 +283,61 @@ export interface RatedPuzzleListItem {
   categories: Categories
 }
 
+export const RATED_PUZZLE_PAGE_SIZE = 10_000
+export const RATED_PUZZLE_SORTS = ["rating", "rating_deviation", "popularity", "plays", "puzzle_id"] as const
+export const RATED_PUZZLE_DIRECTIONS = ["asc", "desc"] as const
+export const RATED_PUZZLE_TIERS = ["beginner", "novice", "intermediate", "advanced", "expert", "master"] as const
+export type RatedPuzzleSort = typeof RATED_PUZZLE_SORTS[number]
+export type RatedPuzzleDirection = typeof RATED_PUZZLE_DIRECTIONS[number]
+export type RatedPuzzleTier = typeof RATED_PUZZLE_TIERS[number]
+
+export interface RatedPuzzleQuery {
+  sort: RatedPuzzleSort
+  direction: RatedPuzzleDirection
+  tier?: RatedPuzzleTier
+  theme?: string
+  id_prefix?: string
+  min_rating?: number
+  max_rating?: number
+}
+
+export const DEFAULT_RATED_PUZZLE_QUERY: RatedPuzzleQuery = { sort: "rating", direction: "asc" }
+
+function boundedQueryInteger(value: string | null): number | undefined {
+  if (value == null || !/^\d+$/.test(value)) return undefined
+  const number = Number(value)
+  return Number.isSafeInteger(number) && number >= 0 && number <= 4000 ? number : undefined
+}
+
+export function ratedPuzzleQueryFromSearchParams(params: URLSearchParams): RatedPuzzleQuery {
+  const sortValue = params.get("sort")
+  const directionValue = params.get("direction")
+  const tierValue = params.get("tier")
+  const themeValue = params.get("theme")
+  const idPrefixValue = params.get("id_prefix")
+  const minRating = boundedQueryInteger(params.get("min_rating"))
+  const maxRating = boundedQueryInteger(params.get("max_rating"))
+  return {
+    sort: RATED_PUZZLE_SORTS.includes(sortValue as RatedPuzzleSort) ? sortValue as RatedPuzzleSort : "rating",
+    direction: RATED_PUZZLE_DIRECTIONS.includes(directionValue as RatedPuzzleDirection) ? directionValue as RatedPuzzleDirection : "asc",
+    tier: RATED_PUZZLE_TIERS.includes(tierValue as RatedPuzzleTier) ? tierValue as RatedPuzzleTier : undefined,
+    theme: themeValue && /^[A-Za-z0-9_-]{1,80}$/.test(themeValue) ? themeValue : undefined,
+    id_prefix: idPrefixValue && /^[A-Za-z0-9_-]{1,32}$/.test(idPrefixValue) ? idPrefixValue : undefined,
+    min_rating: minRating,
+    max_rating: maxRating,
+  }
+}
+
+export function ratedPuzzleQueryParams(query: RatedPuzzleQuery): URLSearchParams {
+  const params = new URLSearchParams({ sort: query.sort, direction: query.direction })
+  if (query.tier) params.set("tier", query.tier)
+  if (query.theme) params.set("theme", query.theme)
+  if (query.id_prefix) params.set("id_prefix", query.id_prefix)
+  if (query.min_rating != null) params.set("min_rating", String(query.min_rating))
+  if (query.max_rating != null) params.set("max_rating", String(query.max_rating))
+  return params
+}
+
 export interface RatedPuzzlePage {
   schema: "chessbench.rated_puzzle_page.v1"
   pool: {
@@ -295,11 +350,20 @@ export interface RatedPuzzlePage {
   pagination: {
     page: number
     per_page: number
-    total_items: number
-    total_pages: number
+    total_items: number | null
+    total_pages: number | null
     returned: number
     has_previous: boolean
     has_next: boolean
+  }
+  query: {
+    sort: RatedPuzzleSort
+    direction: RatedPuzzleDirection
+    tier: RatedPuzzleTier | null
+    theme: string | null
+    id_prefix: string | null
+    min_rating: number | null
+    max_rating: number | null
   }
   puzzles: RatedPuzzleListItem[]
 }
@@ -756,11 +820,16 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
 export function loadRatedPuzzlePage(
   apiBase: string | null,
   page: number,
-  perPage = 200,
+  perPage = RATED_PUZZLE_PAGE_SIZE,
   signal?: AbortSignal,
+  query: RatedPuzzleQuery = DEFAULT_RATED_PUZZLE_QUERY,
+  includeTotal = true,
 ): Promise<RatedPuzzlePage> {
   if (!apiBase) return Promise.reject(new Error("Rated-pool browsing requires the live ChessBench API."))
-  const params = new URLSearchParams({ page: String(page), per_page: String(perPage) })
+  const params = ratedPuzzleQueryParams(query)
+  params.set("page", String(page))
+  params.set("per_page", String(perPage))
+  if (!includeTotal) params.set("include_total", "0")
   return fetchJSON<RatedPuzzlePage>(`${apiBase}/puzzles/rated?${params}`, { signal })
 }
 
