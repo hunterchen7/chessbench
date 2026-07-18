@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { type ReactNode, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
@@ -59,6 +59,31 @@ function AggregateStatusBadge({ aggregate }: { aggregate: RatedRunAggregate }) {
     return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
   }
   return <Badge variant="outline">Cap reached</Badge>
+}
+
+function AnimatedDetailCell({
+  open,
+  className,
+  children,
+}: {
+  open: boolean
+  className?: string
+  children?: ReactNode
+}) {
+  return <TableCell className="p-0">
+    <div className={cn(
+      "grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none",
+      open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+    )}>
+      <div className="min-h-0 overflow-hidden">
+        <div className={cn(
+          "px-2 transition-[padding] duration-200 ease-out motion-reduce:transition-none",
+          open ? "py-2" : "py-0",
+          className,
+        )}>{children}</div>
+      </div>
+    </div>
+  </TableCell>
 }
 
 export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
@@ -221,21 +246,34 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono tabular-nums">{visibleRunCount}</TableCell>
             <TableCell className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</TableCell>
             <TableCell><AggregateStatusBadge aggregate={aggregate} /></TableCell>
-            <TableCell>{expanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}</TableCell>
+            <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
           </TableRow>]
-          if (expanded) rows.push(...aggregate.runs.map((individual) => {
+          rows.push(...aggregate.runs.map((individual) => {
             const individualEstimate = rating(individual)
-            return <TableRow key={individual.run_id} tabIndex={0} role="link" className="cursor-pointer bg-muted/20 transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none" onClick={() => navigate(runPath(individual))} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(runPath(individual)) }}>
-              <TableCell />
-              <TableCell className="pl-10"><div className="font-medium">Seed {individual.protocol.selection.seed}</div><div className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</div></TableCell>
-              <TableCell className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</TableCell>
-              <TableCell className="text-right text-xs text-muted-foreground">individual RD</TableCell>
-              <TableCell className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></TableCell>
-              <TableCell className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</TableCell>
-              <TableCell className="text-right font-mono text-sm">1 run</TableCell>
-              <TableCell className="text-right font-mono text-xs">{individual.summary.cost_usd == null ? "—" : `$${individual.summary.cost_usd.toFixed(3)}`}</TableCell>
-              <TableCell><StatusBadge run={individual} /></TableCell>
-              <TableCell><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
+            return <TableRow
+              key={individual.run_id}
+              tabIndex={expanded ? 0 : -1}
+              role="link"
+              aria-hidden={!expanded}
+              className={cn(
+                "bg-muted/20 transition-[background-color,border-color] duration-200 motion-reduce:transition-none",
+                expanded
+                  ? "cursor-pointer border-border hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none"
+                  : "pointer-events-none border-transparent",
+              )}
+              onClick={expanded ? () => navigate(runPath(individual)) : undefined}
+              onKeyDown={expanded ? (event) => { if (event.key === "Enter" || event.key === " ") navigate(runPath(individual)) } : undefined}
+            >
+              <AnimatedDetailCell open={expanded} />
+              <AnimatedDetailCell open={expanded} className="pl-10"><div className="font-medium">Seed {individual.protocol.selection.seed}</div><div className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-sm">1 run</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs">{individual.summary.cost_usd == null ? "—" : `$${individual.summary.cost_usd.toFixed(3)}`}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded}><StatusBadge run={individual} /></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded}><ArrowRight className="size-4 text-muted-foreground" /></AnimatedDetailCell>
             </TableRow>
           }))
           return rows
