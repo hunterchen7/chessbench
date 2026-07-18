@@ -25,6 +25,9 @@ Read (public, permissive CORS):
 | GET | `/api/human/summary?uid=` | one solver's points and accuracy |
 | GET | `/api/human/leaderboard` | top human solvers by points |
 | POST | `/api/human/solve` | record a fixed-corpus or rated-pool solve `{uid, puzzle_id, solved, move, handle?}` |
+| GET | `/api/human/training?uid=` | load the caller's explicitly saved adaptive training run |
+| GET | `/api/human/training/leaderboard` | public saved human puzzle ratings |
+| POST | `/api/human/training` | save one named training snapshot; unique username, two-minute cooldown |
 
 Ingest (Bearer `INGEST_TOKEN`):
 

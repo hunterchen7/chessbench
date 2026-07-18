@@ -3,6 +3,11 @@ import { error, json, preflight } from "./http"
 import { getCorpus, getExport, getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
 import {
+  getHumanTrainingLeaderboard,
+  getHumanTrainingProfile,
+  postHumanTrainingProfile,
+} from "./human_training"
+import {
   postFinishRun,
   postIngestTournament,
   postRegisterCorpus,
@@ -53,8 +58,11 @@ export default {
         if (seg.startsWith("tournaments/")) return await getTournament(env, rest(seg, "tournaments/"))
         if (seg === "human/leaderboard") return await getHumanLeaderboard(env, url)
         if (seg === "human/summary") return await getHumanSummary(env, url)
+        if (seg === "human/training") return await getHumanTrainingProfile(env, url)
+        if (seg === "human/training/leaderboard") return await getHumanTrainingLeaderboard(env, url)
       } else if (req.method === "POST") {
         if (seg === "human/solve") return await postHumanSolve(env, req)
+        if (seg === "human/training") return await postHumanTrainingProfile(env, req)
         if (seg === "ingest/corpus") return await postRegisterCorpus(env, req)
         if (seg === "ingest/rated-pool/start") return await postRatedPoolStart(env, req)
         if (seg === "ingest/rated-pool/items") return await postRatedPoolItems(env, req)
