@@ -10,6 +10,11 @@ import {
   type RatedPuzzleSort,
 } from "./rated_puzzle_pages"
 import { ratedPuzzlePosition, ratedPuzzleSummary } from "./puzzle_payloads"
+import {
+  RATED_SELECTOR_VERSION,
+  chooseRatedPuzzleId,
+  pythonRound,
+} from "./rated_seed_selector"
 
 interface RatedPoolDoc {
   schema: "chessbench.rated_puzzle_pool.v1"
@@ -38,6 +43,13 @@ interface RatedPuzzleRow {
   popularity: number
   plays: number
   payload_json: string
+}
+
+interface RatedPoolRow {
+  content_hash: string
+  name: string
+  version: string
+  item_count: number
 }
 
 const RATED_BROWSE_SORT_COLUMNS: Record<RatedPuzzleSort, string> = {
@@ -334,6 +346,113 @@ export async function getRandomRatedPuzzle(env: Env, url: URL): Promise<Response
       min_rating: minRating,
       max_rating: maxRating,
       excluded: excluded.length,
+    },
+    puzzle: ratedPuzzlePosition(
+      JSON.parse(selected.payload_json) as Record<string, unknown>,
+      selected,
+    ),
+  })
+}
+
+/** GET /api/puzzles/seeded — the exact deterministic selector used by model benchmarks. */
+export async function getSeededRatedPuzzle(env: Env, url: URL): Promise<Response> {
+  const params = url.searchParams
+  const seed = integerParam(params, "seed", 0, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
+  const sequence = integerParam(params, "sequence", 0, 0, 100_000)
+  const targetRadius = integerParam(params, "target_radius", 100, 0, 2_000)
+  const rating = Number(params.get("rating") ?? "1500")
+  if (seed == null || sequence == null || targetRadius == null || !Number.isFinite(rating) || rating < 0 || rating > 4000) {
+    return error(400, "invalid seed, sequence, target_radius, or rating")
+  }
+
+  const requestedPoolHash = params.get("pool_hash")?.trim() || null
+  if (requestedPoolHash && (requestedPoolHash.length > 128 || !/^[A-Za-z0-9:_-]+$/.test(requestedPoolHash))) {
+    return error(400, "invalid pool_hash")
+  }
+  const excluded = [...new Set(
+    (params.get("exclude") ?? "").split(",").map((value) => value.trim()).filter(Boolean),
+  )]
+  if (excluded.length > 100 || excluded.some((value) => value.length > 64)) {
+    return error(400, "exclude accepts at most 100 puzzle ids")
+  }
+
+  const pool = requestedPoolHash
+    ? await env.DB.prepare(
+      `SELECT content_hash, name, version, item_count
+         FROM rated_puzzle_pools WHERE content_hash=? LIMIT 1`,
+    ).bind(requestedPoolHash).first<RatedPoolRow>()
+    : await env.DB.prepare(
+      `SELECT content_hash, name, version, item_count
+         FROM rated_puzzle_pools WHERE active=1 ORDER BY updated_at DESC LIMIT 1`,
+    ).first<RatedPoolRow>()
+  if (!pool) return error(404, requestedPoolHash ? "rated puzzle pool not found" : "no active rated puzzle pool")
+
+  const bounds = await env.DB.prepare(
+    `SELECT MIN(rating) AS minimum_rating, MAX(rating) AS maximum_rating
+       FROM rated_puzzles WHERE content_hash=?`,
+  ).bind(pool.content_hash).first<{ minimum_rating: number | null; maximum_rating: number | null }>()
+  if (bounds?.minimum_rating == null || bounds.maximum_rating == null) {
+    return error(404, "rated puzzle pool is empty")
+  }
+
+  const target = pythonRound(rating)
+  let radius = targetRadius
+  const step = Math.max(1, targetRadius || 100)
+  const maximumRadius = Math.max(
+    Math.abs(target - bounds.minimum_rating),
+    Math.abs(bounds.maximum_rating - target),
+  )
+  const exclusions = excluded.length
+    ? ` AND puzzle_id NOT IN (${excluded.map(() => "?").join(",")})`
+    : ""
+  let selectedId: string | null = null
+  let eligibleCount = 0
+  let minimumRating = target - radius
+  let maximumRating = target + radius
+  while (radius <= maximumRadius + targetRadius) {
+    minimumRating = target - radius
+    maximumRating = target + radius
+    const candidates = await env.DB.prepare(
+      `SELECT puzzle_id FROM rated_puzzles
+        WHERE content_hash=? AND rating BETWEEN ? AND ?${exclusions}
+        ORDER BY rating ASC, puzzle_id ASC`,
+    ).bind(pool.content_hash, minimumRating, maximumRating, ...excluded).all<{ puzzle_id: string }>()
+    const puzzleIds = (candidates.results ?? []).map((candidate) => candidate.puzzle_id)
+    eligibleCount = puzzleIds.length
+    if (puzzleIds.length) {
+      selectedId = await chooseRatedPuzzleId(puzzleIds, pool.content_hash, seed, sequence)
+      break
+    }
+    radius += step
+  }
+  if (!selectedId) return error(404, "rated puzzle pool has no unused puzzle")
+
+  const selected = await env.DB.prepare(
+    `SELECT puzzle_id, rating, rating_deviation, popularity, plays, payload_json
+       FROM rated_puzzles WHERE content_hash=? AND puzzle_id=? LIMIT 1`,
+  ).bind(pool.content_hash, selectedId).first<RatedPuzzleRow>()
+  if (!selected) return error(404, "selected rated puzzle was not found")
+
+  return json({
+    schema: "chessbench.seeded_rated_puzzle_selection.v1",
+    selection_id: crypto.randomUUID(),
+    selected_at: new Date().toISOString(),
+    pool: {
+      name: pool.name,
+      version: pool.version,
+      content_hash: pool.content_hash,
+      items: pool.item_count,
+    },
+    selection: {
+      puzzle_id: selected.puzzle_id,
+      sequence,
+      target_rating: target,
+      minimum_rating: minimumRating,
+      maximum_rating: maximumRating,
+      radius,
+      eligible_count: eligibleCount,
+      seed,
+      selector_version: RATED_SELECTOR_VERSION,
     },
     puzzle: ratedPuzzlePosition(
       JSON.parse(selected.payload_json) as Record<string, unknown>,

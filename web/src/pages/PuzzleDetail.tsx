@@ -7,7 +7,7 @@ import {
   RATED_PUZZLE_PAGE_SIZE,
   loadPuzzle,
   loadPuzzleIndex,
-  loadRandomRatedPuzzle,
+  loadSeededRatedPuzzle,
   loadRatedPuzzlePage,
   ratedPuzzleQueryFromSearchParams,
   ratedPuzzleQueryParams,
@@ -20,11 +20,10 @@ import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleConti
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import {
   PROVISIONAL_DEVIATION,
-  TRAINING_RATING_RADIUS,
   humanTrainingRecord,
+  humanTrainingSelected,
   humanTrainingSession,
   humanTrainingSettled,
-  humanTrainingSkip,
   type HumanTrainingResult,
   type HumanTrainingSession,
 } from "@/lib/humanTraining"
@@ -60,6 +59,7 @@ export function PuzzleDetail() {
   const location = useLocation()
   const { apiBase } = useData()
   const training = searchParams.get("source") === "train"
+  const trainingPoolHash = training ? searchParams.get("pool_hash") : null
   const ratedIndexParam = searchParams.get("index")
   const ratedIndexValue = searchParams.get("source") === "rated" && ratedIndexParam != null
     ? Number(ratedIndexParam)
@@ -79,9 +79,9 @@ export function PuzzleDetail() {
     let active = true
     setEntry(immediateEntry)
     setError(null)
-    void loadPuzzle(id).then((value) => { if (active) setEntry(value) }).catch((reason) => { if (active) setError(String(reason)) })
+    void loadPuzzle(id, trainingPoolHash).then((value) => { if (active) setEntry(value) }).catch((reason) => { if (active) setError(String(reason)) })
     return () => { active = false }
-  }, [id, immediateEntry])
+  }, [id, immediateEntry, trainingPoolHash])
   const currentEntry = entry?.position.puzzle_id === id ? entry : immediateEntry
   if (error) return <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6"><p className="font-medium text-destructive">Failed to load puzzle {id}</p><p className="text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button></div>
   if (currentEntry === undefined) return <BoardDetailSkeleton label={`Loading puzzle ${id}`} />
@@ -102,7 +102,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const [reveal, setReveal] = useState(false)
   const [mistake, setMistake] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
-  const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition } | null>(null)
+  const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition; trainingSearch?: string } | null>(null)
   const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
   const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
   const trainingRatedRef = useRef(
@@ -110,6 +110,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   )
   const trainingRating = trainingSession.state.rating
   const trainingRecentPuzzleIds = trainingSession.recent_puzzle_ids
+  const trainingSelector = trainingSession.selector
 
   // Record public progress separately from the adaptive rating. The first wrong
   // move or full solve rates the training puzzle exactly once.
@@ -127,28 +128,38 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     let active = true
     setNextPuzzle(null)
     if (training) {
-      if (!reveal || !apiBase) return () => { active = false }
+      if (!reveal || !apiBase || !trainingSelector) return () => { active = false }
       const controller = new AbortController()
-      const selectNext = async () => {
-        let lastError: unknown
-        for (const radius of [TRAINING_RATING_RADIUS, 200, 400]) {
-          try {
-            return await loadRandomRatedPuzzle(
-              apiBase,
-              trainingRating,
-              radius,
-              trainingRecentPuzzleIds,
-              controller.signal,
-            )
-          } catch (reason) {
-            if (controller.signal.aborted) throw reason
-            lastError = reason
-          }
-        }
-        throw lastError ?? new Error("No matching training puzzle is available.")
-      }
-      void selectNext().then((selection) => {
-        if (active) setNextPuzzle({ id: selection.puzzle.puzzle_id, index: null, position: selection.puzzle })
+      void loadSeededRatedPuzzle(apiBase, {
+        rating: trainingRating,
+        seed: trainingSelector.seed,
+        sequence: trainingSelector.next_sequence,
+        targetRadius: trainingSelector.target_radius,
+        poolHash: trainingSelector.pool_hash,
+        excluded: trainingRecentPuzzleIds,
+      }, controller.signal).then((selection) => {
+        if (!active) return
+        humanTrainingSelected({
+          puzzleId: selection.puzzle.puzzle_id,
+          poolHash: selection.pool.content_hash,
+          seed: selection.selection.seed,
+          sequence: selection.selection.sequence,
+          targetRadius: trainingSelector.target_radius,
+        })
+        const params = new URLSearchParams({
+          source: "train",
+          selection: selection.selection_id,
+          seed: String(selection.selection.seed),
+          pool_hash: selection.pool.content_hash,
+          target_radius: String(trainingSelector.target_radius),
+          sequence: String(selection.selection.sequence),
+        })
+        setNextPuzzle({
+          id: selection.puzzle.puzzle_id,
+          index: null,
+          position: selection.puzzle,
+          trainingSearch: params.toString(),
+        })
       }).catch(() => {})
       return () => { active = false; controller.abort() }
     }
@@ -177,7 +188,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       setNextPuzzle(next ? { id: next.position.puzzle_id, index: null } : null)
     })
     return () => { active = false }
-  }, [apiBase, id, ratedIndex, ratedQuery, reveal, training, trainingRating, trainingRecentPuzzleIds])
+  }, [apiBase, id, ratedIndex, ratedQuery, reveal, training, trainingRating, trainingRecentPuzzleIds, trainingSelector])
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
@@ -245,7 +256,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   }
 
   function giveUp() {
-    if (training && !trainingRatedRef.current) setTrainingSession(humanTrainingSkip(id))
+    if (training && !trainingRatedRef.current) recordSolve(false, null, "revealed")
     setStatus("revealed")
     setReveal(true)
   }
@@ -255,7 +266,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const trainingState = trainingSession.state
   const trainingIsSettled = humanTrainingSettled(trainingSession)
   const trainingNextTo = nextPuzzle
-    ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?source=train`
+    ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?${nextPuzzle.trainingSearch ?? "source=train"}`
     : "/puzzles/play"
 
   return (
@@ -290,7 +301,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               {status === "playing" && !mistake && <div className="flex items-center gap-4"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Play className="size-6 fill-current" /></div><div><div className="text-xl font-semibold">Your turn</div><div className="text-sm text-muted-foreground">Find the best move for {orientation}.</div></div></div>}
               {status === "playing" && mistake && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-200"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"><X className="size-7" /></div><div><div className="text-xl font-semibold">Not the move</div><div className="text-sm text-muted-foreground">{training ? "Rated as a miss. You can still retry or review the solution." : "Try something else, or reveal the solution."}</div></div></div>}
               {status === "solved" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"><Check className="size-7" /></div><div><div className="text-xl font-semibold">Puzzle complete</div><div className="text-sm text-muted-foreground">{trainingResult && !trainingResult.solved ? "Solved on retry; the first miss was the rated result." : "You found the full line."}</div></div></div>}
-              {status === "revealed" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300"><Lightbulb className="size-7" /></div><div><div className="text-xl font-semibold">Solution revealed</div><div className="text-sm text-muted-foreground">{training && !trainingResult ? "Skipped with no rating change." : "Review the idea, then try the next one."}</div></div></div>}
+              {status === "revealed" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300"><Lightbulb className="size-7" /></div><div><div className="text-xl font-semibold">Solution revealed</div><div className="text-sm text-muted-foreground">{training ? "Rated as a miss, matching the benchmark protocol." : "Review the idea, then try the next one."}</div></div></div>}
 
               {playedSan.length > 0 && <div className="mt-5 rounded-lg border bg-muted/20 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Moves played</div><div className="mt-1 font-mono text-sm">{playedSan.join("  ")}</div></div>}
 

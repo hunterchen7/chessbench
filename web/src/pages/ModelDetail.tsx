@@ -1,8 +1,8 @@
 import { Fragment, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Scale, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Play, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadRun, type PuzzleItem, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
+import { loadRun, type PuzzleItem, type RatedSessionProtocol, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { PUZZLE_ELO_PRIOR, puzzlePerformanceRating, puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
@@ -413,7 +413,19 @@ export function ModelDetail() {
       return bands
     }, new Map<number, { low: number; n: number; solved: number; points: number }>()),
   ).map(([, band]) => band).toSorted((a, b) => a.low - b.low)
-  const adaptive = meta.protocol?.kind === "adaptive_glicko2"
+  const ratedProtocol = meta.protocol?.kind === "adaptive_glicko2"
+    ? meta.protocol as RatedSessionProtocol
+    : null
+  const adaptive = ratedProtocol != null
+  const playSameSeedPath = ratedProtocol ? (() => {
+    const params = new URLSearchParams({
+      seed: String(ratedProtocol.selection.seed),
+      pool_hash: ratedProtocol.pool.content_hash,
+      target_radius: String(ratedProtocol.selection.target_radius),
+      restart: "1",
+    })
+    return `/puzzles/play?${params}`
+  })() : null
   const performance = adaptive && meta.summary.puzzle_performance_rating
     ? meta.summary.puzzle_performance_rating
     : puzzlePerformanceRating(displayRun.items)
@@ -454,7 +466,7 @@ export function ModelDetail() {
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output-limit policy are part of this participant’s identity.</p>
       </div>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link to={comparisonPath([meta.run_id])}><GitCompareArrows /> Compare this run</Link></Button><ExportButton run={meta.run_id} label="Export this run" /></div>
+      <div className="flex flex-wrap gap-2">{playSameSeedPath && <Button asChild><Link to={playSameSeedPath}><Play /> Play same seed</Link></Button>}<Button variant="outline" asChild><Link to={comparisonPath([meta.run_id])}><GitCompareArrows /> Compare this run</Link></Button><ExportButton run={meta.run_id} label="Export this run" /></div>
     </section>
 
     {runError && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><span className="font-medium text-destructive">Detailed run data could not be loaded.</span> <span className="text-muted-foreground">{runError}</span></div>}

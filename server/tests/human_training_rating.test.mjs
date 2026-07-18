@@ -4,8 +4,10 @@ import test from "node:test"
 import {
   INITIAL_HUMAN_GLICKO_STATE,
   humanTrainingRecord,
+  humanTrainingSelected,
   humanTrainingSession,
   humanTrainingSkip,
+  startHumanTrainingSession,
   updateHumanGlicko,
 } from "../../web/src/lib/humanTraining.ts"
 
@@ -52,4 +54,26 @@ test("reveals skip without an attempt and rated outcomes are idempotent", () => 
   assert.equal(duplicate.duplicate, true)
   assert.equal(humanTrainingSession().attempts, 1)
   assert.equal(humanTrainingSession().solved, 0)
+})
+
+test("seeded human runs persist the benchmark selector sequence and pool", () => {
+  const started = startHumanTrainingSession(42, "sha256:pool", 100)
+  assert.deepEqual(started.state, INITIAL_HUMAN_GLICKO_STATE)
+  assert.deepEqual(started.selector, {
+    version: "deterministic_rating_band_v1",
+    seed: 42,
+    target_radius: 100,
+    pool_hash: "sha256:pool",
+    next_sequence: 0,
+  })
+
+  const selected = humanTrainingSelected({
+    puzzleId: "00abc",
+    poolHash: "sha256:pool",
+    seed: 42,
+    sequence: 0,
+    targetRadius: 100,
+  })
+  assert.equal(selected.selector.next_sequence, 1)
+  assert.deepEqual(selected.recent_puzzle_ids, ["00abc"])
 })

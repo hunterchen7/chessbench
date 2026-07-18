@@ -389,6 +389,25 @@ export interface RatedPuzzleSelection {
   puzzle: PuzzlePosition
 }
 
+export interface SeededRatedPuzzleSelection {
+  schema: "chessbench.seeded_rated_puzzle_selection.v1"
+  selection_id: string
+  selected_at: string
+  pool: RatedPuzzleSelection["pool"]
+  selection: {
+    puzzle_id: string
+    sequence: number
+    target_rating: number
+    minimum_rating: number
+    maximum_rating: number
+    radius: number
+    eligible_count: number
+    seed: number
+    selector_version: string
+  }
+  puzzle: PuzzlePosition
+}
+
 export interface PromptCatalogStyle {
   style: "move_only" | "json_rationale"
   response_protocol: string
@@ -870,12 +889,39 @@ export function loadRandomRatedPuzzle(
   return fetchJSON<RatedPuzzleSelection>(`${apiBase}/puzzles/random?${params}`, { signal })
 }
 
-export async function loadPuzzle(id: string): Promise<PuzzleEntry | null> {
+export function loadSeededRatedPuzzle(
+  apiBase: string | null,
+  options: {
+    rating: number
+    seed: number
+    sequence: number
+    targetRadius: number
+    poolHash?: string | null
+    excluded?: string[]
+  },
+  signal?: AbortSignal,
+): Promise<SeededRatedPuzzleSelection> {
+  if (!apiBase) return Promise.reject(new Error("Puzzle training requires the live ChessBench API."))
+  const params = new URLSearchParams({
+    rating: String(options.rating),
+    seed: String(options.seed),
+    sequence: String(options.sequence),
+    target_radius: String(options.targetRadius),
+  })
+  if (options.poolHash) params.set("pool_hash", options.poolHash)
+  if (options.excluded?.length) params.set("exclude", options.excluded.slice(-100).join(","))
+  return fetchJSON<SeededRatedPuzzleSelection>(`${apiBase}/puzzles/seeded?${params}`, { signal })
+}
+
+export async function loadPuzzle(id: string, poolHash?: string | null): Promise<PuzzleEntry | null> {
   const base = await resolveApiBase()
   if (base) {
     try {
+      const params = new URLSearchParams()
+      if (poolHash) params.set("pool_hash", poolHash)
+      const query = params.size ? `?${params}` : ""
       const doc = await fetchJSON<{ position: PuzzleItem; answers: Array<Record<string, unknown>> }>(
-        `${base}/puzzles/${encodeURIComponent(id)}`,
+        `${base}/puzzles/${encodeURIComponent(id)}${query}`,
       )
       return {
         position: doc.position,

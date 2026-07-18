@@ -7,6 +7,7 @@ export const SETTLED_DEVIATION = 75
 export const SETTLED_ATTEMPTS = 50
 export const TRAINING_RATING_RADIUS = 100
 export const TRAINING_RECENT_LIMIT = 100
+export const TRAINING_SELECTOR_VERSION = "deterministic_rating_band_v1"
 
 const MIN_RATING = 400
 const MAX_RATING = 4000
@@ -38,6 +39,15 @@ export interface HumanTrainingSession {
   recent_puzzle_ids: string[]
   recent_attempts: HumanTrainingAttempt[]
   updated_at: string | null
+  selector: HumanTrainingSelector | null
+}
+
+export interface HumanTrainingSelector {
+  version: typeof TRAINING_SELECTOR_VERSION
+  seed: number
+  target_radius: number
+  pool_hash: string | null
+  next_sequence: number
 }
 
 export interface HumanTrainingResult {
@@ -63,6 +73,7 @@ function initialSession(): HumanTrainingSession {
     recent_puzzle_ids: [],
     recent_attempts: [],
     updated_at: null,
+    selector: null,
   }
 }
 
@@ -90,6 +101,22 @@ function normalizeSession(value: unknown): HumanTrainingSession {
       Boolean(attempt) && typeof attempt === "object" && typeof attempt.puzzle_id === "string"
     )).slice(-TRAINING_RECENT_LIMIT)
     : []
+  const rawSelector = raw.selector && typeof raw.selector === "object" ? raw.selector : null
+  const selector = rawSelector &&
+    rawSelector.version === TRAINING_SELECTOR_VERSION &&
+    Number.isSafeInteger(rawSelector.seed) &&
+    Number.isSafeInteger(rawSelector.target_radius) &&
+    rawSelector.target_radius >= 0 && rawSelector.target_radius <= 2000 &&
+    Number.isSafeInteger(rawSelector.next_sequence) && rawSelector.next_sequence >= 0 &&
+    (rawSelector.pool_hash == null || typeof rawSelector.pool_hash === "string")
+    ? {
+      version: TRAINING_SELECTOR_VERSION,
+      seed: rawSelector.seed,
+      target_radius: rawSelector.target_radius,
+      pool_hash: rawSelector.pool_hash,
+      next_sequence: rawSelector.next_sequence,
+    } satisfies HumanTrainingSelector
+    : null
   return {
     version: 1,
     state,
@@ -98,6 +125,7 @@ function normalizeSession(value: unknown): HumanTrainingSession {
     recent_puzzle_ids: recentPuzzleIds,
     recent_attempts: recentAttempts,
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : null,
+    selector,
   }
 }
 
@@ -120,6 +148,48 @@ function persist(session: HumanTrainingSession): HumanTrainingSession {
 
 export function restoreHumanTrainingSession(value: unknown): HumanTrainingSession {
   return persist(normalizeSession(value))
+}
+
+export function startHumanTrainingSession(
+  seed: number,
+  poolHash: string | null = null,
+  targetRadius = TRAINING_RATING_RADIUS,
+): HumanTrainingSession {
+  if (!Number.isSafeInteger(seed)) throw new Error("Seed must be a whole safe integer.")
+  return persist({
+    ...initialSession(),
+    selector: {
+      version: TRAINING_SELECTOR_VERSION,
+      seed,
+      target_radius: targetRadius,
+      pool_hash: poolHash,
+      next_sequence: 0,
+    },
+  })
+}
+
+export function humanTrainingSelected(input: {
+  puzzleId: string
+  poolHash: string
+  seed: number
+  sequence: number
+  targetRadius: number
+}): HumanTrainingSession {
+  const current = humanTrainingSession()
+  const selector = current.selector
+  if (
+    !selector || selector.seed !== input.seed || selector.target_radius !== input.targetRadius ||
+    (selector.pool_hash != null && selector.pool_hash !== input.poolHash) ||
+    selector.next_sequence !== input.sequence
+  ) throw new Error("Training selector state changed before the puzzle was selected.")
+  return persist(withRecentPuzzle({
+    ...current,
+    selector: {
+      ...selector,
+      pool_hash: input.poolHash,
+      next_sequence: input.sequence + 1,
+    },
+  }, input.puzzleId))
 }
 
 function withRecentPuzzle(session: HumanTrainingSession, puzzleId: string): HumanTrainingSession {
@@ -245,7 +315,7 @@ export function humanTrainingRecord(
   return { before, after, session: persist(session), solved, duplicate: false }
 }
 
-/** Revealing is an unrated skip: avoid an immediate repeat without adding an attempt. */
+/** Legacy helper for imported sessions; seeded play rates reveals as benchmark losses. */
 export function humanTrainingSkip(puzzleId: string): HumanTrainingSession {
   return persist(withRecentPuzzle(humanTrainingSession(), puzzleId))
 }

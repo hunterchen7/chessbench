@@ -325,7 +325,11 @@ export async function getPuzzles(env: Env): Promise<Response> {
 }
 
 /** GET /api/puzzles/:id — a position plus how every model answered it. */
-export async function getPuzzle(env: Env, id: string): Promise<Response> {
+export async function getPuzzle(env: Env, id: string, url?: URL): Promise<Response> {
+  const poolHash = url?.searchParams.get("pool_hash")?.trim() || null
+  if (poolHash && (poolHash.length > 128 || !/^[A-Za-z0-9:_-]+$/.test(poolHash))) {
+    return error(400, "invalid pool_hash")
+  }
   const corpusItem = await env.DB.prepare(
     `SELECT c.payload_json FROM corpus_items c JOIN corpus_releases r USING(content_hash)
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
@@ -334,9 +338,9 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
     `SELECT p.puzzle_id, p.rating, p.rating_deviation, p.popularity, p.plays, p.payload_json
        FROM rated_puzzles p
        JOIN rated_puzzle_pools pool USING(content_hash)
-      WHERE p.puzzle_id=? AND pool.active=1
+      WHERE p.puzzle_id=? AND ${poolHash ? "p.content_hash=?" : "pool.active=1"}
       ORDER BY pool.updated_at DESC LIMIT 1`,
-  ).bind(id).first<RatedPuzzleMetadata & { payload_json: string }>()
+  ).bind(id, ...(poolHash ? [poolHash] : [])).first<RatedPuzzleMetadata & { payload_json: string }>()
   const { results } = await env.DB.prepare(
     `SELECT i.run_id, i.item_id, r.variant_key, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json,

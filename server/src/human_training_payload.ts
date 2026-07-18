@@ -14,6 +14,13 @@ export interface TrainingSession {
   recent_puzzle_ids: string[]
   recent_attempts: unknown[]
   updated_at: string | null
+  selector?: {
+    version: "deterministic_rating_band_v1"
+    seed: number
+    target_radius: number
+    pool_hash: string | null
+    next_sequence: number
+  } | null
 }
 
 export interface ParsedTrainingSave {
@@ -39,6 +46,14 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
   const handle = typeof raw.handle === "string" ? raw.handle.trim() : ""
   const session = raw.session as Partial<TrainingSession> | null
   const state = session?.state as Partial<TrainingState> | null
+  const selector = session?.selector
+  const validSelector = selector == null || (
+    selector.version === "deterministic_rating_band_v1" &&
+    Number.isSafeInteger(selector.seed) &&
+    Number.isSafeInteger(selector.target_radius) && selector.target_radius >= 0 && selector.target_radius <= 2_000 &&
+    (selector.pool_hash == null || (typeof selector.pool_hash === "string" && selector.pool_hash.length <= 128)) &&
+    Number.isSafeInteger(selector.next_sequence) && selector.next_sequence >= 0 && selector.next_sequence <= 100_000
+  )
   if (
     !uid || !HANDLE_PATTERN.test(handle) || session?.version !== 1 || !state ||
     !finiteInRange(state.rating, 400, 4000) ||
@@ -49,7 +64,7 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
     !Array.isArray(session.recent_puzzle_ids) || session.recent_puzzle_ids.length > 100 ||
     session.recent_puzzle_ids.some((id) => typeof id !== "string" || !id || id.length > 64) ||
     !Array.isArray(session.recent_attempts) || session.recent_attempts.length > 100 ||
-    !(session.updated_at == null || typeof session.updated_at === "string")
+    !(session.updated_at == null || typeof session.updated_at === "string") || !validSelector
   ) return null
   return { uid, handle, session: session as TrainingSession }
 }
