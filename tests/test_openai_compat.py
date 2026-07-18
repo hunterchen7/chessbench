@@ -442,6 +442,81 @@ def test_captured_reasoning_is_requested_and_retained_verbatim(monkeypatch):
     assert model.last_reasoning_details == details
 
 
+def test_openrouter_openai_keeps_reasoning_for_audit_but_does_not_replay_it(
+    monkeypatch,
+):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
+    )
+    model = OpenRouterModel(
+        "openai/gpt-5.6-sol",
+        api_key="test",
+        reasoning_effort="high",
+        reasoning_exclude=False,
+    )
+
+    model.chat(
+        [
+            {"role": "user", "content": "Your move."},
+            {
+                "role": "assistant",
+                "content": "e2e4",
+                "reasoning": "visible compatibility reasoning",
+                "reasoning_details": [
+                    {
+                        "type": "reasoning.encrypted",
+                        "data": "opaque-provider-ciphertext",
+                        "format": "openai-responses-v1",
+                        "id": "rs_test",
+                        "index": 0,
+                    }
+                ],
+            },
+            {"role": "user", "content": "The position is now ..."},
+        ],
+        max_tokens=0,
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    messages = payload["messages"]
+    assert isinstance(messages, list)
+    assistant = messages[1]
+    assert isinstance(assistant, dict)
+    assert assistant == {"role": "assistant", "content": "e2e4"}
+
+
+def test_openrouter_non_openai_still_replays_provider_reasoning(monkeypatch):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
+    )
+    model = OpenRouterModel("anthropic/claude-fable-5", api_key="test")
+    details = [
+        {
+            "type": "reasoning.text",
+            "text": "preserve me",
+            "format": "anthropic-claude-v1",
+            "index": 0,
+        }
+    ]
+
+    model.chat(
+        [
+            {"role": "assistant", "content": "e2e4", "reasoning_details": details},
+            {"role": "user", "content": "The position is now ..."},
+        ],
+        max_tokens=0,
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    messages = payload["messages"]
+    assert isinstance(messages, list)
+    assistant = messages[0]
+    assert isinstance(assistant, dict)
+    assert assistant["reasoning_details"] == details
+
+
 def test_provider_route_is_sent_without_tools(monkeypatch):
     captured = _capture_request(
         monkeypatch, {"choices": [{"message": {"content": "h5h4"}}]}

@@ -280,9 +280,27 @@ class _OpenAICompatModel:
         self.last_reasoning_details = None
         if not self._api_key:
             raise ModelError(f"No API key: set {self._env_var} or pass api_key=.")
+
+        # OpenRouter can expose OpenAI Responses-style encrypted reasoning
+        # blocks on a Chat Completions response, but those opaque artifacts are
+        # not reliably replayable through a later Chat Completions request. In
+        # particular, GPT-5.6 may reject the byte-for-byte block returned by
+        # OpenRouter with ``invalid_encrypted_content``. ChessBench has no tool
+        # call to continue, so hidden provider state is not part of the semantic
+        # conversation contract: retain it in the audit record, but replay only
+        # the visible assistant move and the authoritative board prompts.
+        wire_messages = deepcopy(messages)
+        if self._base_url.startswith("https://openrouter.ai") and self._model.startswith(
+            "openai/"
+        ):
+            for value in wire_messages:
+                if isinstance(value, dict) and value.get("role") == "assistant":
+                    value.pop("reasoning_details", None)
+                    value.pop("reasoning", None)
+                    value.pop("reasoning_content", None)
         payload: dict[str, object] = {
             "model": self._model,
-            "messages": messages,
+            "messages": wire_messages,
             "temperature": temperature,
         }
         if max_tokens > 0:
