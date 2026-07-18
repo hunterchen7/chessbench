@@ -19,6 +19,10 @@ import {
   type RunItemPayloadChunks,
   type StoredRunItemPayloadChunk,
 } from "./run_item_payloads"
+import {
+  adaptiveSolverRatingSnapshot,
+  type AdaptiveSolverRatingSnapshot,
+} from "./adaptive_rating"
 
 const now = () => new Date().toISOString()
 
@@ -247,6 +251,27 @@ const refreshAggregate = (env: Env, runId: string, stamp: string) =>
     runId, runId, runId, runId, stamp, runId,
   )
 
+const refreshAdaptiveRating = (
+  env: Env,
+  runId: string,
+  sequence: number,
+  snapshot: AdaptiveSolverRatingSnapshot,
+) => env.DB.prepare(
+  `UPDATE benchmark_runs_v2 SET
+     puzzle_rating=?, puzzle_rating_stderr=?,
+     puzzle_rating_n=(SELECT COUNT(*) FROM benchmark_items_v2 WHERE run_id=?),
+     puzzle_rating_bounded=1
+   WHERE run_id=?
+     AND ?=(SELECT MAX(sequence) FROM benchmark_items_v2 WHERE run_id=?)`,
+).bind(
+  snapshot.rating,
+  snapshot.ratingDeviation,
+  runId,
+  runId,
+  sequence,
+  runId,
+)
+
 interface PuzzleRatingEstimate {
   rating: number
   stderr: number | null
@@ -421,6 +446,7 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
   if (!run) throw new Error(`unknown run: ${item.run_id}`)
   const resolvedPayload = await resolveRunItemPayload(env, item)
   const payload = resolvedPayload.payload
+  const adaptiveRating = adaptiveSolverRatingSnapshot(payload)
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO benchmark_items_v2
@@ -467,6 +493,9 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       stamp,
     ),
     refreshAggregate(env, item.run_id, stamp),
+    ...(adaptiveRating
+      ? [refreshAdaptiveRating(env, item.run_id, item.sequence, adaptiveRating)]
+      : []),
     env.DB.prepare(
       `INSERT INTO benchmark_events_v2 (run_id, kind, detail, created_at)
        VALUES (?, 'item_upserted', ?, ?)`,

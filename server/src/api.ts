@@ -78,8 +78,36 @@ function publicRun(row: RunRow) {
   const scoringItems = stoppedByPolicy ? row.total_items : row.completed_items
   const threshold = Number(row.error?.match(/Stopped after (\d+) consecutive/)?.[1] ?? 0) || null
   const storedRating = storedSummary?.puzzle_performance_rating as Record<string, unknown> | undefined
-  const puzzleRating = adaptive && storedRating
-    ? storedRating
+  const adaptiveRatingProtocol = adaptive
+    ? protocol.rating as Record<string, unknown> | undefined
+    : undefined
+  const adaptiveStopping = adaptive
+    ? protocol.stopping as Record<string, unknown> | undefined
+    : undefined
+  const adaptiveDeviation = row.puzzle_rating_stderr
+  const adaptiveMinimum = Number(adaptiveStopping?.minimum_puzzles ?? 50)
+  const adaptiveTargetDeviation = Number(adaptiveStopping?.target_rating_deviation ?? 75)
+  const adaptiveProvisional =
+    row.completed_items < adaptiveMinimum ||
+    adaptiveDeviation == null ||
+    adaptiveDeviation > adaptiveTargetDeviation
+  const liveAdaptiveRating = adaptive && row.puzzle_rating != null ? {
+    rating: row.puzzle_rating,
+    stderr: adaptiveDeviation,
+    rating_deviation: adaptiveDeviation,
+    ci95: adaptiveDeviation == null ? null : [
+      row.puzzle_rating - 2 * adaptiveDeviation,
+      row.puzzle_rating + 2 * adaptiveDeviation,
+    ],
+    n: row.puzzle_rating_n || row.completed_items,
+    bounded: Boolean(row.puzzle_rating_bounded),
+    method: String(adaptiveRatingProtocol?.version ?? "lichess_glicko2_frozen_puzzles_v1"),
+    provisional: adaptiveProvisional,
+    settled: row.status === "completed" && !adaptiveProvisional,
+    prior: adaptiveRatingProtocol?.initial,
+  } : null
+  const puzzleRating = adaptive
+    ? storedRating ?? liveAdaptiveRating
     : row.puzzle_rating == null ? null : {
         rating: row.puzzle_rating,
         stderr: row.puzzle_rating_stderr,
