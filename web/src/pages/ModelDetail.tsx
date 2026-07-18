@@ -2,7 +2,7 @@ import { Fragment, type KeyboardEvent, useCallback, useEffect, useMemo, useState
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadRun, type PuzzleItem, type Run, type RunIndexEntry } from "@/lib/data"
+import { loadRun, type PuzzleItem, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { PUZZLE_ELO_PRIOR, puzzlePerformanceRating, puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
@@ -43,6 +43,19 @@ function summaryRatingText(run: RunIndexEntry) {
   if (!estimate) return "—"
   if (!estimate.bounded) return estimate.rating <= 0 ? "≤0" : "≥4,000"
   return Math.round(estimate.rating).toLocaleString()
+}
+
+function terminationStatusLabel(termination: RunTermination) {
+  if (termination.kind === "rating_settled") return "Settled"
+  if (termination.kind === "operator_rounded") return "Rounded"
+  return "Stopped"
+}
+
+function terminationTitle(termination: RunTermination) {
+  if (termination.kind === "rating_settled") return "Rating uncertainty reached the stopping target"
+  if (termination.kind === "operator_rounded") return "Rating uncertainty rounded to the stopping target"
+  if (termination.kind === "maximum_puzzles") return "Completed at the rated-session safety cap"
+  return "Completed by the consecutive-miss stopping rule"
 }
 
 function Stat({ label, value, note, icon: Icon, loading = false }: { label: string; value: string; note: string; icon: typeof Scale; loading?: boolean }) {
@@ -224,7 +237,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
         <p className="max-w-3xl text-xs text-muted-foreground">{adaptive ? "The exact Glicko state after every deterministically selected puzzle. Puzzle ratings remain frozen; the shaded 95% uncertainty band changes with every win or loss." : <>A shared timeline for cumulative points, per-puzzle outcomes, and Bayesian complete-solve Puzzle Elo in {ratingOrdered ? "rating-ascending order" : "the suite’s frozen historical order"}. The shaded 95% posterior band narrows as evidence accumulates.</>}</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 text-[11px]">
-        <span className="text-muted-foreground">{hoveredIndex == null ? (termination ? `${termination.kind === "rating_settled" ? "Settled" : "Stopped"} after ${items.length} puzzles` : "Final") : `Puzzle ${hoveredIndex + 1}/${items.length}`}</span>
+        <span className="text-muted-foreground">{hoveredIndex == null ? (termination ? `${terminationStatusLabel(termination)} after ${items.length} puzzles` : "Final") : `Puzzle ${hoveredIndex + 1}/${items.length}`}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full bg-violet-500" /><span className="font-mono font-semibold text-violet-700 dark:text-violet-300">{Math.round(displayed.elo).toLocaleString()}</span><span className="font-mono text-muted-foreground">RD {Math.round(displayed.eloDeviation).toLocaleString()}</span>{displayed.eloProvisional ? <Badge variant="outline" className="h-4 px-1 text-[8px] uppercase tracking-wide">provisional</Badge> : null}</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-emerald-500" /><span className="font-mono font-semibold text-emerald-700 dark:text-emerald-300">{displayed.cumulativePoints.toFixed(2)}/{maxPoints.toFixed(0)}</span></span>
       </div>
@@ -490,7 +503,7 @@ export function ModelDetail() {
       </CardContent>
     </Card>
 
-    {meta.termination ? <Card className={cn(meta.termination.kind === "rating_settled" ? "border-emerald-500/35 bg-emerald-500/[0.055]" : "border-amber-500/35 bg-amber-500/[0.055]")}><CardContent className="flex gap-3 py-5"><Info className={cn("mt-0.5 size-5 shrink-0", meta.termination.kind === "rating_settled" ? "text-emerald-600 dark:text-emerald-300" : "text-amber-600 dark:text-amber-300")} /><div><div className="font-semibold">{meta.termination.kind === "rating_settled" ? "Rating uncertainty reached the stopping target" : meta.termination.kind === "maximum_puzzles" ? "Completed at the rated-session safety cap" : "Completed by the consecutive-miss stopping rule"}</div><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{meta.termination.message}</p>{meta.termination.kind === "consecutive_unsolved" ? <p className="mt-1 text-xs text-muted-foreground">The fixed suite keeps its full denominator: {meta.termination.unattempted} unattempted tail puzzles receive zero points, while the answer sheet preserves only genuine model responses.</p> : <p className="mt-1 text-xs text-muted-foreground">Adaptive sessions contain only genuine attempts. Stopping at convergence does not add synthetic losses or change the frozen puzzle ratings.</p>}</div></CardContent></Card> : null}
+    {meta.termination ? <Card className={cn(meta.termination.kind === "rating_settled" ? "border-emerald-500/35 bg-emerald-500/[0.055]" : "border-amber-500/35 bg-amber-500/[0.055]")}><CardContent className="flex gap-3 py-5"><Info className={cn("mt-0.5 size-5 shrink-0", meta.termination.kind === "rating_settled" ? "text-emerald-600 dark:text-emerald-300" : "text-amber-600 dark:text-amber-300")} /><div><div className="font-semibold">{terminationTitle(meta.termination)}</div><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{meta.termination.message}</p>{meta.termination.kind === "consecutive_unsolved" ? <p className="mt-1 text-xs text-muted-foreground">The fixed suite keeps its full denominator: {meta.termination.unattempted} unattempted tail puzzles receive zero points, while the answer sheet preserves only genuine model responses.</p> : meta.termination.kind === "operator_rounded" ? <p className="mt-1 text-xs text-muted-foreground">The exact RD remains stored for auditability; only its whole-number display was accepted as the stopping target. No synthetic results were added.</p> : <p className="mt-1 text-xs text-muted-foreground">Adaptive sessions contain only genuine attempts. Stopping at convergence does not add synthetic losses or change the frozen puzzle ratings.</p>}</div></CardContent></Card> : null}
 
     <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />

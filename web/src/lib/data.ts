@@ -198,13 +198,15 @@ export type RunStatus = "queued" | "running" | "partial" | "completed" | "failed
 export type Track = "puzzle" | "woodpecker" | "esoteric" | "game"
 
 export interface RunTermination {
-  kind: "consecutive_unsolved" | "rating_settled" | "maximum_puzzles"
+  kind: "consecutive_unsolved" | "rating_settled" | "maximum_puzzles" | "operator_rounded"
   threshold?: number | null
   attempted: number
   unattempted?: number
   unattempted_score?: 0
   maximum?: number
   target_rating_deviation?: number
+  actual_rating_deviation?: number
+  display_rating_deviation?: number
   message?: string | null
 }
 

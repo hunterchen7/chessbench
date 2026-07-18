@@ -23,6 +23,7 @@ import {
   adaptiveSolverRatingSnapshot,
   type AdaptiveSolverRatingSnapshot,
 } from "./adaptive_rating"
+import { acceptsRoundedRatedCompletion } from "./run_completion"
 
 const now = () => new Date().toISOString()
 
@@ -544,16 +545,34 @@ export async function finishRun(
   const stopping = protocol?.stopping as Record<string, unknown> | undefined
   const suppliedRating = doc.summary?.puzzle_performance_rating as Record<string, unknown> | undefined
   const finalDeviation = Number(suppliedRating?.rating_deviation ?? suppliedRating?.stderr)
+  const targetDeviation = Number(stopping?.target_rating_deviation ?? -Infinity)
   const settledRating =
     requested === "completed" &&
     protocol?.kind === "adaptive_glicko2" &&
     termination?.kind === "rating_settled" &&
     Number(termination.attempted) === row.completed_items &&
     row.completed_items >= Number(stopping?.minimum_puzzles ?? Infinity) &&
-    finalDeviation <= Number(stopping?.target_rating_deviation ?? -Infinity) &&
+    finalDeviation <= targetDeviation &&
     suppliedRating?.settled === true &&
     row.completed_items < row.total_items
-  if (requested === "completed" && row.completed_items !== row.total_items && !stoppedByPolicy && !settledRating) {
+  const roundedRating = acceptsRoundedRatedCompletion({
+    requested,
+    protocolKind: protocol?.kind,
+    termination,
+    suppliedRating,
+    completedItems: row.completed_items,
+    totalItems: row.total_items,
+    minimumPuzzles: Number(stopping?.minimum_puzzles ?? Infinity),
+    targetDeviation,
+    finalDeviation,
+  })
+  if (
+    requested === "completed" &&
+    row.completed_items !== row.total_items &&
+    !stoppedByPolicy &&
+    !settledRating &&
+    !roundedRating
+  ) {
     throw new Error(`cannot complete ${doc.run_id}: ${row.completed_items}/${row.total_items} items present`)
   }
   const stamp = now()
