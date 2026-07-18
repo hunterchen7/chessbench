@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type UIEvent } from "react"
 import { Link } from "react-router-dom"
-import { ChevronLeft, ChevronRight, Database, Gauge, LoaderCircle, RotateCcw } from "lucide-react"
+import { ChevronLeft, ChevronRight, Database, Gauge, RotateCcw } from "lucide-react"
 import { loadRatedPuzzlePage, type RatedPuzzlePage } from "@/lib/data"
 import { humanStore } from "@/lib/human"
 import { useData } from "@/lib/useData"
@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const PAGE_SIZE = 200
 const ROW_HEIGHT = 68
 const HEADER_HEIGHT = 44
 const OVERSCAN_ROWS = 8
 const MAX_CACHED_PAGES = 9
+const INITIAL_SKELETON_ROWS = Array.from({ length: 5 }, (_, index) => index)
 
 function pageForIndex(index: number) {
   return Math.floor(index / PAGE_SIZE) + 1
@@ -22,6 +24,17 @@ function pageForIndex(index: number) {
 
 function rowLabel(index: number) {
   return (index + 1).toLocaleString()
+}
+
+function RatedPuzzleRowSkeleton() {
+  return <>
+    <div className="space-y-2 pl-4" role="cell"><Skeleton className="h-4 w-24" /><Skeleton className="h-2.5 w-16" /></div>
+    <div className="flex justify-end" role="cell"><Skeleton className="h-4 w-12" /></div>
+    <div className="flex justify-end" role="cell"><Skeleton className="h-3 w-9" /></div>
+    <div className="flex gap-2 pl-5" role="cell"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-16" /></div>
+    <div className="flex justify-end" role="cell"><Skeleton className="h-3 w-14" /></div>
+    <div className="flex justify-center" role="cell"><Skeleton className="h-3 w-8" /></div>
+  </>
 }
 
 export function RatedPuzzleBrowser() {
@@ -34,7 +47,6 @@ export function RatedPuzzleBrowser() {
   const controllersRef = useRef(new Map<number, AbortController>())
   const centerPageRef = useRef(1)
   const [pages, setPages] = useState(() => new Map<number, RatedPuzzlePage>())
-  const [loadingPages, setLoadingPages] = useState(() => new Set<number>())
   const [failedPages, setFailedPages] = useState(() => new Set<number>())
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(680)
@@ -56,7 +68,6 @@ export function RatedPuzzleBrowser() {
     if (!apiBase || page < 1 || cacheRef.current.has(page) || controllersRef.current.has(page)) return
     const controller = new AbortController()
     controllersRef.current.set(page, controller)
-    setLoadingPages((current) => new Set(current).add(page))
     setFailedPages((current) => {
       if (!current.has(page)) return current
       const next = new Set(current)
@@ -88,11 +99,6 @@ export function RatedPuzzleBrowser() {
     }).finally(() => {
       if (controllersRef.current.get(page) !== controller) return
       controllersRef.current.delete(page)
-      setLoadingPages((current) => {
-        const next = new Set(current)
-        next.delete(page)
-        return next
-      })
     })
   }, [apiBase, replaceCache])
 
@@ -100,7 +106,6 @@ export function RatedPuzzleBrowser() {
     replaceCache(new Map())
     poolHashRef.current = null
     setFailedPages(new Set())
-    setLoadingPages(new Set())
     for (const controller of controllersRef.current.values()) controller.abort()
     controllersRef.current.clear()
     if (apiBase) loadPage(1)
@@ -132,15 +137,12 @@ export function RatedPuzzleBrowser() {
     const lastPage = pageForIndex(lastIndex)
     const wanted = new Set<number>()
     for (let page = Math.max(1, firstPage - 1); page <= Math.min(totalPages, lastPage + 1); page++) wanted.add(page)
-    const canceled = new Set<number>()
     for (const [page, controller] of controllersRef.current) {
       if (!wanted.has(page)) {
         controller.abort()
         controllersRef.current.delete(page)
-        canceled.add(page)
       }
     }
-    if (canceled.size) setLoadingPages((current) => new Set([...current].filter((page) => !canceled.has(page))))
     wanted.forEach(loadPage)
   }, [firstIndex, lastIndex, loadPage, totalItems, totalPages])
 
@@ -178,9 +180,9 @@ export function RatedPuzzleBrowser() {
     jumpToPage(Number(pageInput))
   }
 
-  if (!apiBase) return <Card className="border-dashed"><CardContent className="py-16 text-center"><Database className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-4 text-xl font-semibold">Rated pool unavailable offline</h1><p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">The 100,000-puzzle pool lives in D1 and is intentionally not bundled into the static site. Connect the ChessBench API to browse it.</p></CardContent></Card>
+  if (!apiBase) return <Card className="border-dashed"><CardContent className="py-16 text-center"><Database className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-4 text-xl font-semibold">Rated pool unavailable offline</h1><p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">The full rated pool is available through the live ChessBench API and is not bundled into the static site.</p></CardContent></Card>
 
-  if (!pool && failedPages.has(1)) return <Card className="border-destructive/30"><CardContent className="py-16 text-center"><h1 className="text-xl font-semibold text-destructive">Could not load the rated puzzle pool</h1><p className="mt-2 text-sm text-muted-foreground">The D1 page request failed before pool metadata was available.</p><Button variant="outline" className="mt-5" onClick={() => loadPage(1)}><RotateCcw /> Try again</Button></CardContent></Card>
+  if (!pool && failedPages.has(1)) return <Card className="border-destructive/30"><CardContent className="py-16 text-center"><h1 className="text-xl font-semibold text-destructive">Could not load the rated puzzle pool</h1><p className="mt-2 text-sm text-muted-foreground">The puzzle page request failed before pool metadata was available.</p><Button variant="outline" className="mt-5" onClick={() => loadPage(1)}><RotateCcw /> Try again</Button></CardContent></Card>
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-6">
@@ -195,10 +197,9 @@ export function RatedPuzzleBrowser() {
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b bg-muted/15 px-4 py-3">
         <div className="min-w-0">
-          <div className="font-medium">{pool ? `${pool.name} · v${pool.version}` : "Loading active pool…"}</div>
-          <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{pool?.content_hash.replace("sha256:", "") ?? "Reading pool identity from D1"}</div>
+          {pool ? <><div className="font-medium">{pool.name} · v{pool.version}</div><div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{pool.content_hash.replace("sha256:", "")}</div></> : <div className="space-y-2" aria-label="Loading active rated pool"><Skeleton className="h-4 w-56" /><Skeleton className="h-2.5 w-36" /></div>}
         </div>
-        {pool ? <Badge variant="secondary" className="tabular-nums">{totalItems.toLocaleString()} puzzles</Badge> : <LoaderCircle className="size-4 animate-spin text-muted-foreground" />}
+        {pool ? <Badge variant="secondary" className="tabular-nums">{totalItems.toLocaleString()} puzzles</Badge> : <Skeleton className="h-5 w-20" />}
         <div className="ml-auto flex items-center gap-2">
           <Button variant="outline" size="icon-sm" disabled={currentPage <= 1} onClick={() => jumpToPage(currentPage - 1)} aria-label="Previous page"><ChevronLeft /></Button>
           <form className="flex items-center gap-2 text-xs text-muted-foreground" onSubmit={submitPage}>
@@ -230,13 +231,12 @@ export function RatedPuzzleBrowser() {
                 <div className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{(puzzle.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>
                 <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{(puzzle.plays ?? 0).toLocaleString()}</div>
                 <div className="text-center text-xs text-muted-foreground" role="cell">{store[puzzle.puzzle_id]?.solved ? "solved" : store[puzzle.puzzle_id] ? "retry" : "—"}</div>
-              </> : <div className="col-span-6 pl-4" role="cell">{failed ? <button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button> : <div className="h-4 w-2/3 max-w-xl animate-pulse rounded bg-muted" />}</div>}
+              </> : failed ? <div className="col-span-6 pl-4" role="cell"><button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button></div> : <RatedPuzzleRowSkeleton />}
             </div>
           })}
-          {!totalItems ? <div className="absolute inset-x-0 top-11 grid h-[376px] place-items-center text-sm text-muted-foreground"><span className="inline-flex items-center gap-2"><LoaderCircle className="size-4 animate-spin" /> Loading page 1 from D1…</span></div> : null}
+          {!totalItems ? INITIAL_SKELETON_ROWS.map((index) => <div key={index} className="absolute left-0 grid w-full grid-cols-[72px_minmax(160px,1fr)_100px_90px_minmax(250px,1.5fr)_110px_90px] items-center border-b px-3" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)` }} role="row" aria-hidden="true"><div className="flex justify-end" role="cell"><Skeleton className="h-3 w-5" /></div><RatedPuzzleRowSkeleton /></div>) : null}
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/10 px-4 py-2 text-[11px] text-muted-foreground"><span>{PAGE_SIZE} rows per API page · {pages.size} cached{loadingPages.size ? ` · ${loadingPages.size} loading` : ""} · {MAX_CACHED_PAGES} page cache limit</span><span className="tabular-nums">Viewing rows {totalItems ? `${rowLabel(firstIndex)}–${rowLabel(lastIndex)}` : "—"} · page {currentPage.toLocaleString()}</span></div>
     </Card>
   </div>
 }
