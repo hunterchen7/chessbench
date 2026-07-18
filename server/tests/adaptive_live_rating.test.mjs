@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { adaptiveSolverRatingSnapshot } from "../src/adaptive_rating.ts"
+import { adaptiveRatingSampleCount, adaptiveSolverRatingSnapshot } from "../src/adaptive_rating.ts"
 
 test("extracts the live Glicko estimate from an adaptive puzzle result", () => {
   assert.deepEqual(adaptiveSolverRatingSnapshot({
@@ -22,4 +22,9 @@ test("does not confuse source-puzzle rating with solver rating", () => {
   assert.equal(adaptiveSolverRatingSnapshot({
     solver_rating_after: { rating: 1475, rating_deviation: -1 },
   }), null)
+})
+
+test("derives sample count from sequence so out-of-order retries stay consistent", () => {
+  assert.equal(adaptiveRatingSampleCount(0), 1)
+  assert.equal(adaptiveRatingSampleCount(13), 14)
 })

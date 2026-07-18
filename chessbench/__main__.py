@@ -102,8 +102,14 @@ def _usage_float(value: object) -> float:
     return float(value) if isinstance(value, (str, int, float)) else 0.0
 
 
-def _sync_completed_run(db_path: str, run_id: str, *, disabled: bool = False) -> None:
-    """Best-effort publish after local completion; the SQLite outbox stays canonical."""
+def _sync_run_outbox(
+    db_path: str,
+    run_id: str,
+    *,
+    disabled: bool = False,
+    finish: bool,
+) -> None:
+    """Best-effort publish; the local SQLite outbox remains canonical."""
     if disabled:
         print("publish: skipped by --no-sync")
         return
@@ -118,10 +124,10 @@ def _sync_completed_run(db_path: str, run_id: str, *, disabled: bool = False) ->
 
     try:
         with BenchmarkStore(db_path) as store:
-            sent, failed = sync_run(store, api, token, run_id)
+            sent, failed = sync_run(store, api, token, run_id, finish=finish)
     except Exception as exc:
         print(
-            f"[warn] Cloudflare publish failed; the complete run remains in the "
+            f"[warn] Cloudflare publish failed; the run remains in the "
             f"local outbox: {type(exc).__name__}: {exc}",
             file=sys.stderr,
         )
@@ -132,7 +138,18 @@ def _sync_completed_run(db_path: str, run_id: str, *, disabled: bool = False) ->
             file=sys.stderr,
         )
     else:
-        print(f"publish: Cloudflare D1 is current ({sent} newly delivered item(s))")
+        label = "final" if finish else "live"
+        print(f"publish: Cloudflare D1 {label} state is current ({sent} newly delivered item(s))")
+
+
+def _sync_completed_run(db_path: str, run_id: str, *, disabled: bool = False) -> None:
+    """Publish all remaining items and the terminal run state."""
+    _sync_run_outbox(db_path, run_id, disabled=disabled, finish=True)
+
+
+def _sync_live_run(db_path: str, run_id: str, *, disabled: bool = False) -> None:
+    """Publish paid items without falsely finalizing an active run."""
+    _sync_run_outbox(db_path, run_id, disabled=disabled, finish=False)
 
 
 def _turn_usage_totals(
@@ -1131,6 +1148,8 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
 
     if args.max_new_items is not None and args.max_new_items < 1:
         raise ValueError("--max-new-items must be positive")
+    if args.live_sync_every < 0:
+        raise ValueError("--live-sync-every cannot be negative")
     if args.accept_rounded_rating and args.export_only:
         raise ValueError("--accept-rounded-rating and --export-only are mutually exclusive")
     if args.request_timeout <= 0:
@@ -1461,6 +1480,8 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
                     f"rating {state.rating:,.0f} ± {state.deviation:.0f}  "
                     f"solved {sum(item.solved for item in ordered_results)}"
                 )
+            if args.live_sync_every and len(ordered_results) % args.live_sync_every == 0:
+                _sync_live_run(args.db, handle.run_id, disabled=args.no_sync)
     except BaseException as exc:
         store.mark_partial(handle.run_id, str(exc))
         try:
@@ -2430,6 +2451,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     rated.add_argument("--max-new-items", type=int, default=None)
     rated.add_argument("--progress", type=int, default=5)
+    rated.add_argument(
+        "--live-sync-every",
+        type=int,
+        default=5,
+        help="publish current attempts and provisional rating every N puzzles (0 disables)",
+    )
     rated.add_argument("--request-timeout", type=float, default=120.0)
     rated.add_argument("--temperature", type=float, default=1.0)
     rated.add_argument(

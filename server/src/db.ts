@@ -20,6 +20,7 @@ import {
   type StoredRunItemPayloadChunk,
 } from "./run_item_payloads"
 import {
+  adaptiveRatingSampleCount,
   adaptiveSolverRatingSnapshot,
   type AdaptiveSolverRatingSnapshot,
 } from "./adaptive_rating"
@@ -260,14 +261,14 @@ const refreshAdaptiveRating = (
 ) => env.DB.prepare(
   `UPDATE benchmark_runs_v2 SET
      puzzle_rating=?, puzzle_rating_stderr=?,
-     puzzle_rating_n=(SELECT COUNT(*) FROM benchmark_items_v2 WHERE run_id=?),
+     puzzle_rating_n=?,
      puzzle_rating_bounded=1
    WHERE run_id=?
      AND ?=(SELECT MAX(sequence) FROM benchmark_items_v2 WHERE run_id=?)`,
 ).bind(
   snapshot.rating,
   snapshot.ratingDeviation,
-  runId,
+  adaptiveRatingSampleCount(sequence),
   runId,
   sequence,
   runId,

@@ -110,6 +110,29 @@ def test_sync_run_marks_items_only_after_remote_acknowledgement(tmp_path):
         assert store.unsynced_item_documents(run_id) == []
 
 
+def test_sync_run_can_publish_live_items_without_finishing(tmp_path):
+    calls: list[str] = []
+
+    def fake_post(
+        api: str, token: str, path: str, document: dict[str, object]
+    ) -> dict[str, object]:
+        calls.append(path)
+        return {"ok": True}
+
+    with BenchmarkStore(tmp_path / "bench.db") as store:
+        run_id = _completed_run(store)
+        assert sync_run(
+            store,
+            "https://example.test",
+            "secret",
+            run_id,
+            post_document=fake_post,
+            finish=False,
+        ) == (1, 0)
+        assert calls == ["ingest/run/start", "ingest/run/item"]
+        assert store.unsynced_item_documents(run_id) == []
+
+
 def test_sync_run_keeps_failed_items_in_local_outbox(tmp_path):
     calls: list[str] = []
 

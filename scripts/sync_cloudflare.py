@@ -28,6 +28,11 @@ def main() -> int:
     parser.add_argument(
         "--run", default=None, help="sync one run id (default: every local run)"
     )
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="publish current items while leaving the remote run in progress",
+    )
     args = parser.parse_args()
     if not args.api or not args.token:
         parser.error(
@@ -49,7 +54,7 @@ def main() -> int:
         )
         for run_id in run_ids:
             print(f"sync {run_id}")
-            s, f = sync_run(store, args.api, args.token, run_id)
+            s, f = sync_run(store, args.api, args.token, run_id, finish=not args.live)
             sent += s
             failed += f
     print(f"synced {sent} item(s); {failed} failed and remain in the outbox")

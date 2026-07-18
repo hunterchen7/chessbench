@@ -117,8 +117,9 @@ def sync_run(
     run_id: str,
     *,
     post_document: PostDocument = post,
+    finish: bool = True,
 ) -> tuple[int, int]:
-    """Deliver one run, retaining failed items in the durable local outbox."""
+    """Deliver one run, optionally leaving the remote row live and running."""
     post_document(api, token, "ingest/run/start", store.run_start_document(run_id))
     sent = 0
     failed = 0
@@ -138,7 +139,7 @@ def sync_run(
             continue
         store.mark_item_synced(run_id, str(item["item_id"]))
         sent += 1
-    if failed == 0:
+    if finish and failed == 0:
         post_document(
             api, token, "ingest/run/finish", store.run_finish_document(run_id)
         )

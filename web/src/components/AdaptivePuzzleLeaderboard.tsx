@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { effectiveReasoningEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
+import { reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
 import { cn } from "@/lib/utils"
 
 function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSessionProtocol } {
@@ -22,6 +22,30 @@ function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSe
 
 function rating(run: RunIndexEntry) {
   return run.summary.puzzle_performance_rating
+}
+
+function aggregateIsProvisional(aggregate: RatedRunAggregate) {
+  return aggregate.ratingRuns.some((run) => rating(run)?.provisional !== false)
+}
+
+function RatingEstimate({
+  rating: value,
+  deviation,
+  provisional,
+  className = "text-xl",
+}: {
+  rating: number | null
+  deviation: number | null
+  provisional: boolean
+  className?: string
+}) {
+  if (value == null) return <><div className={cn("font-mono font-semibold", className)}>—</div><div className="text-[10px] text-muted-foreground">rating syncing</div></>
+  return <>
+    <div className={cn("whitespace-nowrap font-mono font-semibold tabular-nums", className)}>{Math.round(value).toLocaleString()}</div>
+    <div className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+      RD {deviation == null ? "—" : Math.round(deviation).toLocaleString()}{provisional ? " · provisional" : " · settled"}
+    </div>
+  </>
 }
 
 function runPath(run: RunIndexEntry) {
@@ -57,7 +81,7 @@ function savedLeaderboardView(): LeaderboardView {
 }
 
 function reasoningEffort(run: RunIndexEntry) {
-  return effectiveReasoningEffort(run.model_variant)
+  return reasoningConfigurationEffort(run.model_variant)
 }
 
 function aggregateStatusRank(aggregate: RatedRunAggregate) {
@@ -484,8 +508,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           return [<TableRow key={`configuration::${aggregate.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></TableCell>
-            <TableCell className="text-right"><div className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums">{aggregate.meanRating == null ? "—" : Math.round(aggregate.meanRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{aggregate.ratingRuns.length > 1 ? `mean of ${aggregate.ratingRuns.length} runs` : aggregate.ratingRuns.length === 0 ? "rating syncing" : aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") ? "current estimate" : "single run"}</div></TableCell>
-            <TableCell className="text-right"><div className="font-mono font-medium tabular-nums">{aggregate.runStandardDeviation == null ? "—" : `±${Math.round(aggregate.runStandardDeviation)}`}</div><div className="text-[10px] text-muted-foreground">{aggregate.runStandardDeviation == null ? "single run" : "between runs"}</div></TableCell>
+            <TableCell className="text-right"><RatingEstimate rating={aggregate.meanRating} deviation={aggregate.meanRatingDeviation} provisional={aggregateIsProvisional(aggregate)} /></TableCell>
+            <TableCell className="text-right"><div className="font-mono font-medium tabular-nums">{aggregate.runStandardDeviation == null ? "—" : `±${Math.round(aggregate.runStandardDeviation)}`}</div><div className="text-[10px] text-muted-foreground">{aggregate.runStandardDeviation == null ? "1 run · RD shown with rating" : "between runs"}</div></TableCell>
             <TableCell className="text-right"><div className="font-mono font-medium">{aggregate.solved}–{aggregate.attempted - aggregate.solved}</div><div className="text-[10px] text-muted-foreground">{aggregate.attempted ? `${(aggregate.solved / aggregate.attempted * 100).toFixed(1)}% solved` : "—"}</div></TableCell>
             <TableCell className="text-right font-mono tabular-nums">{aggregate.attempted.toLocaleString()}</TableCell>
             <TableCell className="text-right font-mono tabular-nums">{visibleRunCount}</TableCell>
@@ -500,7 +524,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           const rows = [<TableRow key={`model::${group.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", modelGroupStatusRank(group) === 3 && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelGroupIdentity group={group} /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{group.visibleRunCount} run{group.visibleRunCount === 1 ? "" : "s"} total</div></TableCell>
-            <TableCell className="text-right"><div className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums">{group.bestRating == null ? "—" : Math.round(group.bestRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{group.bestRating == null ? "rating syncing" : reasoningEffortLabel(bestEffort)}</div></TableCell>
+            <TableCell className="text-right"><RatingEstimate rating={group.bestRating} deviation={group.representative.meanRatingDeviation} provisional={aggregateIsProvisional(group.representative)} /><div className="text-[10px] text-muted-foreground">{group.bestRating == null ? null : reasoningEffortLabel(bestEffort)}</div></TableCell>
             <TableCell className="text-right"><div className="whitespace-nowrap font-mono font-medium tabular-nums">{group.minimumRating == null || group.maximumRating == null ? "—" : group.minimumRating === group.maximumRating ? Math.round(group.minimumRating).toLocaleString() : `${Math.round(group.minimumRating).toLocaleString()}–${Math.round(group.maximumRating).toLocaleString()}`}</div><div className="text-[10px] text-muted-foreground">{group.configurations.length === 1 ? "one configuration" : `${group.configurations.length} configurations`}</div></TableCell>
             <TableCell className="text-right"><div className="font-mono font-medium">{group.solved}–{group.attempted - group.solved}</div><div className="text-[10px] text-muted-foreground">{group.attempted ? `${(group.solved / group.attempted * 100).toFixed(1)}% solved` : "—"}</div></TableCell>
             <TableCell className="text-right font-mono tabular-nums">{group.attempted.toLocaleString()}</TableCell>
@@ -517,8 +541,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             rows.push(<TableRow key={`nested-configuration::${aggregate.key}`} tabIndex={expanded ? 0 : -1} role="button" aria-expanded={configurationExpanded} aria-hidden={!expanded} className={cn("transition-[background-color,border-color] duration-200 motion-reduce:transition-none", expanded ? "cursor-pointer border-border bg-muted/25 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none" : "pointer-events-none border-transparent")} onClick={expanded ? toggleConfiguration : undefined} onKeyDown={expanded ? (event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggleConfiguration() } : undefined}>
               <AnimatedDetailCell open={expanded} />
               <AnimatedDetailCell open={expanded} className="pl-8"><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">Reasoning configuration · {visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right"><div className="whitespace-nowrap font-mono text-lg font-semibold tabular-nums">{aggregate.meanRating == null ? "—" : Math.round(aggregate.meanRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{aggregate.ratingRuns.length > 1 ? `mean of ${aggregate.ratingRuns.length} runs` : "current rating"}</div></AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono font-medium tabular-nums">{aggregate.runStandardDeviation == null ? "—" : `±${Math.round(aggregate.runStandardDeviation)}`}</div><div className="text-[10px] text-muted-foreground">{aggregate.runStandardDeviation == null ? "single run" : "run SD"}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><RatingEstimate rating={aggregate.meanRating} deviation={aggregate.meanRatingDeviation} provisional={aggregateIsProvisional(aggregate)} className="text-lg" /></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono font-medium tabular-nums">{aggregate.runStandardDeviation == null ? "—" : `±${Math.round(aggregate.runStandardDeviation)}`}</div><div className="text-[10px] text-muted-foreground">{aggregate.runStandardDeviation == null ? "1 run · RD at left" : "run SD"}</div></AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono font-medium">{aggregate.solved}–{aggregate.attempted - aggregate.solved}</div><div className="text-[10px] text-muted-foreground">{aggregate.attempted ? `${(aggregate.solved / aggregate.attempted * 100).toFixed(1)}% solved` : "—"}</div></AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{aggregate.attempted.toLocaleString()}</AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{visibleRunCount}</AnimatedDetailCell>

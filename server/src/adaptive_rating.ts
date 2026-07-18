@@ -3,6 +3,11 @@ export interface AdaptiveSolverRatingSnapshot {
   ratingDeviation: number
 }
 
+/** The post-puzzle snapshot includes every attempt through its zero-based sequence. */
+export function adaptiveRatingSampleCount(sequence: number): number {
+  return Math.max(0, Math.trunc(sequence) + 1)
+}
+
 /** Read the live solver estimate carried by an adaptive puzzle result. */
 export function adaptiveSolverRatingSnapshot(
   payload: Record<string, unknown>,
