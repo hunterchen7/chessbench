@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react"
 import { Navigate } from "react-router-dom"
 import { Gauge, RotateCcw } from "lucide-react"
+import { fetchHumanTrainingProfile } from "@/lib/backend"
 import { loadRandomRatedPuzzle, type RatedPuzzleSelection } from "@/lib/data"
 import {
   TRAINING_RATING_RADIUS,
   humanTrainingSession,
+  restoreHumanTrainingSession,
   type HumanTrainingSession,
 } from "@/lib/humanTraining"
 import { useData } from "@/lib/useData"
@@ -14,15 +16,32 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function PuzzleStart() {
   const { apiBase } = useData()
-  const [session] = useState<HumanTrainingSession>(() => humanTrainingSession())
+  const [session, setSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
+  const [hydrated, setHydrated] = useState(false)
   const [selection, setSelection] = useState<RatedPuzzleSelection | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
 
   useEffect(() => {
+    let active = true
+    if (!apiBase) {
+      setError("Adaptive puzzle training requires the live ChessBench API.")
+      return () => { active = false }
+    }
+    void fetchHumanTrainingProfile(apiBase).then((profile) => {
+      if (!active || !profile || profile.session.attempts <= session.attempts) return
+      setSession(restoreHumanTrainingSession(profile.session))
+    }).catch(() => {}).finally(() => {
+      if (active) setHydrated(true)
+    })
+    return () => { active = false }
+  }, [apiBase, session.attempts])
+
+  useEffect(() => {
     const controller = new AbortController()
     setSelection(null)
     setError(null)
+    if (!hydrated) return () => controller.abort()
     if (!apiBase) {
       setError("Adaptive puzzle training requires the live ChessBench API.")
       return () => controller.abort()
@@ -52,7 +71,7 @@ export function PuzzleStart() {
       .then(setSelection)
       .catch((reason) => { if (!controller.signal.aborted) setError(String(reason)) })
     return () => controller.abort()
-  }, [apiBase, retry, session])
+  }, [apiBase, hydrated, retry, session])
 
   if (selection) {
     const params = new URLSearchParams({ source: "train", selection: selection.selection_id })

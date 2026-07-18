@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { normalizeComparisonIds } from "@/lib/runComparison"
 import { cn } from "@/lib/utils"
 import { AdaptivePuzzleLeaderboard } from "@/components/AdaptivePuzzleLeaderboard"
+import { HumanTrainingLeaderboard } from "@/components/HumanTrainingLeaderboard"
 import { Button } from "@/components/ui/button"
 
 type Mode = ModeNumber
@@ -240,6 +241,6 @@ export function PuzzleLeaderboard() {
         <PuzzleViewButtons view="rated" onShowRated={() => setView("rated")} onShowFixed={() => setView("fixed")} browserTo="/puzzles/browse?view=rated" />
       </div>
     </section>
-    <div className={transitionClass} onAnimationEnd={finishTransition}><AdaptivePuzzleLeaderboard runs={runs} /></div>
+    <div className={cn("space-y-8", transitionClass)} onAnimationEnd={finishTransition}><AdaptivePuzzleLeaderboard runs={runs} /><HumanTrainingLeaderboard /></div>
   </div>
 }

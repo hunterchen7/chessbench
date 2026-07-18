@@ -118,6 +118,10 @@ function persist(session: HumanTrainingSession): HumanTrainingSession {
   return session
 }
 
+export function restoreHumanTrainingSession(value: unknown): HumanTrainingSession {
+  return persist(normalizeSession(value))
+}
+
 function withRecentPuzzle(session: HumanTrainingSession, puzzleId: string): HumanTrainingSession {
   const recent = session.recent_puzzle_ids.filter((id) => id !== puzzleId)
   recent.push(puzzleId)
