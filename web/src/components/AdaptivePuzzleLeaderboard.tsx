@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Search, ShieldCheck, Target } from "lucide-react"
+import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Layers3, List, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregates"
 import { isModelVariant } from "@/lib/participants"
@@ -29,6 +29,22 @@ function runPath(run: RunIndexEntry) {
 }
 
 type RatingSortKey = "model" | "rating" | "spread" | "record" | "puzzles" | "runs" | "cost" | "status"
+type LeaderboardView = "model" | "configuration"
+
+interface RatedModelGroup {
+  key: string
+  configurations: RatedRunAggregate[]
+  representative: RatedRunAggregate
+  bestRating: number | null
+  minimumRating: number | null
+  maximumRating: number | null
+  solved: number
+  attempted: number
+  cost: number
+  visibleRunCount: number
+}
+
+const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
 
 function reasoningEffort(run: RunIndexEntry) {
   return effectiveReasoningEffort(run.model_variant)
@@ -38,6 +54,61 @@ function aggregateStatusRank(aggregate: RatedRunAggregate) {
   if (aggregate.runs.some((run) => run.status === "running" || run.status === "partial")) return 3
   if (aggregate.settledRuns.length > 0) return 2
   return 1
+}
+
+function modelGroupStatusRank(group: RatedModelGroup) {
+  if (group.configurations.some((aggregate) => aggregate.runs.some((run) => run.status === "running" || run.status === "partial"))) return 3
+  if (group.configurations.some((aggregate) => aggregate.settledRuns.length > 0)) return 2
+  return 1
+}
+
+function modelGroupKey(aggregate: RatedRunAggregate) {
+  const run = aggregate.representative
+  return [
+    run.model_variant.base_key,
+    run.protocol.pool.content_hash,
+    run.protocol.version,
+    run.protocol.prompt.version,
+  ].join("::")
+}
+
+function groupRatedModels(aggregates: RatedRunAggregate[]): RatedModelGroup[] {
+  const groups = new Map<string, RatedRunAggregate[]>()
+  aggregates.forEach((aggregate) => {
+    const key = modelGroupKey(aggregate)
+    const current = groups.get(key)
+    if (current) current.push(aggregate)
+    else groups.set(key, [aggregate])
+  })
+
+  return Array.from(groups, ([key, configurations]) => {
+    const ordered = configurations.toSorted((a, b) => {
+      const aEffort = reasoningEffort(a.representative)
+      const bEffort = reasoningEffort(b.representative)
+      const aRank = REASONING_ORDER.indexOf(aEffort)
+      const bRank = REASONING_ORDER.indexOf(bEffort)
+      return (aRank < 0 ? REASONING_ORDER.length : aRank) - (bRank < 0 ? REASONING_ORDER.length : bRank)
+        || aEffort.localeCompare(bEffort)
+        || (b.meanRating ?? -Infinity) - (a.meanRating ?? -Infinity)
+    })
+    const ratings = ordered.flatMap((aggregate) => aggregate.meanRating == null ? [] : [aggregate.meanRating])
+    const representative = ordered.toSorted((a, b) =>
+      (b.meanRating ?? -Infinity) - (a.meanRating ?? -Infinity)
+      || a.representative.model_variant.display_name.localeCompare(b.representative.model_variant.display_name),
+    )[0]
+    return {
+      key,
+      configurations: ordered,
+      representative,
+      bestRating: ratings.length > 0 ? Math.max(...ratings) : null,
+      minimumRating: ratings.length > 0 ? Math.min(...ratings) : null,
+      maximumRating: ratings.length > 0 ? Math.max(...ratings) : null,
+      solved: ordered.reduce((sum, aggregate) => sum + aggregate.solved, 0),
+      attempted: ordered.reduce((sum, aggregate) => sum + aggregate.attempted, 0),
+      cost: ordered.reduce((sum, aggregate) => sum + aggregate.cost, 0),
+      visibleRunCount: ordered.reduce((sum, aggregate) => sum + aggregate.runs.filter((run) => run.status !== "failed").length, 0),
+    }
+  })
 }
 
 function StatusBadge({ run }: { run: RunIndexEntry }) {
@@ -59,6 +130,30 @@ function AggregateStatusBadge({ aggregate }: { aggregate: RatedRunAggregate }) {
     return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
   }
   return <Badge variant="outline">Cap reached</Badge>
+}
+
+function ModelGroupStatusBadge({ group }: { group: RatedModelGroup }) {
+  if (modelGroupStatusRank(group) === 3) {
+    return <Badge variant="outline" className="border-sky-500/35 bg-sky-500/8 text-sky-700 dark:text-sky-300"><Activity className="size-3" /> In progress</Badge>
+  }
+  if (modelGroupStatusRank(group) === 2) {
+    return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
+  }
+  return <Badge variant="outline">Cap reached</Badge>
+}
+
+function ModelGroupIdentity({ group }: { group: RatedModelGroup }) {
+  const variant = group.representative.representative.model_variant
+  const efforts = Array.from(new Set(group.configurations.map((aggregate) => reasoningEffort(aggregate.representative))))
+  return <div className="min-w-0">
+    <div className="truncate font-medium">{variant.display_name}</div>
+    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+      <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">{variant.provider}</Badge>
+      <span className="text-[10px] text-muted-foreground">
+        {group.configurations.length} reasoning configuration{group.configurations.length === 1 ? "" : "s"} · {efforts.map(reasoningEffortLabel).join(", ")}
+      </span>
+    </div>
+  </div>
 }
 
 function AnimatedDetailCell({
@@ -90,25 +185,30 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const navigate = useNavigate()
   const [modelSearch, setModelSearch] = useState("")
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
+  const [view, setView] = useState<LeaderboardView>("model")
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
+  const [expandedModelKey, setExpandedModelKey] = useState<string | null>(null)
+  const [expandedConfigurationKeys, setExpandedConfigurationKeys] = useState<Set<string>>(() => new Set())
   const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
   const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
   const aggregates = useMemo(() => aggregateRatedRuns(ratedRuns), [ratedRuns])
+  const modelGroups = useMemo(() => groupRatedModels(aggregates), [aggregates])
   const reasoningOptions = useMemo(() => Array.from(new Set(ratedRuns.map(reasoningEffort))).toSorted((a, b) => {
-    const order = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
-    const aRank = order.indexOf(a)
-    const bRank = order.indexOf(b)
-    return (aRank < 0 ? order.length : aRank) - (bRank < 0 ? order.length : bRank) || a.localeCompare(b)
+    const aRank = REASONING_ORDER.indexOf(a)
+    const bRank = REASONING_ORDER.indexOf(b)
+    return (aRank < 0 ? REASONING_ORDER.length : aRank) - (bRank < 0 ? REASONING_ORDER.length : bRank) || a.localeCompare(b)
   }), [ratedRuns])
-  const visibleAggregates = useMemo(() => {
+  const filteredAggregates = useMemo(() => {
     const query = modelSearch.trim().toLocaleLowerCase()
-    const filtered = aggregates.filter((aggregate) => {
+    return aggregates.filter((aggregate) => {
       const run = aggregate.representative
       if (reasoningFilters.size > 0 && !reasoningFilters.has(reasoningEffort(run))) return false
       if (!query) return true
       return [run.model_variant.display_name, run.model_variant.label, run.model_variant.model_id, run.model_variant.provider]
         .some((value) => value?.toLocaleLowerCase().includes(query))
     })
+  }, [aggregates, modelSearch, reasoningFilters])
+  const visibleAggregates = useMemo(() => {
     const value = (aggregate: RatedRunAggregate) => {
       const run = aggregate.representative
       if (sort.key === "model") return run.model_variant.display_name.toLocaleLowerCase()
@@ -120,7 +220,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       if (sort.key === "cost") return aggregate.cost
       return aggregateStatusRank(aggregate)
     }
-    return filtered.toSorted((a, b) => {
+    return filteredAggregates.toSorted((a, b) => {
       const aValue = value(a)
       const bValue = value(b)
       const comparison = typeof aValue === "string" && typeof bValue === "string" ? aValue.localeCompare(bValue) : Number(aValue) - Number(bValue)
@@ -128,7 +228,29 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         || (b.meanRating ?? -Infinity) - (a.meanRating ?? -Infinity)
         || a.representative.model_variant.display_name.localeCompare(b.representative.model_variant.display_name)
     })
-  }, [aggregates, modelSearch, reasoningFilters, sort])
+  }, [filteredAggregates, sort])
+  const visibleModelGroups = useMemo(() => {
+    const groups = groupRatedModels(filteredAggregates)
+    const value = (group: RatedModelGroup) => {
+      const run = group.representative.representative
+      if (sort.key === "model") return run.model_variant.display_name.toLocaleLowerCase()
+      if (sort.key === "rating") return group.bestRating ?? -Infinity
+      if (sort.key === "spread") return group.minimumRating == null || group.maximumRating == null ? Infinity : group.maximumRating - group.minimumRating
+      if (sort.key === "record") return group.attempted ? group.solved / group.attempted : -Infinity
+      if (sort.key === "puzzles") return group.attempted
+      if (sort.key === "runs") return group.visibleRunCount
+      if (sort.key === "cost") return group.cost
+      return modelGroupStatusRank(group)
+    }
+    return groups.toSorted((a, b) => {
+      const aValue = value(a)
+      const bValue = value(b)
+      const comparison = typeof aValue === "string" && typeof bValue === "string" ? aValue.localeCompare(bValue) : Number(aValue) - Number(bValue)
+      return comparison * (sort.direction === "asc" ? 1 : -1)
+        || (b.bestRating ?? -Infinity) - (a.bestRating ?? -Infinity)
+        || a.representative.representative.model_variant.display_name.localeCompare(b.representative.representative.model_variant.display_name)
+    })
+  }, [filteredAggregates, sort])
   const reasoningFilterLabel = reasoningFilters.size === 0
     ? "All reasoning efforts"
     : reasoningFilters.size === 1
@@ -143,18 +265,57 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const toggleSort = (key: RatingSortKey, initialDirection: SortDirection = key === "model" ? "asc" : "desc") => setSort((current) => current.key === key
     ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
     : { key, direction: initialDirection })
+  const toggleExpandedConfiguration = (key: string) => setExpandedConfigurationKeys((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
   const protocol = ratedRuns[0]?.protocol
   const targetRd = protocol?.stopping.target_rating_deviation ?? 75
   const totals = {
-    models: aggregates.length,
+    models: modelGroups.length,
+    configurations: aggregates.length,
     settled: aggregates.filter((aggregate) => aggregate.settledRuns.length > 0).length,
     attempts: ratedRuns.reduce((sum, run) => sum + run.progress.completed, 0),
     cost: ratedRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }
+  const individualRunRows = (aggregate: RatedRunAggregate, open: boolean, nested = false) => aggregate.runs.map((individual) => {
+    const individualEstimate = rating(individual)
+    return <TableRow
+      key={`run::${aggregate.key}::${individual.run_id}`}
+      tabIndex={open ? 0 : -1}
+      role="link"
+      aria-hidden={!open}
+      className={cn(
+        "bg-muted/20 transition-[background-color,border-color] duration-200 motion-reduce:transition-none",
+        open
+          ? "cursor-pointer border-border hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none"
+          : "pointer-events-none border-transparent",
+      )}
+      onClick={open ? () => navigate(runPath(individual)) : undefined}
+      onKeyDown={open ? (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        navigate(runPath(individual))
+      } : undefined}
+    >
+      <AnimatedDetailCell open={open} />
+      <AnimatedDetailCell open={open} className={nested ? "pl-16" : "pl-10"}><div className="font-medium">Seed {individual.protocol.selection.seed}</div><div className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</div></AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-sm">1 run</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-xs">{individual.summary.cost_usd == null ? "—" : `$${individual.summary.cost_usd.toFixed(3)}`}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open}><StatusBadge run={individual} /></AnimatedDetailCell>
+      <AnimatedDetailCell open={open}><ArrowRight className="size-4 text-muted-foreground" /></AnimatedDetailCell>
+    </TableRow>
+  })
 
   return <div className="space-y-7">
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <Card><CardContent className="flex items-center gap-4 pt-6"><Gauge className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models}</div><div className="text-xs text-muted-foreground">rated configurations</div></div></CardContent></Card>
+      <Card><CardContent className="flex items-center gap-4 pt-6"><Gauge className="size-5 text-emerald-600" /><div><div className="font-mono text-2xl font-semibold">{totals.models}</div><div className="text-xs text-muted-foreground">models · {totals.configurations} configurations</div></div></CardContent></Card>
       <Card><CardContent className="flex items-center gap-4 pt-6"><ShieldCheck className="size-5 text-violet-600" /><div><div className="font-mono text-2xl font-semibold">{totals.settled}</div><div className="text-xs text-muted-foreground">settled ratings</div></div></CardContent></Card>
       <Card><CardContent className="flex items-center gap-4 pt-6"><Target className="size-5 text-amber-500" /><div><div className="font-mono text-2xl font-semibold">{totals.attempts.toLocaleString()}</div><div className="text-xs text-muted-foreground">adaptive puzzles played</div></div></CardContent></Card>
       <Card><CardContent className="flex items-center gap-4 pt-6"><CircleDollarSign className="size-5 text-sky-600" /><div><div className="font-mono text-2xl font-semibold">${totals.cost.toFixed(2)}</div><div className="text-xs text-muted-foreground">recorded provider cost</div></div></CardContent></Card>
@@ -174,11 +335,15 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       <CardHeader className="gap-4 border-b">
         <div className="space-y-1.5">
           <CardTitle className="text-base">Model ratings</CardTitle>
-          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Each run stops after at least {protocol?.stopping.minimum_puzzles ?? 50} puzzles at RD ≤ {targetRd}, or at its safety cap. Current partial ratings appear immediately. When more than one run exists, the headline averages them and run SD measures their disagreement. Expand any configuration to inspect every session.</p>
+          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Each run stops after at least {protocol?.stopping.minimum_puzzles ?? 50} puzzles at RD ≤ {targetRd}, or at its safety cap. Current partial ratings appear immediately. Group by model to compare reasoning efforts together, then expand a configuration to inspect every session.</p>
         </div>
         {ratedRuns.length > 0 ? <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex shrink-0 rounded-lg border bg-background p-1" role="group" aria-label="Leaderboard grouping">
+            <Button size="sm" variant={view === "model" ? "secondary" : "ghost"} className="h-7 px-2.5 text-xs" aria-pressed={view === "model"} onClick={() => setView("model")}><Layers3 className="size-3.5" /> By model</Button>
+            <Button size="sm" variant={view === "configuration" ? "secondary" : "ghost"} className="h-7 px-2.5 text-xs" aria-pressed={view === "configuration"} onClick={() => setView("configuration")}><List className="size-3.5" /> By configuration</Button>
+          </div>
           <label className="relative block w-full sm:max-w-xs">
-            <span className="sr-only">Filter model configurations</span>
+            <span className="sr-only">Filter models</span>
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="Filter model name…" className="bg-background pl-9" />
           </label>
@@ -212,7 +377,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
               </DropdownMenuCheckboxItem>)}
             </DropdownMenuContent>
           </DropdownMenu>
-          <span className="shrink-0 text-xs tabular-nums text-muted-foreground sm:ml-auto">{visibleAggregates.length} of {aggregates.length} configurations</span>
+          <span className="shrink-0 text-xs tabular-nums text-muted-foreground sm:ml-auto">{view === "model" ? `${visibleModelGroups.length} of ${modelGroups.length} models` : `${visibleAggregates.length} of ${aggregates.length} configurations`}</span>
         </div> : null}
       </CardHeader>
       {ratedRuns.length === 0 ? <CardContent className="py-16 text-center">
@@ -222,9 +387,9 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table className="min-w-[980px]">
         <TableHeader><TableRow>
           <TableHead className="w-14 text-center">#</TableHead>
-          <SortableTableHead label="Model configuration" active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model")} />
-          <SortableTableHead label="Rating" active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain rating"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs space-y-1 px-3 py-2 leading-relaxed"><p>The current rating for one run, or the arithmetic mean when multiple seeded runs exist. Partial runs update this value as they progress.</p><p>Expand a configuration to see each session’s rating and RD.</p></TooltipContent></Tooltip>} />
-          <SortableTableHead label="Run SD" active={sort.key === "spread"} direction={sort.direction} align="right" onSort={() => toggleSort("spread", "asc")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain run standard deviation"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs px-3 py-2 leading-relaxed">When multiple runs exist, this shows their rating variation. A single run remains a complete, valid leaderboard result.</TooltipContent></Tooltip>} />
+          <SortableTableHead label={view === "model" ? "Model" : "Model configuration"} active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model")} />
+          <SortableTableHead label={view === "model" ? "Best rating" : "Rating"} active={sort.key === "rating"} direction={sort.direction} align="right" onSort={() => toggleSort("rating")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain rating"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs space-y-1 px-3 py-2 leading-relaxed"><p>{view === "model" ? "The strongest current reasoning configuration for this base model. Expand the model to compare every effort directly." : "The current rating for one run, or the arithmetic mean when multiple seeded runs exist. Partial runs update this value as they progress."}</p><p>Expand a configuration to see each session’s rating and RD.</p></TooltipContent></Tooltip>} />
+          <SortableTableHead label={view === "model" ? "Config range" : "Run SD"} active={sort.key === "spread"} direction={sort.direction} align="right" onSort={() => toggleSort("spread", "asc")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={view === "model" ? "Explain configuration range" : "Explain run standard deviation"}><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs px-3 py-2 leading-relaxed">{view === "model" ? "The lowest and highest headline ratings across the model’s visible reasoning configurations." : "When multiple runs exist, this shows their rating variation. A single run remains a complete, valid leaderboard result."}</TooltipContent></Tooltip>} />
           <SortableTableHead label="Record" active={sort.key === "record"} direction={sort.direction} align="right" onSort={() => toggleSort("record")} />
           <SortableTableHead label="Puzzles" active={sort.key === "puzzles"} direction={sort.direction} align="right" onSort={() => toggleSort("puzzles")} />
           <SortableTableHead label="Runs" active={sort.key === "runs"} direction={sort.direction} align="right" onSort={() => toggleSort("runs")} />
@@ -232,11 +397,12 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           <SortableTableHead label="Status" active={sort.key === "status"} direction={sort.direction} onSort={() => toggleSort("status")} />
           <TableHead className="w-10" />
         </TableRow></TableHeader>
-        <TableBody>{visibleAggregates.length === 0 ? <TableRow><TableCell colSpan={10} className="h-32 text-center"><div className="font-medium">No matching model configurations</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : visibleAggregates.flatMap((aggregate, index) => {
+        <TableBody>{(view === "model" ? visibleModelGroups.length : visibleAggregates.length) === 0 ? <TableRow><TableCell colSpan={10} className="h-32 text-center"><div className="font-medium">No matching models</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : view === "configuration" ? visibleAggregates.flatMap((aggregate, index) => {
           const run = aggregate.representative
           const expanded = expandedKey === aggregate.key
           const visibleRunCount = aggregate.runs.filter((individual) => individual.status !== "failed").length
-          const rows = [<TableRow key={aggregate.key} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]")} onClick={() => setExpandedKey((current) => current === aggregate.key ? null : aggregate.key)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setExpandedKey((current) => current === aggregate.key ? null : aggregate.key) }}>
+          const toggle = () => setExpandedKey((current) => current === aggregate.key ? null : aggregate.key)
+          return [<TableRow key={`configuration::${aggregate.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></TableCell>
             <TableCell className="text-right"><div className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums">{aggregate.meanRating == null ? "—" : Math.round(aggregate.meanRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{aggregate.ratingRuns.length > 1 ? `mean of ${aggregate.ratingRuns.length} runs` : aggregate.ratingRuns.length === 0 ? "rating syncing" : aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") ? "current estimate" : "single run"}</div></TableCell>
@@ -247,35 +413,42 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</TableCell>
             <TableCell><AggregateStatusBadge aggregate={aggregate} /></TableCell>
             <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
+          </TableRow>, ...individualRunRows(aggregate, expanded)]
+        }) : visibleModelGroups.flatMap((group, index) => {
+          const expanded = expandedModelKey === group.key
+          const toggle = () => setExpandedModelKey((current) => current === group.key ? null : group.key)
+          const bestEffort = reasoningEffort(group.representative.representative)
+          const rows = [<TableRow key={`model::${group.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", modelGroupStatusRank(group) === 3 && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
+            <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
+            <TableCell><ModelGroupIdentity group={group} /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{group.visibleRunCount} run{group.visibleRunCount === 1 ? "" : "s"} total</div></TableCell>
+            <TableCell className="text-right"><div className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums">{group.bestRating == null ? "—" : Math.round(group.bestRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{group.bestRating == null ? "rating syncing" : reasoningEffortLabel(bestEffort)}</div></TableCell>
+            <TableCell className="text-right"><div className="whitespace-nowrap font-mono font-medium tabular-nums">{group.minimumRating == null || group.maximumRating == null ? "—" : group.minimumRating === group.maximumRating ? Math.round(group.minimumRating).toLocaleString() : `${Math.round(group.minimumRating).toLocaleString()}–${Math.round(group.maximumRating).toLocaleString()}`}</div><div className="text-[10px] text-muted-foreground">{group.configurations.length === 1 ? "one configuration" : `${group.configurations.length} configurations`}</div></TableCell>
+            <TableCell className="text-right"><div className="font-mono font-medium">{group.solved}–{group.attempted - group.solved}</div><div className="text-[10px] text-muted-foreground">{group.attempted ? `${(group.solved / group.attempted * 100).toFixed(1)}% solved` : "—"}</div></TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{group.attempted.toLocaleString()}</TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{group.visibleRunCount}</TableCell>
+            <TableCell className="text-right font-mono text-xs">${group.cost.toFixed(3)}</TableCell>
+            <TableCell><ModelGroupStatusBadge group={group} /></TableCell>
+            <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
           </TableRow>]
-          rows.push(...aggregate.runs.map((individual) => {
-            const individualEstimate = rating(individual)
-            return <TableRow
-              key={individual.run_id}
-              tabIndex={expanded ? 0 : -1}
-              role="link"
-              aria-hidden={!expanded}
-              className={cn(
-                "bg-muted/20 transition-[background-color,border-color] duration-200 motion-reduce:transition-none",
-                expanded
-                  ? "cursor-pointer border-border hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none"
-                  : "pointer-events-none border-transparent",
-              )}
-              onClick={expanded ? () => navigate(runPath(individual)) : undefined}
-              onKeyDown={expanded ? (event) => { if (event.key === "Enter" || event.key === " ") navigate(runPath(individual)) } : undefined}
-            >
+          group.configurations.forEach((aggregate) => {
+            const run = aggregate.representative
+            const configurationExpanded = expanded && expandedConfigurationKeys.has(aggregate.key)
+            const visibleRunCount = aggregate.runs.filter((individual) => individual.status !== "failed").length
+            const toggleConfiguration = () => toggleExpandedConfiguration(aggregate.key)
+            rows.push(<TableRow key={`nested-configuration::${aggregate.key}`} tabIndex={expanded ? 0 : -1} role="button" aria-expanded={configurationExpanded} aria-hidden={!expanded} className={cn("transition-[background-color,border-color] duration-200 motion-reduce:transition-none", expanded ? "cursor-pointer border-border bg-muted/25 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none" : "pointer-events-none border-transparent")} onClick={expanded ? toggleConfiguration : undefined} onKeyDown={expanded ? (event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggleConfiguration() } : undefined}>
               <AnimatedDetailCell open={expanded} />
-              <AnimatedDetailCell open={expanded} className="pl-10"><div className="font-medium">Seed {individual.protocol.selection.seed}</div><div className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</div></AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right font-mono text-sm">1 run</AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs">{individual.summary.cost_usd == null ? "—" : `$${individual.summary.cost_usd.toFixed(3)}`}</AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded}><StatusBadge run={individual} /></AnimatedDetailCell>
-              <AnimatedDetailCell open={expanded}><ArrowRight className="size-4 text-muted-foreground" /></AnimatedDetailCell>
-            </TableRow>
-          }))
+              <AnimatedDetailCell open={expanded} className="pl-8"><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">Reasoning configuration · {visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><div className="whitespace-nowrap font-mono text-lg font-semibold tabular-nums">{aggregate.meanRating == null ? "—" : Math.round(aggregate.meanRating).toLocaleString()}</div><div className="text-[10px] text-muted-foreground">{aggregate.ratingRuns.length > 1 ? `mean of ${aggregate.ratingRuns.length} runs` : "current rating"}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono font-medium tabular-nums">{aggregate.runStandardDeviation == null ? "—" : `±${Math.round(aggregate.runStandardDeviation)}`}</div><div className="text-[10px] text-muted-foreground">{aggregate.runStandardDeviation == null ? "single run" : "run SD"}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right"><div className="font-mono font-medium">{aggregate.solved}–{aggregate.attempted - aggregate.solved}</div><div className="text-[10px] text-muted-foreground">{aggregate.attempted ? `${(aggregate.solved / aggregate.attempted * 100).toFixed(1)}% solved` : "—"}</div></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{aggregate.attempted.toLocaleString()}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{visibleRunCount}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded}><AggregateStatusBadge aggregate={aggregate} /></AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded}><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", configurationExpanded && "rotate-90")} /></AnimatedDetailCell>
+            </TableRow>)
+            rows.push(...individualRunRows(aggregate, configurationExpanded, true))
+          })
           return rows
         })}</TableBody>
       </Table></div></TooltipProvider>}
