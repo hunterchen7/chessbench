@@ -98,6 +98,14 @@
    "enabled": true
   },
   {
+   "label": "inkling",
+   "provider": "openrouter",
+   "model_id": "thinkingmachines/inkling",
+   "family": "thinkingmachines",
+   "notes": "Thinking Machines Inkling (2026-07-17; 975B MoE, 41B active)",
+   "enabled": true
+  },
+  {
    "label": "deepseek-v4",
    "provider": "openrouter",
    "model_id": "deepseek/deepseek-v4-pro",
