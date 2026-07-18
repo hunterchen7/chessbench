@@ -1,7 +1,5 @@
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 
-export const RATED_REPLICATE_TARGET = 3
-
 export interface RatedRunAggregate {
   key: string
   runs: Array<RunIndexEntry & { protocol: RatedSessionProtocol }>
@@ -59,9 +57,10 @@ export function aggregateRatedRuns(
     )
     const completedRuns = ordered.filter((run) => run.status === "completed" && estimate(run))
     const settledRuns = completedRuns.filter((run) => estimate(run)?.settled)
-    // Never let a live provisional estimate move a published aggregate. Before
-    // the first completion, show the current run so progress is still legible.
-    const ratingRuns = completedRuns.length > 0 ? completedRuns : ordered.filter((run) => estimate(run))
+    // A single session is a valid headline result. When additional sessions
+    // exist, include every current estimate so the leaderboard stays live and
+    // the aggregate improves naturally without requiring replication.
+    const ratingRuns = ordered.filter((run) => run.status !== "failed" && estimate(run))
     const ratings = ratingRuns.flatMap((run) => {
       const value = estimate(run)?.rating
       return value == null ? [] : [value]

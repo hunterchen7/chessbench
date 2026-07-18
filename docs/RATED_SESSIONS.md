@@ -25,11 +25,11 @@ is no consecutive-miss cutoff in the rated protocol. A pause caused by credits o
 the SQLite checkpoint resumes the identical deterministic path later. Calendar-time RD aging is disabled so two
 otherwise identical sessions do not receive different scores merely because one was paused overnight.
 
-The published headline is an aggregate of **three independent seeded sessions** for the same model configuration.
-The leaderboard reports the arithmetic mean of the three final ratings and the sample standard deviation across
-those ratings. Per-session RD remains visible separately: RD is uncertainty inside one adaptive path, while the
-between-run standard deviation exposes sensitivity to puzzle selection and nondeterministic model output. A live
-partial session never moves an already published average. Every seed remains expandable and linkable so the mean
+A single session is sufficient for a published headline, and its current rating remains visible while it is still
+running. When additional seeded sessions exist for the same model configuration, the leaderboard reports their
+arithmetic mean and the sample standard deviation across those ratings. Per-session RD remains visible separately:
+RD is uncertainty inside one adaptive path, while between-run standard deviation exposes sensitivity to puzzle
+selection and nondeterministic model output. Every session remains expandable and linkable so an optional mean
 cannot hide a lucky path, an unlucky path, or a provider failure.
 
 Reasoning text and opaque reasoning artifacts are retained in the audit log whenever the provider returns them.
