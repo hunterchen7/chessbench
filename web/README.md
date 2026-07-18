@@ -8,7 +8,7 @@ benchmark. It reads the JSON the Python CLI produces and renders it as an intera
 - **Overview** — points-first summary across all four tracks.
 - **Puzzle leaderboard** — models ranked by points with a secondary Elo-scale performance
   estimate, confidence interval, solve rate, legality, exact model budget, and cost.
-- **Puzzle trainer** — a board-first Lichess-inspired Ready → Retry → Solved/Reveal flow.
+- **Puzzle trainer** — randomized Worker-selected matches near a locally persisted 1,500/RD 500 Glicko-2 state; full solves and first misses update the rating, while solution reveals are unrated skips.
   Answers remain hidden until review; click-to-move and drag-to-move are both supported.
 - **Puzzle browser** — the separate canonical task catalog, sortable by source rating,
   deviation, tier, Lichess plays, and popularity.

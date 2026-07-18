@@ -1,21 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useParams, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom"
 import { Chess } from "chess.js"
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import {
   RATED_PUZZLE_PAGE_SIZE,
   loadPuzzle,
   loadPuzzleIndex,
+  loadRandomRatedPuzzle,
   loadRatedPuzzlePage,
   ratedPuzzleQueryFromSearchParams,
   ratedPuzzleQueryParams,
   type PuzzleEntry,
+  type PuzzlePosition,
   type RatedPuzzleQuery,
 } from "@/lib/data"
 import { pct } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
+import {
+  PROVISIONAL_DEVIATION,
+  TRAINING_RATING_RADIUS,
+  humanTrainingRecord,
+  humanTrainingSession,
+  humanTrainingSettled,
+  humanTrainingSkip,
+  type HumanTrainingResult,
+  type HumanTrainingSession,
+} from "@/lib/humanTraining"
 import { pushSolve } from "@/lib/backend"
 import { Board } from "@/components/Board"
 import { BoardDetailSkeleton } from "@/components/LoadingSkeletons"
@@ -44,7 +56,9 @@ function ModelContinuation({ plies }: { plies: PuzzleContinuationPly[] }) {
 export function PuzzleDetail() {
   const { id = "" } = useParams()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const { apiBase } = useData()
+  const training = searchParams.get("source") === "train"
   const ratedIndexParam = searchParams.get("index")
   const ratedIndexValue = searchParams.get("source") === "rated" && ratedIndexParam != null
     ? Number(ratedIndexParam)
@@ -52,30 +66,31 @@ export function PuzzleDetail() {
   const ratedIndex = Number.isSafeInteger(ratedIndexValue) && ratedIndexValue >= 0 ? ratedIndexValue : null
   const ratedQueryKey = searchParams.toString()
   const ratedQuery = useMemo(() => ratedPuzzleQueryFromSearchParams(new URLSearchParams(ratedQueryKey)), [ratedQueryKey])
-  const [entry, setEntry] = useState<PuzzleEntry | null | undefined>(undefined)
+  const navigationPosition = training
+    ? (location.state as { trainingPuzzle?: PuzzlePosition } | null)?.trainingPuzzle
+    : undefined
+  const immediateEntry = useMemo(() => navigationPosition?.puzzle_id === id
+    ? { position: navigationPosition, answers: [] } satisfies PuzzleEntry
+    : undefined, [id, navigationPosition])
+  const [entry, setEntry] = useState<PuzzleEntry | null | undefined>(() => immediateEntry)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     let active = true
-    setEntry(undefined)
+    setEntry(immediateEntry)
     setError(null)
     void loadPuzzle(id).then((value) => { if (active) setEntry(value) }).catch((reason) => { if (active) setError(String(reason)) })
     return () => { active = false }
-  }, [id])
+  }, [id, immediateEntry])
+  const currentEntry = entry?.position.puzzle_id === id ? entry : immediateEntry
   if (error) return <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6"><p className="font-medium text-destructive">Failed to load puzzle {id}</p><p className="text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button></div>
-  if (entry === undefined) return <BoardDetailSkeleton label={`Loading puzzle ${id}`} />
-  if (entry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
-  return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} ratedIndex={ratedIndex} ratedQuery={ratedQuery} />
+  if (currentEntry === undefined) return <BoardDetailSkeleton label={`Loading puzzle ${id}`} />
+  if (currentEntry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
+  return <PuzzleView key={id} id={id} entry={currentEntry} apiBase={apiBase} ratedIndex={ratedIndex} ratedQuery={ratedQuery} training={training} />
 }
 
-function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string; entry: PuzzleEntry; apiBase: string | null; ratedIndex: number | null; ratedQuery: RatedPuzzleQuery }) {
+function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { id: string; entry: PuzzleEntry; apiBase: string | null; ratedIndex: number | null; ratedQuery: RatedPuzzleQuery; training: boolean }) {
 
-  // Record a human outcome both locally (offline points) and on the backend (shared
-  // leaderboard). `move` is the player's first move; the server verifies it before crediting.
-  const recordSolve = (solved: boolean, move: string | null, outcome: HumanOutcome = solved ? "solved" : "incorrect") => {
-    humanRecord(id, outcome)
-    if (apiBase) void pushSolve(apiBase, id, solved, move)
-  }
-
+  const p = entry.position
   const startFen = entry.position.fen
   const orientation: "white" | "black" = entry.position.solver_is_white ? "white" : "black"
 
@@ -86,10 +101,56 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string
   const [reveal, setReveal] = useState(false)
   const [mistake, setMistake] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
-  const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null } | null>(null)
+  const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition } | null>(null)
+  const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
+  const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
+  const trainingRatedRef = useRef(
+    training && trainingSession.recent_attempts.some((attempt) => attempt.puzzle_id === id),
+  )
+  const trainingRating = trainingSession.state.rating
+  const trainingRecentPuzzleIds = trainingSession.recent_puzzle_ids
+
+  // Record public progress separately from the adaptive rating. The first wrong
+  // move or full solve rates the training puzzle exactly once.
+  const recordSolve = (solved: boolean, move: string | null, outcome: HumanOutcome = solved ? "solved" : "incorrect") => {
+    humanRecord(id, outcome)
+    if (apiBase) void pushSolve(apiBase, id, solved, move)
+    if (!training || trainingRatedRef.current) return
+    trainingRatedRef.current = true
+    const result = humanTrainingRecord(id, p.rating, p.rating_deviation ?? 500, solved)
+    if (!result.duplicate) setTrainingResult(result)
+    setTrainingSession(result.session)
+  }
 
   useEffect(() => {
     let active = true
+    setNextPuzzle(null)
+    if (training) {
+      if (!reveal || !apiBase) return () => { active = false }
+      const controller = new AbortController()
+      const selectNext = async () => {
+        let lastError: unknown
+        for (const radius of [TRAINING_RATING_RADIUS, 200, 400]) {
+          try {
+            return await loadRandomRatedPuzzle(
+              apiBase,
+              trainingRating,
+              radius,
+              trainingRecentPuzzleIds,
+              controller.signal,
+            )
+          } catch (reason) {
+            if (controller.signal.aborted) throw reason
+            lastError = reason
+          }
+        }
+        throw lastError ?? new Error("No matching training puzzle is available.")
+      }
+      void selectNext().then((selection) => {
+        if (active) setNextPuzzle({ id: selection.puzzle.puzzle_id, index: null, position: selection.puzzle })
+      }).catch(() => {})
+      return () => { active = false; controller.abort() }
+    }
     if (ratedIndex != null && apiBase) {
       const nextIndex = ratedIndex + 1
       const pageSize = RATED_PUZZLE_PAGE_SIZE
@@ -115,13 +176,13 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string
       setNextPuzzle(next ? { id: next.position.puzzle_id, index: null } : null)
     })
     return () => { active = false }
-  }, [apiBase, id, ratedIndex, ratedQuery])
+  }, [apiBase, id, ratedIndex, ratedQuery, reveal, training, trainingRating, trainingRecentPuzzleIds])
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
   const solverMoves = Math.ceil(solution.length / 2)
+  const displayedSolverMove = Math.min(Math.floor(ply / 2) + 1, Math.max(1, solverMoves))
 
-  const p = entry.position
   const ratedBrowseParams = ratedPuzzleQueryParams(ratedQuery)
   ratedBrowseParams.set("view", "rated")
   const ratedBrowserTo = `/puzzles/browse?${ratedBrowseParams}`
@@ -183,17 +244,23 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string
   }
 
   function giveUp() {
-    if (status !== "solved") recordSolve(false, null, "revealed")
+    if (training && !trainingRatedRef.current) setTrainingSession(humanTrainingSkip(id))
     setStatus("revealed")
     setReveal(true)
   }
 
   const playedSan = uciLineToSan(startFen, solution.slice(0, ply))
+  const ratingDelta = trainingResult ? Math.round(trainingResult.after.rating - trainingResult.before.rating) : null
+  const trainingState = trainingSession.state
+  const trainingIsSettled = humanTrainingSettled(trainingSession)
+  const trainingNextTo = nextPuzzle
+    ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?source=train`
+    : "/puzzles/play"
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><Link to={ratedIndex == null ? "/puzzles/browse?view=fixed" : ratedBrowserTo} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> Puzzle browser
+      <div className="flex flex-wrap items-center justify-between gap-3"><Link to={training ? "/puzzles" : ratedIndex == null ? "/puzzles/browse?view=fixed" : ratedBrowserTo} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
       </Link><ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
@@ -206,16 +273,22 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
-                <span className="font-mono text-xs text-muted-foreground">{Math.floor(ply / 2) + 1}/{Math.max(1, solverMoves)}</span>
+                <span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>
 
+            {training && <div className="grid grid-cols-3 border-b bg-muted/15 text-center">
+              <div className="border-r px-3 py-3"><div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><Gauge className="size-3" /> Rating</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.rating).toLocaleString()}</div>{ratingDelta != null && <div className={ratingDelta >= 0 ? "text-[10px] font-medium text-emerald-600 dark:text-emerald-300" : "text-[10px] font-medium text-destructive"}>{ratingDelta >= 0 ? "+" : ""}{ratingDelta}</div>}</div>
+              <div className="border-r px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating deviation</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.deviation)}</div><div className="text-[10px] text-muted-foreground">{trainingIsSettled ? "settled" : trainingState.deviation >= PROVISIONAL_DEVIATION ? "provisional" : "converging"}</div></div>
+              <div className="px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{trainingSession.solved}/{trainingSession.attempts}</div><div className="text-[10px] text-muted-foreground">rated attempts</div></div>
+            </div>}
+
             <div className="flex flex-1 flex-col justify-center p-5" aria-live="polite">
               {status === "playing" && !mistake && <div className="flex items-center gap-4"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Play className="size-6 fill-current" /></div><div><div className="text-xl font-semibold">Your turn</div><div className="text-sm text-muted-foreground">Find the best move for {orientation}.</div></div></div>}
-              {status === "playing" && mistake && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-200"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"><X className="size-7" /></div><div><div className="text-xl font-semibold">Not the move</div><div className="text-sm text-muted-foreground">Try something else, or reveal the solution.</div></div></div>}
-              {status === "solved" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"><Check className="size-7" /></div><div><div className="text-xl font-semibold">Puzzle complete</div><div className="text-sm text-muted-foreground">You found the full line.</div></div></div>}
-              {status === "revealed" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300"><Lightbulb className="size-7" /></div><div><div className="text-xl font-semibold">Solution revealed</div><div className="text-sm text-muted-foreground">Review the idea, then try the next one.</div></div></div>}
+              {status === "playing" && mistake && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-200"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"><X className="size-7" /></div><div><div className="text-xl font-semibold">Not the move</div><div className="text-sm text-muted-foreground">{training ? "Rated as a miss. You can still retry or review the solution." : "Try something else, or reveal the solution."}</div></div></div>}
+              {status === "solved" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"><Check className="size-7" /></div><div><div className="text-xl font-semibold">Puzzle complete</div><div className="text-sm text-muted-foreground">{trainingResult && !trainingResult.solved ? "Solved on retry; the first miss was the rated result." : "You found the full line."}</div></div></div>}
+              {status === "revealed" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300"><Lightbulb className="size-7" /></div><div><div className="text-xl font-semibold">Solution revealed</div><div className="text-sm text-muted-foreground">{training && !trainingResult ? "Skipped with no rating change." : "Review the idea, then try the next one."}</div></div></div>}
 
               {playedSan.length > 0 && <div className="mt-5 rounded-lg border bg-muted/20 p-3"><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Moves played</div><div className="mt-1 font-mono text-sm">{playedSan.join("  ")}</div></div>}
 
@@ -229,7 +302,8 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery }: { id: string
             <div className="flex flex-wrap gap-2 border-t bg-muted/15 p-4">
               <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset</Button>
               {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
-              {reveal && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && training && <Button asChild size="sm" className="ml-auto"><Link to={trainingNextTo} state={nextPuzzle?.position ? { trainingPuzzle: nextPuzzle.position } : undefined}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && !training && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
             </div>
           </CardContent>
         </Card>

@@ -368,6 +368,25 @@ export interface RatedPuzzlePage {
   puzzles: RatedPuzzleListItem[]
 }
 
+export interface RatedPuzzleSelection {
+  schema: "chessbench.rated_puzzle_selection.v1"
+  selection_id: string
+  selected_at: string
+  pool: {
+    name: string
+    version: string
+    content_hash: string
+    items: number
+  }
+  filters: {
+    category: string | null
+    min_rating: number
+    max_rating: number
+    excluded: number
+  }
+  puzzle: PuzzlePosition
+}
+
 export interface PromptCatalogStyle {
   style: "move_only" | "json_rationale"
   response_protocol: string
@@ -831,6 +850,22 @@ export function loadRatedPuzzlePage(
   params.set("per_page", String(perPage))
   if (!includeTotal) params.set("include_total", "0")
   return fetchJSON<RatedPuzzlePage>(`${apiBase}/puzzles/rated?${params}`, { signal })
+}
+
+export function loadRandomRatedPuzzle(
+  apiBase: string | null,
+  rating: number,
+  radius: number,
+  excluded: string[] = [],
+  signal?: AbortSignal,
+): Promise<RatedPuzzleSelection> {
+  if (!apiBase) return Promise.reject(new Error("Puzzle training requires the live ChessBench API."))
+  const params = new URLSearchParams({
+    rating: String(Math.round(rating)),
+    radius: String(Math.round(radius)),
+  })
+  if (excluded.length) params.set("exclude", excluded.slice(-100).join(","))
+  return fetchJSON<RatedPuzzleSelection>(`${apiBase}/puzzles/random?${params}`, { signal })
 }
 
 export async function loadPuzzle(id: string): Promise<PuzzleEntry | null> {
