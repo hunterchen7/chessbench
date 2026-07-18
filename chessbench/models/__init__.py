@@ -11,7 +11,13 @@ from __future__ import annotations
 
 from .anthropic import AnthropicModel
 from .base import Model, ScriptedModel, VisionModel, split_system
-from .openai_compat import ModelError, OpenAIModel, OpenRouterModel, Usage
+from .openai_compat import (
+    EmptyCompletionError,
+    ModelError,
+    OpenAIModel,
+    OpenRouterModel,
+    Usage,
+)
 
 __all__ = [
     "Model",
@@ -22,5 +28,6 @@ __all__ = [
     "OpenAIModel",
     "OpenRouterModel",
     "ModelError",
+    "EmptyCompletionError",
     "Usage",
 ]

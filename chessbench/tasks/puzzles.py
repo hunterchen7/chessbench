@@ -28,7 +28,7 @@ import chess
 from ..agents import Agent, TurnContext
 from ..conditions import Condition, Legality, PuzzleProtocol
 from ..core import board as board_utils
-from ..models import ModelError
+from ..models import EmptyCompletionError, ModelError
 from ..types import Message, PuzzleFailure
 from ..usage import normalize_usage
 
@@ -400,8 +400,15 @@ def grade_puzzle(
                 history_uci=list(history_uci),
                 illegal_feedback=feedback,
             )
+            empty_completion_error: str | None = None
             try:
                 raw = agent.choose(board, ctx)
+            except EmptyCompletionError as exc:
+                # A normally completed generation with no visible answer is a
+                # model output, not an infrastructure outage. Preserve its
+                # provider audit and score it like any other unparseable move.
+                raw = ""
+                empty_completion_error = str(exc)
             except ModelError as exc:
                 # A billed provider failure is auditable and durable, but it is
                 # not a chess attempt: do not consume retry allowance, alter the
@@ -410,7 +417,14 @@ def grade_puzzle(
                 persist()
                 raise
             move = board_utils.parse_move(board, raw)
-            turns.append(_turn_record(k, ctx, move))
+            turns.append(
+                _turn_record(
+                    k,
+                    ctx,
+                    move,
+                    model_error=empty_completion_error,
+                )
+            )
             attempts_used += 1
             if (
                 k == 0 and answer["raw"] is None

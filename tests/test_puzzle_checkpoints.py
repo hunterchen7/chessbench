@@ -13,7 +13,7 @@ from chessbench.__main__ import _turn_usage_totals
 from chessbench.agents import LLMAgent
 from chessbench.conditions import HEADLINE, Legality
 from chessbench.database import BenchmarkStore, RunSpec
-from chessbench.models import ModelError
+from chessbench.models import EmptyCompletionError, ModelError
 from chessbench.models.base import ScriptedModel
 from chessbench.tasks.puzzles import Puzzle, PuzzleCheckpoint, grade_puzzle
 from chessbench.tasks.runner import run_puzzles
@@ -458,6 +458,26 @@ def test_billed_provider_failure_is_checkpointed_without_becoming_a_chess_move()
     prompt, completion, reasoning, cost = _turn_usage_totals(result.turns)
     assert (prompt, completion, reasoning) == (155, 7613, 5369)
     assert cost == pytest.approx(0.0342616478)
+
+
+def test_completed_empty_response_scores_as_an_illegal_puzzle_answer():
+    model = UsageScriptedModel([
+        EmptyCompletionError("provider returned no visible content (finish='stop')")
+    ])
+    checkpoints: list[PuzzleCheckpoint] = []
+
+    result = grade_puzzle(
+        LLMAgent(model), ONE_MOVE, HEADLINE, on_checkpoint=checkpoints.append
+    )
+
+    assert not result.solved
+    assert result.failure_reason == "illegal"
+    assert result.first_move_legal is False
+    assert result.illegal_attempts == 1
+    assert result.turns[-1]["model_error"].startswith(
+        "provider returned no visible content"
+    )
+    assert checkpoints[-1].terminal_result == result
 
 
 def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):

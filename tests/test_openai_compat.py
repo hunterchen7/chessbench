@@ -8,7 +8,12 @@ import urllib.error
 
 import pytest
 
-from chessbench.models.openai_compat import ModelError, OpenAIModel, OpenRouterModel
+from chessbench.models.openai_compat import (
+    EmptyCompletionError,
+    ModelError,
+    OpenAIModel,
+    OpenRouterModel,
+)
 
 
 class _Response:
@@ -302,6 +307,31 @@ def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content)
     assert model.last_response_id == "gen-empty"
     assert model.last_finish_reason == "length"
     assert model.last_native_finish_reason == "max_tokens"
+
+
+def test_completed_empty_content_is_a_model_answer_failure(monkeypatch):
+    _capture_request(
+        monkeypatch,
+        {
+            "id": "gen-empty-completed",
+            "choices": [
+                {
+                    "finish_reason": "stop",
+                    "native_finish_reason": "completed",
+                    "message": {"content": None, "reasoning": "No final move."},
+                }
+            ],
+            "usage": {"completion_tokens": 100, "cost": 0.01},
+        },
+    )
+    model = OpenRouterModel("x-ai/grok-4.5", api_key="test")
+
+    with pytest.raises(EmptyCompletionError, match="no visible content"):
+        model.chat([{"role": "user", "content": "move"}])
+
+    assert model.last_finish_reason == "stop"
+    assert model.last_native_finish_reason == "completed"
+    assert model.last_cost == pytest.approx(0.01)
 
 
 def test_successful_response_keeps_full_provider_envelope(monkeypatch):

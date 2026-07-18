@@ -38,6 +38,10 @@ class ModelError(RuntimeError):
     """Raised when a provider call fails (HTTP error, bad payload, empty reply)."""
 
 
+class EmptyCompletionError(ModelError):
+    """The provider completed normally but supplied no user-visible answer."""
+
+
 class Usage(TypedDict, total=False):
     prompt_tokens: int
     completion_tokens: int
@@ -467,7 +471,8 @@ class _OpenAICompatModel:
             )
         content = message.get("content")
         if not isinstance(content, str) or not content.strip():
-            raise ModelError(
+            error_type = EmptyCompletionError if finish_reason == "stop" else ModelError
+            raise error_type(
                 f"{self._model}: provider returned no visible content"
                 f" (finish={finish_reason!r}, native={native_finish_reason!r},"
                 f" response_id={self.last_response_id!r})"
