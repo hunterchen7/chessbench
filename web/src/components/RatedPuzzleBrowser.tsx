@@ -187,7 +187,7 @@ export function RatedPuzzleBrowser() {
       <div>
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300"><Gauge className="size-4" /> Adaptive rating pool</div>
         <h1 className="text-3xl font-bold tracking-tight">Rated puzzle browser</h1>
-        <p className="mt-1 max-w-3xl text-muted-foreground">Move through the complete calibrated pool in rating order. Rows are fetched from D1 in pages and rendered only when they approach the viewport.</p>
+        <p className="mt-1 max-w-3xl text-muted-foreground">Move through the complete calibrated pool in rating order. Rows are fetched through the Worker API in pages and rendered only when they approach the viewport.</p>
       </div>
       <PuzzleNav count={totalItems || undefined} leaderboardTo="/puzzles" browserTo="/puzzles/browse?view=rated" />
     </div>
@@ -224,10 +224,10 @@ export function RatedPuzzleBrowser() {
             return <div key={index} className="absolute left-0 grid w-full grid-cols-[72px_minmax(160px,1fr)_100px_90px_minmax(250px,1.5fr)_110px_90px] items-center border-b px-3 text-sm" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)` }} role="row" aria-rowindex={index + 2}>
               <div className="text-right font-mono text-[11px] text-muted-foreground" role="cell">{rowLabel(index)}</div>
               {puzzle ? <>
-                <div className="min-w-0 pl-4" role="cell"><Link to={`/puzzles/${encodeURIComponent(puzzle.puzzle_id)}?source=rated&index=${index}`} className="font-mono font-medium hover:underline">{puzzle.puzzle_id}</Link><div className="mt-1 truncate text-[10px] capitalize text-muted-foreground">{puzzle.categories.tier?.[0] ?? "calibrated"}</div></div>
+                <div className="min-w-0 pl-4" role="cell"><Link to={`/puzzles/${encodeURIComponent(puzzle.puzzle_id)}?source=rated&index=${index}`} className="font-mono font-medium hover:underline">{puzzle.puzzle_id}</Link><div className="mt-1 truncate text-[10px] capitalize text-muted-foreground">{puzzle.categories?.tier?.[0] ?? "calibrated"}</div></div>
                 <div className="text-right font-mono font-semibold tabular-nums" role="cell">{puzzle.rating.toLocaleString()}</div>
                 <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">±{puzzle.rating_deviation ?? "—"}</div>
-                <div className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{puzzle.themes.slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>
+                <div className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{(puzzle.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>
                 <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{(puzzle.plays ?? 0).toLocaleString()}</div>
                 <div className="text-center text-xs text-muted-foreground" role="cell">{store[puzzle.puzzle_id]?.solved ? "solved" : store[puzzle.puzzle_id] ? "retry" : "—"}</div>
               </> : <div className="col-span-6 pl-4" role="cell">{failed ? <button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button> : <div className="h-4 w-2/3 max-w-xl animate-pulse rounded bg-muted" />}</div>}

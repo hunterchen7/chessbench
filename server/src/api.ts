@@ -1,4 +1,5 @@
 import type { Env } from "./types"
+import { ratedPuzzlePosition, type RatedPuzzleMetadata } from "./puzzle_payloads"
 import { authorized } from "./auth"
 import { PUZZLE_RATING_PRIOR, PUZZLE_RATING_PROVISIONAL_CI_WIDTH } from "./db"
 import { includesTournaments } from "./export_filters"
@@ -298,11 +299,12 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
   ).bind(id).first<{ payload_json: string }>()
   const ratedPoolItem = corpusItem ? null : await env.DB.prepare(
-    `SELECT p.payload_json FROM rated_puzzles p
+    `SELECT p.puzzle_id, p.rating, p.rating_deviation, p.popularity, p.plays, p.payload_json
+       FROM rated_puzzles p
        JOIN rated_puzzle_pools pool USING(content_hash)
       WHERE p.puzzle_id=? AND pool.active=1
       ORDER BY pool.updated_at DESC LIMIT 1`,
-  ).bind(id).first<{ payload_json: string }>()
+  ).bind(id).first<RatedPuzzleMetadata & { payload_json: string }>()
   const { results } = await env.DB.prepare(
     `SELECT i.run_id, i.item_id, r.variant_key, r.condition_slug, i.solved, i.points,
             i.first_move_legal, i.failure_reason, i.payload_json,
@@ -330,7 +332,10 @@ export async function getPuzzle(env: Env, id: string): Promise<Response> {
   const position = corpusItem
     ? JSON.parse(corpusItem.payload_json) as Record<string, unknown>
     : ratedPoolItem
-      ? JSON.parse(ratedPoolItem.payload_json) as Record<string, unknown>
+      ? ratedPuzzlePosition(
+          JSON.parse(ratedPoolItem.payload_json) as Record<string, unknown>,
+          ratedPoolItem,
+        )
       : payloads[0]
   const answers = rows.map((a, index) => ({
     ...payloads[index], run_id: a.run_id, model: a.provider_model_id,

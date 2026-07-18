@@ -273,6 +273,16 @@ export interface PuzzleEntry {
   aggregate?: { solved: number; total: number }
 }
 
+export interface RatedPuzzleListItem {
+  puzzle_id: string
+  rating: number
+  rating_deviation?: number
+  popularity?: number
+  plays?: number
+  themes: string[]
+  categories: Categories
+}
+
 export interface RatedPuzzlePage {
   schema: "chessbench.rated_puzzle_page.v1"
   pool: {
@@ -291,7 +301,7 @@ export interface RatedPuzzlePage {
     has_previous: boolean
     has_next: boolean
   }
-  puzzles: PuzzlePosition[]
+  puzzles: RatedPuzzleListItem[]
 }
 
 export interface PromptCatalogStyle {

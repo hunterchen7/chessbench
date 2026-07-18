@@ -386,7 +386,7 @@ export function ModelDetail() {
   }))
 
   const byTier = TIER_ORDER.map((tier) => {
-    const items = displayRun.items.filter((item) => item.categories.tier?.includes(tier))
+    const items = displayRun.items.filter((item) => item.categories?.tier?.includes(tier))
     return { tier, n: items.length, solved: items.filter((item) => item.solved).length, points: items.reduce((sum, item) => sum + item.score, 0) }
   }).filter((row) => row.n)
   const byRating = Array.from(

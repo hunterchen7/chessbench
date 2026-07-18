@@ -6,6 +6,7 @@ import {
   MAX_RATED_PUZZLE_PAGE_SIZE,
   ratedPuzzlePageParams,
 } from "./rated_puzzle_pages"
+import { ratedPuzzleSummary } from "./puzzle_payloads"
 
 interface RatedPoolDoc {
   schema: "chessbench.rated_puzzle_pool.v1"
@@ -154,14 +155,10 @@ export async function getRatedPuzzlePage(env: Env, url: URL): Promise<Response> 
       LIMIT ? OFFSET ?`,
   ).bind(pool.content_hash, pagination.perPage, offset).all<RatedPuzzleRow>()
 
-  const puzzles = (results ?? []).map((row) => ({
-    ...JSON.parse(row.payload_json) as Record<string, unknown>,
-    puzzle_id: row.puzzle_id,
-    rating: row.rating,
-    rating_deviation: row.rating_deviation,
-    popularity: row.popularity,
-    plays: row.plays,
-  }))
+  const puzzles = (results ?? []).map((row) => ratedPuzzleSummary(
+    JSON.parse(row.payload_json) as Record<string, unknown>,
+    row,
+  ))
   return json({
     schema: "chessbench.rated_puzzle_page.v1",
     pool: {

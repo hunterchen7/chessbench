@@ -17,6 +17,7 @@ Read (public, permissive CORS):
 | GET | `/api/corpora/:track` | active result-free public corpus (`standard`, `woodpecker`, `esoteric`) |
 | GET | `/api/puzzles` | position bank + per-puzzle model solve stats |
 | GET | `/api/puzzles/:id` | one position + how every model answered |
+| GET | `/api/puzzles/rated?page=1&per_page=100` | stable rating-ordered page from the active 100k pool (maximum 200 rows) |
 | GET | `/api/puzzles/random` | random puzzle from the active 100k rated pool; accepts category/rating filters |
 | GET | `/api/tournaments` | tournament index |
 | GET | `/api/tournaments/:id` | full tournament document |

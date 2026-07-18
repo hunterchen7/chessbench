@@ -201,7 +201,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex }: { id: string; entry: Puz
 
               {reveal && <div className="mt-5 space-y-4 border-t pt-5 animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <div><div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Correct line</div><p className="mt-1 font-mono text-sm font-medium">{solutionSan.join("  ") || solution.join(" ")}</p><p className="mt-1 font-mono text-[11px] text-muted-foreground">UCI · {solution.join(" ")}</p></div>
-                <div className="flex flex-wrap items-center gap-1.5"><Badge variant="secondary">Rating {p.rating}</Badge><Badge variant="outline" className="capitalize">{p.categories.tier?.[0] ?? "—"}</Badge>{p.themes.slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="text-xs font-normal">{theme}</Badge>)}</div>
+                <div className="flex flex-wrap items-center gap-1.5"><Badge variant="secondary">Rating {p.rating}</Badge><Badge variant="outline" className="capitalize">{p.categories?.tier?.[0] ?? "—"}</Badge>{(p.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="text-xs font-normal">{theme}</Badge>)}</div>
                 {p.game_url && <a href={p.game_url} target="_blank" rel="noreferrer" className="inline-flex text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">View source game</a>}
               </div>}
             </div>
