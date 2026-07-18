@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowRight, ListChecks, Sparkles, Swords, Trophy, Users } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { MODES, pct, type ModeNumber } from "@/lib/format"
+import { pct } from "@/lib/format"
 import { fetchHumanLeaderboard, type HumanRow } from "@/lib/backend"
 import { isModelVariant } from "@/lib/participants"
 import { isVisibleUiTrack } from "@/lib/uiTracks"
-import { PuzzleRunMatrix } from "@/components/PuzzleRunMatrix"
+import { AdaptivePuzzleLeaderboard } from "@/components/AdaptivePuzzleLeaderboard"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function Stat({ label, value, note }: { label: string; value: string; note: string }) {
@@ -30,17 +29,6 @@ const TRACKS = [
 export function Leaderboard() {
   const { runs, apiBase } = useData()
   const [humans, setHumans] = useState<HumanRow[] | null>(null)
-  const standard = useMemo(() => runs.filter((run) => run.track === "puzzle" && run.status === "completed" && isModelVariant(run.model_variant)), [runs])
-  const suites = useMemo(() => (Array.from(new Set(standard.map((run) => run.suite?.name).filter(Boolean))) as string[]).toSorted((a, b) => {
-    const aVersion = Number(a.match(/v(\d+)$/)?.[1] ?? 0)
-    const bVersion = Number(b.match(/v(\d+)$/)?.[1] ?? 0)
-    return bVersion - aVersion || b.localeCompare(a)
-  }), [standard])
-  const [suite, setSuite] = useState("")
-  const [visibleModes, setVisibleModes] = useState<ModeNumber[]>(() => MODES.map((mode) => mode.n))
-  const [openModels, setOpenModels] = useState<string[]>([])
-  const activeSuite = suite || suites[0] || ""
-  const suiteRuns = useMemo(() => standard.filter((run) => run.suite?.name === activeSuite), [standard, activeSuite])
 
   useEffect(() => {
     if (apiBase) void fetchHumanLeaderboard(apiBase).then(setHumans).catch(() => setHumans([]))
@@ -96,28 +84,14 @@ export function Leaderboard() {
       <section className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-4xl">
-            <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Standard puzzle leaderboard</h2></div>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Compare Puzzle Elo and points across board-information methods. Each puzzle keeps its own isolated conversation across moves; changing methods changes the board assistance, not the model's memory.</p>
+            <div className="flex items-center gap-2"><Trophy className="size-4 text-amber-500" /><h2 className="text-xl font-semibold tracking-tight">Puzzle rating leaderboard</h2></div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">The canonical adaptive test places each model near its current strength using one unassisted, UCI-only prompt protocol. Current partial ratings appear as runs progress.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {suites.length > 1 && <Select value={activeSuite} onValueChange={(value) => { setSuite(value); setOpenModels([]) }}>
-              <SelectTrigger size="sm" className="w-52 bg-background" aria-label="Benchmark suite"><SelectValue /></SelectTrigger>
-              <SelectContent>{suites.map((name) => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
-            </Select>}
-            <Link to="/puzzles" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-              Explore the full leaderboard <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </div>
+          <Link to="/puzzles" className="group inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+            Explore the full leaderboard <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
-        <PuzzleRunMatrix
-          runs={suiteRuns}
-          suite={activeSuite}
-          visibleModes={visibleModes}
-          onVisibleModesChange={setVisibleModes}
-          openModels={openModels}
-          onOpenModelsChange={setOpenModels}
-          exportLabel="Export this suite"
-        />
+        <AdaptivePuzzleLeaderboard runs={runs} />
       </section>
 
       {apiBase && humans === null ? <section><Card aria-label="Loading human puzzle points" aria-busy="true"><CardHeader><Skeleton className="h-5 w-44" /><Skeleton className="h-3 w-72" /></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-16 rounded-lg" />)}</CardContent></Card></section> : null}
