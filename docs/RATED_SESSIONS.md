@@ -25,6 +25,19 @@ is no consecutive-miss cutoff in the rated protocol. A pause caused by credits o
 the SQLite checkpoint resumes the identical deterministic path later. Calendar-time RD aging is disabled so two
 otherwise identical sessions do not receive different scores merely because one was paused overnight.
 
+The published headline is an aggregate of **three independent seeded sessions** for the same model configuration.
+The leaderboard reports the arithmetic mean of the three final ratings and the sample standard deviation across
+those ratings. Per-session RD remains visible separately: RD is uncertainty inside one adaptive path, while the
+between-run standard deviation exposes sensitivity to puzzle selection and nondeterministic model output. A live
+partial session never moves an already published average. Every seed remains expandable and linkable so the mean
+cannot hide a lucky path, an unlucky path, or a provider failure.
+
+Reasoning text and opaque reasoning artifacts are retained in the audit log whenever the provider returns them.
+They are not automatically treated as user-visible conversation. In particular, OpenAI encrypted reasoning blocks
+returned through OpenRouter Chat Completions are stored but not replayed: later puzzle turns preserve the visible
+assistant move and receive a fresh authoritative board plus UCI history. ChessBench has no tool call whose
+continuation would require an opaque reasoning block.
+
 Source puzzles with RD below 110 use the full update. For provisional source puzzles, the solver update follows the
 Lichess mixed-puzzle weighting: 80% of the computed update on a solve and 30% on a miss. Source puzzle state never
 changes. This makes the model rating comparable across runs without allowing benchmark traffic to contaminate the
