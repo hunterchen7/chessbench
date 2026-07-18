@@ -273,6 +273,27 @@ export interface PuzzleEntry {
   aggregate?: { solved: number; total: number }
 }
 
+export interface RatedPuzzlePage {
+  schema: "chessbench.rated_puzzle_page.v1"
+  pool: {
+    name: string
+    version: string
+    content_hash: string
+    items: number
+    updated_at: string
+  }
+  pagination: {
+    page: number
+    per_page: number
+    total_items: number
+    total_pages: number
+    returned: number
+    has_previous: boolean
+    has_next: boolean
+  }
+  puzzles: PuzzlePosition[]
+}
+
 export interface PromptCatalogStyle {
   style: "move_only" | "json_rationale"
   response_protocol: string
@@ -720,6 +741,17 @@ export function loadPuzzleIndex(): Promise<PuzzleEntry[]> {
     throw error
   })
   return puzzleCache
+}
+
+export function loadRatedPuzzlePage(
+  apiBase: string | null,
+  page: number,
+  perPage = 200,
+  signal?: AbortSignal,
+): Promise<RatedPuzzlePage> {
+  if (!apiBase) return Promise.reject(new Error("Rated-pool browsing requires the live ChessBench API."))
+  const params = new URLSearchParams({ page: String(page), per_page: String(perPage) })
+  return fetchJSON<RatedPuzzlePage>(`${apiBase}/puzzles/rated?${params}`, { signal })
 }
 
 export async function loadPuzzle(id: string): Promise<PuzzleEntry | null> {

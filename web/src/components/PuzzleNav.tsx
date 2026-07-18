@@ -3,16 +3,25 @@ import { BarChart3, ListFilter, Play } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
-const LINKS = [
-  { to: "/puzzles", label: "Leaderboard", icon: BarChart3, end: true },
-  { to: "/puzzles/browse", label: "Puzzle browser", icon: ListFilter },
-]
-
-export function PuzzleNav({ count, hideLeaderboard = false }: { count?: number; hideLeaderboard?: boolean }) {
+export function PuzzleNav({
+  count,
+  hideLeaderboard = false,
+  leaderboardTo = "/puzzles",
+  browserTo = "/puzzles/browse",
+}: {
+  count?: number
+  hideLeaderboard?: boolean
+  leaderboardTo?: string
+  browserTo?: string
+}) {
+  const links = [
+    { to: leaderboardTo, label: "Leaderboard", icon: BarChart3, end: true },
+    { to: browserTo, label: "Puzzle browser", icon: ListFilter, end: false },
+  ]
   return (
     <div className="flex flex-wrap items-center gap-2" aria-label="Standard puzzle views">
       <div className="inline-flex rounded-lg border bg-card/70 p-1 shadow-sm">
-        {LINKS.filter(({ label }) => !hideLeaderboard || label !== "Leaderboard").map(({ to, label, icon: Icon, end }) => (
+        {links.filter(({ label }) => !hideLeaderboard || label !== "Leaderboard").map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -22,7 +31,7 @@ export function PuzzleNav({ count, hideLeaderboard = false }: { count?: number; 
               isActive ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
             )}
           >
-            <Icon className="size-3.5" /> {label}{label === "Puzzle browser" && count ? ` · ${count}` : ""}
+            <Icon className="size-3.5" /> {label}{label === "Puzzle browser" && count ? ` · ${count.toLocaleString()}` : ""}
           </NavLink>
         ))}
       </div>

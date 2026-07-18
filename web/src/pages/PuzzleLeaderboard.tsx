@@ -18,11 +18,11 @@ import { Button } from "@/components/ui/button"
 
 type Mode = ModeNumber
 
-function PuzzleViewButtons({ view, onShowRated, onShowFixed, puzzleCount }: { view: "rated" | "fixed"; onShowRated: () => void; onShowFixed: () => void; puzzleCount?: number }) {
+function PuzzleViewButtons({ view, onShowRated, onShowFixed, puzzleCount, browserTo }: { view: "rated" | "fixed"; onShowRated: () => void; onShowFixed: () => void; puzzleCount?: number; browserTo: string }) {
   return <div className="flex flex-wrap gap-2 lg:justify-end">
     <Button size="sm" variant={view === "rated" ? "default" : "outline"} className="h-10 w-40" onClick={onShowRated}><Gauge /> Rated leaderboard</Button>
     <Button size="sm" variant={view === "fixed" ? "default" : "outline"} className="h-10 w-36" onClick={onShowFixed}><Layers3 /> Fixed suite lab</Button>
-    <PuzzleNav count={puzzleCount} hideLeaderboard />
+    <PuzzleNav count={puzzleCount} hideLeaderboard browserTo={browserTo} />
   </div>
 }
 
@@ -116,7 +116,7 @@ function FixedPuzzleLeaderboard({
               </SelectContent>
             </Select>
           </div>
-          <PuzzleViewButtons view="fixed" onShowRated={onShowRated} onShowFixed={() => {}} puzzleCount={activeSuiteEntry?.items ?? currentSuite?.items ?? 250} />
+          <PuzzleViewButtons view="fixed" onShowRated={onShowRated} onShowFixed={() => {}} puzzleCount={activeSuiteEntry?.items ?? currentSuite?.items ?? 250} browserTo={`/puzzles/browse?view=fixed&suite=${encodeURIComponent(activeSuite)}`} />
         </div>
       </section>
 
@@ -237,7 +237,7 @@ export function PuzzleLeaderboard() {
             </SelectContent>
           </Select>
         </div> : null}
-        <PuzzleViewButtons view="rated" onShowRated={() => setView("rated")} onShowFixed={() => setView("fixed")} puzzleCount={fixedSuiteOptions[0]?.items} />
+        <PuzzleViewButtons view="rated" onShowRated={() => setView("rated")} onShowFixed={() => setView("fixed")} browserTo="/puzzles/browse?view=rated" />
       </div>
     </section>
     <div className={transitionClass} onAnimationEnd={finishTransition}><AdaptivePuzzleLeaderboard runs={runs} /></div>

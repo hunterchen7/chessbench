@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 import { Chess } from "chess.js"
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadPuzzle, loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
+import { loadPuzzle, loadPuzzleIndex, loadRatedPuzzlePage, type PuzzleEntry } from "@/lib/data"
 import { pct } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
@@ -34,7 +34,13 @@ function ModelContinuation({ plies }: { plies: PuzzleContinuationPly[] }) {
 
 export function PuzzleDetail() {
   const { id = "" } = useParams()
+  const [searchParams] = useSearchParams()
   const { apiBase } = useData()
+  const ratedIndexParam = searchParams.get("index")
+  const ratedIndexValue = searchParams.get("source") === "rated" && ratedIndexParam != null
+    ? Number(ratedIndexParam)
+    : Number.NaN
+  const ratedIndex = Number.isSafeInteger(ratedIndexValue) && ratedIndexValue >= 0 ? ratedIndexValue : null
   const [entry, setEntry] = useState<PuzzleEntry | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
@@ -47,10 +53,10 @@ export function PuzzleDetail() {
   if (error) return <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-6"><p className="font-medium text-destructive">Failed to load puzzle {id}</p><p className="text-sm text-muted-foreground">{error}</p><Button variant="outline" size="sm" onClick={() => window.location.reload()}>Retry</Button></div>
   if (entry === undefined) return <BoardDetailSkeleton label={`Loading puzzle ${id}`} />
   if (entry === null) return <div className="space-y-2"><p>Puzzle {id} not found.</p><Link to="/puzzles" className="text-sm underline">Back to puzzles</Link></div>
-  return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} />
+  return <PuzzleView key={id} id={id} entry={entry} apiBase={apiBase} ratedIndex={ratedIndex} />
 }
 
-function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; apiBase: string | null }) {
+function PuzzleView({ id, entry, apiBase, ratedIndex }: { id: string; entry: PuzzleEntry; apiBase: string | null; ratedIndex: number | null }) {
 
   // Record a human outcome both locally (offline points) and on the backend (shared
   // leaderboard). `move` is the player's first move; the server verifies it before crediting.
@@ -69,18 +75,36 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
   const [reveal, setReveal] = useState(false)
   const [mistake, setMistake] = useState(false)
   const [expanded, setExpanded] = useState<number | null>(null)
-  const [nextId, setNextId] = useState<string | null>(null)
+  const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null } | null>(null)
 
   useEffect(() => {
     let active = true
+    if (ratedIndex != null && apiBase) {
+      const nextIndex = ratedIndex + 1
+      const pageSize = 200
+      const loadNext = async () => {
+        try {
+          const page = await loadRatedPuzzlePage(apiBase, Math.floor(nextIndex / pageSize) + 1, pageSize)
+          const next = page.puzzles[nextIndex % pageSize]
+          if (active && next) setNextPuzzle({ id: next.puzzle_id, index: nextIndex })
+        } catch (reason) {
+          if (!String(reason).endsWith(": 404")) return
+          const first = await loadRatedPuzzlePage(apiBase, 1, pageSize).catch(() => null)
+          const next = first?.puzzles[0]
+          if (active && next) setNextPuzzle({ id: next.puzzle_id, index: 0 })
+        }
+      }
+      void loadNext()
+      return () => { active = false }
+    }
     void loadPuzzleIndex().then((entries) => {
       if (!active) return
       const index = entries.findIndex((candidate) => candidate.position.puzzle_id === id)
       const next = entries[(index + 1 + entries.length) % entries.length]
-      setNextId(next?.position.puzzle_id ?? null)
+      setNextPuzzle(next ? { id: next.position.puzzle_id, index: null } : null)
     })
     return () => { active = false }
-  }, [id])
+  }, [apiBase, id, ratedIndex])
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
@@ -148,7 +172,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><Link to="/puzzles/browse" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-3"><Link to={ratedIndex == null ? "/puzzles/browse?view=fixed" : "/puzzles/browse?view=rated"} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Puzzle browser
       </Link><ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div>
 
@@ -185,7 +209,7 @@ function PuzzleView({ id, entry, apiBase }: { id: string; entry: PuzzleEntry; ap
             <div className="flex flex-wrap gap-2 border-t bg-muted/15 p-4">
               <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset</Button>
               {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
-              {reveal && nextId && <Button asChild size="sm" className="ml-auto"><Link to={`/puzzles/${nextId}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : `/puzzles/${nextPuzzle.id}?source=rated&index=${nextPuzzle.index}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
             </div>
           </CardContent>
         </Card>

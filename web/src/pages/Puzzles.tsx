@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
 import { TIER_ORDER } from "@/lib/format"
 import { humanStore } from "@/lib/human"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { PuzzleNav } from "@/components/PuzzleNav"
+import { RatedPuzzleBrowser } from "@/components/RatedPuzzleBrowser"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -29,7 +30,7 @@ function userState(entry: PuzzleEntry, store: ReturnType<typeof humanStore>): nu
   return record.solved ? 2 : 1
 }
 
-export function PuzzleBrowser() {
+function FixedPuzzleBrowser() {
   const [entries, setEntries] = useState<PuzzleEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(() => {
@@ -107,10 +108,10 @@ export function PuzzleBrowser() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-5 border-b border-border/70 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Puzzle browser</h1>
-          <p className="mt-1 text-muted-foreground">Inspect the canonical task bank by rating and theme, or open any position in the trainer.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Fixed suite browser</h1>
+          <p className="mt-1 text-muted-foreground">Inspect the public fixed benchmark corpus by rating and theme, or open any position in the trainer.</p>
         </div>
-        <PuzzleNav count={entries.length} />
+        <PuzzleNav count={entries.length} leaderboardTo="/puzzles?view=fixed" browserTo="/puzzles/browse?view=fixed" />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -215,4 +216,9 @@ export function PuzzleBrowser() {
       )}
     </div>
   )
+}
+
+export function PuzzleBrowser() {
+  const [searchParams] = useSearchParams()
+  return searchParams.get("view") === "rated" ? <RatedPuzzleBrowser /> : <FixedPuzzleBrowser />
 }
