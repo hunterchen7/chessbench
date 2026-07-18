@@ -33,11 +33,22 @@ export async function postHumanSolve(env: Env, req: Request): Promise<Response> 
   if (!uid || !pid) return error(400, "invalid uid/puzzle_id")
 
   // Reject unknown puzzles (bounds storage, prevents fabricated ids) and verify the move.
-  const puzzle = await env.DB.prepare(
+  const corpusPuzzle = await env.DB.prepare(
     `SELECT json_extract(c.payload_json, '$.solution_first') AS solution_first
        FROM corpus_items c JOIN corpus_releases r USING(content_hash)
       WHERE c.item_id=? AND r.track='standard' AND r.visibility='public' AND r.active=1`,
   ).bind(pid).first<{ solution_first: string | null }>()
+  const ratedPuzzle = corpusPuzzle ? null : await env.DB.prepare(
+    `SELECT COALESCE(
+              json_extract(p.payload_json, '$.solution_first'),
+              json_extract(p.payload_json, '$.solution[0]'),
+              json_extract(p.payload_json, '$.moves[1]')
+            ) AS solution_first
+       FROM rated_puzzles p JOIN rated_puzzle_pools pool USING(content_hash)
+      WHERE p.puzzle_id=? AND pool.active=1
+      ORDER BY pool.updated_at DESC LIMIT 1`,
+  ).bind(pid).first<{ solution_first: string | null }>()
+  const puzzle = corpusPuzzle ?? ratedPuzzle
   if (!puzzle) return error(404, "unknown puzzle")
   const move = typeof body.move === "string" ? body.move.trim().slice(0, 12) : null
   const solved = body.solved && move && puzzle.solution_first && move === puzzle.solution_first ? 1 : 0

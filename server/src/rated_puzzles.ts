@@ -9,7 +9,7 @@ import {
   type RatedPuzzlePageParams,
   type RatedPuzzleSort,
 } from "./rated_puzzle_pages"
-import { ratedPuzzleSummary } from "./puzzle_payloads"
+import { ratedPuzzlePosition, ratedPuzzleSummary } from "./puzzle_payloads"
 
 interface RatedPoolDoc {
   schema: "chessbench.rated_puzzle_pool.v1"
@@ -335,7 +335,10 @@ export async function getRandomRatedPuzzle(env: Env, url: URL): Promise<Response
       max_rating: maxRating,
       excluded: excluded.length,
     },
-    puzzle: JSON.parse(selected.payload_json),
+    puzzle: ratedPuzzlePosition(
+      JSON.parse(selected.payload_json) as Record<string, unknown>,
+      selected,
+    ),
   })
 }
 

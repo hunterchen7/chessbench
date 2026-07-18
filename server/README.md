@@ -24,7 +24,7 @@ Read (public, permissive CORS):
 | GET | `/api/export` | filtered versioned JSON; private-suite items are sealed |
 | GET | `/api/human/summary?uid=` | one solver's points and accuracy |
 | GET | `/api/human/leaderboard` | top human solvers by points |
-| POST | `/api/human/solve` | record a solve `{uid, puzzle_id, solved, handle?}` |
+| POST | `/api/human/solve` | record a fixed-corpus or rated-pool solve `{uid, puzzle_id, solved, move, handle?}` |
 
 Ingest (Bearer `INGEST_TOKEN`):
 
@@ -93,6 +93,10 @@ GET /api/puzzles/random?min_rating=1400&max_rating=1750
 GET /api/puzzles/random?category=family:quiet_moves&rating=1800&radius=250
 GET /api/puzzles/random?category=theme:fork&rating=1500&exclude=abc12,def34
 ```
+
+Random selections return the normalized trainer-ready position. The training UI sends the
+browser's current Glicko estimate with a 100-point radius, excludes its recent positions,
+and draws a fresh random-key pivot for every selection.
 
 ### Rated-pool browsing
 
