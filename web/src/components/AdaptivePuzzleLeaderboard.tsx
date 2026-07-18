@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Layers3, List, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
@@ -45,6 +45,16 @@ interface RatedModelGroup {
 }
 
 const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
+const LEADERBOARD_VIEW_STORAGE_KEY = "chessbench.puzzle-leaderboard-view.v1"
+
+function savedLeaderboardView(): LeaderboardView {
+  try {
+    const saved = localStorage.getItem(LEADERBOARD_VIEW_STORAGE_KEY)
+    return saved === "configuration" || saved === "model" ? saved : "model"
+  } catch {
+    return "model"
+  }
+}
 
 function reasoningEffort(run: RunIndexEntry) {
   return effectiveReasoningEffort(run.model_variant)
@@ -185,11 +195,18 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const navigate = useNavigate()
   const [modelSearch, setModelSearch] = useState("")
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
-  const [view, setView] = useState<LeaderboardView>("model")
-  const [expandedKey, setExpandedKey] = useState<string | null>(null)
-  const [expandedModelKey, setExpandedModelKey] = useState<string | null>(null)
+  const [view, setView] = useState<LeaderboardView>(savedLeaderboardView)
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set())
+  const [expandedModelKeys, setExpandedModelKeys] = useState<Set<string>>(() => new Set())
   const [expandedConfigurationKeys, setExpandedConfigurationKeys] = useState<Set<string>>(() => new Set())
   const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
+  useEffect(() => {
+    try {
+      localStorage.setItem(LEADERBOARD_VIEW_STORAGE_KEY, view)
+    } catch {
+      // Private browsing or storage policy can make persistence unavailable.
+    }
+  }, [view])
   const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
   const aggregates = useMemo(() => aggregateRatedRuns(ratedRuns), [ratedRuns])
   const modelGroups = useMemo(() => groupRatedModels(aggregates), [aggregates])
@@ -266,6 +283,18 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
     : { key, direction: initialDirection })
   const toggleExpandedConfiguration = (key: string) => setExpandedConfigurationKeys((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
+  const toggleExpanded = (key: string) => setExpandedKeys((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
+  const toggleExpandedModel = (key: string) => setExpandedModelKeys((current) => {
     const next = new Set(current)
     if (next.has(key)) next.delete(key)
     else next.add(key)
@@ -399,9 +428,9 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         </TableRow></TableHeader>
         <TableBody>{(view === "model" ? visibleModelGroups.length : visibleAggregates.length) === 0 ? <TableRow><TableCell colSpan={10} className="h-32 text-center"><div className="font-medium">No matching models</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : view === "configuration" ? visibleAggregates.flatMap((aggregate, index) => {
           const run = aggregate.representative
-          const expanded = expandedKey === aggregate.key
+          const expanded = expandedKeys.has(aggregate.key)
           const visibleRunCount = aggregate.runs.filter((individual) => individual.status !== "failed").length
-          const toggle = () => setExpandedKey((current) => current === aggregate.key ? null : aggregate.key)
+          const toggle = () => toggleExpanded(aggregate.key)
           return [<TableRow key={`configuration::${aggregate.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></TableCell>
@@ -415,8 +444,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
           </TableRow>, ...individualRunRows(aggregate, expanded)]
         }) : visibleModelGroups.flatMap((group, index) => {
-          const expanded = expandedModelKey === group.key
-          const toggle = () => setExpandedModelKey((current) => current === group.key ? null : group.key)
+          const expanded = expandedModelKeys.has(group.key)
+          const toggle = () => toggleExpandedModel(group.key)
           const bestEffort = reasoningEffort(group.representative.representative)
           const rows = [<TableRow key={`model::${group.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", modelGroupStatusRank(group) === 3 && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
