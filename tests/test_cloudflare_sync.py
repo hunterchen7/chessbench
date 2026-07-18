@@ -1,8 +1,14 @@
 import base64
+import io
 import json
+import urllib.error
+
+import pytest
 
 from chessbench.cloudflare_sync import (
+    CloudflareHTTPError,
     RUN_ITEM_PAYLOAD_CHUNK_BYTES,
+    post,
     run_item_delivery_documents,
     sync_run,
 )
@@ -11,6 +17,28 @@ from chessbench.database import BenchmarkStore, RunSpec
 from chessbench.report import build_report
 from chessbench.tasks.puzzles import Puzzle, PuzzleResult
 from chessbench.variants import ModelVariant, ReasoningConfig
+
+
+def test_post_preserves_worker_error_body(monkeypatch):
+    def fail(request, timeout):
+        assert timeout == 60
+        raise urllib.error.HTTPError(
+            request.full_url,
+            500,
+            "Internal Server Error",
+            {},
+            io.BytesIO(b'{"error":"completed_items mismatch"}'),
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", fail)
+
+    with pytest.raises(CloudflareHTTPError) as caught:
+        post("https://example.test", "secret", "ingest/run/finish", {"run_id": "r"})
+
+    assert caught.value.status == 500
+    assert caught.value.body == '{"error":"completed_items mismatch"}'
+    assert "completed_items mismatch" in str(caught.value)
+    assert "secret" not in str(caught.value)
 
 
 def _completed_run(store: BenchmarkStore) -> str:

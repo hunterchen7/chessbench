@@ -19,6 +19,16 @@ RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 16 * 1024 * 1024
 RUN_ITEM_PAYLOAD_ENCODING = "json-utf8-base64-v1"
 
 
+class CloudflareHTTPError(OSError):
+    """An ingest response that preserves the Worker's safe diagnostic body."""
+
+    def __init__(self, status: int, reason: str, body: str) -> None:
+        detail = body.strip() or reason
+        super().__init__(f"HTTP {status}: {detail}")
+        self.status = status
+        self.body = body
+
+
 def run_item_delivery_documents(
     item: dict[str, object],
 ) -> list[tuple[str, dict[str, object]]]:
@@ -89,8 +99,15 @@ def post(
             "User-Agent": "chessbench-sync/2",
         },
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
-        return json.load(response)
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as exc:
+        # urllib's default string drops the response body, which is where the
+        # Worker explains validation and D1 failures. The body cannot contain
+        # the bearer token because it is supplied only as a request header.
+        body = exc.read().decode("utf-8", errors="replace")
+        raise CloudflareHTTPError(exc.code, str(exc.reason), body) from exc
 
 
 def sync_run(
