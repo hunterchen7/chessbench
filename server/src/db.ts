@@ -519,8 +519,18 @@ export async function finishRun(
   doc: RunFinishDoc,
 ): Promise<{ run_id: string; status: string; completed_items: number; total_items: number }> {
   const row = await env.DB.prepare(
-    `SELECT completed_items, total_items, protocol_json FROM benchmark_runs_v2 WHERE run_id=?`,
-  ).bind(doc.run_id).first<{ completed_items: number; total_items: number; protocol_json: string | null }>()
+    `SELECT completed_items, total_items, protocol_json,
+            puzzle_rating, puzzle_rating_stderr, puzzle_rating_n, puzzle_rating_bounded
+       FROM benchmark_runs_v2 WHERE run_id=?`,
+  ).bind(doc.run_id).first<{
+    completed_items: number
+    total_items: number
+    protocol_json: string | null
+    puzzle_rating: number | null
+    puzzle_rating_stderr: number | null
+    puzzle_rating_n: number
+    puzzle_rating_bounded: number
+  }>()
   if (!row) throw new Error(`unknown run: ${doc.run_id}`)
   const requested = doc.status ?? "completed"
   const termination = doc.summary?.termination as Record<string, unknown> | undefined
@@ -558,7 +568,14 @@ export async function finishRun(
         n: typeof suppliedRating.n === "number" ? suppliedRating.n : row.completed_items,
         bounded: suppliedRating.bounded !== false,
       }
-    : estimate
+    : adaptive && row.puzzle_rating != null
+      ? {
+          rating: row.puzzle_rating,
+          stderr: row.puzzle_rating_stderr,
+          n: row.puzzle_rating_n || row.completed_items,
+          bounded: Boolean(row.puzzle_rating_bounded),
+        }
+      : estimate
   await env.DB.batch([
     env.DB.prepare(
       `UPDATE benchmark_runs_v2 SET status=?, error=?, updated_at=?,
