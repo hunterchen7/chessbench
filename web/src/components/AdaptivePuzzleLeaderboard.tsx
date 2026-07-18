@@ -66,6 +66,45 @@ function aggregateStatusRank(aggregate: RatedRunAggregate) {
   return 1
 }
 
+function runStatusRank(run: RunIndexEntry) {
+  if (run.status === "running" || run.status === "partial") return 3
+  if (rating(run)?.settled) return 2
+  return 1
+}
+
+type SortValue = string | number | null
+
+function compareSortValues(a: SortValue, b: SortValue, direction: SortDirection) {
+  if (a == null && b == null) return 0
+  if (a == null) return 1
+  if (b == null) return -1
+  const comparison = typeof a === "string" && typeof b === "string" ? a.localeCompare(b) : Number(a) - Number(b)
+  return comparison * (direction === "asc" ? 1 : -1)
+}
+
+function configurationSortValue(aggregate: RatedRunAggregate, key: RatingSortKey): SortValue {
+  if (key === "model") return reasoningEffortLabel(reasoningEffort(aggregate.representative)).toLocaleLowerCase()
+  if (key === "rating") return aggregate.meanRating
+  if (key === "spread") return aggregate.runStandardDeviation
+  if (key === "record") return aggregate.attempted ? aggregate.solved / aggregate.attempted : null
+  if (key === "puzzles") return aggregate.attempted
+  if (key === "runs") return aggregate.runs.filter((run) => run.status !== "failed").length
+  if (key === "cost") return aggregate.cost
+  return aggregateStatusRank(aggregate)
+}
+
+function individualRunSortValue(run: RatedRunAggregate["runs"][number], key: RatingSortKey): SortValue {
+  const estimate = rating(run)
+  if (key === "model") return run.protocol.selection.seed
+  if (key === "rating") return estimate?.rating ?? null
+  if (key === "spread") return estimate?.rating_deviation ?? null
+  if (key === "record") return run.progress.completed ? run.summary.solved / run.progress.completed : null
+  if (key === "puzzles") return run.progress.completed
+  if (key === "runs") return 1
+  if (key === "cost") return run.summary.cost_usd
+  return runStatusRank(run)
+}
+
 function modelGroupStatusRank(group: RatedModelGroup) {
   if (group.configurations.some((aggregate) => aggregate.runs.some((run) => run.status === "running" || run.status === "partial"))) return 3
   if (group.configurations.some((aggregate) => aggregate.settledRuns.length > 0)) return 2
@@ -247,7 +286,14 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     })
   }, [filteredAggregates, sort])
   const visibleModelGroups = useMemo(() => {
-    const groups = groupRatedModels(filteredAggregates)
+    const groups = groupRatedModels(filteredAggregates).map((group) => ({
+      ...group,
+      configurations: group.configurations.toSorted((a, b) =>
+        compareSortValues(configurationSortValue(a, sort.key), configurationSortValue(b, sort.key), sort.direction)
+        || reasoningEffort(a.representative).localeCompare(reasoningEffort(b.representative))
+        || a.key.localeCompare(b.key),
+      ),
+    }))
     const value = (group: RatedModelGroup) => {
       const run = group.representative.representative
       if (sort.key === "model") return run.model_variant.display_name.toLocaleLowerCase()
@@ -309,7 +355,11 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     attempts: ratedRuns.reduce((sum, run) => sum + run.progress.completed, 0),
     cost: ratedRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }
-  const individualRunRows = (aggregate: RatedRunAggregate, open: boolean, nested = false) => aggregate.runs.map((individual) => {
+  const individualRunRows = (aggregate: RatedRunAggregate, open: boolean, nested = false) => aggregate.runs.toSorted((a, b) =>
+    compareSortValues(individualRunSortValue(a, sort.key), individualRunSortValue(b, sort.key), sort.direction)
+    || a.protocol.selection.seed - b.protocol.selection.seed
+    || a.run_id.localeCompare(b.run_id),
+  ).map((individual) => {
     const individualEstimate = rating(individual)
     return <TableRow
       key={`run::${aggregate.key}::${individual.run_id}`}
