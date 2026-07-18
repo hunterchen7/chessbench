@@ -57,6 +57,7 @@ export function aggregateRatedRuns(
     )
     const completedRuns = ordered.filter((run) => run.status === "completed" && estimate(run))
     const settledRuns = completedRuns.filter((run) => estimate(run)?.settled)
+    const visibleRuns = ordered.filter((run) => run.status !== "failed")
     // A single session is a valid headline result. When additional sessions
     // exist, include every current estimate so the leaderboard stays live and
     // the aggregate improves naturally without requiring replication.
@@ -84,8 +85,8 @@ export function aggregateRatedRuns(
       meanRating: ratings.length > 0 ? mean(ratings) : null,
       meanRatingDeviation: deviations.length > 0 ? mean(deviations) : null,
       runStandardDeviation: sampleStandardDeviation(ratings),
-      solved: ratingRuns.reduce((sum, run) => sum + run.summary.solved, 0),
-      attempted: ratingRuns.reduce((sum, run) => sum + run.progress.completed, 0),
+      solved: visibleRuns.reduce((sum, run) => sum + run.summary.solved, 0),
+      attempted: visibleRuns.reduce((sum, run) => sum + run.progress.completed, 0),
       cost: ordered.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
     }
   })
