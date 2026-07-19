@@ -286,7 +286,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
       </div>
       <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
         <span>{zeroScoredTail ? `${history.length} attempted · ${termination?.unattempted ?? totalItems - history.length} unattempted puzzles score zero` : adaptive ? `${history.length} adaptive selections · ${termination?.message ?? "rating still settling"}` : ratingOrdered ? `rating ${history[0].rating.toLocaleString()} → ${final.rating.toLocaleString()}` : `puzzle 1 → ${history.length}`}</span>
-        <span>{adaptive ? "violet band · 95% Glicko interval · initial 1,500 ± 500.0 RD" : `violet band · 95% posterior · MAP prior ${PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± ${PUZZLE_ELO_PRIOR.sd.toLocaleString()}`}</span>
+        <span>{adaptive ? "violet band · 95% Glicko interval · initial 1,500 ± 500.00 RD" : `violet band · 95% posterior · MAP prior ${PUZZLE_ELO_PRIOR.mean.toLocaleString()} ± ${PUZZLE_ELO_PRIOR.sd.toLocaleString()}`}</span>
       </div>
     </CardContent>
   </Card>
