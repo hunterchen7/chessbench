@@ -1,7 +1,7 @@
 import { BrainCircuit, Cpu } from "lucide-react"
 import type { ModelVariant } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
-import { effectiveReasoningEffort, reasoningLabel, reasoningTitle } from "@/lib/modelReasoning"
+import { reasoningConfigurationEffort, reasoningLabel, reasoningTitle } from "@/lib/modelReasoning"
 import { participantKind } from "@/lib/participants"
 
 const REASONING_BADGE_CLASSES: Record<string, string> = {
@@ -13,7 +13,7 @@ const REASONING_BADGE_CLASSES: Record<string, string> = {
   xhigh: "border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-300",
   max: "border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-300",
   budget: "border-violet-500/35 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-  provider: "border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300",
+  provider: "border-zinc-500/35 bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
 }
 
 export function ModelIdentity({ variant, compact = false }: { variant: ModelVariant; compact?: boolean }) {
@@ -25,7 +25,7 @@ export function ModelIdentity({ variant, compact = false }: { variant: ModelVari
         <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">
           {variant.provider}
         </Badge>
-        {kind === "model" ? <Badge variant="outline" title={reasoningTitle(variant)} className={`h-5 gap-1 px-1.5 text-[10px] font-normal ${REASONING_BADGE_CLASSES[effectiveReasoningEffort(variant)] ?? REASONING_BADGE_CLASSES.provider}`}>
+        {kind === "model" ? <Badge variant="outline" title={reasoningTitle(variant)} className={`h-5 gap-1 px-1.5 text-[10px] font-normal ${REASONING_BADGE_CLASSES[reasoningConfigurationEffort(variant)] ?? REASONING_BADGE_CLASSES.provider}`}>
           <BrainCircuit className="size-3" /> {reasoningLabel(variant)}
         </Badge> : <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[10px] font-normal"><Cpu className="size-3" /> {kind === "engine" ? "engine reference" : "reference baseline"}</Badge>}
         {!compact && kind === "model" && (

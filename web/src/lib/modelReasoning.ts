@@ -14,9 +14,16 @@ export function effectiveReasoningEffort(variant: ModelVariant): string {
   return PROVIDER_REASONING_DEFAULTS[variant.model_id] ?? "provider"
 }
 
+/** Preserve whether reasoning was explicitly requested or left to the provider. */
+export function reasoningConfigurationEffort(variant: ModelVariant): string {
+  const { effort, max_tokens: tokens } = variant.reasoning ?? {}
+  if (tokens) return "budget"
+  return effort || "provider"
+}
+
 export function reasoningEffortLabel(effort: string): string {
   if (effort === "none") return "Reasoning off"
-  if (effort === "provider") return "Provider-selected"
+  if (effort === "provider") return "Provider default"
   if (effort === "budget") return "Token budget"
   return `${effort[0].toUpperCase()}${effort.slice(1)} reasoning`
 }
@@ -24,7 +31,13 @@ export function reasoningEffortLabel(effort: string): string {
 export function reasoningLabel(variant: ModelVariant): string {
   const { effort, max_tokens: tokens } = variant.reasoning ?? {}
   if (tokens) return `${tokens >= 1000 ? `${(tokens / 1000).toFixed(tokens % 1000 ? 1 : 0)}k` : tokens} think`
-  const effectiveEffort = effort ?? PROVIDER_REASONING_DEFAULTS[variant.model_id]
+  if (!effort) {
+    const providerEffort = PROVIDER_REASONING_DEFAULTS[variant.model_id]
+    if (providerEffort === "none") return "default · no think"
+    if (providerEffort) return `default · ${providerEffort} think`
+    return "provider default"
+  }
+  const effectiveEffort = effort
   if (effectiveEffort && effectiveEffort !== "none") return `${effectiveEffort} think`
   if (effectiveEffort === "none") return "no think"
   return "provider-selected"
