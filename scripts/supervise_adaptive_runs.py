@@ -89,6 +89,48 @@ TARGETS = (
             "--request-timeout", "1800", "--live-sync-every", "5",
         ),
     ),
+    Target(
+        "gemini-3-1-flash-lite-seed-0",
+        "ecad19e46302433ebc46a43b2ae48ad5",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.1-flash-lite", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "900",
+            "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-1-flash-lite-seed-1",
+        "0700bd19cdc54346a7539a6c5e0df396",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.1-flash-lite", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "900",
+            "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-1-flash-lite-seed-2",
+        "55bed7739bd347c1b3f1b0fa86cabc87",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.1-flash-lite", "--seed", "2",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "900",
+            "--live-sync-every", "5",
+        ),
+    ),
 )
 
 
