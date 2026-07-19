@@ -44,6 +44,7 @@ export interface HumanTrainingLeaderboardRow {
   rank: number
   me: boolean
   handle: string
+  seed: number | null
   rating: number
   rating_deviation: number
   provisional: boolean

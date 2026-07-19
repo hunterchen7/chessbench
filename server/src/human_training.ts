@@ -4,6 +4,7 @@ import {
   HUMAN_TRAINING_MAX_SAVE_DEVIATION,
   normalizedTrainingUid,
   parseTrainingSave,
+  trainingSessionSeed,
   type TrainingSession,
 } from "./human_training_payload"
 
@@ -106,6 +107,7 @@ export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<R
       rank: index + 1,
       me: uid != null && row.uid === uid,
       handle: row.handle,
+      seed: trainingSessionSeed(row.session_json),
       rating: row.rating,
       rating_deviation: row.rating_deviation,
       provisional: row.rating_deviation >= 110,

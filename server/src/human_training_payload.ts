@@ -30,6 +30,16 @@ export interface ParsedTrainingSave {
   session: TrainingSession
 }
 
+export function trainingSessionSeed(sessionJson: string): number | null {
+  try {
+    const session = JSON.parse(sessionJson) as Partial<TrainingSession>
+    const seed = session.selector?.seed
+    return typeof seed === "number" && Number.isSafeInteger(seed) ? seed : null
+  } catch {
+    return null
+  }
+}
+
 function finiteInRange(value: unknown, minimum: number, maximum: number): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= minimum && value <= maximum
 }

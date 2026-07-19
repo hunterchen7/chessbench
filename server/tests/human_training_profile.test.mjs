@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { parseTrainingSave } from "../src/human_training_payload.ts"
+import { parseTrainingSave, trainingSessionSeed } from "../src/human_training_payload.ts"
 
 const session = {
   version: 1,
@@ -47,4 +47,16 @@ test("saved training profiles accept and validate benchmark-compatible selector 
     handle: "Knight_42",
     session: { ...seededSession, selector: { ...selector, next_sequence: -1 } },
   }), null)
+})
+
+test("saved training profiles expose their seed without trusting malformed legacy JSON", () => {
+  assert.equal(trainingSessionSeed(JSON.stringify({ ...session, selector: {
+    version: "deterministic_rating_band_v1",
+    seed: -7,
+    target_radius: 100,
+    pool_hash: "sha256:abc",
+    next_sequence: 12,
+  } })), -7)
+  assert.equal(trainingSessionSeed(JSON.stringify(session)), null)
+  assert.equal(trainingSessionSeed("not json"), null)
 })
