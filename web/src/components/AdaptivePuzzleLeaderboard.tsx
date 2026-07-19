@@ -373,7 +373,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     return next
   })
   const protocol = ratedRuns[0]?.protocol
-  const targetRd = protocol?.stopping.target_rating_deviation ?? 75
+  const targetRd = protocol?.stopping.target_rating_deviation ?? 77
   const totals = {
     models: modelGroups.length,
     configurations: aggregates.length,

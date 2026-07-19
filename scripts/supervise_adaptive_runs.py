@@ -41,6 +41,7 @@ TARGETS = (
         (
             sys.executable, "-m", "chessbench", "rate-model",
             "--model", "inkling", "--seed", "0", "--reasoning", "high",
+            "--target-rd", "75",
             "--capture-reasoning", "--max-output-tokens", "0",
             "--provider-only", "together", "--no-provider-fallbacks",
             "--require-provider-parameters", "--request-timeout", "900",
@@ -54,6 +55,7 @@ TARGETS = (
         (
             sys.executable, "-m", "chessbench", "rate-model",
             "--model", "inkling", "--seed", "1", "--reasoning", "high",
+            "--target-rd", "75",
             "--capture-reasoning", "--max-output-tokens", "0",
             "--provider-only", "together", "--no-provider-fallbacks",
             "--require-provider-parameters", "--request-timeout", "900",
@@ -67,6 +69,7 @@ TARGETS = (
         (
             sys.executable, "-m", "chessbench", "rate-model",
             "--model", "inkling", "--seed", "2", "--reasoning", "high",
+            "--target-rd", "75",
             "--capture-reasoning", "--max-output-tokens", "0",
             "--provider-only", "together", "--no-provider-fallbacks",
             "--require-provider-parameters", "--request-timeout", "900",
@@ -80,6 +83,7 @@ TARGETS = (
         (
             sys.executable, "-m", "chessbench", "rate-model",
             "--model", "kimi-k3", "--seed", "0", "--reasoning", "max",
+            "--target-rd", "75",
             "--capture-reasoning", "--max-output-tokens", "0",
             "--provider-only", "moonshotai", "--no-provider-fallbacks",
             "--request-timeout", "1800", "--live-sync-every", "5",

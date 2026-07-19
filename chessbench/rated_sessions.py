@@ -69,7 +69,7 @@ class RatedSessionConfig:
     target_radius: int = 100
     min_puzzles: int = 50
     max_puzzles: int = 100
-    target_deviation: float = 75.0
+    target_deviation: float = 77.0
     selector_version: str = "deterministic_rating_band_v1"
     rating_version: str = "lichess_glicko2_frozen_puzzles_v1"
 

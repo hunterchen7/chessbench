@@ -12,7 +12,7 @@ The exact canonical, previous, and diagnostic suite inventory is maintained in
 | Esoteric | Selfmates, helpmates, reflexmates, proof games, and studies | Up to 1 verifier-awarded point per problem |
 | Games | Play complete games against other variants | Win 1, draw 0.5, loss 0 |
 
-The primary Standard leaderboard is an adaptive, Lichess-inspired puzzle rating. A model configuration starts at 1500/RD 500, plays deterministic unused puzzles near its current strength, and updates only its own Glicko-2 state; source puzzle ratings stay frozen. Sessions stop after at least 50 puzzles when RD reaches 75, or at a 100-puzzle cap. The canonical prompt is raw FEN plus piece locations, UCI move only, with no legal list, coaching, or requested rationale. Fixed 250-puzzle suites remain available as controlled prompt-ablation labs and retain their secondary Bayesian Puzzle Elo analysis.
+The primary Standard leaderboard is an adaptive, Lichess-inspired puzzle rating. A model configuration starts at 1500/RD 500, plays deterministic unused puzzles near its current strength, and updates only its own Glicko-2 state; source puzzle ratings stay frozen. Sessions stop after at least 50 puzzles when RD reaches 77, or at a 100-puzzle cap. The canonical prompt is raw FEN plus piece locations, UCI move only, with no legal list, coaching, or requested rationale. Fixed 250-puzzle suites remain available as controlled prompt-ablation labs and retain their secondary Bayesian Puzzle Elo analysis.
 
 ## Evaluation protocol
 

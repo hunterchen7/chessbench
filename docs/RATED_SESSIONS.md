@@ -65,7 +65,7 @@ Non-mating alternatives are not inferred from a single engine evaluation. Suppor
 versioned engine, analysis budget, equivalence threshold, opponent continuation, and accepted answer graph; without
 those pinned inputs, human and model results would not be reproducible.
 
-Sessions run for at least 50 puzzles. They stop once solver RD is at most 75, or at a 100-puzzle safety cap. There
+Sessions run for at least 50 puzzles. They stop once solver RD is at most 77, or at a 100-puzzle safety cap. There
 is no consecutive-miss cutoff in the rated protocol. A pause caused by credits or an operator is not completion;
 the SQLite checkpoint resumes the identical deterministic path later. Calendar-time RD aging is disabled so two
 otherwise identical sessions do not receive different scores merely because one was paused overnight.

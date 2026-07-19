@@ -2435,7 +2435,7 @@ def main(argv: list[str] | None = None) -> int:
     rated.add_argument("--target-radius", type=int, default=100)
     rated.add_argument("--min-puzzles", type=int, default=50)
     rated.add_argument("--max-puzzles", type=int, default=100)
-    rated.add_argument("--target-rd", type=float, default=75.0)
+    rated.add_argument("--target-rd", type=float, default=77.0)
     rated.add_argument("--out-dir", default="web/public/data/runs")
     rated.add_argument("--db", default="runs/chessbench.db")
     rated.add_argument("--no-sync", action="store_true")

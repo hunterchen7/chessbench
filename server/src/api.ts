@@ -86,7 +86,7 @@ function publicRun(row: RunRow) {
     : undefined
   const adaptiveDeviation = row.puzzle_rating_stderr
   const adaptiveMinimum = Number(adaptiveStopping?.minimum_puzzles ?? 50)
-  const adaptiveTargetDeviation = Number(adaptiveStopping?.target_rating_deviation ?? 75)
+  const adaptiveTargetDeviation = Number(adaptiveStopping?.target_rating_deviation ?? 77)
   const acceptedRounded =
     row.status === "completed" &&
     storedTermination?.kind === "operator_rounded" &&

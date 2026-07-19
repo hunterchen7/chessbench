@@ -72,6 +72,8 @@ def test_selector_is_deterministic_near_rating_and_without_replacement():
 
 
 def test_stopping_requires_minimum_and_target_rd_or_uses_cap():
+    assert RatedSessionConfig().target_deviation == 77
+
     config = RatedSessionConfig(min_puzzles=50, max_puzzles=100, target_deviation=75)
     settled = GlickoState(rating=1600, deviation=74.9, volatility=0.09)
     uncertain = GlickoState(rating=1600, deviation=75.1, volatility=0.09)
