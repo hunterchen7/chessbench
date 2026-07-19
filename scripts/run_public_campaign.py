@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run or resume the frozen public Luna/Haiku campaign.
+"""Run or resume the archived fixed-suite Luna/Haiku campaign.
 
 Each cell delegates to a durable ChessBench command. A process interruption,
 provider outage, or exhausted credit balance can therefore be handled by

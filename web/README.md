@@ -1,7 +1,7 @@
 # chessbench web
 
-A Vite + React + TypeScript + Tailwind v4 + shadcn/ui front-end for the chessbench
-benchmark. It reads the JSON the Python CLI produces and renders it as an interactive site.
+A Vite, React, TypeScript, Tailwind v4, and shadcn/ui front-end for ChessBench.
+Production pages read normalized benchmark data from the Cloudflare Worker and D1.
 
 ## Pages
 
@@ -18,12 +18,14 @@ benchmark. It reads the JSON the Python CLI produces and renders it as an intera
 
 ## Data
 
-The app fetches from the Worker API in production and falls back to `public/data/` offline:
+The app fetches from the Worker API in production. It uses `public/data/` only when the API is unavailable.
 
-- `corpora/*.json` — immutable, result-free public Standard, Woodpecker, and Esoteric banks.
-- `index.json` — run index; each entry points to a file in `runs/`.
-- `runs/*.json` — one puzzle run (model × condition) with per-puzzle items.
-- `tournaments/index.json` + `tournaments/*.json` — game tournaments.
+- `corpora/*.json` contains immutable, result-free public banks.
+- `suites.json` describes fixed public suite releases.
+- `prompts.json` exposes frozen public prompt text.
+- `index.json`, `runs/`, `composed/`, and `tournaments/` are optional local fixtures.
+
+Full run snapshots are not tracked. They can contain prompts, responses, and reasoning records. D1 is the production source for this data.
 
 Regenerate the result-free corpus bundle from the canonical releases:
 
@@ -37,6 +39,7 @@ python3 scripts/build_public_corpus_bundle.py
 pnpm install
 pnpm dev        # http://localhost:5173
 pnpm build      # type-check + production build to dist/
+pnpm build:deploy # production build without local full-run snapshots
 pnpm preview    # serve the production build
 ```
 

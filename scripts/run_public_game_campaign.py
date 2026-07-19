@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run or resume the color-balanced Luna/Haiku public game matrix."""
+"""Run or resume the archived color-balanced Luna/Haiku game matrix."""
 
 from __future__ import annotations
 

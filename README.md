@@ -1,198 +1,80 @@
 # ChessBench
 
-ChessBench is a points-first, tool-free benchmark for language models doing chess. It evaluates four distinct capabilities:
+ChessBench measures how language models solve chess without external tools. It stores each prompt, response, move, score, usage record, and provider cost.
 
-The exact canonical, previous, and diagnostic suite inventory is maintained in
-[docs/SUITES.md](docs/SUITES.md).
+The public product has three benchmark surfaces:
 
-| Track | Task | Score |
+| Surface | Task | Headline result |
 | --- | --- | --- |
-| Standard | Solve tactical positions move by move | Up to 1 point per puzzle; correct prefixes receive fractional credit |
-| Woodpecker | Return the complete forced line in one response | Up to 1 point per puzzle; valid full-line prefix credit |
-| Esoteric | Selfmates, helpmates, reflexmates, proof games, and studies | Up to 1 verifier-awarded point per problem |
-| Games | Play complete games against other variants | Win 1, draw 0.5, loss 0 |
+| Standard | Solve tactical positions one move at a time | Adaptive puzzle rating and rating deviation (RD) |
+| Esoteric | Solve selfmates, helpmates, proof games, studies, and related compositions | Verifier-awarded points |
+| Games | Play complete games against other model configurations | Match points |
 
-The primary Standard leaderboard is an adaptive, Lichess-inspired puzzle rating. A model configuration starts at 1500/RD 500, plays deterministic unused puzzles near its current strength, and updates only its own Glicko-2 state; source puzzle ratings stay frozen. Sessions stop after at least 50 puzzles when RD reaches 77, or at a 100-puzzle cap. The canonical prompt is raw FEN plus piece locations, UCI move only, with no legal list, coaching, or requested rationale. Fixed 250-puzzle suites remain available as controlled prompt-ablation labs and retain their secondary Bayesian Puzzle Elo analysis.
+The backend also retains an experimental full-line protocol. It is not a current public leaderboard track. See [the suite catalog](docs/SUITES.md) for its Woodpecker-derived releases.
 
-## Evaluation protocol
+## Primary benchmark
 
-The four standard prompt methods are:
+The primary benchmark is an adaptive Standard puzzle session. It uses the pinned 100,000-puzzle `rated-lichess-v1` pool.
 
-1. **Raw** — FEN and piece locations.
-2. **Assisted** — Raw plus every legal move in UCI coordinate notation.
-3. **Coached** — Assisted plus fixed, non-prescriptive chess calculation considerations.
-4. **Deep coached** — Assisted plus a fixed 925-word calculation framework emphasizing best defense, recaptures, intermediate moves, stable endpoints, and a final blunder audit.
+The canonical model receives:
 
-Canonical puzzle prompts never put SAN in a legal-candidate list. SAN appends `+` to checks and `#` to checkmates,
-so a move such as `Qh7#` would disclose a mate-in-one answer. Candidate lists, requested answers, and within-puzzle
-move history use UCI under prompt contract `uci_candidates_v1`; that version is included in every condition slug.
+- The FEN position.
+- Explicit piece locations.
+- A request for one UCI move.
+- No legal-move list.
+- No chess advice.
+- No request for an explanation.
 
-Response style is a separate axis. It never changes the Standard method numbering:
+Each model configuration starts at rating 1,500 and RD 500. The harness selects deterministic, unused puzzles near the current rating.
 
-| | Move only | JSON + rationale |
-| --- | --- | --- |
-| Mode 1 — Raw | `plain_text_v1` | structured move + visible rationale |
-| Mode 2 — Assisted | `plain_text_v1` | structured move + visible rationale |
-| Mode 3 — Coached | `plain_text_v1` | structured move + visible rationale |
-| Method 4 — Deep coached | `plain_text_v1` | structured move + visible rationale |
+| Stop setting | Canonical value |
+| --- | ---: |
+| Selection radius | ±100 rating points |
+| Minimum puzzles | 50 |
+| Target RD | 77 |
+| Maximum puzzles | 100 |
 
-For backward-compatible CLI numbering, Deep coached is `--mode 5`; `--mode 4` remains the separately scored
-Woodpecker full-line protocol. The dashboard presents Deep coached as the fourth Standard method. Its exact text is
-frozen in `chessbench/conditions.py` under prompt contract `deep_coach_v1`, so it never pools with concise-coached
-results.
+A complete solve is a Glicko-2 win. A wrong or illegal move is a loss. Correct prefixes earn diagnostic points but do not count as complete solves.
 
-The `move_only` ablation uses `explain=false` and requests only a plain-text move. The `json_rationale` style uses
-`explain=true` and the current structured contract:
+The puzzle rating is a benchmark scale. It is not a human over-the-board Elo rating. See [Rated puzzle sessions](docs/RATED_SESSIONS.md) for the exact selector, update, and stopping contracts.
 
-```json
-{"move":"e2e4","rationale":"A concise explanation of why the move is best."}
-```
+## Fixed Standard lab
 
-Woodpecker uses the corresponding `{"moves":[...],"rationale":"..."}` shape under `json_rationale`, or a tagged
-move line with no explanation under `move_only`. Moves are scored independently
-from the rationale. A recoverable move in malformed JSON still receives its chess score while the response is
-recorded as a format failure.
+The fixed 250-puzzle suite supports controlled prompt comparisons. New fixed-suite runs use `suites/public/standard-lichess-v3.json`.
 
-Information and conversation state are independent axes. No state ever crosses puzzle boundaries. Multi-move standard puzzles default to one stateful chat inside a puzzle, with the authoritative current position and played line re-sent on each move. `fresh` context reconstructs every turn in a new request as an ablation. Woodpecker is always a single request.
-
-Games default to `hybrid` context: one growing chat per game plus the authoritative position and history on every turn. Illegal moves can cause an immediate forfeit, receive a bounded retry, be prevented with a legal-move list, or count toward an over-the-board cumulative limit.
-
-Evaluated models receive a neutral chess task. They are never told that the request is a benchmark, evaluation, experiment, leaderboard, or scored attempt. They also receive no chess engine, browser, retrieval, code execution, or other tool. OpenAI-compatible requests omit `tools`, `plugins`, and `tool_choice` entirely—there is therefore nothing to invoke, and xAI rejects an orphaned `tool_choice` when no tool list exists. A returned tool call is rejected fail-closed.
-
-The default `prompt_prefix_v1` policy enables provider-side prompt-prefix computation reuse for stateful, multi-turn puzzles and games. It never caches or replays a response. Every puzzle still has a fresh message list and distinct opaque routing key; each player in a game has a separate key. One-shot Woodpecker and composed-problem requests skip explicit cache writes. Raw provider usage plus normalized cache reads, writes, uncached prompt tokens, discounts, and cost are retained per turn and aggregated into exports.
-
-Reasoning effort, exact reasoning-token budget, and output-token cap are part of a model variant's identity. For example, the same provider model at `low`, `high`, and `4096` exact reasoning tokens appears as three distinct rows.
-
-## Puzzle corpora
-
-The checked-in releases contain fast development seeds and the first full-dump public collections:
-
-| Corpus | Items | Admission rule |
+| Dashboard method | CLI mode | Information |
 | --- | ---: | --- |
-| `standard-seed-v1` | 100 | 20 positions in each of five 400-point rating bands |
-| `woodpecker-seed-v1` | 60 | 12 per band, at least two solver moves, disjoint from Standard |
-| `standard-public-v1` | 240 | 40 positions in each of six bands from 600–2999 |
-| `woodpecker-public-v1` | 120 | 20 per band, at least two solver moves, disjoint from Standard |
-| `standard-lichess-v2` | 325 | 300-item calibrated core plus 25 adaptively gated 3000+ puzzles |
-| `standard-lichess-v3` | 250 | 25 positions in each of ten rating bands, with type diversity within every band |
-| `woodpecker-masters-v1` | 135 | 50 Easy, 50 Medium, 35 Hard; long titled-game lines with a separate historical review bank |
-| `esoteric-seed-v2` | 51 | v1 plus the fully sourced, independently certified Kopaev selfmate |
+| Raw | 1 | FEN and piece locations |
+| Assisted | 2 | Raw plus legal UCI moves |
+| Coached | 3 | Assisted plus concise calculation advice |
+| Deep coached | 5 | Assisted plus the frozen `deep_coach_v1` framework |
 
-The canonical executable Standard suite is the working `standard-lichess-v3`: a deterministic 250-item release
-ordered by ascending rating, then puzzle ID. It contains exactly 25 positions in each of ten rating bands and aims
-for a consistent mixture of mate, defensive, quiet, pawn/promotion, endgame, and general tactical tasks within each
-band. The unused 325-item v3 draft was replaced before it had any runs; the 325-item v2 remains frozen for
-historical run reproducibility.
+Mode 4 is reserved for the experimental full-line protocol. It is not the fourth Standard prompt method.
 
-The Standard and scored Woodpecker source positions come from the CC0 Lichess puzzle database. The v2 curator streams
-all 6,057,356 puzzles in the 2026-07-05 snapshot and freezes mutually disjoint public and held-out suites. Its
-Woodpecker material is restricted to puzzles from titled-player games. The older seed uses the repository's 500-row
-fixture. Esoteric combines a checked-in development seed with private YACPDB imports and freshly generated
-compositions certified by Popeye plus the native verifier. See
-[the private-corpus MVP](docs/private-corpus-mvp.md) for the sealed release workflow.
+Each Standard method supports two response styles:
 
-The original [*Woodpecker Method* by Axel Smith and Hans Tikkanen](https://www.simonandschuster.com/books/Woodpecker-Method/Axel-Smith/9781784830540)
-trains by solving a fixed puzzle set repeatedly and faster. ChessBench borrows the one-shot full-line recall pressure,
-but does not train a model across cycles or share state between repetitions.
+- `--move-only` requests plain-text UCI.
+- `--rationale` requests structured JSON with a visible explanation.
 
-The historical curation lab contains 426 public candidate positions spanning 1851–2024: 26 hand-curated classics
-plus 400 engine-mined positions from distinct source games. Another 100 engine-mined positions are held out by
-source game under the ignored private-data path. The reproducible acquisition lock covers 42 direct-PGN packs and
-2,702 parsed games; every mined line is seven UCI plies, passes a fixed-node MultiPV score-gap gate, and retains its
-source-artifact SHA-256. These remain **candidates, not scored tasks**: legal replay and fixed-node stability do not
-replace best-defense, alternate-branch, overlap, and human editorial review. The Deep Blue–Kasparov 1997 game-two
-position is deliberately visible in the lab but excluded from exact-line scoring because modern review disputes the
-traditional continuation. See [the historical-game source and review plan](docs/HISTORICAL_CORPUS.md).
+Legal candidate lists use UCI only. SAN can reveal checks with `+` and checkmates with `#`, which can disclose puzzle answers.
 
-Each file in `corpora/public/` includes source URLs, license, snapshot label, deterministic selection parameters,
-item-level data, validation statistics, and a tamper-evident content hash. The matching files in `suites/public/`
-are the execution artifacts. See [corpora/README.md](corpora/README.md) for the release policy.
+No state crosses puzzle boundaries. Multi-move puzzles use one conversation within that puzzle by default. The harness sends the authoritative position and played line on each turn.
 
-Rebuild the seed release or create a larger deterministic Lichess source pool:
+## Model isolation
 
-```bash
-python3 scripts/build_corpora.py
-python3 scripts/build_esoteric_release.py
-python3 scripts/build_standard_suite.py
-python3 scripts/download_puzzles.py --per-bucket 5000 \
-  --snapshot YYYY-MM-DD --out data/lichess_pool_YYYY-MM-DD.csv
-python3 scripts/build_corpora.py \
-  --tactical-source data/lichess_pool_YYYY-MM-DD.csv \
-  --lichess-snapshot YYYY-MM-DD --release public-v1 \
-  --include-master --skip-esoteric \
-  --standard-per-band 40 --woodpecker-per-band 20
-```
+The model receives a neutral chess task. The prompt does not say that the task is a benchmark or a scored evaluation.
 
-Run each frozen collection:
+ChessBench does not give the model an engine, browser, retrieval system, code runner, or other tool. Provider requests omit tool definitions. A returned tool call fails closed.
 
-```bash
-python3 -m chessbench puzzles --suite suites/public/standard-lichess-v3.json --mode 2
-python3 -m chessbench puzzles --suite suites/public/woodpecker-masters-v1.json --mode 4
-python3 -m chessbench composed --suite suites/public/esoteric-seed-v2.json
-```
+Reasoning effort and output policy are part of the model configuration. A model at `low` and the same model at `high` appear as different configurations.
 
-The dashboard corpus is built independently from result files, so resetting runs never deletes the tasks:
+ChessBench stores reasoning text and native reasoning artifacts when the provider returns them. Readable reasoning appears in a separate collapsed audit view.
 
-```bash
-python3 scripts/build_public_corpus_bundle.py
-python3 -m chessbench export \
-  --runs-dir web/public/data/runs \
-  --out web/public/data/index.json
-```
+Native reasoning artifacts can continue a supported provider session. OpenAI-family encrypted reasoning from OpenRouter is the exception. ChessBench stores those artifacts for audit but does not replay them.
 
-The export command deterministically indexes puzzle, esoteric/composed, and tournament files beneath the same
-`data/` directory. It ignores `index.json`, malformed JSON, and documents with the wrong run schema.
+## Quick start
 
-## Durable architecture
-
-```text
-Provider API
-    │ exact prompt/visible response + usage
-    ▼
-Python runner ──transaction per completed item──▶ local SQLite outbox
-    │                                                │ resumable/idempotent
-    │ game snapshots                                ▼
-    └──────────────────────────────────────▶ Cloudflare Worker + D1
-                                                     │
-                                                     ▼
-                                             React data dashboard
-                                                     │
-                                                     └── filtered JSON export
-```
-
-Local SQLite uses WAL mode and commits each paid result together with its progress counter. An OS-released executor lock prevents two local processes from issuing the same next paid call for one natural-key run; even an abrupt process death releases it immediately. If credits run out or the process is interrupted, rerunning the same model × suite × condition skips completed items. The sync script marks each D1 delivery independently, so failed uploads remain queued.
-
-Cloudflare serves the Vite dashboard and Worker API from one origin. D1 stores normalized run manifests, incremental item results, events, tournaments, live boards, and per-attempt game transcripts. The dashboard index fetches lightweight manifests first and lazy-loads item payloads only on detail routes.
-
-## Stored audit data
-
-Each model request records:
-
-- system prompt when first introduced;
-- exact user prompt and visible provider response;
-- parsed move, legality, retry attempt, visible rationale, and JSON-format validity;
-- prompt, completion, and reasoning-token counts;
-- readable provider reasoning when returned, plus the exact signed/encrypted
-  native reasoning blocks needed for same-session continuity;
-- provider-reported cost.
-
-The model-authored rationale is displayed as an explanation, not represented as faithful hidden chain of thought.
-Readable provider reasoning is shown separately in a collapsed audit disclosure and may itself be only a provider
-summary. Opaque reasoning blocks are stored for audit/export but never rendered as readable thought. Within one
-multi-move puzzle or one player's private game chat, ChessBench returns the exact structured artifact on the next
-turn; plaintext reasoning is used only when the provider supplied no structured form. Numeric reasoning-token counts
-are accounting data and are never replayed. Capture/native continuity is the default; `--no-capture-reasoning` is the
-visible-history-only ablation.
-
-ChessBench omits the provider `max_tokens` parameter by default, so a model uses
-its native completion limit independently from the selected reasoning effort.
-This is recorded as the `o-provider` model variant. A numeric
-`--max-output-tokens` value is opt-in and creates a distinct output-budget
-ablation; `--provider-output-limit` can also state the default policy explicitly.
-
-## Local setup
-
-Requirements: Python 3.10+, Node 20+, and pnpm.
+ChessBench requires Python 3.10 or newer, Node.js 20 or newer, and pnpm.
 
 ```bash
 python3 -m pip install -e '.[dev]'
@@ -202,138 +84,166 @@ pnpm --dir server install
 pnpm --dir server migrate:local
 ```
 
-Put provider credentials in `.env`; it is ignored by Git. Never commit live keys.
+Put provider credentials in `.env`. Git ignores this file. Do not commit a live key.
 
-List or add a model registry entry:
+List the registry or add a model:
 
 ```bash
 python3 -m chessbench models list
 python3 -m chessbench models add my-model openrouter provider/model-id
 ```
 
-Run a frozen suite with durable item-level persistence:
+Run the canonical adaptive benchmark:
 
 ```bash
-python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2
-python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 3 --reasoning high
-python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 4 --reasoning-tokens 4096
-
-# Primary adaptive rating (RD 77 after 50–100 puzzles)
-python3 -m chessbench rate-model --model my-model --reasoning low
+python3 -m chessbench rate-model \
+  --model my-model \
+  --reasoning high
 ```
 
-The command uses the canonical defaults: seed 0, a ±100 selection radius, at least 50 puzzles, target RD 77, and a
-100-puzzle safety cap. Run the identical command to resume from SQLite without duplicate model calls. See
-[`docs/RATED_SESSIONS.md`](docs/RATED_SESSIONS.md) for the exact stopping rule, provider pinning, multi-seed runs,
-fresh-run instructions, and the campaign-supervisor procedure.
+The command uses seed 0, the ±100 selection radius, the 50-puzzle minimum, target RD 77, and the 100-puzzle cap. Run the same command again to resume its SQLite checkpoint.
 
-Mode 4 is written to the Woodpecker track. `--reasoning` and `--reasoning-tokens` are mutually exclusive.
-
-Run a paired response-style ablation without changing the information mode:
+Run one fixed-suite comparison cell:
 
 ```bash
-python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2 --move-only
-python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 2 --rationale
+python3 -m chessbench run-model \
+  --model my-model \
+  --suite suites/public/standard-lichess-v3.json \
+  --mode 1 \
+  --move-only \
+  --reasoning high
 ```
 
-For the full Standard 4 × 2 matrix, repeat that pair under Modes 1, 2, 3, and 5. The complete condition slug records
-`plain-text-v1` versus `json-rationale` and the exact structured protocol, so results cannot be pooled accidentally.
+Use Modes 1, 2, 3, and 5 with both response styles for the complete fixed-suite matrix.
 
-The frozen Luna/Haiku low-reasoning public campaign contains 24 durable cells
-and 4,744 model-item evaluations across Standard, Woodpecker, and Esoteric. Its
-exact matrix, dry-run validation, and resumable launcher are documented in
-[`docs/CAMPAIGNS.md`](docs/CAMPAIGNS.md).
-The paired public game campaign adds six color-balanced conditions across Modes
-1–3 and both response styles; its launcher is
-`scripts/run_public_game_campaign.py`.
+## Persistence and audit data
 
-Play and optionally stream a points tournament:
+```text
+Provider API
+    │
+    ▼
+Python runner ── one transaction per completed item ──▶ SQLite outbox
+                                                          │
+                                                          ▼
+                                                Cloudflare Worker + D1
+                                                          │
+                                                          ▼
+                                                   React dashboard
+```
+
+SQLite uses write-ahead logging and commits each paid result with its progress state. A stopped command resumes at the first missing item.
+
+The local database is the execution authority. D1 is the production serving database. Uploads are idempotent, and failed uploads remain in the outbox.
+
+Each request can retain:
+
+- The exact system and user prompts.
+- The visible provider response.
+- Parsed moves, legality, retries, and score.
+- Visible explanations and available reasoning records.
+- Prompt, completion, reasoning, and cache-token usage.
+- Provider-reported cost.
+
+## Results and repository artifacts
+
+Production dashboard pages read run data from D1. Detailed static run JSON files are local offline exports, not production assets.
+
+Do not commit SQLite databases, supervisor logs, or full reasoning transcripts. Commit a compact campaign artifact instead.
+
+The July 2026 public adaptive campaign uses:
+
+- `campaigns/adaptive-public-2026-07.json` for the ordered run manifest.
+- `artifacts/adaptive-public-2026-07.json` for compact ratings, RD, usage, cost, and termination data.
+
+Rebuild that artifact from SQLite:
 
 ```bash
-python3 -m chessbench tournament \
-  --models provider/model-a,provider/model-b \
-  --provider openrouter --games 4 --context-mode hybrid \
-  --mode 2 --move-only --save runs/tournaments/example-move-only.json
+python3 scripts/export_rated_campaign.py \
+  --spec campaigns/adaptive-public-2026-07.json \
+  --out artifacts/adaptive-public-2026-07.json
 ```
 
-Use the same command with `--rationale` for the paired JSON + rationale game condition.
-During `--stream`, local SQLite remains authoritative and paid play continues if
-Cloudflare is temporarily unavailable. Rerunning the identical command replays
-every completed game and the latest in-progress board idempotently before play
-resumes. A failed final-document upload exits nonzero only after the complete
-local tournament JSON has been saved, so the next run publishes it without new
-model calls.
-
-## Cloudflare sync and deployment
-
-Cloudflare Workers Builds deploys the Worker and dashboard assets from the
-connected GitHub repository. Configure the production build in the Cloudflare
-dashboard with branch `main`, root directory `/server/`, and these commands:
+Create an offline result bundle only when local static testing requires it:
 
 ```bash
-# Build command
-pnpm install --frozen-lockfile && pnpm --dir ../web install --frozen-lockfile && pnpm --dir ../web build
+python3 -m chessbench run-model \
+  --model my-model \
+  --suite suites/public/standard-lichess-v3.json \
+  --mode 1 \
+  --move-only \
+  --reasoning high \
+  --export-only \
+  --out-dir web/public/data/runs
 
-# Deploy command
-pnpm exec wrangler deploy
+python3 -m chessbench export \
+  --runs-dir web/public/data/runs \
+  --out web/public/data/index.json
 ```
 
-Non-production branch builds are optional; use
-`pnpm exec wrangler versions upload` to create previews without promoting them
-to production. Cloudflare can manage the build API token automatically. D1
-migrations and registry/result synchronization remain explicit operations; a
-dashboard deployment does not mutate benchmark data.
+The deployed build excludes `web/public/data/runs`. Public result-free corpus files remain available as an offline fallback.
 
-For manual deployment or initial infrastructure setup, set
-`CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` in `.env`, and set the same token
-as the Worker's `INGEST_TOKEN` secret. Register exact corpora/suites before
-syncing results:
+## Cloudflare deployment
+
+Cloudflare Workers serves the Vite dashboard and the JSON API from one origin. D1 stores public benchmark data.
+
+For a Cloudflare Workers Builds connection, use these settings:
+
+- Production branch: `main`.
+- Root directory: `/server/`.
+- Build command: `pnpm install --frozen-lockfile && pnpm --dir ../web install --frozen-lockfile && pnpm --dir ../web build:deploy`.
+- Deploy command: `pnpm exec wrangler deploy`.
+
+The deploy build removes detailed static run snapshots before Wrangler uploads the assets.
+
+Apply migrations and register benchmark data explicitly:
 
 ```bash
 pnpm --dir server migrate:remote
-pnpm --dir server deploy
 python3 scripts/sync_registry.py
+python3 scripts/sync_rated_pool.py
 python3 scripts/sync_cloudflare.py --db runs/chessbench.db
 ```
 
-`run-model` also publishes its own completed run automatically when those two
-Cloudflare environment variables are configured. Delivery is idempotent: a
-network failure leaves the completed items in the local SQLite outbox for the
-next automatic attempt or a manual `sync_cloudflare.py` drain. Use `--no-sync`
-only when a completed run should intentionally remain local.
+Set `CHESSBENCH_API` and `CHESSBENCH_INGEST_TOKEN` for result sync. Set the same token as the Worker `INGEST_TOKEN` secret.
 
-Dashboard exports are scoped to the current suite, method, model run, puzzle,
-or match set. The navigation Data menu keeps the full cross-track archive as an
-explicitly labelled secondary export instead of making it the default action.
+For a manual deployment, run `pnpm --dir server deploy`. This command builds the site, removes raw run assets, applies migrations, and deploys the Worker.
 
-During credential migration the Worker may also accept `INGEST_TOKEN_V2`; this lets a new local outbox client sync
-without invalidating an existing ingestion client. Keep only the credentials that are actively needed.
+## Documentation
 
-The dashboard's **Export JSON** control calls `/api/export`. The endpoint supports `track`, `model`, `run`, and
-`status` filters and includes its scoring contract in the downloaded document. Public exports contain complete
-public-suite items but only aggregate scores and fingerprints for private suites. The benchmark owner can request
-an audited raw export with `include_private=1` and the ingestion Bearer token.
+- [Rated puzzle sessions](docs/RATED_SESSIONS.md) defines the primary adaptive benchmark.
+- [Suite catalog](docs/SUITES.md) lists canonical, previous, diagnostic, and legacy suites.
+- [Campaigns](docs/CAMPAIGNS.md) defines published fixed campaigns.
+- [System design](docs/DESIGN.md) explains benchmark and storage decisions.
+- [Esoteric corpus](docs/ESOTERIC_CORPUS.md) explains composed-problem sourcing and verification.
+- [Historical corpus](docs/HISTORICAL_CORPUS.md) explains the candidate-position review bank.
+- [Frontier probes](docs/FRONTIER_PROBES.md) records bounded frontier-model checks.
+- [Legacy inventory](docs/LEGACY.md) identifies retained compatibility surfaces and one-time utilities.
 
 ## Verification
 
 ```bash
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q
 python3 -m mypy chessbench --ignore-missing-imports
+pnpm --dir server test
 pnpm --dir server typecheck
-pnpm --dir web build
+pnpm --dir web lint
+pnpm --dir web build:deploy
 ```
 
-The benchmark grader uses `python-chess`; models never determine whether their own move was legal.
+The `PYTEST_DISABLE_PLUGIN_AUTOLOAD` setting avoids unrelated global pytest plugins. The project tests do not require those plugins.
 
 ## Repository map
 
 ```text
-chessbench/        Python protocols, agents, graders, persistence, providers
-corpora/           Versioned source collections, provenance, selection, QA reports
-registry/          Committed model registry
-scripts/           Cloudflare outbox sync and data utilities
-server/            Cloudflare Worker, D1 migrations, JSON API
-suites/            Frozen suite manifests
-tests/             Protocol and persistence tests
-web/               React dashboard
+artifacts/         Compact, reviewable campaign results
+campaigns/         Ordered campaign and run manifests
+chessbench/        Python protocols, graders, providers, and persistence
+corpora/           Versioned source collections and rated-pool artifacts
+docs/              Canonical methodology and maintenance notes
+registry/          Model registry
+scripts/           Curation, execution, export, and sync utilities
+server/            Cloudflare Worker, D1 schema, and JSON API
+suites/            Frozen executable suite manifests
+tests/             Python protocol and persistence tests
+web/               React dashboard and result-free offline fixtures
 ```

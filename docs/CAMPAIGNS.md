@@ -1,4 +1,8 @@
-# Published campaigns
+# Archived fixed-suite campaigns
+
+These campaigns preserve the first public fixed-suite matrix. The adaptive
+rated session is now the primary benchmark. Do not use these launchers as
+templates for a new adaptive campaign.
 
 ## Public low-reasoning campaign
 

@@ -65,7 +65,7 @@ wrangler d1 migrations apply chessbench --remote
 # 3. Set the ingestion secret
 wrangler secret put INGEST_TOKEN     # paste a random token
 
-# 4. Build the SPA, apply any pending production migrations, and deploy
+# 4. Build the SPA without local run snapshots, apply migrations, and deploy
 pnpm deploy
 ```
 

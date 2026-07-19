@@ -1,6 +1,7 @@
-"""Frozen experiment matrices for published ChessBench campaigns.
+"""Archived experiment matrices for published fixed-suite campaigns.
 
-Campaigns are deliberately thin orchestration over the durable per-cell runners.
+These campaigns predate the adaptive headline rating. They remain frozen for
+reproduction. Campaigns are thin orchestration over the durable per-cell runners.
 The SQLite natural key remains the source of truth: rerunning a campaign skips
 completed cells and resumes partial cells without issuing duplicate paid calls.
 """
