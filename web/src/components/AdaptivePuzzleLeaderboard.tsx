@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
+import { ratedPlayPath } from "@/lib/ratedPlay"
 import { cn } from "@/lib/utils"
 
 function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSessionProtocol } {
@@ -404,7 +405,21 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       } : undefined}
     >
       <AnimatedDetailCell open={open} />
-      <AnimatedDetailCell open={open} className={nested ? "pl-16" : "pl-10"}><div className="font-medium">Seed {individual.protocol.selection.seed}</div><div className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</div></AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className={nested ? "pl-16" : "pl-10"}>
+        <div className="font-medium">Seed {individual.protocol.selection.seed}</div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</span>
+          <Link
+            to={ratedPlayPath(individual.protocol)}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-300"
+            aria-label={`Play model session seed ${individual.protocol.selection.seed}`}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            <Play className="size-2.5 fill-current" /> Play this seed
+          </Link>
+        </div>
+      </AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>

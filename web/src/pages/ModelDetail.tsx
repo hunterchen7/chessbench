@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { comparisonPath } from "@/lib/runComparison"
+import { ratedPlayPath } from "@/lib/ratedPlay"
 
 function suiteIdentity(run: RunIndexEntry) {
   return `${run.track}:${run.suite?.content_hash ?? run.suite?.name ?? "unspecified"}`
@@ -417,15 +418,7 @@ export function ModelDetail() {
     ? meta.protocol as RatedSessionProtocol
     : null
   const adaptive = ratedProtocol != null
-  const playSameSeedPath = ratedProtocol ? (() => {
-    const params = new URLSearchParams({
-      seed: String(ratedProtocol.selection.seed),
-      pool_hash: ratedProtocol.pool.content_hash,
-      target_radius: String(ratedProtocol.selection.target_radius),
-      restart: "1",
-    })
-    return `/puzzles/play?${params}`
-  })() : null
+  const playSameSeedPath = ratedProtocol ? ratedPlayPath(ratedProtocol) : null
   const performance = adaptive && meta.summary.puzzle_performance_rating
     ? meta.summary.puzzle_performance_rating
     : puzzlePerformanceRating(displayRun.items)
@@ -466,7 +459,7 @@ export function ModelDetail() {
         <div className="flex flex-wrap items-start gap-3"><ModelIdentity variant={variant} /><ResponseStyleBadge condition={meta.condition} /></div>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">Provider model <span className="font-mono text-xs text-foreground">{variant.model_id}</span>. Reasoning and output-limit policy are part of this participant’s identity.</p>
       </div>
-      <div className="flex flex-wrap gap-2">{playSameSeedPath && <Button asChild><Link to={playSameSeedPath}><Play /> Play same seed</Link></Button>}<Button variant="outline" asChild><Link to={comparisonPath([meta.run_id])}><GitCompareArrows /> Compare this run</Link></Button><ExportButton run={meta.run_id} label="Export this run" /></div>
+      <div className="flex flex-wrap gap-2">{playSameSeedPath && <Button asChild><Link to={playSameSeedPath}><Play /> Play seed {ratedProtocol?.selection.seed}</Link></Button>}<Button variant="outline" asChild><Link to={comparisonPath([meta.run_id])}><GitCompareArrows /> Compare this run</Link></Button><ExportButton run={meta.run_id} label="Export this run" /></div>
     </section>
 
     {runError && <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><span className="font-medium text-destructive">Detailed run data could not be loaded.</span> <span className="text-muted-foreground">{runError}</span></div>}
