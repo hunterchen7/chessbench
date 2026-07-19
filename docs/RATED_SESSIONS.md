@@ -179,6 +179,25 @@ commands to a new versioned supervisor target list. Commit that target list befo
 The supervisor is optional. SQLite is authoritative. A terminal, CI worker, or process manager can run the same
 `rate-model` command and get the same resume behavior.
 
+### Commit a campaign artifact
+
+Do not commit `runs/chessbench.db`, supervisor logs, or full reasoning transcripts. These files are large runtime
+state. D1 stores the published attempt records and the dashboard reads D1.
+
+Commit a compact campaign artifact instead. The artifact contains each run ID, model variant, complete protocol,
+rating, RD, usage, cost, and termination. It does not contain full prompts, responses, or reasoning text.
+
+Create the July 2026 artifact with this command:
+
+```bash
+python3 scripts/export_rated_campaign.py \
+  --spec campaigns/adaptive-public-2026-07.json \
+  --out artifacts/adaptive-public-2026-07.json
+```
+
+The exporter requires every listed run to be complete. It writes runs in the spec order and adds a SHA-256 content
+hash. Run the command again to verify or update the artifact from the authoritative SQLite database.
+
 A single session is sufficient for a published headline, and its current rating remains visible while it is still
 running. When additional seeded sessions exist for the same model configuration, the leaderboard reports their
 arithmetic mean and the sample standard deviation across those ratings. Per-session RD remains visible separately:

@@ -1,0 +1,20 @@
+{
+ "schema": "chessbench.rated_campaign_spec.v1",
+ "name": "adaptive-public-2026-07",
+ "description": "Public adaptive rated sessions completed in July 2026.",
+ "run_ids": [
+  "adfd6a958dc94768bf39bec4594b4a3f",
+  "1a9c25c0ea3b4c9b83fb59528fb94773",
+  "def8d1247e804e01bb75ec1b379b50ce",
+  "9e22e756c5204512b54d279ac66db77b",
+  "ecad19e46302433ebc46a43b2ae48ad5",
+  "0700bd19cdc54346a7539a6c5e0df396",
+  "55bed7739bd347c1b3f1b0fa86cabc87",
+  "f877b21b81134e42935c68e5b7ded280",
+  "866eeac4af4c496b8df4c8f2c479312a",
+  "b8af9cfbf0614b2983fcf15010d1beb1",
+  "58ba40c1cfe74eaf8c72774602d320e6",
+  "a6fd2854dc554ba9b798fe50c9b12684",
+  "b7308123fc344420bafa3a6224d97be8"
+ ]
+}
