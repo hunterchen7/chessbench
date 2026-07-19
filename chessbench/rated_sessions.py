@@ -26,6 +26,14 @@ MAX_DEVIATION = 500.0
 MAX_VOLATILITY = 0.1
 PROVISIONAL_DEVIATION = 110.0
 
+# Canonical rated-session defaults. Keep these values in one module so the
+# Python API and command-line interface cannot silently define different tests.
+DEFAULT_RATED_SEED = 0
+DEFAULT_RATED_TARGET_RADIUS = 100
+DEFAULT_RATED_MIN_PUZZLES = 50
+DEFAULT_RATED_MAX_PUZZLES = 100
+DEFAULT_RATED_TARGET_DEVIATION = 77.0
+
 
 @dataclass(frozen=True)
 class GlickoState:
@@ -65,11 +73,11 @@ class GlickoState:
 
 @dataclass(frozen=True)
 class RatedSessionConfig:
-    seed: int = 0
-    target_radius: int = 100
-    min_puzzles: int = 50
-    max_puzzles: int = 100
-    target_deviation: float = 77.0
+    seed: int = DEFAULT_RATED_SEED
+    target_radius: int = DEFAULT_RATED_TARGET_RADIUS
+    min_puzzles: int = DEFAULT_RATED_MIN_PUZZLES
+    max_puzzles: int = DEFAULT_RATED_MAX_PUZZLES
+    target_deviation: float = DEFAULT_RATED_TARGET_DEVIATION
     selector_version: str = "deterministic_rating_band_v1"
     rating_version: str = "lichess_glicko2_frozen_puzzles_v1"
 

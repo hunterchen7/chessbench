@@ -218,9 +218,14 @@ python3 -m chessbench run-model --model my-model --suite suites/headline.json --
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 3 --reasoning high
 python3 -m chessbench run-model --model my-model --suite suites/headline.json --mode 4 --reasoning-tokens 4096
 
-# Primary adaptive rating (durable, deterministic, auto-publishes on completion)
+# Primary adaptive rating (RD 77 after 50–100 puzzles)
 python3 -m chessbench rate-model --model my-model --reasoning low
 ```
+
+The command uses the canonical defaults: seed 0, a ±100 selection radius, at least 50 puzzles, target RD 77, and a
+100-puzzle safety cap. Run the identical command to resume from SQLite without duplicate model calls. See
+[`docs/RATED_SESSIONS.md`](docs/RATED_SESSIONS.md) for the exact stopping rule, provider pinning, multi-seed runs,
+fresh-run instructions, and the campaign-supervisor procedure.
 
 Mode 4 is written to the Woodpecker track. `--reasoning` and `--reasoning-tokens` are mutually exclusive.
 

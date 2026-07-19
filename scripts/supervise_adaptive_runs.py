@@ -24,6 +24,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# This target list is the exact July 2026 campaign record. It resumes known run
+# IDs from the campaign database. It does not initialize runs in a fresh
+# database. New canonical runs use RD 77 unless their stored protocol pins a
+# historical value. See docs/RATED_SESSIONS.md before a new campaign starts.
+
 
 @dataclass(frozen=True)
 class Target:

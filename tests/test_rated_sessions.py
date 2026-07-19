@@ -1,8 +1,14 @@
 from chessbench.rated_sessions import (
+    DEFAULT_RATED_MAX_PUZZLES,
+    DEFAULT_RATED_MIN_PUZZLES,
+    DEFAULT_RATED_SEED,
+    DEFAULT_RATED_TARGET_DEVIATION,
+    DEFAULT_RATED_TARGET_RADIUS,
     DeterministicPuzzleSelector,
     GlickoState,
     RatedSessionConfig,
     rating_summary,
+    session_protocol,
     update_solver_rating,
 )
 from chessbench.tasks.puzzles import Puzzle
@@ -72,7 +78,23 @@ def test_selector_is_deterministic_near_rating_and_without_replacement():
 
 
 def test_stopping_requires_minimum_and_target_rd_or_uses_cap():
-    assert RatedSessionConfig().target_deviation == 77
+    defaults = RatedSessionConfig()
+    assert defaults.seed == DEFAULT_RATED_SEED == 0
+    assert defaults.target_radius == DEFAULT_RATED_TARGET_RADIUS == 100
+    assert defaults.min_puzzles == DEFAULT_RATED_MIN_PUZZLES == 50
+    assert defaults.max_puzzles == DEFAULT_RATED_MAX_PUZZLES == 100
+    assert defaults.target_deviation == DEFAULT_RATED_TARGET_DEVIATION == 77
+    protocol = session_protocol(
+        pool_name="rated-test",
+        pool_version="1.0.0",
+        pool_hash="sha256:test",
+        config=defaults,
+    )
+    assert protocol["stopping"] == {
+        "minimum_puzzles": 50,
+        "maximum_puzzles": 100,
+        "target_rating_deviation": 77,
+    }
 
     config = RatedSessionConfig(min_puzzles=50, max_puzzles=100, target_deviation=75)
     settled = GlickoState(rating=1600, deviation=74.9, volatility=0.09)

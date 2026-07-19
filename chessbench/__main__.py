@@ -35,6 +35,13 @@ from .conditions import (
 )
 from .report import format_report
 from .response_protocols import ResponseProtocol
+from .rated_sessions import (
+    DEFAULT_RATED_MAX_PUZZLES,
+    DEFAULT_RATED_MIN_PUZZLES,
+    DEFAULT_RATED_SEED,
+    DEFAULT_RATED_TARGET_DEVIATION,
+    DEFAULT_RATED_TARGET_RADIUS,
+)
 from .store import RunRecord, SuiteRef, save_run
 from .tasks.puzzles import load_puzzles
 from .tasks.runner import run_puzzles
@@ -2431,11 +2438,48 @@ def main(argv: list[str] | None = None) -> int:
         "--pool-manifest",
         default="corpora/pools/rated-lichess-v1.manifest.json",
     )
-    rated.add_argument("--seed", type=int, default=0)
-    rated.add_argument("--target-radius", type=int, default=100)
-    rated.add_argument("--min-puzzles", type=int, default=50)
-    rated.add_argument("--max-puzzles", type=int, default=100)
-    rated.add_argument("--target-rd", type=float, default=77.0)
+    rated.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_RATED_SEED,
+        help=f"deterministic selection seed (default: {DEFAULT_RATED_SEED})",
+    )
+    rated.add_argument(
+        "--target-radius",
+        type=int,
+        default=DEFAULT_RATED_TARGET_RADIUS,
+        help=(
+            "initial inclusive puzzle-rating radius around the solver "
+            f"(default: {DEFAULT_RATED_TARGET_RADIUS})"
+        ),
+    )
+    rated.add_argument(
+        "--min-puzzles",
+        type=int,
+        default=DEFAULT_RATED_MIN_PUZZLES,
+        help=(
+            "minimum completed puzzles before RD can stop the session "
+            f"(default: {DEFAULT_RATED_MIN_PUZZLES})"
+        ),
+    )
+    rated.add_argument(
+        "--max-puzzles",
+        type=int,
+        default=DEFAULT_RATED_MAX_PUZZLES,
+        help=(
+            "hard safety cap for completed puzzles "
+            f"(default: {DEFAULT_RATED_MAX_PUZZLES})"
+        ),
+    )
+    rated.add_argument(
+        "--target-rd",
+        type=float,
+        default=DEFAULT_RATED_TARGET_DEVIATION,
+        help=(
+            "stop at or below this RD after the minimum sample "
+            f"(default: {DEFAULT_RATED_TARGET_DEVIATION:g})"
+        ),
+    )
     rated.add_argument("--out-dir", default="web/public/data/runs")
     rated.add_argument("--db", default="runs/chessbench.db")
     rated.add_argument("--no-sync", action="store_true")

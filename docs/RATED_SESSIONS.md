@@ -70,6 +70,115 @@ is no consecutive-miss cutoff in the rated protocol. A pause caused by credits o
 the SQLite checkpoint resumes the identical deterministic path later. Calendar-time RD aging is disabled so two
 otherwise identical sessions do not receive different scores merely because one was paused overnight.
 
+### Canonical stopping defaults
+
+New rated sessions use these defaults:
+
+| Setting | Default | Purpose |
+|---|---:|---|
+| Initial rating | 1,500 | Give each model configuration the same starting state. |
+| Initial RD | 500 | Start with high uncertainty. |
+| Selection radius | ±100 | Select unused puzzles near the current model rating. |
+| Minimum puzzles | 50 | Prevent an early rating from becoming a final rating. |
+| Target RD | 77 | Stop when the session has the required precision. |
+| Maximum puzzles | 100 | Limit cost when RD decreases slowly. |
+
+The session tests the stopping rule after each complete puzzle. It stops at the first state that meets both conditions:
+
+1. The session has at least 50 completed puzzles.
+2. The solver RD is not more than 77.
+
+The session stops at 100 puzzles if it does not meet the RD condition. The result record identifies this safety-cap
+termination. The dashboard continues to show the final RD, so the safety cap cannot hide the lower precision.
+
+The command accepts controlled overrides. `--min-puzzles` must be at least 1. `--max-puzzles` must be equal to or
+greater than `--min-puzzles`. `--target-rd` must be from 45 through 500. Use overrides only for a separately named
+methodology. Do not compare an override directly with the canonical leaderboard result.
+
+ChessBench previously used a target RD of 75. Existing runs retain RD 75 in their stored protocol. New runs use RD
+77. This change does not modify an old run or its result.
+
+The constants in `chessbench/rated_sessions.py` are the source for the Python API and the command-line defaults:
+
+```text
+DEFAULT_RATED_SEED = 0
+DEFAULT_RATED_TARGET_RADIUS = 100
+DEFAULT_RATED_MIN_PUZZLES = 50
+DEFAULT_RATED_MAX_PUZZLES = 100
+DEFAULT_RATED_TARGET_DEVIATION = 77.0
+```
+
+### Run a canonical session
+
+First, add the provider key to `.env`. Then add or verify the model registry entry:
+
+```bash
+python3 -m chessbench models list
+python3 -m chessbench models add MODEL_LABEL openrouter PROVIDER/MODEL_ID
+```
+
+Run the canonical session:
+
+```bash
+python3 -m chessbench rate-model \
+  --model MODEL_LABEL \
+  --reasoning high
+```
+
+The short command uses the canonical pool and all canonical stopping defaults. It captures returned reasoning data,
+does not set an output-token cap, writes each completed puzzle to `runs/chessbench.db`, and publishes the final run.
+
+Pin the provider route when provider identity is part of the comparison:
+
+```bash
+python3 -m chessbench rate-model \
+  --model MODEL_LABEL \
+  --seed 0 \
+  --reasoning high \
+  --target-radius 100 \
+  --min-puzzles 50 \
+  --max-puzzles 100 \
+  --target-rd 77 \
+  --capture-reasoning \
+  --max-output-tokens 0 \
+  --provider-only PROVIDER_SLUG \
+  --no-provider-fallbacks \
+  --request-timeout 900 \
+  --live-sync-every 5
+```
+
+Add `--require-provider-parameters` only when the selected endpoint supports every request parameter. Omitting this
+flag is part of the model variant. Do not add the flag when you resume a run that started without the flag.
+
+Run additional deterministic selection paths with different seeds:
+
+```bash
+for seed in 0 1 2; do
+  python3 -m chessbench rate-model \
+    --model MODEL_LABEL \
+    --seed "$seed" \
+    --reasoning high
+done
+```
+
+Run the same command again after a stop. ChessBench finds the run from its model variant, pool hash, seed, and protocol.
+It validates the stored rating path and starts at the first missing puzzle. It does not repeat a completed puzzle.
+
+Changing the seed, reasoning level, provider route, output policy, pool, or stopping values creates a different run.
+The stored protocol contains all these values. The JSON export and D1 copy use the same run ID as the SQLite record.
+
+### Use the campaign supervisor
+
+`scripts/supervise_adaptive_runs.py` contains the exact commands for the July 2026 campaign. It restarts stopped
+workers and synchronizes active runs every five minutes. The script contains the run IDs from that campaign. Thus,
+use it to resume that campaign only. It is not a fresh-run launcher.
+
+For a new campaign, start each seed with `rate-model`. After SQLite creates the new runs, add their run IDs and exact
+commands to a new versioned supervisor target list. Commit that target list before the long run starts.
+
+The supervisor is optional. SQLite is authoritative. A terminal, CI worker, or process manager can run the same
+`rate-model` command and get the same resume behavior.
+
 A single session is sufficient for a published headline, and its current rating remains visible while it is still
 running. When additional seeded sessions exist for the same model configuration, the leaderboard reports their
 arithmetic mean and the sample standard deviation across those ratings. Per-session RD remains visible separately:
