@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from "react-router-dom"
 import { DataProvider } from "@/lib/useData"
 import { Layout } from "@/components/Layout"
 import { AppLoadingSkeleton } from "@/components/LoadingSkeletons"
+import { DocumentTitle } from "@/components/DocumentTitle"
 
 const Leaderboard = lazy(() => import("@/pages/Leaderboard").then((m) => ({ default: m.Leaderboard })))
 const ModelDetail = lazy(() => import("@/pages/ModelDetail").then((m) => ({ default: m.ModelDetail })))
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <DataProvider>
       <HashRouter>
+        <DocumentTitle />
         <Suspense fallback={<AppLoadingSkeleton />}>
           <Routes>
             <Route element={<Layout />}>
