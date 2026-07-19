@@ -18,6 +18,31 @@ in `corpora/pools/rated-lichess-v1.csv.zst`; the manifest and hashes live in
 lives in `corpora/pools/rated-lichess-v1.index.json`. D1 is a serving copy of this content-addressed release, not its
 source of truth.
 
+### Reproducing a pairing
+
+Given solver rating `r`, the selector uses Python ties-to-even `round(r)` as its target. It starts with every unused
+puzzle in the inclusive `[target - 100, target + 100]` band. If that set is empty, it expands the radius in increments
+of 100 until at least one unused puzzle is eligible. For each eligible puzzle it computes the SHA-256 digest bytes of
+this exact UTF-8 string:
+
+```text
+deterministic_rating_band_v1:<pool_hash>:<seed>:<sequence>:<puzzle_id>
+```
+
+The puzzle with the lexicographically smallest `(digest bytes, puzzle_id)` tuple wins. After the frozen-puzzle
+Glicko-2 outcome update, the sequence increments and the selected ID joins the exclusion set. Thus the committed pool
+hash, seed, sequence, solver state, and prior IDs completely determine a pairing.
+
+The database-free reproduction command verifies the committed artifact hashes before selecting:
+
+```bash
+python3 scripts/reproduce_rated_selection.py --seed 0 --sequence 0 --rating 1500
+```
+
+For later steps, repeat `--exclude PUZZLE_ID` for every earlier selection or pass a newline-delimited file with
+`--exclude-file used-puzzles.txt`. The canonical implementation is shared with the benchmark runner in
+`chessbench/rated_sessions.py`.
+
 The model is never told that it is being benchmarked, never sees the puzzle rating or themes, retains conversation
 state only between moves of one puzzle, and starts a new conversation for every new position. Puzzle ratings and
 RD are frozen at the corpus snapshot; model attempts do not mutate the source calibration.

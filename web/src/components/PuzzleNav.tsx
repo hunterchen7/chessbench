@@ -36,7 +36,7 @@ export function PuzzleNav({
         ))}
       </div>
       <Button asChild size="sm" className="h-10 bg-emerald-700 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:text-white dark:hover:bg-emerald-500">
-        <Link to="/puzzles/play"><Play className="size-3.5 fill-current" /> Train puzzles</Link>
+        <Link to="/puzzles/play"><Play className="size-3.5 fill-current" /> Play seeded run</Link>
       </Button>
     </div>
   )

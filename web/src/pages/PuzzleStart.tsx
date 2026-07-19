@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { RatedPoolDownloads } from "@/components/RatedPoolDownloads"
 
 function safeInteger(value: string | null): number | null {
   if (value == null || !/^-?\d+$/.test(value)) return null
@@ -128,7 +129,7 @@ export function PuzzleStart() {
       <CardHeader className="border-b bg-muted/20">
         <div className="mb-2 grid size-11 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Dices className="size-5" /></div>
         <CardTitle>Play a seeded puzzle run</CardTitle>
-        <p className="text-sm text-muted-foreground">The same seed follows the exact model-benchmark selector. Starting a run resets the rating to 1,500 so matching outcomes produce the same puzzle path.</p>
+        <p className="text-sm text-muted-foreground">Enter any whole-number seed below. Starting resets your rating to 1,500 and uses the exact model-benchmark selector, so matching outcomes produce the same puzzle path.</p>
       </CardHeader>
       <CardContent className="pt-6">
         <form className="space-y-4" onSubmit={start}>
@@ -147,6 +148,7 @@ export function PuzzleStart() {
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <Button type="submit" className="w-full"><Gauge className="size-4" /> Start seeded run</Button>
         </form>
+        <div className="mt-6 border-t pt-5"><RatedPoolDownloads /></div>
       </CardContent>
     </Card>
   )

@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Layers3, List, Search, ShieldCheck, Target } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Layers3, List, Play, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregates"
 import { isModelVariant } from "@/lib/participants"
@@ -431,6 +431,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       </CardHeader>
       <CardContent className="grid gap-3 py-4 text-xs sm:grid-cols-2 xl:grid-cols-4">
         {["Raw FEN + piece locations", "UCI move only", "No legal list or coaching", "Conversation continues within one puzzle"].map((label) => <div key={label} className="flex items-center gap-2 rounded-lg border bg-background/70 px-3 py-2"><CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" /><span>{label}</span></div>)}
+        <Button asChild className="sm:col-span-2 xl:col-span-4"><Link to="/puzzles/play"><Play className="fill-current" /> Play the same seeded protocol yourself</Link></Button>
       </CardContent>
     </Card>
 

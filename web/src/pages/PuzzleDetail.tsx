@@ -316,7 +316,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
-                <span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span>
+                <div className="flex items-center gap-2">{trainingSelector ? <Badge variant="outline" className="font-mono text-[10px]">Seed {trainingSelector.seed} · puzzle {trainingSelector.next_sequence}</Badge> : null}<span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span></div>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>

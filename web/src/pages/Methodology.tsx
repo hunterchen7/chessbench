@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { PromptCatalog } from "@/components/PromptCatalog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { RatedPoolDownloads } from "@/components/RatedPoolDownloads"
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
@@ -167,6 +168,7 @@ export function Methodology() {
           <p>Each session stops after at least 50 puzzles once RD is at most 75, or at a 100-puzzle safety cap. One run is sufficient and its current estimate appears while it progresses. If additional seeded runs exist, the headline averages all available ratings and reports their between-run standard deviation; every run and its own RD remain visible.</p>
           <p>The complete path—including seed, eligible band, selected puzzle, pre/post rating state, prompts, responses, reasoning metadata, tokens, and cost—is durable and resumable. Puzzle ratings never change. Returned reasoning artifacts remain auditable, but opaque OpenAI encrypted blocks are not replayed through later tool-free chess turns; the visible move, authoritative board, and UCI history carry the conversation.</p>
         </Prose></CardContent></Card>
+        <RatedPoolDownloads />
       </section>
 
       <section className="space-y-4">
