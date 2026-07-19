@@ -15,6 +15,7 @@ import {
   type RatedPuzzleSort,
 } from "@/lib/data"
 import { humanStore } from "@/lib/human"
+import { formatRatingDeviation } from "@/lib/format"
 import { useData } from "@/lib/useData"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { Badge } from "@/components/ui/badge"
@@ -398,7 +399,7 @@ export function RatedPuzzleBrowser() {
               {puzzle ? <>
                 <div className="min-w-0 pl-4" role="cell"><Link to={ratedPuzzleHref(puzzle.puzzle_id, index, query)} className="font-mono font-medium hover:underline">{puzzle.puzzle_id}</Link><div className="mt-1 truncate text-[10px] capitalize text-muted-foreground">{puzzle.categories?.tier?.[0] ?? "calibrated"}</div></div>
                 <div className="text-right font-mono font-semibold tabular-nums" role="cell">{puzzle.rating.toLocaleString()}</div>
-                <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">±{puzzle.rating_deviation ?? "—"}</div>
+                <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">±{formatRatingDeviation(puzzle.rating_deviation)}</div>
                 <div className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{(puzzle.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>
                 <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{(puzzle.plays ?? 0).toLocaleString()}</div>
                 <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{puzzle.popularity ?? "—"}</div>

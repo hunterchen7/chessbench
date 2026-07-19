@@ -2,6 +2,10 @@ import type { RunSummary, Condition } from "./data"
 
 export const pct = (x: number) => (x * 100).toFixed(1) + "%"
 
+export const formatRatingDeviation = (value: number | null | undefined) => value == null
+  ? "—"
+  : value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
 export const pointsText = (summary: RunSummary) =>
   `${Number.isInteger(summary.points) ? summary.points.toFixed(0) : summary.points.toFixed(2)}/${summary.max_points}`
 

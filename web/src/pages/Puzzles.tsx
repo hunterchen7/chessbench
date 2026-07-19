@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
-import { TIER_ORDER } from "@/lib/format"
+import { formatRatingDeviation, TIER_ORDER } from "@/lib/format"
 import { humanStore } from "@/lib/human"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { PuzzleNav } from "@/components/PuzzleNav"
@@ -175,7 +175,7 @@ function FixedPuzzleBrowser() {
                       </Link>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">{e.position.rating}</TableCell>
-                    <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">±{e.position.rating_deviation ?? "—"}</TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">±{formatRatingDeviation(e.position.rating_deviation)}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="capitalize">
                         {e.position.categories.tier?.[0] ?? "—"}

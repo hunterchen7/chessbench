@@ -17,7 +17,7 @@ import {
   type RatedPuzzleQuery,
   type SeededRatedPuzzlePreview,
 } from "@/lib/data"
-import { pct } from "@/lib/format"
+import { formatRatingDeviation, pct } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import {
@@ -391,14 +391,14 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
-                <div className="flex items-center gap-2">{training && trainingSelector ? <Badge variant="outline" className="font-mono text-[10px]">Seed {trainingSelector.seed} · puzzle {trainingSelector.next_sequence} · RD {Math.round(trainingState.deviation)}</Badge> : null}<span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span></div>
+                <div className="flex items-center gap-2">{training && trainingSelector ? <Badge variant="outline" className="font-mono text-[10px]">Seed {trainingSelector.seed} · puzzle {trainingSelector.next_sequence} · RD {formatRatingDeviation(trainingState.deviation)}</Badge> : null}<span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span></div>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>
 
             {training && <div className="grid grid-cols-3 border-b bg-muted/15 text-center">
               <div className="border-r px-3 py-3"><div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><Gauge className="size-3" /> Rating</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.rating).toLocaleString()}</div>{ratingDelta != null && <div className={ratingDelta >= 0 ? "text-[10px] font-medium text-emerald-600 dark:text-emerald-300" : "text-[10px] font-medium text-destructive"}>{ratingDelta >= 0 ? "+" : ""}{ratingDelta}</div>}</div>
-              <div className="border-r px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating deviation</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.deviation)}</div><div className="text-[10px] text-muted-foreground">{trainingIsSettled ? "settled" : trainingState.deviation >= PROVISIONAL_DEVIATION ? "provisional" : "converging"}</div></div>
+              <div className="border-r px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating deviation</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatRatingDeviation(trainingState.deviation)}</div><div className="text-[10px] text-muted-foreground">{trainingIsSettled ? "settled" : trainingState.deviation >= PROVISIONAL_DEVIATION ? "provisional" : "converging"}</div></div>
               <div className="px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{trainingSession.solved}/{trainingSession.attempts}</div><div className="text-[10px] text-muted-foreground">rated attempts</div></div>
             </div>}
             {training && trainingCanSave && apiBase ? <HumanTrainingSave apiBase={apiBase} session={trainingSession} /> : null}

@@ -7,6 +7,7 @@ import {
   type HumanTrainingProfile,
 } from "@/lib/backend"
 import type { HumanTrainingSession } from "@/lib/humanTraining"
+import { formatRatingDeviation } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -58,7 +59,7 @@ export function HumanTrainingSave({ apiBase, session }: { apiBase: string; sessi
       setProfile(saved)
       setHandle(saved.handle)
       setCooldownUntil(Date.parse(saved.next_save_at))
-      setMessage(`Saved rating ${Math.round(saved.rating).toLocaleString()} at RD ${Math.round(saved.rating_deviation)}.`)
+      setMessage(`Saved rating ${Math.round(saved.rating).toLocaleString()} at RD ${formatRatingDeviation(saved.rating_deviation)}.`)
     } catch (reason) {
       if (reason instanceof HumanTrainingSaveError && reason.retryAfterSeconds) {
         setCooldownUntil(Date.now() + reason.retryAfterSeconds * 1000)

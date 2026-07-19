@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import { Play, UserRound } from "lucide-react"
 import { fetchHumanTrainingLeaderboard, type HumanTrainingLeaderboardRow } from "@/lib/backend"
-import { pct } from "@/lib/format"
+import { formatRatingDeviation, pct } from "@/lib/format"
 import { useData } from "@/lib/useData"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,7 +44,7 @@ export function HumanTrainingLeaderboard() {
                 <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.rank}</TableCell>
                 <TableCell><span className="font-medium">{row.handle}</span>{row.me ? <Badge variant="secondary" className="ml-2 text-[10px]">you</Badge> : null}</TableCell>
                 <TableCell className="text-right font-mono font-semibold tabular-nums">{Math.round(row.rating).toLocaleString()}</TableCell>
-                <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{Math.round(row.rating_deviation)}{row.provisional ? "?" : ""}</TableCell>
+                <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatRatingDeviation(row.rating_deviation)}{row.provisional ? "?" : ""}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums">{row.solved}/{row.attempts}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums">{pct(row.accuracy)}</TableCell>
               </TableRow>)}</TableBody>

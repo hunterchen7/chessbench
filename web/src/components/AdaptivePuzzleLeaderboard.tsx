@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
 import { ratedPlayPath } from "@/lib/ratedPlay"
+import { formatRatingDeviation } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSessionProtocol } {
@@ -44,7 +45,7 @@ function RatingEstimate({
   return <>
     <div className={cn("whitespace-nowrap font-mono font-semibold tabular-nums", className)}>{Math.round(value).toLocaleString()}</div>
     <div className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
-      RD {deviation == null ? "—" : Math.round(deviation).toLocaleString()}{provisional ? " · provisional" : " · settled"}
+      RD {formatRatingDeviation(deviation)}{provisional ? " · provisional" : " · settled"}
     </div>
   </>
 }
@@ -420,7 +421,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           </Link>
         </div>
       </AnimatedDetailCell>
-      <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{individualEstimate.rating_deviation == null ? "—" : Math.round(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{formatRatingDeviation(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
@@ -454,7 +455,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       <CardHeader className="gap-4 border-b">
         <div className="space-y-1.5">
           <CardTitle className="text-base">Model ratings</CardTitle>
-          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Each run stops after at least {protocol?.stopping.minimum_puzzles ?? 50} puzzles at RD ≤ {targetRd}, or at its safety cap. Current partial ratings appear immediately. Group by model to compare reasoning efforts together, then expand a configuration to inspect every session.</p>
+          <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground">Each run stops after at least {protocol?.stopping.minimum_puzzles ?? 50} puzzles at RD ≤ {formatRatingDeviation(targetRd)}, or at its safety cap. Current partial ratings appear immediately. Group by model to compare reasoning efforts together, then expand a configuration to inspect every session.</p>
         </div>
         {ratedRuns.length > 0 ? <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="flex shrink-0 rounded-lg border bg-background p-1" role="group" aria-label="Leaderboard grouping">

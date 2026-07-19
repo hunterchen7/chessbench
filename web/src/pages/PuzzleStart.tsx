@@ -10,6 +10,7 @@ import {
   type HumanTrainingSession,
 } from "@/lib/humanTraining"
 import { useData } from "@/lib/useData"
+import { formatRatingDeviation } from "@/lib/format"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -176,7 +177,7 @@ export function PuzzleStart() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Rating</div><div className="mt-1 font-mono text-xl font-semibold">{Math.round(session.state.rating).toLocaleString()}</div></div>
-            <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">RD</div><div className="mt-1 font-mono text-xl font-semibold">{Math.round(session.state.deviation)}</div></div>
+            <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">RD</div><div className="mt-1 font-mono text-xl font-semibold">{formatRatingDeviation(session.state.deviation)}</div></div>
           </div>
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-4/5" />
