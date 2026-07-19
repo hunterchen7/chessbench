@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { Chess } from "chess.js"
+import { Chess, type Square } from "chess.js"
 import { ArrowLeft, ArrowRight, Check, Circle, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import {
@@ -45,6 +45,20 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
 type Status = "playing" | "solved" | "revealed"
+type PromotionPiece = "q" | "r" | "b" | "n"
+type PendingPromotion = { from: string; to: string; color: "w" | "b" }
+
+const PROMOTION_OPTIONS: Array<{ piece: PromotionPiece; label: string }> = [
+  { piece: "q", label: "Queen" },
+  { piece: "r", label: "Rook" },
+  { piece: "b", label: "Bishop" },
+  { piece: "n", label: "Knight" },
+]
+
+const PROMOTION_GLYPHS: Record<PendingPromotion["color"], Record<PromotionPiece, string>> = {
+  w: { q: "♕", r: "♖", b: "♗", n: "♘" },
+  b: { q: "♛", r: "♜", b: "♝", n: "♞" },
+}
 const EMPTY_SOLUTION: string[] = []
 
 function fallbackModelName(model: string): string {
@@ -106,6 +120,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const [ply, setPly] = useState(0)
   const [reveal, setReveal] = useState(false)
   const [mistake, setMistake] = useState(false)
+  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null)
   const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition; trainingSearch?: string } | null>(null)
   const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
   const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
@@ -244,17 +259,32 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     setPly(0)
     setReveal(false)
     setMistake(false)
+    setPendingPromotion(null)
   }
 
   function onPieceDrop(from: string, to: string): boolean {
     if (status !== "playing") return false
     const g = gameRef.current
+    const piece = g.get(from as Square)
+    const promotionRank = piece?.color === "w" ? "8" : "1"
+    const isLegalPromotion = piece?.type === "p" && to.endsWith(promotionRank) && g
+      .moves({ square: from as Square, verbose: true })
+      .some((candidate) => candidate.to === to && candidate.promotion)
+    if (isLegalPromotion) {
+      setPendingPromotion({ from, to, color: piece.color })
+      return false
+    }
+    return submitMove(from, to)
+  }
+
+  function submitMove(from: string, to: string, promotion?: PromotionPiece): boolean {
+    if (status !== "playing") return false
+    const g = gameRef.current
     const expected = solution[ply]
     if (!expected) return false
-    const promo = expected.slice(0, 4) === from + to ? expected[4] || "q" : "q"
     let move
     try {
-      move = g.move({ from, to, promotion: promo })
+      move = g.move(promotion ? { from, to, promotion } : { from, to })
     } catch {
       return false
     }
@@ -285,6 +315,13 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       recordSolve(true, solution[0] ?? null)
     }
     return true
+  }
+
+  function choosePromotion(promotion: PromotionPiece) {
+    if (!pendingPromotion) return
+    const { from, to } = pendingPromotion
+    setPendingPromotion(null)
+    submitMove(from, to, promotion)
   }
 
   function giveUp() {
@@ -325,8 +362,28 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
-        <div className="overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
+        <div className="relative overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
           <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth={620} />
+          {pendingPromotion ? <div className="absolute inset-0 z-20 grid place-items-center bg-black/55 p-4 backdrop-blur-[1px] animate-in fade-in-0 duration-150" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
+            <div className="w-full max-w-sm rounded-xl border bg-card p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
+              <div id="promotion-title" className="text-center text-base font-semibold">Choose promotion</div>
+              <p className="mt-1 text-center text-xs text-muted-foreground">Select the piece for your pawn.</p>
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {PROMOTION_OPTIONS.map(({ piece, label }, index) => <button
+                  key={piece}
+                  type="button"
+                  autoFocus={index === 0}
+                  aria-label={`Promote to ${label}`}
+                  className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-background text-4xl leading-none transition-all hover:-translate-y-0.5 hover:border-primary hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={() => choosePromotion(piece)}
+                >
+                  <span aria-hidden="true">{PROMOTION_GLYPHS[pendingPromotion.color][piece]}</span>
+                  <span className="mt-1 text-[10px] font-medium leading-none text-muted-foreground">{label}</span>
+                </button>)}
+              </div>
+              <Button type="button" variant="ghost" size="sm" className="mt-3 w-full" onClick={() => setPendingPromotion(null)}>Cancel</Button>
+            </div>
+          </div> : null}
         </div>
 
         <Card className="overflow-hidden border-border/70 lg:min-h-[420px]">
