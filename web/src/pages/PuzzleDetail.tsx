@@ -361,9 +361,9 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
         <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
       </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
-        <div className="relative overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
-          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth={620} />
+      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:grid-cols-[minmax(0,700px)_minmax(300px,1fr)] xl:gap-8">
+        <div className="relative aspect-square self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
+          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth={700} />
           {pendingPromotion ? <div className="absolute inset-0 z-20 grid place-items-center bg-black/55 p-4 backdrop-blur-[1px] animate-in fade-in-0 duration-150" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
             <div className="w-full max-w-sm rounded-xl border bg-card p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
               <div id="promotion-title" className="text-center text-base font-semibold">Choose promotion</div>
@@ -386,8 +386,8 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
           </div> : null}
         </div>
 
-        <Card className="overflow-hidden border-border/70 lg:min-h-[420px]">
-          <CardContent className="flex min-h-[420px] flex-col p-0">
+        <Card className="min-h-0 overflow-hidden border-border/70">
+          <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
@@ -413,7 +413,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               </div>
             </div>}
 
-            <div className="flex flex-1 flex-col justify-center p-5" aria-live="polite">
+            <div className="flex min-h-0 flex-1 flex-col justify-center overflow-y-auto p-5" aria-live="polite">
               {status === "playing" && !mistake && <div className="flex items-center gap-4"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Play className="size-6 fill-current" /></div><div><div className="text-xl font-semibold">Your turn</div><div className="text-sm text-muted-foreground">Find the best move for {orientation}.</div></div></div>}
               {status === "playing" && mistake && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-200"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-destructive/10 text-destructive"><X className="size-7" /></div><div><div className="text-xl font-semibold">Not the move</div><div className="text-sm text-muted-foreground">{training ? "Rated as a miss. You can still retry or review the solution." : "Try something else, or reveal the solution."}</div></div></div>}
               {status === "solved" && <div className="flex items-center gap-4 animate-in fade-in-0 zoom-in-95 duration-300"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"><Check className="size-7" /></div><div><div className="text-xl font-semibold">Puzzle complete</div><div className="text-sm text-muted-foreground">{trainingResult && !trainingResult.solved ? "Solved on retry; the first miss was the rated result." : "You found the full line."}</div></div></div>}
