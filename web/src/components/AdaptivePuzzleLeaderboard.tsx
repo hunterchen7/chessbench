@@ -421,8 +421,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           </Link>
         </div>
       </AnimatedDetailCell>
-      <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? <>{Math.round(individualEstimate.rating).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">±{formatRatingDeviation(individualEstimate.rating_deviation)}</span></> : "—"}</AnimatedDetailCell>
-      <AnimatedDetailCell open={open} className="text-right text-xs text-muted-foreground">individual RD</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono font-semibold tabular-nums">{individualEstimate ? Math.round(individualEstimate.rating).toLocaleString() : "—"}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-sm tabular-nums"><span title="Rating deviation">{individualEstimate ? `±${formatRatingDeviation(individualEstimate.rating_deviation)}` : "—"}</span></AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right"><div className="font-mono text-sm">{individual.summary.solved}–{individual.progress.completed - individual.summary.solved}</div></AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono text-sm">1 run</AnimatedDetailCell>
