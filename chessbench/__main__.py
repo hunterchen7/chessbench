@@ -1379,7 +1379,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
             report,
             rating=summary,
         )
-        termination = {
+        rounded_termination = {
             "kind": "operator_rounded",
             "attempted": len(ordered_results),
             "maximum": config.max_puzzles,
@@ -1391,7 +1391,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
                 f"{config.target_deviation:g} after {len(ordered_results)} puzzles."
             ),
         }
-        export_snapshot(termination=termination, accepted_rounded=True)
+        export_snapshot(termination=rounded_termination, accepted_rounded=True)
         store.close()
         print(
             f"completed {handle.run_id}: operator accepted "
@@ -2352,7 +2352,7 @@ def main(argv: list[str] | None = None) -> int:
         "--model", required=True, help="registry label (see `chessbench models`)"
     )
     rmp.add_argument("--suite", required=True)
-    rmp.add_argument("--out-dir", dest="out_dir", default="web/public/data/runs")
+    rmp.add_argument("--out-dir", dest="out_dir", default="runs/exports")
     rmp.add_argument(
         "--db",
         default="runs/chessbench.db",
@@ -2480,7 +2480,7 @@ def main(argv: list[str] | None = None) -> int:
             f"(default: {DEFAULT_RATED_TARGET_DEVIATION:g})"
         ),
     )
-    rated.add_argument("--out-dir", default="web/public/data/runs")
+    rated.add_argument("--out-dir", default="runs/exports")
     rated.add_argument("--db", default="runs/chessbench.db")
     rated.add_argument("--no-sync", action="store_true")
     rated.add_argument("--force", action="store_true")

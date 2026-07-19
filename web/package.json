@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:deploy": "pnpm build && node ../server/scripts/prepare_deploy_assets.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

@@ -35,6 +35,12 @@ DEFAULT_RATED_MAX_PUZZLES = 100
 DEFAULT_RATED_TARGET_DEVIATION = 77.0
 
 
+def _float_value(value: object, *, field: str) -> float:
+    if not isinstance(value, (int, float, str)):
+        raise TypeError(f"{field} must be numeric")
+    return float(value)
+
+
 @dataclass(frozen=True)
 class GlickoState:
     rating: float = 1500.0
@@ -52,7 +58,7 @@ class GlickoState:
             self.rating + 2.0 * self.deviation,
         )
 
-    def to_dict(self) -> dict[str, float | bool | list[float]]:
+    def to_dict(self) -> dict[str, object]:
         lo, hi = self.interval95()
         return {
             "rating": self.rating,
@@ -65,9 +71,11 @@ class GlickoState:
     @classmethod
     def from_dict(cls, value: dict[str, object]) -> "GlickoState":
         return cls(
-            rating=float(value["rating"]),
-            deviation=float(value["rating_deviation"]),
-            volatility=float(value["volatility"]),
+            rating=_float_value(value["rating"], field="rating"),
+            deviation=_float_value(
+                value["rating_deviation"], field="rating_deviation"
+            ),
+            volatility=_float_value(value["volatility"], field="volatility"),
         )
 
 

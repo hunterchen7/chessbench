@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Recalculate Bayesian Puzzle Elo in durable runs and static JSON exports."""
+"""Backfill the legacy fixed-suite Puzzle Elo field in old run records.
+
+New adaptive sessions do not need this one-time maintenance utility.
+"""
 
 from __future__ import annotations
 

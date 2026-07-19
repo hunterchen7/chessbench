@@ -84,7 +84,7 @@ def test_long_auditable_identity_uses_a_deterministic_bounded_filename(tmp_path)
     assert "__cfg-" in first.name
 
 
-def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypatch):
+def test_run_model_defaults_to_the_local_export_directory(monkeypatch):
     seen: dict[str, object] = {}
 
     def fake_run_model(args):
@@ -94,8 +94,22 @@ def test_run_model_defaults_to_the_cloudflare_dashboard_data_directory(monkeypat
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
     assert cli.main(["run-model", "--model", "model", "--suite", "suite.json"]) == 0
-    assert seen["out_dir"] == "web/public/data/runs"
+    assert seen["out_dir"] == "runs/exports"
     assert seen["max_output_tokens"] == 0
+
+
+def test_rate_model_defaults_to_the_local_export_directory(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_rate_model(args):
+        seen["out_dir"] = args.out_dir
+        seen["target_rd"] = args.target_rd
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_rate_model", fake_rate_model)
+    assert cli.main(["rate-model", "--model", "model"]) == 0
+    assert seen["out_dir"] == "runs/exports"
+    assert seen["target_rd"] == 77.0
 
 
 def test_run_model_accepts_export_only_without_changing_condition(monkeypatch):

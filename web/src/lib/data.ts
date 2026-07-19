@@ -492,43 +492,6 @@ export function loadPromptCatalog(): Promise<PromptCatalog> {
   })
 }
 
-export interface HistoricalCandidate {
-  id: string
-  event: string
-  date: string
-  white: string
-  black: string
-  difficulty_band: "easy" | "medium" | "hard"
-  themes: string[]
-  source_url: string
-  historical_context_url?: string
-  why_famous: string
-  provenance_confidence: "high" | "medium" | "contested"
-  line_provenance: string
-  source_category: string
-  source_label: string
-}
-
-export interface HistoricalCandidateBank {
-  schema: "chessbench.public_historical_candidates.v1"
-  status: "candidate_only_not_scored"
-  candidate_count: number
-  difficulty: Record<"easy" | "medium" | "hard", number>
-  items: HistoricalCandidate[]
-}
-
-let historicalCandidatesRequest: Promise<HistoricalCandidateBank> | null = null
-
-export function loadHistoricalCandidates(): Promise<HistoricalCandidateBank> {
-  if (!historicalCandidatesRequest) {
-    historicalCandidatesRequest = fetchJSON<HistoricalCandidateBank>(`${DATA}corpora/historical.json`).catch((error) => {
-      historicalCandidatesRequest = null
-      throw error
-    })
-  }
-  return historicalCandidatesRequest
-}
-
 export interface Standing {
   label: string
   wins: number

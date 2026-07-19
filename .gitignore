@@ -22,10 +22,14 @@ data/*.cbt
 data/*.cbs
 logs/
 *.jsonl
-runs/*.db
-runs/*.db-shm
-runs/*.db-wal
-runs/.locks/
+
+# local benchmark state and full audit exports
+/runs/
+web/public/data/runs/*.json
+
+# local agent configuration and worktrees
+/.claude/
+/.codex/
 
 # local API keys
 .env

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Delete every local result artifact while preserving source corpora and suites."""
+"""Delete local runtime results while preserving source corpora and suites.
+
+This destructive maintenance command does not change D1. Use it only when the
+local SQLite database and offline fixture exports are no longer necessary.
+"""
 
 from __future__ import annotations
 
@@ -44,10 +48,6 @@ def main() -> int:
     removed += clear_children(DATA / "composed", keep={"index.json"})
     removed += clear_children(DATA / "tournaments", keep={"index.json"})
     removed += clear_children(ROOT / "runs")
-    if ROOT.joinpath("webapp").exists():
-        shutil.rmtree(ROOT / "webapp")
-        removed += 1
-
     write_json(DATA / "index.json", {"schema": "chessbench.index.v2", "runs": []})
     write_json(DATA / "composed" / "index.json", {"schema": "chessbench.composed_index.v1", "runs": []})
     write_json(DATA / "tournaments" / "index.json", {"schema": "chessbench.tournament_index.v1", "tournaments": []})

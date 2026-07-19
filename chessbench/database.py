@@ -43,6 +43,18 @@ def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 
 
+def _float_value(value: object, *, field: str) -> float:
+    if not isinstance(value, (int, float, str)):
+        raise TypeError(f"{field} must be numeric")
+    return float(value)
+
+
+def _int_value(value: object, *, field: str) -> int:
+    if not isinstance(value, (int, float, str)):
+        raise TypeError(f"{field} must be numeric")
+    return int(value)
+
+
 @dataclass(frozen=True)
 class RunSpec:
     track: str
@@ -1091,8 +1103,9 @@ class BenchmarkStore:
             stopping = protocol.get("stopping", {})
             minimum = int(stopping.get("minimum_puzzles", 0))
             target_deviation = float(stopping.get("target_rating_deviation", -1))
-            final_deviation = float(
-                rating.get("rating_deviation", rating.get("stderr", float("inf")))
+            final_deviation = _float_value(
+                rating.get("rating_deviation", rating.get("stderr", float("inf"))),
+                field="rating_deviation",
             )
             if protocol.get("kind") != "adaptive_glicko2":
                 raise RuntimeError("rated completion requires an adaptive_glicko2 protocol")
@@ -1107,7 +1120,10 @@ class BenchmarkStore:
                     or attempted < minimum
                     or final_deviation > target_deviation
                     or attempted >= maximum
-                    or int(termination.get("attempted", -1)) != attempted
+                    or _int_value(
+                        termination.get("attempted", -1), field="termination.attempted"
+                    )
+                    != attempted
                 ):
                     raise RuntimeError("rating_settled termination is inconsistent")
             elif kind == "maximum_puzzles":
@@ -1164,8 +1180,9 @@ class BenchmarkStore:
             target_deviation = float(
                 stopping.get("target_rating_deviation", -1)
             )
-            final_deviation = float(
-                rating.get("rating_deviation", rating.get("stderr", float("inf")))
+            final_deviation = _float_value(
+                rating.get("rating_deviation", rating.get("stderr", float("inf"))),
+                field="rating_deviation",
             )
             if protocol.get("kind") != "adaptive_glicko2":
                 raise RuntimeError("rounded completion requires an adaptive_glicko2 protocol")

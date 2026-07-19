@@ -4,9 +4,10 @@ This is the authoritative inventory of frozen suite files. A **suite** fixes tas
 budget, notation, context policy, and legality handling are separate run conditions. Results are comparable only
 when both the suite content hash and the complete condition slug match.
 
-## Canonical benchmark suites
+## Canonical fixed-suite lab releases
 
-These are the suites to use for new model evaluations.
+Use these releases for fixed-membership tests. The adaptive `rated-lichess-v1`
+session is the primary Standard benchmark for new headline ratings.
 
 | Track | Suite | Visibility | Items | Content hash | Canonical protocol |
 | --- | --- | --- | ---: | --- | --- |
@@ -179,7 +180,6 @@ results to a canonical leaderboard.
 | --- | --- | ---: | --- | --- |
 | `suites/public/tactical-public-v1.json` | Public | 96 | `sha256:dbc5236e81094e35` | Legacy dashboard baseline |
 | `suites/public/tactical-lichess-v1.json` | Public | 66 | `sha256:14f9991dc0aecab2` | Legacy Lichess subset |
-| `suites/reasoning-mini-v1.json` | Public | 24 | _missing_ | Unfrozen reasoning smoke test |
 | `suites/private/tactical-generated-v1.json` | Private | 12 | `sha256:89ea2198c463d05d` | Generator smoke test |
 | `suites/private/tactical-private-v1.json` | Private | 1,000 | `sha256:510a0dd0400b2e30` | Superseded generated set |
 | `suites/private/tactical-private-cal-v1.json` | Private | 1,000 | `sha256:ea8c9b5d565a02a6` | Superseded calibration set |
@@ -193,6 +193,7 @@ parents. They test paid provider calls and every public suite grader without cla
 | `suites/public/standard-smoke-v2.json` | 14 | `sha256:67c948d7899cfe43` | Historical retired-draft smoke suite, rating-ascending |
 | `suites/public/standard-smoke-v3.json` | 20 | `sha256:a778d26a9a595179` | Active Standard v3-derived smoke suite; two tasks per rating band |
 | `suites/public/woodpecker-smoke-v1.json` | 6 | `sha256:486f9b5e854c299d` | Two scored Lichess puzzles per editorial section |
+| `suites/public/esoteric-smoke-v1.json` | 7 | `sha256:70fb0097ee520bae` | Superseded esoteric smoke contract; retained for old-run reproduction |
 | `suites/public/esoteric-smoke-v2.json` | 7 | `sha256:607064f731e3dba3` | One problem in every public esoteric genre |
 
 ## Initial model smoke-test plan
