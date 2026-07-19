@@ -361,9 +361,9 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
         <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
       </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
-      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:grid-cols-[minmax(0,700px)_minmax(300px,1fr)] xl:gap-8">
+      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(300px,4fr)] xl:gap-8">
         <div className="relative aspect-square self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
-          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth={700} />
+          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth="100%" />
           {pendingPromotion ? <div className="absolute inset-0 z-20 grid place-items-center bg-black/55 p-4 backdrop-blur-[1px] animate-in fade-in-0 duration-150" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
             <div className="w-full max-w-sm rounded-xl border bg-card p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
               <div id="promotion-title" className="text-center text-base font-semibold">Choose promotion</div>

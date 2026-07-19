@@ -9,7 +9,7 @@ export interface BoardProps {
   /** Extra per-square styles, e.g. move highlights. */
   squareStyles?: Record<string, CSSProperties>
   id?: string
-  maxWidth?: number
+  maxWidth?: CSSProperties["maxWidth"]
 }
 
 const LIGHT = { backgroundColor: "#e9edcc" }
