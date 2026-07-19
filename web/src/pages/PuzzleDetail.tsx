@@ -313,6 +313,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const trainingState = trainingSession.state
   const trainingIsSettled = humanTrainingSettled(trainingSession)
   const trainingCanSave = trainingState.deviation < SETTLED_DEVIATION
+  const modelCount = new Set(entry.answers.map((answer) => answer.model)).size
   const trainingNextTo = nextPuzzle
     ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?${nextPuzzle.trainingSearch ?? "source=train"}`
     : "/puzzles/play"
@@ -452,9 +453,10 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
           </Card>
       ) : (
         <Card className="border-dashed bg-card/40">
-          <CardContent className="flex items-center gap-4 py-6">
+          <CardContent className="flex flex-wrap items-center gap-4 py-6">
             <div className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary"><Lightbulb className="size-4 text-muted-foreground" /></div>
-            <div><div className="font-medium">Model attempts stay hidden while you solve</div><div className="text-sm text-muted-foreground">Complete the puzzle or view the solution to inspect every model line and transcript without spoilers.</div></div>
+            <div className="min-w-0 flex-1"><div className="font-medium">Model attempts stay hidden while you solve</div><div className="text-sm text-muted-foreground">Complete the puzzle or view the solution to inspect every model line and transcript without spoilers.</div></div>
+            <Badge variant="secondary" className="shrink-0 tabular-nums">{modelCount} {modelCount === 1 ? "model has" : "models have"} played</Badge>
           </CardContent>
         </Card>
       )}
