@@ -114,6 +114,10 @@ export interface PuzzleItem extends PuzzlePosition {
     cache_policy?: string
     cache_session_id?: string | null
     usage?: Record<string, unknown> | null
+    request_payload?: {
+      messages?: Array<Record<string, unknown>>
+      [key: string]: unknown
+    } | null
   }>
 }
 
