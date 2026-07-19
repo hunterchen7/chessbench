@@ -116,6 +116,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
 
   const gameRef = useRef(new Chess(startFen))
   const [fen, setFen] = useState(startFen)
+  const [lastMove, setLastMove] = useState<string | null>(null)
   const [status, setStatus] = useState<Status>("playing")
   const [ply, setPly] = useState(0)
   const [reveal, setReveal] = useState(false)
@@ -255,6 +256,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   function reset() {
     gameRef.current = new Chess(startFen)
     setFen(startFen)
+    setLastMove(null)
     setStatus("playing")
     setPly(0)
     setReveal(false)
@@ -296,17 +298,20 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       return false
     }
     let idx = ply + 1
+    let latestMove = uci
     // Auto-play the opponent's reply if the line continues.
     if (idx < solution.length) {
       const opp = solution[idx]
       try {
         g.move({ from: opp.slice(0, 2), to: opp.slice(2, 4), promotion: opp.slice(4) || undefined })
+        latestMove = opp
         idx++
       } catch {
         /* line ended */
       }
     }
     setFen(g.fen())
+    setLastMove(latestMove)
     setPly(idx)
     setMistake(false)
     if (idx >= solution.length) {
@@ -363,7 +368,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
 
       <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(300px,4fr)] xl:gap-8">
         <div className="relative aspect-square self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
-          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} maxWidth="100%" />
+          <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} lastMove={lastMove} maxWidth="100%" />
           {pendingPromotion ? <div className="absolute inset-0 z-20 grid place-items-center bg-black/55 p-4 backdrop-blur-[1px] animate-in fade-in-0 duration-150" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
             <div className="w-full max-w-sm rounded-xl border bg-card p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
               <div id="promotion-title" className="text-center text-base font-semibold">Choose promotion</div>

@@ -1,5 +1,4 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
-import type { CSSProperties } from "react"
 import { Chess } from "chess.js"
 import {
   BrainCircuit,
@@ -82,14 +81,6 @@ function illegalAttempts(move: TournamentGame["moves"][number]): number {
   return move.illegal_attempts ?? move.attempts?.filter((attempt) => !attempt.legal).length ?? 0
 }
 
-function lastMoveStyles(uci: string | null): Record<string, CSSProperties> | undefined {
-  if (!uci || uci.length < 4) return undefined
-  const style = {
-    background: "radial-gradient(circle, color-mix(in oklch, var(--chart-4) 58%, transparent) 0 32%, transparent 34%)",
-  }
-  return { [uci.slice(0, 2)]: style, [uci.slice(2, 4)]: style }
-}
-
 function TranscriptSkeleton() {
   return (
     <div className="space-y-3" aria-label="Loading model conversations">
@@ -123,7 +114,6 @@ export function GameReplay({
   const clamp = (next: number) => Math.max(0, Math.min(frames.length - 1, next))
   const currentMove = cursor > 0 ? game.moves[cursor - 1] : null
   const currentFrame = frames[cursor]
-  const squareStyles = useMemo(() => lastMoveStyles(currentFrame.uci), [currentFrame.uci])
   const progress = frames.length > 1 ? (cursor / (frames.length - 1)) * 100 : 0
 
   useEffect(() => {
@@ -193,7 +183,7 @@ export function GameReplay({
             <Board
               fen={currentFrame.fen}
               orientation={orientation}
-              squareStyles={squareStyles}
+              lastMove={currentFrame.uci}
               id="game-replay-board"
               maxWidth={420}
             />

@@ -164,7 +164,7 @@ export function TournamentDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Board fen={live.fen} orientation="white" id="live-board" maxWidth={360} />
+            <Board fen={live.fen} orientation="white" lastMove={live.moves.at(-1)?.uci} id="live-board" maxWidth={360} />
           </CardContent>
         </Card>
       )}
