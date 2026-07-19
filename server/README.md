@@ -65,10 +65,12 @@ wrangler d1 migrations apply chessbench --remote
 # 3. Set the ingestion secret
 wrangler secret put INGEST_TOKEN     # paste a random token
 
-# 4. Build the SPA so [assets] has something to serve, then deploy
-(cd ../web && pnpm build)
-wrangler deploy
+# 4. Build the SPA, apply any pending production migrations, and deploy
+pnpm deploy
 ```
+
+`pnpm deploy` applies remote D1 migrations before publishing the Worker, so a
+new API route is never deployed without the schema it requires.
 
 ## Loading data
 
