@@ -224,6 +224,22 @@
    "family": "stepfun",
    "notes": "StepFun Step 3.7 Flash (2026-05-28; low-cost reasoning model)",
    "enabled": true
+  },
+  {
+   "label": "llama-3.1-8b-instruct",
+   "provider": "openrouter",
+   "model_id": "meta-llama/llama-3.1-8b-instruct",
+   "family": "meta",
+   "notes": "Meta Llama 3.1 8B Instruct",
+   "enabled": true
+  },
+  {
+   "label": "qwen-2.5-7b-instruct",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen-2.5-7b-instruct",
+   "family": "qwen",
+   "notes": "Qwen 2.5 7B Instruct",
+   "enabled": true
   }
  ]
 }
