@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link, useLocation, useParams, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Chess } from "chess.js"
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Circle, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Circle, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import {
   RATED_PUZZLE_PAGE_SIZE,
@@ -39,6 +39,7 @@ import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { ExportButton } from "@/components/ExportButton"
 import { HumanTrainingSave } from "@/components/HumanTrainingSave"
 import { ExactPromptBlock, PromptTranscript } from "@/components/PromptTranscript"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -94,7 +95,7 @@ export function PuzzleDetail() {
 }
 
 function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { id: string; entry: PuzzleEntry; apiBase: string | null; ratedIndex: number | null; ratedQuery: RatedPuzzleQuery; training: boolean }) {
-
+  const navigate = useNavigate()
   const p = entry.position
   const startFen = entry.position.fen
   const orientation: "white" | "black" = entry.position.solver_is_white ? "white" : "black"
@@ -105,7 +106,6 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const [ply, setPly] = useState(0)
   const [reveal, setReveal] = useState(false)
   const [mistake, setMistake] = useState(false)
-  const [expanded, setExpanded] = useState<number | null>(null)
   const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition; trainingSearch?: string } | null>(null)
   const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
   const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
@@ -293,6 +293,21 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     setReveal(true)
   }
 
+  function resetTrainingRun() {
+    if (!trainingSelector) return
+    const confirmed = window.confirm(
+      `Reset seed ${trainingSelector.seed}? This clears your local rating and all attempts for this run.`,
+    )
+    if (!confirmed) return
+    const params = new URLSearchParams({
+      seed: String(trainingSelector.seed),
+      target_radius: String(trainingSelector.target_radius),
+      restart: "1",
+    })
+    if (trainingSelector.pool_hash) params.set("pool_hash", trainingSelector.pool_hash)
+    navigate(`/puzzles/play?${params}`)
+  }
+
   const playedSan = uciLineToSan(startFen, solution.slice(0, ply))
   const ratingDelta = trainingResult ? Math.round(trainingResult.after.rating - trainingResult.before.rating) : null
   const trainingState = trainingSession.state
@@ -306,7 +321,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><Link to={training ? "/puzzles" : ratedIndex == null ? "/puzzles/browse?view=fixed" : ratedBrowserTo} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
-      </Link><ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div>
+      </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,620px)_minmax(300px,1fr)] xl:gap-8">
         <div className="overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
@@ -318,7 +333,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
                 <h1 className="text-xl font-semibold tracking-tight">Solve the position</h1>
-                <div className="flex items-center gap-2">{trainingSelector ? <Badge variant="outline" className="font-mono text-[10px]">Seed {trainingSelector.seed} · puzzle {trainingSelector.next_sequence}</Badge> : null}<span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span></div>
+                <div className="flex items-center gap-2">{training && trainingSelector ? <Badge variant="outline" className="font-mono text-[10px]">Seed {trainingSelector.seed} · puzzle {trainingSelector.next_sequence} · RD {Math.round(trainingState.deviation)}</Badge> : null}<span className="font-mono text-xs text-muted-foreground">{displayedSolverMove}/{Math.max(1, solverMoves)}</span></div>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>
@@ -356,7 +371,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
             </div>
 
             <div className="flex flex-wrap gap-2 border-t bg-muted/15 p-4">
-              <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset</Button>
+              <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset puzzle</Button>
               {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
               {reveal && training && <Button asChild size="sm" className="ml-auto"><Link to={trainingNextTo} state={nextPuzzle?.position ? { trainingPuzzle: nextPuzzle.position } : undefined}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
               {reveal && !training && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
@@ -377,23 +392,23 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               </CardTitle>
               <p className="text-xs text-muted-foreground">Expand any model to inspect and copy the exact system and user messages for every solver move.</p>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {entry.answers
-                .toSorted((a, b) => Number(b.item.solved) - Number(a.item.solved))
-                .map((a, i) => {
+            <CardContent>
+              <Accordion type="multiple" className="space-y-2">
+                {entry.answers
+                  .toSorted((a, b) => Number(b.item.solved) - Number(a.item.solved))
+                  .map((a, i) => {
                   const attemptedMoves = puzzleModelAttempts(a.item)
                   const partial = !a.item.solved && a.item.score > 0
                   const requiredSolverMoves = a.item.solver_plies ?? Math.ceil(solution.length / 2)
                   const correctSolverMoves = a.item.plies_correct ?? Math.round(a.item.score * requiredSolverMoves)
                   const playedSequence = puzzleContinuation(startFen, attemptedMoves, solution, correctSolverMoves)
-                  const open = expanded === i
                   const hasAudit = Boolean(a.item.answer_rationale || a.item.answer_explanation || a.item.answer_raw || a.item.turns?.length)
                   const model = fallbackModelName(a.model)
+                  const accordionKey = a.run_id ?? `${a.model}-${a.condition}-${i}`
                   return (
-                    <div key={a.run_id ?? `${a.model}-${a.condition}-${i}`} className="rounded-md border">
-                      <button
-                        className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/35 disabled:cursor-default disabled:hover:bg-transparent"
-                        onClick={() => setExpanded(open ? null : i)}
+                    <AccordionItem key={accordionKey} value={accordionKey} className="rounded-md border last:border-b">
+                      <AccordionTrigger
+                        className={`w-full items-center gap-3 px-3 py-2 font-normal transition-colors hover:bg-muted/35 disabled:cursor-default disabled:hover:bg-transparent ${hasAudit ? "[&>svg]:duration-300" : "[&>svg]:hidden"}`}
                         disabled={!hasAudit}
                       >
                         {a.item.solved ? (
@@ -414,11 +429,8 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
                         <Badge variant={a.item.solved ? "secondary" : "outline"} className="text-xs font-normal">
                           {a.item.solved ? "full line" : partial ? `${correctSolverMoves}/${requiredSolverMoves} solver moves` : a.item.failure_reason?.replaceAll("_", " ") ?? "not solved"}
                         </Badge>
-                        {hasAudit && (
-                          <ChevronDown className={`size-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
-                        )}
-                      </button>
-                      {open && hasAudit && <div className="space-y-3 border-t p-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                      </AccordionTrigger>
+                      {hasAudit ? <AccordionContent className="space-y-3 border-t p-3">
                         <div className="grid gap-2 rounded-md border bg-muted/20 p-2 text-xs sm:grid-cols-2">
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Experienced continuation</div><ModelContinuation plies={playedSequence} /><div className="mt-1 text-muted-foreground">Green moves came from the model; neutral moves were supplied by the puzzle; red is the first divergence. {a.item.solved ? "Complete line solved." : partial ? `${correctSolverMoves} correct solver move${correctSolverMoves === 1 ? "" : "s"} · ${a.item.score.toFixed(2)}/1 point.` : `Incorrect at solver move ${correctSolverMoves + 1}.`}</div></div>
                           <div><div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">Correct line</div><span className="font-mono">{solutionSan.join(" ") || solution.join(" ") || "—"}</span></div>
@@ -428,12 +440,13 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
                           {(a.item.answer_rationale || a.item.answer_explanation) && <><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Model rationale</div><p className="rounded bg-muted/30 p-3 text-xs leading-relaxed">{a.item.answer_rationale ?? a.item.answer_explanation}</p></>}
                           <ExactPromptBlock label="Visible model response" text={a.item.answer_raw ?? "—"} tone="schema" />
                         </>}
-                      </div>}
-                    </div>
+                      </AccordionContent> : null}
+                    </AccordionItem>
                   )
-                })}
+                  })}
+              </Accordion>
               {entry.answers.length === 0 && (
-                <p className="text-sm text-muted-foreground">No model attempts recorded for this puzzle.</p>
+                <p className="mt-2 text-sm text-muted-foreground">No model attempts recorded for this puzzle.</p>
               )}
             </CardContent>
           </Card>
