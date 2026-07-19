@@ -63,7 +63,9 @@ export function HumanTrainingSave({ apiBase, session }: { apiBase: string; sessi
       if (reason instanceof HumanTrainingSaveError && reason.retryAfterSeconds) {
         setCooldownUntil(Date.now() + reason.retryAfterSeconds * 1000)
       }
-      setError(reason instanceof Error ? reason.message : "Could not save this run.")
+      setError(reason instanceof HumanTrainingSaveError && reason.status === 429
+        ? "Could not save right now. Try again later."
+        : reason instanceof Error ? reason.message : "Could not save this run.")
     } finally {
       setSaving(false)
     }
@@ -86,11 +88,11 @@ export function HumanTrainingSave({ apiBase, session }: { apiBase: string; sessi
         </div>
         <Button type="submit" size="sm" variant={profile ? "outline" : "default"} disabled={saving || coolingDown}>
           {profile ? <Check className="size-4" /> : <Save className="size-4" />}
-          {saving ? "Saving…" : coolingDown ? "Saved · 2 min cooldown" : profile ? "Save latest run" : "Save run"}
+          {saving ? "Saving…" : coolingDown ? profile ? "Saved" : "Try again later" : profile ? "Save latest run" : "Save run"}
         </Button>
       </div>
       <div className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
-        {error ? <span className="text-destructive">{error}</span> : message ? <span className="text-emerald-700 dark:text-emerald-300">{message}</span> : profile ? <>Saved publicly as <span className="font-medium text-foreground">{profile.handle}</span>. Save again after the two-minute cooldown.</> : "Username is public and case-insensitively unique. Saves are limited to once every two minutes."}
+        {error ? <span className="text-destructive">{error}</span> : message ? <span className="text-emerald-700 dark:text-emerald-300">{message}</span> : profile ? <>Saved publicly as <span className="font-medium text-foreground">{profile.handle}</span>.</> : "Username is public and case-insensitively unique."}
       </div>
     </form>
   )

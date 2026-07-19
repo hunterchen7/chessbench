@@ -22,6 +22,7 @@ import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleConti
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import {
   PROVISIONAL_DEVIATION,
+  SETTLED_DEVIATION,
   humanTrainingRecord,
   humanTrainingSelected,
   humanTrainingSession,
@@ -296,6 +297,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const ratingDelta = trainingResult ? Math.round(trainingResult.after.rating - trainingResult.before.rating) : null
   const trainingState = trainingSession.state
   const trainingIsSettled = humanTrainingSettled(trainingSession)
+  const trainingCanSave = trainingState.deviation < SETTLED_DEVIATION
   const trainingNextTo = nextPuzzle
     ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?${nextPuzzle.trainingSearch ?? "source=train"}`
     : "/puzzles/play"
@@ -326,7 +328,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               <div className="border-r px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating deviation</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.deviation)}</div><div className="text-[10px] text-muted-foreground">{trainingIsSettled ? "settled" : trainingState.deviation >= PROVISIONAL_DEVIATION ? "provisional" : "converging"}</div></div>
               <div className="px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{trainingSession.solved}/{trainingSession.attempts}</div><div className="text-[10px] text-muted-foreground">rated attempts</div></div>
             </div>}
-            {training && apiBase ? <HumanTrainingSave apiBase={apiBase} session={trainingSession} /> : null}
+            {training && trainingCanSave && apiBase ? <HumanTrainingSave apiBase={apiBase} session={trainingSession} /> : null}
             {training && !trainingRatedRef.current && <div className="grid grid-cols-2 border-b bg-muted/10">
               <div className="border-r px-4 py-3">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">If you solve it</div>

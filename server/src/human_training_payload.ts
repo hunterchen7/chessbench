@@ -1,4 +1,5 @@
 const HANDLE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{2,23}$/
+export const HUMAN_TRAINING_MAX_SAVE_DEVIATION = 75
 
 export interface TrainingState {
   rating: number
@@ -57,7 +58,7 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
   if (
     !uid || !HANDLE_PATTERN.test(handle) || session?.version !== 1 || !state ||
     !finiteInRange(state.rating, 400, 4000) ||
-    !finiteInRange(state.deviation, 45, 500) ||
+    !finiteInRange(state.deviation, 45, 500) || state.deviation >= HUMAN_TRAINING_MAX_SAVE_DEVIATION ||
     !finiteInRange(state.volatility, 0.000001, 0.1) ||
     !Number.isSafeInteger(session.attempts) || session.attempts! < 0 || session.attempts! > 100_000 ||
     !Number.isSafeInteger(session.solved) || session.solved! < 0 || session.solved! > session.attempts! ||

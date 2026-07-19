@@ -1,6 +1,7 @@
 import type { Env } from "./types"
 import { error, json } from "./http"
 import {
+  HUMAN_TRAINING_MAX_SAVE_DEVIATION,
   normalizedTrainingUid,
   parseTrainingSave,
   type TrainingSession,
@@ -96,10 +97,10 @@ export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<R
     `SELECT uid, handle, rating, rating_deviation, volatility, attempts, solved,
             session_json, created_at, updated_at, last_saved_ms
        FROM human_training_profiles
-      WHERE attempts > 0
+      WHERE attempts > 0 AND rating_deviation < ?
       ORDER BY rating DESC, rating_deviation ASC, attempts DESC, handle COLLATE NOCASE ASC
       LIMIT 100`,
-  ).all<TrainingProfileRow>()
+  ).bind(HUMAN_TRAINING_MAX_SAVE_DEVIATION).all<TrainingProfileRow>()
   return json({
     leaderboard: (results ?? []).map((row, index) => ({
       rank: index + 1,
@@ -142,7 +143,7 @@ export async function postHumanTrainingProfile(env: Env, req: Request): Promise<
   const ipRetry = uidRetry ? 0 : await consumeLimit(env, ipKey, now, IP_WINDOW_MS, IP_SAVES_PER_WINDOW)
   const retryAfter = Math.max(uidRetry, ipRetry)
   if (retryAfter > 0) {
-    return json({ error: "training runs can only be saved every two minutes", retry_after_seconds: retryAfter }, {
+    return json({ error: "training run could not be saved right now", retry_after_seconds: retryAfter }, {
       status: 429,
       headers: { "Retry-After": String(retryAfter) },
     })
