@@ -8,12 +8,14 @@ import {
   loadPuzzle,
   loadPuzzleIndex,
   loadSeededRatedPuzzle,
+  loadSeededRatedPuzzlePreview,
   loadRatedPuzzlePage,
   ratedPuzzleQueryFromSearchParams,
   ratedPuzzleQueryParams,
   type PuzzleEntry,
   type PuzzlePosition,
   type RatedPuzzleQuery,
+  type SeededRatedPuzzlePreview,
 } from "@/lib/data"
 import { pct } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
@@ -24,6 +26,7 @@ import {
   humanTrainingSelected,
   humanTrainingSession,
   humanTrainingSettled,
+  updateHumanGlicko,
   type HumanTrainingResult,
   type HumanTrainingSession,
 } from "@/lib/humanTraining"
@@ -105,12 +108,40 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition; trainingSearch?: string } | null>(null)
   const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
   const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
+  const [routePreview, setRoutePreview] = useState<{
+    win: SeededRatedPuzzlePreview
+    loss: SeededRatedPuzzlePreview
+  } | null>(null)
   const trainingRatedRef = useRef(
     training && trainingSession.recent_attempts.some((attempt) => attempt.puzzle_id === id),
   )
   const trainingRating = trainingSession.state.rating
   const trainingRecentPuzzleIds = trainingSession.recent_puzzle_ids
   const trainingSelector = trainingSession.selector
+
+  useEffect(() => {
+    setRoutePreview(null)
+    if (!training || !apiBase || !trainingSelector || trainingRatedRef.current) return
+    const controller = new AbortController()
+    const options = (solved: boolean) => ({
+      rating: updateHumanGlicko(
+        trainingSession.state,
+        p.rating,
+        p.rating_deviation ?? 500,
+        solved,
+      ).rating,
+      seed: trainingSelector.seed,
+      sequence: trainingSelector.next_sequence,
+      targetRadius: trainingSelector.target_radius,
+      poolHash: trainingSelector.pool_hash,
+      excluded: trainingRecentPuzzleIds,
+    })
+    void Promise.all([
+      loadSeededRatedPuzzlePreview(apiBase, options(true), controller.signal),
+      loadSeededRatedPuzzlePreview(apiBase, options(false), controller.signal),
+    ]).then(([win, loss]) => setRoutePreview({ win, loss })).catch(() => {})
+    return () => controller.abort()
+  }, [apiBase, p.rating, p.rating_deviation, training, trainingRecentPuzzleIds, trainingSelector, trainingSession.state])
 
   // Record public progress separately from the adaptive rating. The first wrong
   // move or full solve rates the training puzzle exactly once.
@@ -296,6 +327,16 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               <div className="px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{trainingSession.solved}/{trainingSession.attempts}</div><div className="text-[10px] text-muted-foreground">rated attempts</div></div>
             </div>}
             {training && apiBase ? <HumanTrainingSave apiBase={apiBase} session={trainingSession} /> : null}
+            {training && !trainingRatedRef.current && <div className="grid grid-cols-2 border-b bg-muted/10">
+              <div className="border-r px-4 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">If you solve it</div>
+                {routePreview ? <div className="mt-1 flex items-baseline justify-between gap-2"><span className="font-mono text-sm font-semibold">{routePreview.win.puzzle.puzzle_id}</span><span className="font-mono text-xs text-muted-foreground">Rating {routePreview.win.puzzle.rating.toLocaleString()}</span></div> : <div className="mt-2 h-4 w-24 animate-pulse rounded bg-muted" />}
+              </div>
+              <div className="px-4 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-300">If you miss it</div>
+                {routePreview ? <div className="mt-1 flex items-baseline justify-between gap-2"><span className="font-mono text-sm font-semibold">{routePreview.loss.puzzle.puzzle_id}</span><span className="font-mono text-xs text-muted-foreground">Rating {routePreview.loss.puzzle.rating.toLocaleString()}</span></div> : <div className="mt-2 h-4 w-24 animate-pulse rounded bg-muted" />}
+              </div>
+            </div>}
 
             <div className="flex flex-1 flex-col justify-center p-5" aria-live="polite">
               {status === "playing" && !mistake && <div className="flex items-center gap-4"><div className="grid size-14 shrink-0 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Play className="size-6 fill-current" /></div><div><div className="text-xl font-semibold">Your turn</div><div className="text-sm text-muted-foreground">Find the best move for {orientation}.</div></div></div>}

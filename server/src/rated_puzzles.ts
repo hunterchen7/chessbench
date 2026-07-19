@@ -357,6 +357,7 @@ export async function getRandomRatedPuzzle(env: Env, url: URL): Promise<Response
 /** GET /api/puzzles/seeded — the exact deterministic selector used by model benchmarks. */
 export async function getSeededRatedPuzzle(env: Env, url: URL): Promise<Response> {
   const params = url.searchParams
+  const preview = params.get("preview") === "1"
   const seed = integerParam(params, "seed", 0, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
   const sequence = integerParam(params, "sequence", 0, 0, 100_000)
   const targetRadius = integerParam(params, "target_radius", 100, 0, 2_000)
@@ -434,7 +435,9 @@ export async function getSeededRatedPuzzle(env: Env, url: URL): Promise<Response
   if (!selected) return error(404, "selected rated puzzle was not found")
 
   return json({
-    schema: "chessbench.seeded_rated_puzzle_selection.v1",
+    schema: preview
+      ? "chessbench.seeded_rated_puzzle_preview.v1"
+      : "chessbench.seeded_rated_puzzle_selection.v1",
     selection_id: crypto.randomUUID(),
     selected_at: new Date().toISOString(),
     pool: {
@@ -454,10 +457,15 @@ export async function getSeededRatedPuzzle(env: Env, url: URL): Promise<Response
       seed,
       selector_version: RATED_SELECTOR_VERSION,
     },
-    puzzle: ratedPuzzlePosition(
-      JSON.parse(selected.payload_json) as Record<string, unknown>,
-      selected,
-    ),
+    puzzle: preview
+      ? ratedPuzzleSummary(
+          JSON.parse(selected.payload_json) as Record<string, unknown>,
+          selected,
+        )
+      : ratedPuzzlePosition(
+          JSON.parse(selected.payload_json) as Record<string, unknown>,
+          selected,
+        ),
   })
 }
 

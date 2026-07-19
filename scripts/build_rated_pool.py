@@ -33,6 +33,7 @@ SOURCE_SHA256 = "5503bfaf5534518ffe3c4c3bb0ac1ae82350d117ad1a52947796096b75e6247
 DEFAULT_SOURCE = ROOT / "data/lichess_db_puzzle_2026-07-05.csv.zst"
 DEFAULT_TARGET = ROOT / "corpora/pools/rated-lichess-v1.csv.zst"
 DEFAULT_MANIFEST = ROOT / "corpora/pools/rated-lichess-v1.manifest.json"
+DEFAULT_INDEX = ROOT / "corpora/pools/rated-lichess-v1.index.json"
 
 
 def _sha256(path: Path) -> str:
@@ -106,7 +107,41 @@ def _write_artifact(rows: list[dict[str, str]], header: list[str], target: Path)
     return uncompressed_sha256, _sha256(target)
 
 
-def build(source: Path, target: Path, manifest_path: Path) -> dict[str, object]:
+def _write_index(rows: list[dict[str, str]], target: Path, content_hash: str) -> dict[str, object]:
+    """Write the repo-readable identity/rating view of the canonical pool."""
+    schema = "chessbench.rated_puzzle_pool_index.v1"
+    pool = {
+        "name": NAME,
+        "version": VERSION,
+        "content_hash": content_hash,
+        "items": len(rows),
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as handle:
+        handle.write("{\n")
+        handle.write(f' "schema": {json.dumps(schema)},\n')
+        handle.write(f' "pool": {json.dumps(pool, separators=(",", ":"))},\n')
+        handle.write(' "columns": ["puzzle_id","rating"],\n')
+        handle.write(' "puzzles": [\n')
+        for index, row in enumerate(rows):
+            pair = [row["PuzzleId"], int(row["Rating"])]
+            suffix = "," if index + 1 < len(rows) else ""
+            handle.write(f'  {json.dumps(pair, separators=(",", ":"))}{suffix}\n')
+        handle.write(" ]\n}\n")
+    return {
+        "file": target.name,
+        "schema": schema,
+        "sha256": _sha256(target),
+        "bytes": target.stat().st_size,
+    }
+
+
+def build(
+    source: Path,
+    target: Path,
+    manifest_path: Path,
+    index_path: Path,
+) -> dict[str, object]:
     if _sha256(source) != SOURCE_SHA256:
         raise ValueError(f"source snapshot hash does not match {SOURCE_SHA256}")
     blocked_ids, blocked_games, excluded_releases = _blocked_membership()
@@ -230,6 +265,8 @@ def build(source: Path, target: Path, manifest_path: Path) -> dict[str, object]:
             raise ValueError(f"{label} has {selected_counts[label]} items; expected {band.target}")
 
     uncompressed_sha256, artifact_sha256 = _write_artifact(selected, header, target)
+    content_hash = f"sha256:{uncompressed_sha256[:20]}"
+    index = _write_index(selected, index_path, content_hash)
     manifest = {
         "schema": "chessbench.rated_puzzle_pool.v1",
         "name": NAME,
@@ -244,7 +281,7 @@ def build(source: Path, target: Path, manifest_path: Path) -> dict[str, object]:
             "and RD at most 90; only the scarce rating extremes use documented relaxations."
         ),
         "items": len(selected),
-        "content_hash": f"sha256:{uncompressed_sha256[:20]}",
+        "content_hash": content_hash,
         "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": {
             "title": "Lichess puzzle database",
@@ -261,6 +298,7 @@ def build(source: Path, target: Path, manifest_path: Path) -> dict[str, object]:
             "sha256": artifact_sha256,
             "uncompressed_sha256": uncompressed_sha256,
             "bytes": target.stat().st_size,
+            "index": index,
         },
         "selection": {
             "algorithm": "lowest-stable-sha256-priority-per-rating-band",
@@ -327,13 +365,15 @@ def main() -> int:
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--out", type=Path, default=DEFAULT_TARGET)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--index", type=Path, default=DEFAULT_INDEX)
     args = parser.parse_args()
-    manifest = build(args.source, args.out, args.manifest)
+    manifest = build(args.source, args.out, args.manifest, args.index)
     print(
         f"{manifest['name']}: {manifest['items']:,} puzzles, {manifest['content_hash']}"
     )
     print(f"artifact: {args.out} ({args.out.stat().st_size / 1024 / 1024:.2f} MiB)")
     print(f"manifest: {args.manifest}")
+    print(f"index: {args.index}")
     return 0
 
 

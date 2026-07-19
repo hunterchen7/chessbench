@@ -12,6 +12,12 @@ Glicko-2 state and selects a new, unseen puzzle within 100 rating points of the 
 sequence number, and puzzle ID chooses one eligible puzzle. The band expands only if it is empty. The seed, pool
 hash, eligibility band, rating state before and after every attempt, and selector version are part of the run record.
 
+The measurement pool is pinned in the repository, independently of the deployed database. The full source rows live
+in `corpora/pools/rated-lichess-v1.csv.zst`; the manifest and hashes live in
+`corpora/pools/rated-lichess-v1.manifest.json`; and the inspectable list of all 100,000 puzzle IDs and frozen ratings
+lives in `corpora/pools/rated-lichess-v1.index.json`. D1 is a serving copy of this content-addressed release, not its
+source of truth.
+
 The model is never told that it is being benchmarked, never sees the puzzle rating or themes, retains conversation
 state only between moves of one puzzle, and starts a new conversation for every new position. Puzzle ratings and
 RD are frozen at the corpus snapshot; model attempts do not mutate the source calibration.

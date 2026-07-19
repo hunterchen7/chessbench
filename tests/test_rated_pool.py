@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import pathlib
 from collections import Counter
 
@@ -15,6 +16,7 @@ from chessbench.rated_pool import (
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "corpora/pools/rated-lichess-v1.manifest.json"
+INDEX = ROOT / "corpora/pools/rated-lichess-v1.index.json"
 
 
 def test_rated_pool_is_content_addressed_and_exact() -> None:
@@ -25,6 +27,20 @@ def test_rated_pool_is_content_addressed_and_exact() -> None:
     assert document["validation"]["valid"] is True
     assert document["validation"]["unique_ids"] == 100_000
     assert document["validation"]["unique_source_games"] == 100_000
+
+
+def test_repo_index_lists_every_pinned_puzzle_id_and_rating() -> None:
+    document = json.loads(INDEX.read_text(encoding="utf-8"))
+    assert document["schema"] == "chessbench.rated_puzzle_pool_index.v1"
+    assert document["pool"]["content_hash"] == "sha256:c0f866e19b180bf5169c"
+    assert document["columns"] == ["puzzle_id", "rating"]
+    assert len(document["puzzles"]) == 100_000
+    assert len({puzzle_id for puzzle_id, _rating in document["puzzles"]}) == 100_000
+    assert all(400 <= rating < 3_200 for _puzzle_id, rating in document["puzzles"])
+    assert document["puzzles"] == [
+        [puzzle.id, puzzle.rating]
+        for puzzle in iter_rated_pool(MANIFEST, verify_artifact=False)
+    ]
 
 
 def test_every_rated_pool_item_meets_its_published_gate() -> None:

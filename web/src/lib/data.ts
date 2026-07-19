@@ -408,6 +408,11 @@ export interface SeededRatedPuzzleSelection {
   puzzle: PuzzlePosition
 }
 
+export interface SeededRatedPuzzlePreview extends Omit<SeededRatedPuzzleSelection, "schema" | "puzzle"> {
+  schema: "chessbench.seeded_rated_puzzle_preview.v1"
+  puzzle: RatedPuzzleListItem
+}
+
 export interface PromptCatalogStyle {
   style: "move_only" | "json_rationale"
   response_protocol: string
@@ -911,6 +916,24 @@ export function loadSeededRatedPuzzle(
   if (options.poolHash) params.set("pool_hash", options.poolHash)
   if (options.excluded?.length) params.set("exclude", options.excluded.slice(-100).join(","))
   return fetchJSON<SeededRatedPuzzleSelection>(`${apiBase}/puzzles/seeded?${params}`, { signal })
+}
+
+export function loadSeededRatedPuzzlePreview(
+  apiBase: string | null,
+  options: Parameters<typeof loadSeededRatedPuzzle>[1],
+  signal?: AbortSignal,
+): Promise<SeededRatedPuzzlePreview> {
+  if (!apiBase) return Promise.reject(new Error("Puzzle training requires the live ChessBench API."))
+  const params = new URLSearchParams({
+    rating: String(options.rating),
+    seed: String(options.seed),
+    sequence: String(options.sequence),
+    target_radius: String(options.targetRadius),
+    preview: "1",
+  })
+  if (options.poolHash) params.set("pool_hash", options.poolHash)
+  if (options.excluded?.length) params.set("exclude", options.excluded.slice(-100).join(","))
+  return fetchJSON<SeededRatedPuzzlePreview>(`${apiBase}/puzzles/seeded?${params}`, { signal })
 }
 
 export async function loadPuzzle(id: string, poolHash?: string | null): Promise<PuzzleEntry | null> {

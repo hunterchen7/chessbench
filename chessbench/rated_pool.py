@@ -90,6 +90,18 @@ def load_rated_pool_manifest(
             raise ValueError(
                 f"rated puzzle pool artifact hash mismatch ({actual} != {expected})"
             )
+    index = artifact.get("index")
+    if isinstance(index, dict) and index.get("file"):
+        index_path = manifest_path.parent / str(index["file"])
+        if not index_path.is_file():
+            raise ValueError(f"rated puzzle pool index is missing: {index_path}")
+        if verify_artifact:
+            actual_index = _sha256(index_path)
+            expected_index = index.get("sha256")
+            if actual_index != expected_index:
+                raise ValueError(
+                    f"rated puzzle pool index hash mismatch ({actual_index} != {expected_index})"
+                )
     return document
 
 
