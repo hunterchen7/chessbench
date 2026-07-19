@@ -232,6 +232,24 @@ def _is_mate_after(board: chess.Board, move: chess.Move) -> bool:
         board.pop()
 
 
+def _matching_line_prefix(
+    board: chess.Board,
+    played: list[chess.Move],
+    expected: list[str],
+) -> int:
+    """Return the accepted prefix, including an alternate mate at line end."""
+    replay = board.copy()
+    prefix = 0
+    for index, move in enumerate(played[: len(expected)]):
+        if move.uci() != expected[index] and not (
+            index == len(expected) - 1 and _is_mate_after(replay, move)
+        ):
+            break
+        replay.push(move)
+        prefix += 1
+    return prefix
+
+
 def grade_puzzle(
     agent: Agent,
     puzzle: Puzzle,
@@ -521,13 +539,9 @@ def _grade_full_line(
     best_prefix = 0
     solved = False
     for line in lines:
-        prefix = 0
-        for actual, expected in zip(played, line):
-            if actual != expected:
-                break
-            prefix += 1
+        prefix = _matching_line_prefix(board, moves, line)
         best_prefix = max(best_prefix, prefix)
-        if len(played) >= len(line) and played[: len(line)] == line:
+        if len(played) >= len(line) and prefix == len(line):
             solved = True
 
     plies_correct = sum(1 for i in range(best_prefix) if i % 2 == 0)

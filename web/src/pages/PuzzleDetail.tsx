@@ -18,7 +18,7 @@ import {
   type SeededRatedPuzzlePreview,
 } from "@/lib/data"
 import { formatRatingDeviation, pct } from "@/lib/format"
-import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
+import { acceptedPuzzleMove, puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import {
   PROVISIONAL_DEVIATION,
@@ -289,7 +289,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       return false
     }
     const uci = move.from + move.to + (move.promotion || "")
-    if (uci !== expected) {
+    if (!acceptedPuzzleMove(g, uci, expected, ply === solution.length - 1)) {
       g.undo()
       setMistake(true)
       recordSolve(false, uci, "incorrect")

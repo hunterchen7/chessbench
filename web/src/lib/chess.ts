@@ -25,6 +25,19 @@ export function uciLineToSan(fen: string, line: string[]): string[] {
   return out
 }
 
+/**
+ * Accept the frozen source move, or any legal checkmate on the final solver
+ * ply. The model move-by-move grader uses the same source-independent rule.
+ */
+export function acceptedPuzzleMove(
+  gameAfterMove: Chess,
+  actual: string,
+  expected: string,
+  finalSolverPly: boolean,
+): boolean {
+  return actual === expected || (finalSolverPly && gameAfterMove.isCheckmate())
+}
+
 /** Convert solver-only moves by replaying the authoritative opponent reply between them. */
 export function solverMovesToSan(fen: string, solverMoves: string[], referenceLine: string[]): string[] {
   const game = new Chess(fen)

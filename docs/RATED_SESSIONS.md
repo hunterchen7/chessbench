@@ -51,6 +51,20 @@ The canonical prompt supplies raw FEN plus explicit piece locations and requests
 move list, coaching, explanation request, puzzle rating, or theme. An illegal or wrong move immediately loses that
 puzzle. Correct prefixes still earn diagnostic points, but only a complete solution is a Glicko win.
 
+Puzzle grading accepts the frozen source move at each solver turn. On the final solver turn it also accepts any other
+legal move that immediately checkmates. This engine-free exception is identical for human training and model
+move-by-move or full-line runs, so a source line cannot arbitrarily reject one of two mating moves. The committed
+`corpora/pools/rated-lichess-v1.alternate-mates.json` report enumerates every such position in the 100,000-puzzle
+pool and can be reproduced with:
+
+```bash
+python3 scripts/audit_rated_alternate_mates.py --check
+```
+
+Non-mating alternatives are not inferred from a single engine evaluation. Supporting those requires a separately
+versioned engine, analysis budget, equivalence threshold, opponent continuation, and accepted answer graph; without
+those pinned inputs, human and model results would not be reproducible.
+
 Sessions run for at least 50 puzzles. They stop once solver RD is at most 75, or at a 100-puzzle safety cap. There
 is no consecutive-miss cutoff in the rated protocol. A pause caused by credits or an operator is not completion;
 the SQLite checkpoint resumes the identical deterministic path later. Calendar-time RD aging is disabled so two

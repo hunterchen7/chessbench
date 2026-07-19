@@ -100,6 +100,18 @@ def test_free_form_does_not_retry():
 # Doubled major pieces: after Black's setup Qh6, White has TWO mates (Re8#, Ra8#).
 TWO_MATES = "6k1/5ppp/8/8/8/7q/8/R3R1K1 b - - 0 1"
 
+# rated-lichess-v1 puzzle Aoow8. Its source line ends in Rgxg8#, but the rook
+# on b8 can also play Rbxg8#. This is the production regression reported from
+# seeded human training.
+AOOW8 = Puzzle(
+    id="Aoow8",
+    fen="1r5k/R1p4p/3p3B/2pn4/2b2p1K/7P/1r1N4/6R1 b - - 1 36",
+    moves=[
+        "b8g8", "h6g7", "g8g7", "a7a8", "b2b8", "a8b8", "g7g8", "g1g8",
+    ],
+    rating=1970,
+)
+
 
 def test_alternate_mate_accepted_on_final_ply():
     board = chess.Board(TWO_MATES)
@@ -110,6 +122,26 @@ def test_alternate_mate_accepted_on_final_ply():
     puzzle = Puzzle(id="alt", fen=TWO_MATES, moves=["h3h6", expected], rating=1200)
     res = grade_puzzle(FixedAgent(alternate), puzzle, HEADLINE)
     assert res.solved  # a different mating move is accepted on the mating ply
+
+
+def test_rated_pool_alternate_mate_accepted_move_by_move():
+    res = grade_puzzle(
+        FixedAgent("h6g7", "a7a8", "a8b8", "b8g8"),
+        AOOW8,
+        HEADLINE,
+    )
+    assert res.solved
+    assert res.moves_played[-1] == "b8g8"
+
+
+def test_rated_pool_alternate_mate_accepted_full_line():
+    res = grade_puzzle(
+        FixedLineAgent("line: h6g7 g8g7 a7a8 b2b8 a8b8 g7g8 b8g8"),
+        AOOW8,
+        mode_condition(4),
+    )
+    assert res.solved
+    assert res.plies_correct == 4
 
 
 def _is_mate(board: chess.Board, move: chess.Move) -> bool:
