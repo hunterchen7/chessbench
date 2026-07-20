@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type UIEvent } from "react"
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type UIEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, Gauge, RotateCcw } from "lucide-react"
 import {
@@ -16,8 +16,9 @@ import {
 } from "@/lib/data"
 import { humanStore } from "@/lib/human"
 import { formatRatingDeviation } from "@/lib/format"
-import { usePersistentColumnOrder } from "@/lib/usePersistentColumnOrder"
+import { orderAfterColumnDrop, usePersistentColumnOrder, type ColumnDropSide } from "@/lib/usePersistentColumnOrder"
 import { useData } from "@/lib/useData"
+import { cn } from "@/lib/utils"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -106,7 +107,28 @@ function RatedSortHeader({
   return <button type="button" onClick={() => onSort(value)} className="group inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60">{label}<Icon className={active ? "size-3.5 text-foreground" : "size-3.5 opacity-45 group-hover:opacity-90"} /></button>
 }
 
-function ReorderableGridHeader({ columnKey, order, move, className, ariaSort, children }: { columnKey: string; order: string[]; move: (source: string, target: string) => void; className?: string; ariaSort?: "ascending" | "descending" | "none"; children: ReactNode }) {
+interface GridColumnDragState {
+  source: string
+  target: string | null
+  side: ColumnDropSide | null
+}
+
+function gridColumnDragVisual(order: string[], dragState: GridColumnDragState | null, columnKey: string) {
+  if (!dragState) return {}
+  const preview = dragState.target && dragState.side
+    ? orderAfterColumnDrop(order, dragState.source, dragState.target, dragState.side)
+    : order
+  const currentIndex = order.indexOf(columnKey)
+  const previewIndex = preview.indexOf(columnKey)
+  return {
+    dragging: columnKey === dragState.source,
+    dropSide: columnKey === dragState.target ? dragState.side ?? undefined : undefined,
+    shift: columnKey === dragState.source || currentIndex === previewIndex ? undefined : previewIndex < currentIndex ? "left" : "right",
+  }
+}
+
+function ReorderableGridHeader({ columnKey, order, move, dragState, onDragStartColumn, onDragOverColumn, onDropColumn, onDragEndColumn, className, ariaSort, children }: { columnKey: string; order: string[]; move: (source: string, target: string) => void; dragState: GridColumnDragState | null; onDragStartColumn: (source: string) => void; onDragOverColumn: (target: string, side: ColumnDropSide) => void; onDropColumn: () => void; onDragEndColumn: () => void; className?: string; ariaSort?: "ascending" | "descending" | "none"; children: ReactNode }) {
+  const dragVisual = gridColumnDragVisual(order, dragState, columnKey)
   const moveByKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return
     const index = order.indexOf(columnKey)
@@ -115,11 +137,21 @@ function ReorderableGridHeader({ columnKey, order, move, className, ariaSort, ch
     event.preventDefault()
     move(columnKey, target)
   }
-  return <div role="columnheader" aria-sort={ariaSort} draggable tabIndex={0} title="Drag to reorder column · Alt+Left/Right from the keyboard" className={`cursor-grab active:cursor-grabbing ${className ?? ""}`} onKeyDown={moveByKeyboard} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData(RATED_COLUMN_DRAG_TYPE, columnKey) }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move" }} onDrop={(event) => { event.preventDefault(); move(event.dataTransfer.getData(RATED_COLUMN_DRAG_TYPE), columnKey) }}>{children}</div>
+  return <div role="columnheader" aria-sort={ariaSort} draggable tabIndex={0} title="Drag to reorder column · Alt+Left/Right from the keyboard" data-column-dragging={dragVisual.dragging || undefined} data-column-drop-side={dragVisual.dropSide} data-column-shift={dragVisual.shift} className={cn("cursor-grab transition-[background-color,box-shadow,opacity,transform] duration-150 ease-out active:cursor-grabbing data-[column-dragging=true]:scale-[0.98] data-[column-dragging=true]:opacity-35 data-[column-drop-side=before]:bg-primary/[0.10] data-[column-drop-side=before]:shadow-[inset_3px_0_0_var(--primary)] data-[column-drop-side=after]:bg-primary/[0.10] data-[column-drop-side=after]:shadow-[inset_-3px_0_0_var(--primary)] data-[column-shift=left]:-translate-x-1.5 data-[column-shift=right]:translate-x-1.5 motion-reduce:transition-none motion-reduce:transform-none", className)} onKeyDown={moveByKeyboard} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData(RATED_COLUMN_DRAG_TYPE, columnKey); onDragStartColumn(columnKey) }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; const bounds = event.currentTarget.getBoundingClientRect(); onDragOverColumn(columnKey, event.clientX < bounds.left + bounds.width / 2 ? "before" : "after") }} onDrop={(event) => { event.preventDefault(); onDropColumn() }} onDragEnd={onDragEndColumn}>{children}</div>
 }
 
-function orderedCells(order: string[], cells: ReactNode[]) {
-  return order.map((key) => cells[Number(key)])
+function orderedCells(order: string[], cells: ReactNode[], dragState?: GridColumnDragState | null) {
+  return order.map((key) => {
+    const child = cells[Number(key)]
+    if (!dragState || !isValidElement<{ className?: string }>(child)) return child
+    const dragVisual = gridColumnDragVisual(order, dragState, key)
+    return cloneElement(child, {
+      "data-column-dragging": dragVisual.dragging || undefined,
+      "data-column-drop-side": dragVisual.dropSide,
+      "data-column-shift": dragVisual.shift,
+      className: cn(child.props.className, "transition-[background-color,box-shadow,opacity,transform] duration-150 ease-out data-[column-dragging=true]:opacity-35 data-[column-drop-side=before]:bg-primary/[0.04] data-[column-drop-side=before]:shadow-[inset_2px_0_0_var(--primary)] data-[column-drop-side=after]:bg-primary/[0.04] data-[column-drop-side=after]:shadow-[inset_-2px_0_0_var(--primary)] data-[column-shift=left]:-translate-x-1.5 data-[column-shift=right]:translate-x-1.5 motion-reduce:transition-none motion-reduce:transform-none"),
+    } as Record<string, unknown>)
+  })
 }
 
 function ratedPuzzleSkeletonCells(index?: number) {
@@ -156,7 +188,15 @@ export function RatedPuzzleBrowser() {
   const [pageInput, setPageInput] = useState("1")
   const [draft, setDraft] = useState<FilterDraft>(() => filterDraft(query))
   const [filterError, setFilterError] = useState<string | null>(null)
-  const { order: ratedColumnOrder, move: moveRatedColumn } = usePersistentColumnOrder("rated-puzzle-browser", RATED_COLUMN_WIDTHS.length)
+  const { order: ratedColumnOrder, move: moveRatedColumn, drop: dropRatedColumn } = usePersistentColumnOrder("rated-puzzle-browser", RATED_COLUMN_WIDTHS.length)
+  const [ratedDragState, setRatedDragState] = useState<GridColumnDragState | null>(null)
+  const startRatedColumnDrag = useCallback((source: string) => setRatedDragState({ source, target: null, side: null }), [])
+  const hoverRatedColumnDrop = useCallback((target: string, side: ColumnDropSide) => setRatedDragState((current) => !current ? current : current.source === target ? { ...current, target: null, side: null } : { ...current, target, side }), [])
+  const endRatedColumnDrag = useCallback(() => setRatedDragState(null), [])
+  const commitRatedColumnDrop = useCallback(() => {
+    if (ratedDragState?.target && ratedDragState.side) dropRatedColumn(ratedDragState.source, ratedDragState.target, ratedDragState.side)
+    setRatedDragState(null)
+  }, [dropRatedColumn, ratedDragState])
   const pageMetadata = pages.get(1) ?? pages.values().next().value
   const pool = pageMetadata?.pool
   const transportTotalItems = pageMetadata?.pagination.total_items ?? pool?.items ?? 0
@@ -361,15 +401,16 @@ export function RatedPuzzleBrowser() {
   }
   const ratedGridTemplate = ratedColumnOrder.map((key) => RATED_COLUMN_WIDTHS[Number(key)]).join(" ")
   const ariaSortFor = (sort: RatedPuzzleSort) => query.sort === sort ? query.direction === "asc" ? "ascending" as const : "descending" as const : "none" as const
+  const ratedHeaderDragProps = { order: ratedColumnOrder, move: moveRatedColumn, dragState: ratedDragState, onDragStartColumn: startRatedColumnDrag, onDragOverColumn: hoverRatedColumnDrop, onDropColumn: commitRatedColumnDrop, onDragEndColumn: endRatedColumnDrag }
   const headerCells = [
-    <ReorderableGridHeader key="index" columnKey="0" order={ratedColumnOrder} move={moveRatedColumn} className="text-right">#</ReorderableGridHeader>,
-    <ReorderableGridHeader key="puzzle" columnKey="1" order={ratedColumnOrder} move={moveRatedColumn} className="pl-4" ariaSort={ariaSortFor("puzzle_id")}><RatedSortHeader label="Puzzle" value="puzzle_id" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
-    <ReorderableGridHeader key="rating" columnKey="2" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("rating")}><RatedSortHeader label="Rating" value="rating" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
-    <ReorderableGridHeader key="rd" columnKey="3" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("rating_deviation")}><RatedSortHeader label="RD" value="rating_deviation" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
-    <ReorderableGridHeader key="themes" columnKey="4" order={ratedColumnOrder} move={moveRatedColumn} className="pl-5">Themes</ReorderableGridHeader>,
-    <ReorderableGridHeader key="plays" columnKey="5" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("plays")}><RatedSortHeader label="Lichess plays" value="plays" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
-    <ReorderableGridHeader key="popularity" columnKey="6" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("popularity")}><RatedSortHeader label="Popularity" value="popularity" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
-    <ReorderableGridHeader key="you" columnKey="7" order={ratedColumnOrder} move={moveRatedColumn} className="text-center">You</ReorderableGridHeader>,
+    <ReorderableGridHeader key="index" columnKey="0" {...ratedHeaderDragProps} className="text-right">#</ReorderableGridHeader>,
+    <ReorderableGridHeader key="puzzle" columnKey="1" {...ratedHeaderDragProps} className="pl-4" ariaSort={ariaSortFor("puzzle_id")}><RatedSortHeader label="Puzzle" value="puzzle_id" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="rating" columnKey="2" {...ratedHeaderDragProps} className="flex justify-end" ariaSort={ariaSortFor("rating")}><RatedSortHeader label="Rating" value="rating" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="rd" columnKey="3" {...ratedHeaderDragProps} className="flex justify-end" ariaSort={ariaSortFor("rating_deviation")}><RatedSortHeader label="RD" value="rating_deviation" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="themes" columnKey="4" {...ratedHeaderDragProps} className="pl-5">Themes</ReorderableGridHeader>,
+    <ReorderableGridHeader key="plays" columnKey="5" {...ratedHeaderDragProps} className="flex justify-end" ariaSort={ariaSortFor("plays")}><RatedSortHeader label="Lichess plays" value="plays" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="popularity" columnKey="6" {...ratedHeaderDragProps} className="flex justify-end" ariaSort={ariaSortFor("popularity")}><RatedSortHeader label="Popularity" value="popularity" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="you" columnKey="7" {...ratedHeaderDragProps} className="text-center">You</ReorderableGridHeader>,
   ]
 
   if (!apiBase) return <Card className="border-dashed"><CardContent className="py-16 text-center"><Database className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-4 text-xl font-semibold">Rated pool unavailable offline</h1><p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">The full rated pool is available through the live ChessBench API and is not bundled into the static site.</p></CardContent></Card>
@@ -433,9 +474,9 @@ export function RatedPuzzleBrowser() {
               <div key="popularity" className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{puzzle.popularity ?? "—"}</div>,
               <div key="you" className="text-center text-xs text-muted-foreground" role="cell">{store[puzzle.puzzle_id]?.solved ? "solved" : store[puzzle.puzzle_id] ? "retry" : "—"}</div>,
             ] : ratedPuzzleSkeletonCells(index)
-            return <div key={index} className="absolute left-0 grid w-full items-center border-b px-3 text-sm" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-rowindex={index + 2}>{failed ? <div className="col-span-full pl-4" role="cell"><button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button></div> : orderedCells(ratedColumnOrder, cells)}</div>
+            return <div key={index} className="absolute left-0 grid w-full items-center border-b px-3 text-sm" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-rowindex={index + 2}>{failed ? <div className="col-span-full pl-4" role="cell"><button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button></div> : orderedCells(ratedColumnOrder, cells, ratedDragState)}</div>
           })}
-          {(!pageMetadata || waitingForLocalView) && !failedPages.size ? INITIAL_SKELETON_ROWS.map((index) => <div key={index} className="absolute left-0 grid w-full items-center border-b px-3" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-hidden="true">{orderedCells(ratedColumnOrder, ratedPuzzleSkeletonCells())}</div>) : null}
+          {(!pageMetadata || waitingForLocalView) && !failedPages.size ? INITIAL_SKELETON_ROWS.map((index) => <div key={index} className="absolute left-0 grid w-full items-center border-b px-3" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-hidden="true">{orderedCells(ratedColumnOrder, ratedPuzzleSkeletonCells(), ratedDragState)}</div>) : null}
           {waitingForLocalView && failedPages.size ? <div className="absolute inset-x-0 top-11 grid h-[376px] place-items-center text-center"><div><div className="font-medium text-destructive">Some puzzle pages could not be loaded</div><Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => failedPages.forEach(loadPage)}>Retry</Button></div></div> : null}
           {pageMetadata && localPuzzles && !totalItems ? <div className="absolute inset-x-0 top-11 grid h-[376px] place-items-center text-center"><div><div className="font-medium">No puzzles match those filters</div><Button type="button" variant="ghost" size="sm" className="mt-2" onClick={clearFilters}>Clear filters</Button></div></div> : null}
         </div>

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from "react"
 
+export type ColumnDropSide = "before" | "after"
+
+export function orderAfterColumnDrop(order: string[], source: string, target: string, side: ColumnDropSide) {
+  if (source === target || !order.includes(source) || !order.includes(target)) return order
+  const next = order.filter((key) => key !== source)
+  const targetIndex = next.indexOf(target)
+  next.splice(targetIndex + (side === "after" ? 1 : 0), 0, source)
+  return next
+}
+
 function normalizedOrder(value: unknown, columnCount: number): string[] {
   const defaults = Array.from({ length: columnCount }, (_, index) => String(index))
   if (!Array.isArray(value)) return defaults
@@ -37,5 +47,9 @@ export function usePersistentColumnOrder(reorderableKey: string | undefined, col
     })
   }, [])
 
-  return { order, move }
+  const drop = useCallback((source: string, target: string, side: ColumnDropSide) => {
+    setOrder((current) => orderAfterColumnDrop(current, source, target, side))
+  }, [])
+
+  return { order, move, drop }
 }
