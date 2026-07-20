@@ -16,6 +16,7 @@ const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const HUMAN_HOURLY_RATE = 50
 const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
+const HUMAN_LABEL = "hunter"
 const HUMAN_COLOR = "#d946ef"
 const MODEL_COLORS = [
   "#059669", "#7c3aed", "#0284c7", "#ea580c", "#e11d48",
@@ -72,7 +73,7 @@ function isHumanPoint(point: ChartPoint): point is HumanCostPerformancePoint {
 }
 
 function pointLabelParts(point: ChartPoint) {
-  if (isHumanPoint(point)) return { firstLine: "me", secondModel: "", effort: "", effortLabel: "" }
+  if (isHumanPoint(point)) return { firstLine: HUMAN_LABEL, secondModel: "", effort: "", effortLabel: "" }
   const variant = point.representative.model_variant
   const configuredEffort = reasoningConfigurationEffort(variant)
   const resolvedEffort = configuredEffort === "provider" ? effectiveReasoningEffort(variant) : configuredEffort
@@ -447,7 +448,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
         textAnchor="middle"
         className="fill-fuchsia-600 text-[8.5px] font-semibold dark:fill-fuchsia-300"
         style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
-      >me</text>
+      >{HUMAN_LABEL}</text>
       return <text
         key={`label-${entry.point.key}`}
         x={entry.labelX}
@@ -470,7 +471,7 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
   if (isHumanPoint(entry.point)) return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-      <div><div className="text-sm font-semibold">Me</div><div className="mt-0.5 text-[10px] text-muted-foreground">Human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
+      <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
     </div>
     <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
       <dt className="text-muted-foreground">Glicko-2 rating</dt><dd className="font-mono font-semibold tabular-nums">{Math.round(entry.point.rating).toLocaleString()}</dd>
@@ -607,7 +608,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               key={entry.point.key}
               role="link"
               tabIndex={0}
-              aria-label={`${isHumanPoint(entry.point) ? "Me" : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
+              aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
               className="cursor-pointer outline-none"
               onPointerEnter={() => setActiveKey(entry.point.key)}
               onPointerLeave={() => setActiveKey((current) => current === entry.point.key ? null : current)}
