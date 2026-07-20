@@ -18,6 +18,7 @@ const NAV = [
 export function Layout() {
   const [dark, setDark] = useState(() => localStorage.getItem("chessbench.theme") !== "light")
   const { pathname } = useLocation()
+  const useWidePuzzleLayout = pathname === "/puzzles" || pathname === "/puzzles/browse"
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark)
     localStorage.setItem("chessbench.theme", dark ? "dark" : "light")
@@ -74,7 +75,7 @@ export function Layout() {
           </Sheet>
         </div>
       </header>
-      <main id="main-content" className="mx-auto max-w-[1480px] px-4 py-8 lg:px-8 lg:py-10">
+      <main id="main-content" className={cn("mx-auto px-4 py-8 lg:px-8 lg:py-10", useWidePuzzleLayout ? "max-w-none" : "max-w-[1480px]")}>
         <ErrorBoundary key={pathname}>
           <div key={pathname} className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300"><Outlet /></div>
         </ErrorBoundary>
