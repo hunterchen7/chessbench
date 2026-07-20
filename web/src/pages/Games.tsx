@@ -1,23 +1,16 @@
-import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowRight, Radio, Swords, Trophy } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { modeFromSlug, responseStyleInfo, type ResponseStyleKey } from "@/lib/format"
-import { ResponseStyleBadge, ResponseStyleToggle } from "@/components/ResponseStyle"
+import { modeFromSlug } from "@/lib/format"
+import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { Badge } from "@/components/ui/badge"
-import { ExportButton } from "@/components/ExportButton"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function Games() {
   const { tournaments } = useData()
-  const [responseStyle, setResponseStyle] = useState<ResponseStyleKey>("json_rationale")
-  const visible = useMemo(
-    () => tournaments.filter((tournament) => responseStyleInfo(tournament.condition_slug).key === responseStyle),
-    [tournaments, responseStyle],
-  )
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div>
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Stateful games</h1>
           <p className="mt-1 max-w-3xl text-muted-foreground">
@@ -25,11 +18,10 @@ export function Games() {
             The canonical setup keeps one chat per game and re-sends the authoritative position every turn.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2"><ResponseStyleToggle value={responseStyle} onChange={setResponseStyle} /><ExportButton track="game" responseStyle={responseStyle} /></div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((t) => (
+        {tournaments.map((t) => (
           <Link key={t.file} to={`/games/${encodeURIComponent(t.file)}`}>
             <Card className={`group h-full transition-all duration-200 hover:-translate-y-0.5 hover:border-ring hover:shadow-md ${t.status === "live" ? "border-red-500/40" : ""}`}>
               <CardHeader>
@@ -68,7 +60,7 @@ export function Games() {
             </Card>
           </Link>
         ))}
-        {visible.length === 0 && <p className="text-sm text-muted-foreground">No {responseStyle === "move_only" ? "move-only" : "rationale"} tournaments recorded yet.</p>}
+        {tournaments.length === 0 && <p className="text-sm text-muted-foreground">No games recorded yet.</p>}
       </div>
     </div>
   )
