@@ -8,10 +8,7 @@ import { DataExportMenu } from "@/components/ExportButton"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 const NAV = [
-  { to: "/", label: "Overview", end: true },
   { to: "/puzzles", label: "Puzzles" },
-  { to: "/esoteric", label: "Esoteric" },
-  { to: "/games", label: "Games" },
   { to: "/methodology", label: "Methods" },
 ]
 
@@ -28,7 +25,7 @@ export function Layout() {
       <a href="#main-content" className="fixed left-3 top-3 z-[100] -translate-y-20 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background shadow-lg transition-transform focus:translate-y-0">Skip to content</a>
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/88 backdrop-blur-xl">
         <div className="flex min-h-16 w-full items-center gap-5 px-[clamp(1rem,2.5vw,5rem)]">
-          <NavLink to="/" className="flex shrink-0 items-center gap-2.5">
+          <NavLink to="/puzzles" className="flex shrink-0 items-center gap-2.5">
             <span className="grid size-8 place-items-center rounded-lg bg-emerald-500/12 text-emerald-700 dark:text-emerald-300">
               <FlaskConical className="size-4.5" />
             </span>
@@ -42,7 +39,6 @@ export function Layout() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.end}
                 className={({ isActive }) => cn(
                   "whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors lg:px-3 lg:text-sm",
                   isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -64,7 +60,7 @@ export function Layout() {
               <SheetTitle className="pr-8 text-lg font-semibold">ChessBench</SheetTitle>
               <SheetDescription className="mt-1 text-sm text-muted-foreground">Model chess benchmark observatory</SheetDescription>
               <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile navigation">
-                {NAV.map((item) => <SheetClose asChild key={item.to}><NavLink to={item.to} end={item.end} className={({ isActive }) => cn("rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>{item.label}</NavLink></SheetClose>)}
+                {NAV.map((item) => <SheetClose asChild key={item.to}><NavLink to={item.to} className={({ isActive }) => cn("rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary hover:text-foreground")}>{item.label}</NavLink></SheetClose>)}
               </nav>
               <div className="mt-auto grid gap-2 border-t pt-4">
                 <DataExportMenu />
