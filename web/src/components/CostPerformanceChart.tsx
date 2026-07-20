@@ -518,6 +518,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [humanProfile, setHumanProfile] = useState<HumanTrainingProfile | null>(null)
   const [modelSearch, setModelSearch] = useState("")
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
+  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set())
   const [showHuman, setShowHuman] = useState(true)
   const [showLabels, setShowLabels] = useState(true)
   const [showLegend, setShowLegend] = useState(false)
@@ -548,7 +549,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex)
     })
   }, [allModelPoints])
-  const modelPoints = useMemo(() => {
+  const filteredModelPoints = useMemo(() => {
     const query = modelSearch.trim().toLowerCase()
     return allModelPoints.filter((point) => {
       const variant = point.representative.model_variant
@@ -558,10 +559,14 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       return matchesName && matchesReasoning
     })
   }, [allModelPoints, modelSearch, reasoningFilters])
-  const visibleModelLegend = useMemo(() => Array.from(new Map(modelPoints.map((point) => {
+  const availableModelLegend = useMemo(() => Array.from(new Map(filteredModelPoints.map((point) => {
     const variant = point.representative.model_variant
     return [variant.base_key, { key: variant.base_key, label: variant.display_name, color: colorByModel.get(variant.base_key) ?? MODEL_COLORS[0] }]
-  })).values()), [colorByModel, modelPoints])
+  })).values()), [colorByModel, filteredModelPoints])
+  const modelPoints = useMemo(
+    () => filteredModelPoints.filter((point) => !hiddenModelKeys.has(point.representative.model_variant.base_key)),
+    [filteredModelPoints, hiddenModelKeys],
+  )
 
   const humanPoint = useMemo((): HumanCostPerformancePoint | null => {
     const activeDurationMs = humanProfile?.session.active_duration_ms ?? 0
@@ -628,7 +633,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
 
   if (allModelPoints.length === 0 && !humanPoint) return null
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
-  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || !showHuman
+  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || !showHuman
   const positionTooltip = (event: ReactPointerEvent<SVGGElement>) => {
     const container = plotContainerRef.current
     if (!container) return
@@ -650,8 +655,25 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const clearFilters = () => {
     setModelSearch("")
     setReasoningFilters(new Set())
+    setHiddenModelKeys(new Set())
     setShowHuman(true)
   }
+  const toggleModel = (key: string) => setHiddenModelKeys((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
+  const showAllAvailableModels = () => setHiddenModelKeys((current) => {
+    const next = new Set(current)
+    for (const entry of availableModelLegend) next.delete(entry.key)
+    return next
+  })
+  const hideAllAvailableModels = () => setHiddenModelKeys((current) => {
+    const next = new Set(current)
+    for (const entry of availableModelLegend) next.add(entry.key)
+    return next
+  })
   const inspect = (event: KeyboardEvent<SVGGElement>, entry: PlottedPoint) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
@@ -693,6 +715,32 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
+      {showLegend ? <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-lg border bg-muted/25 px-3 py-2 text-[10px] text-muted-foreground">
+        <span className="mr-1 font-semibold uppercase tracking-wider">Models</span>
+        <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={showAllAvailableModels}>Show all</button>
+        <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={hideAllAvailableModels}>Hide all</button>
+        {availableModelLegend.map((entry) => {
+          const visible = !hiddenModelKeys.has(entry.key)
+          return <button
+            key={entry.key}
+            type="button"
+            aria-pressed={visible}
+            title={`${visible ? "Hide" : "Show"} ${entry.label}`}
+            onClick={() => toggleModel(entry.key)}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-[opacity,background-color,color,border-color] ${visible ? "border-border bg-background text-foreground hover:bg-accent" : "border-transparent bg-muted/50 opacity-40 hover:opacity-70"}`}
+          ><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}</button>
+        })}
+        {humanPoint ? <button
+          type="button"
+          aria-pressed={showHuman}
+          title={`${showHuman ? "Hide" : "Show"} hunter (me)`}
+          onClick={() => setShowHuman((value) => !value)}
+          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-[opacity,background-color,color,border-color] ${showHuman ? "border-border bg-background text-foreground hover:bg-accent" : "border-transparent bg-muted/50 opacity-40 hover:opacity-70"}`}
+        ><span className="size-2 rounded-full" style={{ backgroundColor: HUMAN_COLOR }} />hunter (me)</button> : null}
+        <span className="mx-1 h-3 w-px bg-border" />
+        <span className="font-semibold uppercase tracking-wider">Reasoning labels</span>
+        {reasoningOptions.map((effort) => <span key={effort} className="inline-flex items-center gap-1.5"><span className={`font-semibold ${effort === "none" ? "text-slate-600 dark:text-slate-300" : effort === "minimal" ? "text-sky-600 dark:text-sky-300" : effort === "low" ? "text-cyan-600 dark:text-cyan-300" : effort === "medium" ? "text-emerald-600 dark:text-emerald-300" : effort === "high" ? "text-amber-600 dark:text-amber-300" : effort === "xhigh" ? "text-orange-600 dark:text-orange-300" : effort === "max" ? "text-rose-600 dark:text-rose-300" : "text-violet-600 dark:text-violet-300"}`}>Aa</span>{reasoningEffortLabel(effort)}</span>)}
+      </div> : null}
       {chart ? <><div className="overflow-x-auto">
         <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
@@ -727,14 +775,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
           ><Inspector entry={active} /></div> : null}
         </div>
       </div>
-      {showLegend ? <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-muted/25 px-3 py-2 text-[10px] text-muted-foreground">
-        <span className="font-semibold uppercase tracking-wider">Models</span>
-        {visibleModelLegend.map((entry) => <span key={entry.key} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}</span>)}
-        {showHuman && humanPoint ? <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: HUMAN_COLOR }} />hunter (me)</span> : null}
-        <span className="mx-1 h-3 w-px bg-border" />
-        <span className="font-semibold uppercase tracking-wider">Reasoning</span>
-        {reasoningOptions.map((effort) => <span key={effort} className="inline-flex items-center gap-1.5"><span className={`font-semibold ${effort === "none" ? "text-slate-600 dark:text-slate-300" : effort === "minimal" ? "text-sky-600 dark:text-sky-300" : effort === "low" ? "text-cyan-600 dark:text-cyan-300" : effort === "medium" ? "text-emerald-600 dark:text-emerald-300" : effort === "high" ? "text-amber-600 dark:text-amber-300" : effort === "xhigh" ? "text-orange-600 dark:text-orange-300" : effort === "max" ? "text-rose-600 dark:text-rose-300" : "text-violet-600 dark:text-violet-300"}`}>Aa</span>{reasoningEffortLabel(effort)}</span>)}
-      </div> : null}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
