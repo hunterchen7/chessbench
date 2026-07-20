@@ -229,6 +229,20 @@ TARGETS = (
         ),
     ),
     Target(
+        "claude-fable-5-high-seed-0",
+        "c3d3be427f2b427e8ef12255b4f9c388",
+        1800,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "claude-fable-5", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-vertex/global",
+            "--no-provider-fallbacks", "--request-timeout", "1800",
+            "--live-sync-every", "5",
+        ),
+    ),
+    Target(
         "claude-opus-4-8-medium-seed-0",
         "524ac3ef1cd34a658451ee9785c05a30",
         1800,
