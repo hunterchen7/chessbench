@@ -4,6 +4,7 @@ import { Dices, Gauge, RotateCcw } from "lucide-react"
 import { loadSeededRatedPuzzle, type SeededRatedPuzzleSelection } from "@/lib/data"
 import {
   TRAINING_RATING_RADIUS,
+  humanTrainingSettled,
   humanTrainingSelected,
   humanTrainingSession,
   startHumanTrainingSession,
@@ -16,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RatedPoolDownloads } from "@/components/RatedPoolDownloads"
+import { HumanTrainingSave } from "@/components/HumanTrainingSave"
 
 function safeInteger(value: string | null): number | null {
   if (value == null || !/^-?\d+$/.test(value)) return null
@@ -67,6 +69,7 @@ export function PuzzleStart() {
 
   useEffect(() => {
     if (!ready || requestedSeed == null) return
+    if (humanTrainingSettled(session)) return
     const selector = session.selector
     if (!selector) return
     const controller = new AbortController()
@@ -108,6 +111,25 @@ export function PuzzleStart() {
     setFormError(null)
     navigate(`/puzzles/play?seed=${encodeURIComponent(seed)}&restart=1`)
   }
+
+  if (requestedSeed != null && ready && humanTrainingSettled(session)) return (
+    <Card className="mx-auto max-w-xl overflow-hidden">
+      <CardHeader className="border-b bg-emerald-500/5">
+        <div className="mb-2 grid size-11 place-items-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"><Gauge className="size-5" /></div>
+        <CardTitle>Seed {session.selector?.seed} complete</CardTitle>
+        <p className="text-sm text-muted-foreground">The run stopped after {session.attempts} rated puzzles at RD {formatRatingDeviation(session.state.deviation)}.</p>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-6">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Rating</div><div className="mt-1 font-mono text-xl font-semibold">{Math.round(session.state.rating).toLocaleString()}</div></div>
+          <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">RD</div><div className="mt-1 font-mono text-xl font-semibold">{formatRatingDeviation(session.state.deviation)}</div></div>
+          <div className="rounded-lg border bg-muted/20 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-xl font-semibold">{session.solved}/{session.attempts}</div></div>
+        </div>
+        {apiBase ? <HumanTrainingSave apiBase={apiBase} session={session} /> : null}
+        <Button type="button" variant="outline" className="w-full" onClick={() => navigate(`/puzzles/play?seed=${encodeURIComponent(String(session.selector?.seed ?? 0))}&restart=1`)}><RotateCcw className="size-4" /> Start this seed again</Button>
+      </CardContent>
+    </Card>
+  )
 
   if (selection) {
     const params = new URLSearchParams({

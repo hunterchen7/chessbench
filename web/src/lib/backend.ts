@@ -51,6 +51,7 @@ export interface HumanTrainingLeaderboardRow {
   attempts: number
   solved: number
   accuracy: number
+  active_duration_ms: number | null
   updated_at: string
 }
 

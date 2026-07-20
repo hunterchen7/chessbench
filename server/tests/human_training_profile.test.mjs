@@ -24,9 +24,14 @@ test("saved training profiles require a bounded snapshot and safe unique-handle 
     { uid: "browser-1", handle: "not allowed", session },
     { uid: "browser-1", handle: "Knight_42", session: { ...session, attempts: 2, solved: 3 } },
     { uid: "browser-1", handle: "Knight_42", session: { ...session, state: { ...session.state, rating: 9000 } } },
-    { uid: "browser-1", handle: "Knight_42", session: { ...session, state: { ...session.state, deviation: 75 } } },
+    { uid: "browser-1", handle: "Knight_42", session: { ...session, state: { ...session.state, deviation: 77.01 } } },
     { uid: "browser-1", handle: "Knight_42", session: { ...session, recent_puzzle_ids: Array(101).fill("p") } },
   ]) assert.equal(parseTrainingSave(invalid), null)
+  assert.equal(parseTrainingSave({
+    uid: "browser-1",
+    handle: "Knight_42",
+    session: { ...session, state: { ...session.state, deviation: 77 } },
+  })?.session.state.deviation, 77)
 })
 
 test("saved training profiles accept and validate benchmark-compatible selector state", () => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Chess, type Square } from "chess.js"
-import { ArrowLeft, ArrowRight, Check, Circle, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, Circle, Clock3, Gauge, Lightbulb, Play, RotateCcw, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import {
   RATED_PUZZLE_PAGE_SIZE,
@@ -17,15 +17,17 @@ import {
   type RatedPuzzleQuery,
   type SeededRatedPuzzlePreview,
 } from "@/lib/data"
-import { formatRatingDeviation, pct } from "@/lib/format"
+import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
 import { acceptedPuzzleMove, puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { humanRecord, type HumanOutcome } from "@/lib/human"
 import {
   PROVISIONAL_DEVIATION,
+  SETTLED_ATTEMPTS,
   SETTLED_DEVIATION,
   humanTrainingRecord,
   humanTrainingSelected,
   humanTrainingSession,
+  humanTrainingStartTiming,
   humanTrainingSettled,
   updateHumanGlicko,
   type HumanTrainingResult,
@@ -125,16 +127,50 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const [nextPuzzle, setNextPuzzle] = useState<{ id: string; index: number | null; position?: PuzzlePosition; trainingSearch?: string } | null>(null)
   const [trainingSession, setTrainingSession] = useState<HumanTrainingSession>(() => humanTrainingSession())
   const [trainingResult, setTrainingResult] = useState<HumanTrainingResult | null>(null)
+  const [currentPuzzleDurationMs, setCurrentPuzzleDurationMs] = useState(0)
   const [routePreview, setRoutePreview] = useState<{
     win: SeededRatedPuzzlePreview
     loss: SeededRatedPuzzlePreview
   } | null>(null)
+  const puzzleTimerRef = useRef({
+    elapsedMs: 0,
+    runningSince: training && document.visibilityState === "visible" ? performance.now() : null as number | null,
+  })
   const trainingRatedRef = useRef(
     training && trainingSession.recent_attempts.some((attempt) => attempt.puzzle_id === id),
   )
   const trainingRating = trainingSession.state.rating
+  const trainingAttempts = trainingSession.attempts
   const trainingRecentPuzzleIds = trainingSession.recent_puzzle_ids
   const trainingSelector = trainingSession.selector
+
+  useEffect(() => {
+    if (!training || trainingRatedRef.current || trainingResult) return
+    const updateVisibility = () => {
+      const timer = puzzleTimerRef.current
+      const now = performance.now()
+      if (document.visibilityState === "visible") {
+        setTrainingSession(humanTrainingStartTiming())
+        if (timer.runningSince == null) timer.runningSince = now
+      } else if (timer.runningSince != null) {
+        timer.elapsedMs += now - timer.runningSince
+        timer.runningSince = null
+      }
+      setCurrentPuzzleDurationMs(timer.elapsedMs + (timer.runningSince == null ? 0 : now - timer.runningSince))
+    }
+    updateVisibility()
+    const interval = window.setInterval(() => setCurrentPuzzleDurationMs(puzzleDurationMs()), 1000)
+    document.addEventListener("visibilitychange", updateVisibility)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener("visibilitychange", updateVisibility)
+    }
+  }, [training, trainingResult])
+
+  const puzzleDurationMs = () => {
+    const timer = puzzleTimerRef.current
+    return timer.elapsedMs + (timer.runningSince == null ? 0 : performance.now() - timer.runningSince)
+  }
 
   useEffect(() => {
     setRoutePreview(null)
@@ -171,6 +207,10 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     humanRecord(id, outcome)
     if (apiBase) void pushSolve(apiBase, id, solved, move)
     if (!training || trainingRatedRef.current) return
+    const durationMs = puzzleDurationMs()
+    puzzleTimerRef.current.elapsedMs = durationMs
+    puzzleTimerRef.current.runningSince = null
+    setCurrentPuzzleDurationMs(durationMs)
     trainingRatedRef.current = true
     const result = humanTrainingRecord(id, p.rating, p.rating_deviation ?? 500, solved, {
       outcome,
@@ -178,6 +218,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       experienced_line: experiencedLine,
       solution: [...solution],
       fen: startFen,
+      duration_ms: durationMs,
     })
     if (!result.duplicate) setTrainingResult(result)
     setTrainingSession(result.session)
@@ -187,7 +228,12 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     let active = true
     setNextPuzzle(null)
     if (training) {
-      if (!reveal || !apiBase || !trainingSelector) return () => { active = false }
+      if (
+        !reveal ||
+        !apiBase ||
+        !trainingSelector ||
+        (trainingAttempts >= SETTLED_ATTEMPTS && trainingSession.state.deviation <= SETTLED_DEVIATION)
+      ) return () => { active = false }
       const controller = new AbortController()
       void loadSeededRatedPuzzle(apiBase, {
         rating: trainingRating,
@@ -247,7 +293,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
       setNextPuzzle(next ? { id: next.position.puzzle_id, index: null } : null)
     })
     return () => { active = false }
-  }, [apiBase, id, ratedIndex, ratedQuery, reveal, training, trainingRating, trainingRecentPuzzleIds, trainingSelector])
+  }, [apiBase, id, ratedIndex, ratedQuery, reveal, training, trainingAttempts, trainingRating, trainingRecentPuzzleIds, trainingSelector, trainingSession.state.deviation])
 
   const solution = entry.position.solution ?? EMPTY_SOLUTION
   const solutionSan = useMemo(() => uciLineToSan(startFen, solution), [startFen, solution])
@@ -364,8 +410,9 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   const playedSan = uciLineToSan(startFen, solution.slice(0, ply))
   const ratingDelta = trainingResult ? Math.round(trainingResult.after.rating - trainingResult.before.rating) : null
   const trainingState = trainingSession.state
+  const displayedTrainingDuration = trainingSession.active_duration_ms + (trainingRatedRef.current ? 0 : currentPuzzleDurationMs)
   const trainingIsSettled = humanTrainingSettled(trainingSession)
-  const trainingCanSave = trainingState.deviation < SETTLED_DEVIATION
+  const trainingCanSave = trainingState.deviation <= SETTLED_DEVIATION
   const modelCount = new Set(entry.answers.map((answer) => answer.model)).size
   const trainingNextTo = nextPuzzle
     ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?${nextPuzzle.trainingSearch ?? "source=train"}`
@@ -377,8 +424,8 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
         <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
       </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
-      <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(300px,4fr)] xl:gap-8">
-        <div className="relative aspect-square self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20">
+      <div className="grid items-stretch gap-5 lg:h-[calc(100dvh-12.5rem)] lg:grid-cols-2 xl:gap-8">
+        <div className="relative aspect-square w-full max-w-[calc(100dvh-12.5rem)] justify-self-center self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20 lg:justify-self-end">
           <Board fen={fen} orientation={orientation} onPieceDrop={status === "playing" ? onPieceDrop : undefined} lastMove={lastMove} maxWidth="100%" />
           {pendingPromotion ? <div className="absolute inset-0 z-20 grid place-items-center bg-black/55 p-4 backdrop-blur-[1px] animate-in fade-in-0 duration-150" role="dialog" aria-modal="true" aria-labelledby="promotion-title">
             <div className="w-full max-w-sm rounded-xl border bg-card p-4 shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200">
@@ -402,7 +449,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
           </div> : null}
         </div>
 
-        <Card className="min-h-0 overflow-hidden border-border/70">
+        <Card className="min-h-0 overflow-hidden border-border/70 py-0 lg:h-full">
           <CardContent className="flex min-h-0 flex-1 flex-col p-0">
             <div className="border-b p-5">
               <div className="flex items-center justify-between gap-3">
@@ -412,10 +459,11 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               <p className="mt-1 text-sm text-muted-foreground">{orientation === "white" ? "White" : "Black"} to move · click or drag a piece.</p>
             </div>
 
-            {training && <div className="grid grid-cols-3 border-b bg-muted/15 text-center">
+            {training && <div className="grid grid-cols-2 border-b bg-muted/15 text-center sm:grid-cols-4">
               <div className="border-r px-3 py-3"><div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><Gauge className="size-3" /> Rating</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{Math.round(trainingState.rating).toLocaleString()}</div>{ratingDelta != null && <div className={ratingDelta >= 0 ? "text-[10px] font-medium text-emerald-600 dark:text-emerald-300" : "text-[10px] font-medium text-destructive"}>{ratingDelta >= 0 ? "+" : ""}{ratingDelta}</div>}</div>
               <div className="border-r px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rating deviation</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatRatingDeviation(trainingState.deviation)}</div><div className="text-[10px] text-muted-foreground">{trainingIsSettled ? "settled" : trainingState.deviation >= PROVISIONAL_DEVIATION ? "provisional" : "converging"}</div></div>
               <div className="px-3 py-3"><div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Record</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{trainingSession.solved}/{trainingSession.attempts}</div><div className="text-[10px] text-muted-foreground">rated attempts</div></div>
+              <div className="border-l px-3 py-3"><div className="flex items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><Clock3 className="size-3" /> Solve time</div><div className="mt-1 font-mono text-lg font-semibold tabular-nums">{formatDuration(displayedTrainingDuration)}</div><div className="text-[10px] text-muted-foreground">visible-tab time</div></div>
             </div>}
             {training && trainingCanSave && apiBase ? <HumanTrainingSave apiBase={apiBase} session={trainingSession} /> : null}
             {training && !trainingRatedRef.current && <div className="grid grid-cols-2 border-b bg-muted/10">
@@ -447,7 +495,8 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
             <div className="flex flex-wrap gap-2 border-t bg-muted/15 p-4">
               <Button variant="outline" size="sm" onClick={reset}><RotateCcw className="size-4" /> Reset puzzle</Button>
               {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
-              {reveal && training && <Button asChild size="sm" className="ml-auto"><Link to={trainingNextTo} state={nextPuzzle?.position ? { trainingPuzzle: nextPuzzle.position } : undefined}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && training && !trainingIsSettled && <Button asChild size="sm" className="ml-auto"><Link to={trainingNextTo} state={nextPuzzle?.position ? { trainingPuzzle: nextPuzzle.position } : undefined}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && trainingIsSettled && <div className="ml-auto text-sm font-medium text-emerald-700 dark:text-emerald-300">Run complete at RD {formatRatingDeviation(trainingState.deviation)}</div>}
               {reveal && !training && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
             </div>
           </CardContent>

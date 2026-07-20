@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowLeft, Check, Gauge, Target, UserRound, X } from "lucide-react"
+import { ArrowLeft, Check, Clock3, Gauge, Target, UserRound, X } from "lucide-react"
 import { fetchHumanTrainingProfileByHandle, type HumanTrainingProfile } from "@/lib/backend"
-import { formatRatingDeviation, pct } from "@/lib/format"
+import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
 import type { HumanTrainingAttempt } from "@/lib/humanTraining"
 import { useData } from "@/lib/useData"
 import { Badge } from "@/components/ui/badge"
@@ -60,6 +60,8 @@ export function HumanDetail() {
   if (!profile || error) return <Card><CardContent className="py-16 text-center"><div className="font-semibold">Human run not found</div><p className="mt-1 text-sm text-muted-foreground">{error ?? "This username does not have a public saved run."}</p><Link to="/puzzles" className="mt-4 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline dark:text-emerald-300"><ArrowLeft className="size-4" /> Back to ratings</Link></CardContent></Card>
 
   const seed = profile.session.selector?.seed
+  const activeDuration = profile.session.active_duration_ms ?? null
+  const timedAttempts = attempts.filter((attempt) => attempt.duration_ms != null).length
   return <div className="space-y-6">
     <Link to="/puzzles" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Human ratings</Link>
 
@@ -74,10 +76,11 @@ export function HumanDetail() {
       </CardContent>
     </Card>
 
-    <section className="grid gap-3 sm:grid-cols-3">
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Card><CardContent className="flex items-center gap-4 py-5"><Gauge className="size-5 text-violet-600" /><div><div className="font-mono text-xl font-semibold">{Math.round(profile.rating).toLocaleString()}</div><div className="text-xs text-muted-foreground">rating · RD {formatRatingDeviation(profile.rating_deviation)}</div></div></CardContent></Card>
       <Card><CardContent className="flex items-center gap-4 py-5"><Target className="size-5 text-emerald-600" /><div><div className="font-mono text-xl font-semibold">{pct(profile.accuracy)}</div><div className="text-xs text-muted-foreground">complete-solve accuracy</div></div></CardContent></Card>
       <Card><CardContent className="flex items-center gap-4 py-5"><UserRound className="size-5 text-sky-600" /><div><div className="font-mono text-xl font-semibold">{attempts.length}/{profile.attempts}</div><div className="text-xs text-muted-foreground">attempt details retained</div></div></CardContent></Card>
+      <Card><CardContent className="flex items-center gap-4 py-5"><Clock3 className="size-5 text-amber-600" /><div><div className="font-mono text-xl font-semibold">{formatDuration(activeDuration)}</div><div className="text-xs text-muted-foreground">active solve time · {timedAttempts}/{profile.attempts} timed</div></div></CardContent></Card>
     </section>
 
     <Card className="flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden">
@@ -87,7 +90,7 @@ export function HumanDetail() {
       </CardHeader>
       <CardContent className="min-h-0 min-w-0 flex-1 overflow-auto p-0">
         <Table reorderableKey="human-run-answer-sheet" className="min-w-[980px] table-fixed">
-          <TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-24">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead><TableHead className="w-28">Outcome</TableHead><TableHead className="w-[300px]">Experienced continuation</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-28 text-right">Rating change</TableHead><TableHead className="w-36 text-right">Played</TableHead></TableRow></TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-24">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead><TableHead className="w-28">Outcome</TableHead><TableHead className="w-[300px]">Experienced continuation</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-28 text-right">Rating change</TableHead><TableHead className="w-24 text-right">Time</TableHead><TableHead className="w-36 text-right">Played</TableHead></TableRow></TableHeader>
           <TableBody>{attempts.map((attempt) => {
             const delta = Math.round(attempt.rating_after - attempt.rating_before)
             return <TableRow key={`${attempt.puzzle_id}-${attempt.played_at}`}>
@@ -97,9 +100,10 @@ export function HumanDetail() {
               <TableCell className="whitespace-normal"><MoveSequence attempt={attempt} /></TableCell>
               <TableCell className="whitespace-normal font-mono text-xs leading-6 text-emerald-700 dark:text-emerald-300">{attempt.solution?.join(" ") || <span className="text-muted-foreground">Not recorded</span>}</TableCell>
               <TableCell className={`text-right font-mono text-xs font-semibold tabular-nums ${delta >= 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{delta >= 0 ? "+" : ""}{delta}</TableCell>
+              <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatDuration(attempt.duration_ms)}</TableCell>
               <TableCell className="text-right text-xs text-muted-foreground">{new Date(attempt.played_at).toLocaleString()}</TableCell>
             </TableRow>
-          })}{attempts.length === 0 ? <TableRow><TableCell colSpan={7} className="h-32 text-center text-sm text-muted-foreground">No retained attempt details.</TableCell></TableRow> : null}</TableBody>
+          })}{attempts.length === 0 ? <TableRow><TableCell colSpan={8} className="h-32 text-center text-sm text-muted-foreground">No retained attempt details.</TableCell></TableRow> : null}</TableBody>
         </Table>
       </CardContent>
     </Card>

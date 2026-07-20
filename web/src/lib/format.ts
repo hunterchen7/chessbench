@@ -6,6 +6,16 @@ export const formatRatingDeviation = (value: number | null | undefined) => value
   ? "—"
   : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+export function formatDuration(milliseconds: number | null | undefined): string {
+  if (milliseconds == null || !Number.isFinite(milliseconds) || milliseconds < 0) return "—"
+  const totalSeconds = Math.round(milliseconds / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor(totalSeconds % 3600 / 60)
+  const seconds = totalSeconds % 60
+  if (hours) return `${hours}h ${String(minutes).padStart(2, "0")}m`
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`
+}
+
 export const pointsText = (summary: RunSummary) =>
   `${Number.isInteger(summary.points) ? summary.points.toFixed(0) : summary.points.toFixed(2)}/${summary.max_points}`
 

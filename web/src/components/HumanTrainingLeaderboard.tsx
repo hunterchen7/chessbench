@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Play, Search, UserRound } from "lucide-react"
+import { Clock3, Play, Search, UserRound } from "lucide-react"
 import { fetchHumanTrainingLeaderboard, type HumanTrainingLeaderboardRow } from "@/lib/backend"
-import { formatRatingDeviation, pct } from "@/lib/format"
+import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
 import { useData } from "@/lib/useData"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -78,7 +78,7 @@ export function HumanTrainingLeaderboard() {
         {rows == null ? <div className="space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : rows.length ? (
           <div className="overflow-x-auto rounded-lg border">
             <Table reorderableKey="human-training-leaderboard">
-              <TableHeader><TableRow><TableHead className="w-14 text-right">#</TableHead><TableHead>Username</TableHead><TableHead className="text-right">Seed</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">RD</TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Accuracy</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead className="w-14 text-right">#</TableHead><TableHead>Username</TableHead><TableHead className="text-right">Seed</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">RD</TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Accuracy</TableHead><TableHead className="text-right"><span className="inline-flex items-center gap-1"><Clock3 className="size-3" /> Time</span></TableHead><TableHead className="text-right">Avg.</TableHead></TableRow></TableHeader>
               <TableBody>{visibleRows.map((row) => <TableRow
                 key={row.handle}
                 role="link"
@@ -98,7 +98,9 @@ export function HumanTrainingLeaderboard() {
                 <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatRatingDeviation(row.rating_deviation)}{row.provisional ? "?" : ""}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums">{row.solved}/{row.attempts}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums">{pct(row.accuracy)}</TableCell>
-              </TableRow>)}{visibleRows.length === 0 ? <TableRow><TableCell colSpan={7} className="h-28 text-center"><div className="font-medium">No matching human runs</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={clearFilters}>Clear filters</button></TableCell></TableRow> : null}</TableBody>
+                <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatDuration(row.active_duration_ms)}</TableCell>
+                <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatDuration(row.active_duration_ms == null || !row.attempts ? null : row.active_duration_ms / row.attempts)}</TableCell>
+              </TableRow>)}{visibleRows.length === 0 ? <TableRow><TableCell colSpan={9} className="h-28 text-center"><div className="font-medium">No matching human runs</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={clearFilters}>Clear filters</button></TableCell></TableRow> : null}</TableBody>
             </Table>
           </div>
         ) : <div className="rounded-lg border border-dashed py-10 text-center"><div className="font-medium">No saved human ratings yet</div><p className="mt-1 text-sm text-muted-foreground">Start a seeded run, play at least one puzzle, choose a username, and save it.</p></div>}

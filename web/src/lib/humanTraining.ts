@@ -3,7 +3,7 @@ const STORAGE_KEY = "chessbench.human-training.v1"
 export const GLICKO_SCALE = 173.7178
 export const GLICKO_TAU = 0.75
 export const PROVISIONAL_DEVIATION = 110
-export const SETTLED_DEVIATION = 75
+export const SETTLED_DEVIATION = 77
 export const SETTLED_ATTEMPTS = 50
 export const TRAINING_RATING_RADIUS = 100
 export const TRAINING_RECENT_LIMIT = 100
@@ -29,6 +29,7 @@ export interface HumanTrainingAttempt {
   rating_before: number
   rating_after: number
   played_at: string
+  duration_ms?: number
   outcome?: "solved" | "incorrect" | "revealed"
   moves?: string[]
   experienced_line?: string[]
@@ -43,6 +44,8 @@ export interface HumanTrainingSession {
   solved: number
   recent_puzzle_ids: string[]
   recent_attempts: HumanTrainingAttempt[]
+  started_at: string | null
+  active_duration_ms: number
   updated_at: string | null
   selector: HumanTrainingSelector | null
 }
@@ -77,6 +80,8 @@ function initialSession(): HumanTrainingSession {
     solved: 0,
     recent_puzzle_ids: [],
     recent_attempts: [],
+    started_at: null,
+    active_duration_ms: 0,
     updated_at: null,
     selector: null,
   }
@@ -106,6 +111,11 @@ function normalizeSession(value: unknown): HumanTrainingSession {
       Boolean(attempt) && typeof attempt === "object" && typeof attempt.puzzle_id === "string"
     )).slice(-TRAINING_RECENT_LIMIT)
     : []
+  const attemptDuration = recentAttempts.reduce((total, attempt) => {
+    const duration = Number(attempt.duration_ms)
+    return total + (Number.isFinite(duration) && duration >= 0 ? duration : 0)
+  }, 0)
+  const rawActiveDuration = Number(raw.active_duration_ms)
   const rawSelector = raw.selector && typeof raw.selector === "object" ? raw.selector : null
   const selector = rawSelector &&
     rawSelector.version === TRAINING_SELECTOR_VERSION &&
@@ -129,6 +139,10 @@ function normalizeSession(value: unknown): HumanTrainingSession {
     solved,
     recent_puzzle_ids: recentPuzzleIds,
     recent_attempts: recentAttempts,
+    started_at: typeof raw.started_at === "string" ? raw.started_at : null,
+    active_duration_ms: Number.isFinite(rawActiveDuration) && rawActiveDuration >= 0
+      ? rawActiveDuration
+      : attemptDuration,
     updated_at: typeof raw.updated_at === "string" ? raw.updated_at : null,
     selector,
   }
@@ -136,7 +150,10 @@ function normalizeSession(value: unknown): HumanTrainingSession {
 
 export function humanTrainingSession(): HumanTrainingSession {
   try {
-    return normalizeSession(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"))
+    const normalized = normalizeSession(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"))
+    const canonical = canonicalSettledSession(normalized)
+    if (canonical !== normalized) localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical))
+    return canonical
   } catch {
     return initialSession()
   }
@@ -171,6 +188,12 @@ export function startHumanTrainingSession(
       next_sequence: 0,
     },
   })
+}
+
+export function humanTrainingStartTiming(): HumanTrainingSession {
+  const current = humanTrainingSession()
+  if (current.started_at) return current
+  return persist({ ...current, started_at: new Date().toISOString() })
 }
 
 export function humanTrainingSelected(input: {
@@ -285,12 +308,48 @@ export function updateHumanGlicko(
   }
 }
 
+/**
+ * Repair sessions produced before settled runs became terminal. We only rewind
+ * when the complete attempt history is present, then keep the earliest prefix
+ * that satisfies the public stopping rule.
+ */
+function canonicalSettledSession(session: HumanTrainingSession): HumanTrainingSession {
+  if (session.attempts <= SETTLED_ATTEMPTS || session.recent_attempts.length !== session.attempts) return session
+
+  let state = { ...INITIAL_HUMAN_GLICKO_STATE }
+  for (let index = 0; index < session.recent_attempts.length; index += 1) {
+    const attempt = session.recent_attempts[index]
+    state = updateHumanGlicko(state, attempt.puzzle_rating, attempt.puzzle_deviation, attempt.solved)
+    const count = index + 1
+    if (count < SETTLED_ATTEMPTS || state.deviation > SETTLED_DEVIATION) continue
+    if (count === session.attempts) return session
+
+    const keptAttempts = session.recent_attempts.slice(0, count)
+    const recentPuzzleIds = keptAttempts.reduce<string[]>((ids, item) => {
+      const withoutDuplicate = ids.filter((id) => id !== item.puzzle_id)
+      return [...withoutDuplicate, item.puzzle_id].slice(-TRAINING_RECENT_LIMIT)
+    }, [])
+    return {
+      ...session,
+      state,
+      attempts: count,
+      solved: keptAttempts.filter((item) => item.solved).length,
+      recent_puzzle_ids: recentPuzzleIds,
+      recent_attempts: keptAttempts,
+      active_duration_ms: keptAttempts.reduce((total, item) => total + (item.duration_ms ?? 0), 0),
+      updated_at: keptAttempts.at(-1)?.played_at ?? session.updated_at,
+      selector: session.selector ? { ...session.selector, next_sequence: count } : null,
+    }
+  }
+  return session
+}
+
 export function humanTrainingRecord(
   puzzleId: string,
   puzzleRating: number,
   puzzleDeviation: number,
   solved: boolean,
-  detail?: Pick<HumanTrainingAttempt, "outcome" | "moves" | "experienced_line" | "solution" | "fen">,
+  detail?: Pick<HumanTrainingAttempt, "outcome" | "moves" | "experienced_line" | "solution" | "fen" | "duration_ms">,
 ): HumanTrainingResult {
   const current = humanTrainingSession()
   const duplicateAttempt = current.recent_attempts.find((attempt) => attempt.puzzle_id === puzzleId)
@@ -309,6 +368,7 @@ export function humanTrainingRecord(
     rating_before: before.rating,
     rating_after: after.rating,
     played_at: now,
+    duration_ms: detail?.duration_ms == null ? undefined : Math.max(0, Math.round(detail.duration_ms)),
     outcome: detail?.outcome ?? (solved ? "solved" : "incorrect"),
     moves: detail?.moves?.slice(0, 64),
     experienced_line: detail?.experienced_line?.slice(0, 64),
@@ -321,6 +381,7 @@ export function humanTrainingRecord(
     attempts: current.attempts + 1,
     solved: current.solved + Number(solved),
     recent_attempts: [...current.recent_attempts, attempt].slice(-TRAINING_RECENT_LIMIT),
+    active_duration_ms: current.active_duration_ms + (attempt.duration_ms ?? 0),
     updated_at: now,
   }, puzzleId)
   return { before, after, session: persist(session), solved, duplicate: false }

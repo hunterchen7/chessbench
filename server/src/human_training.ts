@@ -5,6 +5,7 @@ import {
   normalizedTrainingHandle,
   normalizedTrainingUid,
   parseTrainingSave,
+  trainingSessionDuration,
   trainingSessionSeed,
   type TrainingSession,
 } from "./human_training_payload"
@@ -102,7 +103,7 @@ export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<R
     `SELECT uid, handle, rating, rating_deviation, volatility, attempts, solved,
             session_json, created_at, updated_at, last_saved_ms
        FROM human_training_profiles
-      WHERE attempts > 0 AND rating_deviation < ?
+      WHERE attempts > 0 AND rating_deviation <= ?
       ORDER BY rating DESC, rating_deviation ASC, attempts DESC, handle COLLATE NOCASE ASC
       LIMIT 100`,
   ).bind(HUMAN_TRAINING_MAX_SAVE_DEVIATION).all<TrainingProfileRow>()
@@ -112,6 +113,7 @@ export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<R
       me: uid != null && row.uid === uid,
       handle: row.handle,
       seed: trainingSessionSeed(row.session_json),
+      active_duration_ms: trainingSessionDuration(row.session_json),
       rating: row.rating,
       rating_deviation: row.rating_deviation,
       provisional: row.rating_deviation >= 110,
