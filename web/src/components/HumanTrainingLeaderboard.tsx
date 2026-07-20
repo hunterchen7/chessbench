@@ -54,7 +54,7 @@ export function HumanTrainingLeaderboard() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-base"><UserRound className="size-4 text-emerald-600" /> Human training ratings</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">Explicitly saved browser runs using the same frozen-puzzle Glicko updates. Usernames are unique; these casual runs remain separate from the model benchmark.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Arcade-style scores saved from browser runs using the same frozen-puzzle Glicko updates. Reuse any username; every seeded run gets its own entry.</p>
           </div>
           <Button asChild size="sm" className="shrink-0"><Link to="/puzzles/play"><Play className="size-3.5 fill-current" /> Play seeded run</Link></Button>
         </div>
@@ -80,15 +80,15 @@ export function HumanTrainingLeaderboard() {
             <Table reorderableKey="human-training-leaderboard">
               <TableHeader><TableRow><TableHead className="w-14 text-right">#</TableHead><TableHead>Username</TableHead><TableHead className="text-right">Seed</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">RD</TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Accuracy</TableHead><TableHead className="text-right"><span className="inline-flex items-center gap-1"><Clock3 className="size-3" /> Time</span></TableHead><TableHead className="text-right">Avg.</TableHead></TableRow></TableHeader>
               <TableBody>{visibleRows.map((row) => <TableRow
-                key={row.handle}
+                key={row.run_id}
                 role="link"
                 tabIndex={0}
                 className={cn("cursor-pointer", row.me && "bg-emerald-500/[0.06]")}
-                onClick={() => navigate(`/human/${encodeURIComponent(row.handle)}`)}
+                onClick={() => navigate(`/human/${encodeURIComponent(row.run_id)}`)}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return
                   event.preventDefault()
-                  navigate(`/human/${encodeURIComponent(row.handle)}`)
+                  navigate(`/human/${encodeURIComponent(row.run_id)}`)
                 }}
               >
                 <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.rank}</TableCell>

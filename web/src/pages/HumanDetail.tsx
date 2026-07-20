@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams } from "react-router-dom"
 import { ArrowLeft, Check, Clock3, Gauge, Target, UserRound, X } from "lucide-react"
-import { fetchHumanTrainingProfileByHandle, type HumanTrainingProfile } from "@/lib/backend"
+import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib/backend"
 import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
 import type { HumanTrainingAttempt } from "@/lib/humanTraining"
 import { useData } from "@/lib/useData"
@@ -33,7 +33,7 @@ function Outcome({ attempt }: { attempt: HumanTrainingAttempt }) {
 }
 
 export function HumanDetail() {
-  const { handle = "" } = useParams()
+  const { runId = "" } = useParams()
   const { apiBase } = useData()
   const [profile, setProfile] = useState<HumanTrainingProfile | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
@@ -46,13 +46,13 @@ export function HumanDetail() {
       setProfile(null)
       return () => { active = false }
     }
-    void fetchHumanTrainingProfileByHandle(apiBase, handle).then((result) => {
+    void fetchHumanTrainingProfileByRun(apiBase, runId).then((result) => {
       if (active) setProfile(result)
     }).catch((reason) => {
       if (active) setError(reason instanceof Error ? reason.message : "Could not load this human run.")
     })
     return () => { active = false }
-  }, [apiBase, handle])
+  }, [apiBase, runId])
 
   const attempts = useMemo(() => profile?.session.recent_attempts.toReversed() ?? [], [profile])
 

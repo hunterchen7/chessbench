@@ -16,6 +16,7 @@ const IP_SAVES_PER_WINDOW = 10
 const MAX_BODY_BYTES = 256 * 1024
 
 interface TrainingProfileRow {
+  run_id: string
   uid: string
   handle: string
   rating: number
@@ -36,6 +37,7 @@ interface SaveLimitRow {
 
 function publicProfile(row: TrainingProfileRow, now = Date.now()) {
   return {
+    run_id: row.run_id,
     handle: row.handle,
     rating: row.rating,
     rating_deviation: row.rating_deviation,
@@ -83,16 +85,19 @@ async function consumeLimit(
     : 0
 }
 
-/** GET /api/human/training?uid= or ?handle= — one saved browser-training run. */
+/** GET /api/human/training?run_id=, ?uid=, or ?handle= — one saved arcade-style run. */
 export async function getHumanTrainingProfile(env: Env, url: URL): Promise<Response> {
+  const runId = url.searchParams.get("run_id")?.trim().slice(0, 64) || null
   const uid = normalizedTrainingUid(url.searchParams.get("uid"))
   const handle = normalizedTrainingHandle(url.searchParams.get("handle"))
-  if (!uid && !handle) return error(400, "uid or handle query param required")
+  if (!runId && !uid && !handle) return error(400, "run_id, uid, or handle query param required")
   const row = await env.DB.prepare(
-    uid
-      ? `SELECT * FROM human_training_profiles WHERE uid=?`
-      : `SELECT * FROM human_training_profiles WHERE handle=? COLLATE NOCASE`,
-  ).bind(uid ?? handle).first<TrainingProfileRow>()
+    runId
+      ? `SELECT * FROM human_training_profiles WHERE run_id=?`
+      : uid
+        ? `SELECT * FROM human_training_profiles WHERE uid=? ORDER BY updated_at DESC LIMIT 1`
+        : `SELECT * FROM human_training_profiles WHERE handle=? COLLATE NOCASE ORDER BY updated_at DESC LIMIT 1`,
+  ).bind(runId ?? uid ?? handle).first<TrainingProfileRow>()
   return json({ profile: row ? publicProfile(row) : null })
 }
 
@@ -100,7 +105,7 @@ export async function getHumanTrainingProfile(env: Env, url: URL): Promise<Respo
 export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<Response> {
   const uid = normalizedTrainingUid(url.searchParams.get("uid"))
   const { results } = await env.DB.prepare(
-    `SELECT uid, handle, rating, rating_deviation, volatility, attempts, solved,
+    `SELECT run_id, uid, handle, rating, rating_deviation, volatility, attempts, solved,
             session_json, created_at, updated_at, last_saved_ms
        FROM human_training_profiles
       WHERE attempts > 0 AND rating_deviation <= ?
@@ -110,6 +115,7 @@ export async function getHumanTrainingLeaderboard(env: Env, url: URL): Promise<R
   return json({
     leaderboard: (results ?? []).map((row, index) => ({
       rank: index + 1,
+      run_id: row.run_id,
       me: uid != null && row.uid === uid,
       handle: row.handle,
       seed: trainingSessionSeed(row.session_json),
@@ -136,10 +142,10 @@ export async function postHumanTrainingProfile(env: Env, req: Request): Promise<
   const parsed = parseTrainingSave(value)
   if (!parsed) return error(400, "invalid uid, username, or training session")
 
-  const conflicting = await env.DB.prepare(
-    `SELECT uid FROM human_training_profiles WHERE handle=? COLLATE NOCASE`,
-  ).bind(parsed.handle).first<{ uid: string }>()
-  if (conflicting && conflicting.uid !== parsed.uid) return error(409, "username is already taken")
+  const existing = await env.DB.prepare(
+    `SELECT uid FROM human_training_profiles WHERE run_id=?`,
+  ).bind(parsed.runId).first<{ uid: string }>()
+  if (existing && existing.uid !== parsed.uid) return error(409, "run id belongs to another browser")
 
   const now = Date.now()
   const ip = req.headers.get("CF-Connecting-IP") ?? req.headers.get("X-Forwarded-For")?.split(",")[0]?.trim() ?? "unknown"
@@ -162,10 +168,10 @@ export async function postHumanTrainingProfile(env: Env, req: Request): Promise<
   const state = parsed.session.state
   const save = env.DB.prepare(
     `INSERT INTO human_training_profiles (
-       uid, handle, rating, rating_deviation, volatility, attempts, solved,
+       run_id, uid, handle, rating, rating_deviation, volatility, attempts, solved,
        session_json, created_at, updated_at, last_saved_ms
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(uid) DO UPDATE SET
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(run_id) DO UPDATE SET
        handle=excluded.handle,
        rating=excluded.rating,
        rating_deviation=excluded.rating_deviation,
@@ -176,19 +182,19 @@ export async function postHumanTrainingProfile(env: Env, req: Request): Promise<
        updated_at=excluded.updated_at,
        last_saved_ms=excluded.last_saved_ms`,
   ).bind(
-    parsed.uid, parsed.handle, state.rating, state.deviation, state.volatility,
+    parsed.runId, parsed.uid, parsed.handle, state.rating, state.deviation, state.volatility,
     parsed.session.attempts, parsed.session.solved, sessionJson, timestamp, timestamp, now,
   )
   try {
     await save.run()
   } catch (reason) {
-    if (String(reason).toLowerCase().includes("unique")) return error(409, "username is already taken")
+    if (String(reason).toLowerCase().includes("unique")) return error(409, "run could not be saved")
     throw reason
   }
 
   const stored = await env.DB.prepare(
-    `SELECT * FROM human_training_profiles WHERE uid=?`,
-  ).bind(parsed.uid).first<TrainingProfileRow>()
+    `SELECT * FROM human_training_profiles WHERE run_id=?`,
+  ).bind(parsed.runId).first<TrainingProfileRow>()
   if (!stored) throw new Error("saved training profile could not be reloaded")
   return json({ profile: publicProfile(stored, now) })
 }

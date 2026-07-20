@@ -27,6 +27,7 @@ export interface HumanRow {
 }
 
 export interface HumanTrainingProfile {
+  run_id: string
   handle: string
   rating: number
   rating_deviation: number
@@ -42,6 +43,7 @@ export interface HumanTrainingProfile {
 
 export interface HumanTrainingLeaderboardRow {
   rank: number
+  run_id: string
   me: boolean
   handle: string
   seed: number | null
@@ -108,8 +110,8 @@ export async function fetchHumanTrainingProfile(base: string): Promise<HumanTrai
   return request
 }
 
-export async function fetchHumanTrainingProfileByHandle(base: string, handle: string): Promise<HumanTrainingProfile | null> {
-  const response = await fetch(`${base}/human/training?handle=${encodeURIComponent(handle)}`)
+export async function fetchHumanTrainingProfileByRun(base: string, runId: string): Promise<HumanTrainingProfile | null> {
+  const response = await fetch(`${base}/human/training?run_id=${encodeURIComponent(runId)}`)
   if (!response.ok) throw new Error(`Could not load human training run (${response.status}).`)
   return ((await response.json()) as { profile?: HumanTrainingProfile | null }).profile ?? null
 }

@@ -39,6 +39,7 @@ export interface HumanTrainingAttempt {
 
 export interface HumanTrainingSession {
   version: 1
+  run_id: string
   state: HumanGlickoState
   attempts: number
   solved: number
@@ -75,6 +76,7 @@ export const INITIAL_HUMAN_GLICKO_STATE: HumanGlickoState = {
 function initialSession(): HumanTrainingSession {
   return {
     version: 1,
+    run_id: crypto?.randomUUID?.() ?? `run_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`,
     state: { ...INITIAL_HUMAN_GLICKO_STATE },
     attempts: 0,
     solved: 0,
@@ -134,6 +136,9 @@ function normalizeSession(value: unknown): HumanTrainingSession {
     : null
   return {
     version: 1,
+    run_id: typeof raw.run_id === "string" && raw.run_id.length > 0 && raw.run_id.length <= 64
+      ? raw.run_id
+      : crypto?.randomUUID?.() ?? `run_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`,
     state,
     attempts,
     solved,
@@ -150,9 +155,15 @@ function normalizeSession(value: unknown): HumanTrainingSession {
 
 export function humanTrainingSession(): HumanTrainingSession {
   try {
-    const normalized = normalizeSession(JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"))
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")
+    const normalized = normalizeSession(stored)
     const canonical = canonicalSettledSession(normalized)
-    if (canonical !== normalized) localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical))
+    const storedRunId = stored && typeof stored === "object" && "run_id" in stored
+      ? (stored as { run_id?: unknown }).run_id
+      : null
+    if (canonical !== normalized || storedRunId !== canonical.run_id) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(canonical))
+    }
     return canonical
   } catch {
     return initialSession()

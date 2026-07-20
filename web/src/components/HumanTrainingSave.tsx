@@ -21,6 +21,7 @@ export function HumanTrainingSave({ apiBase, session }: { apiBase: string; sessi
   const [error, setError] = useState<string | null>(null)
   const [cooldownUntil, setCooldownUntil] = useState(0)
   const [coolingDown, setCoolingDown] = useState(false)
+  const savedCurrentRun = profile?.run_id === session.run_id
 
   useEffect(() => {
     let active = true
@@ -76,24 +77,24 @@ export function HumanTrainingSave({ apiBase, session }: { apiBase: string; sessi
     <form onSubmit={save} className="border-b bg-muted/5 px-4 py-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
-          <label htmlFor="training-username" className="sr-only">Unique public username</label>
+          <label htmlFor="training-username" className="sr-only">Public arcade username</label>
           <Input
             id="training-username"
             value={handle}
             onChange={(event) => setHandle(event.target.value)}
-            placeholder="Unique username"
+            placeholder="Arcade username"
             autoComplete="nickname"
             maxLength={24}
             aria-invalid={Boolean(error)}
           />
         </div>
-        <Button type="submit" size="sm" variant={profile ? "outline" : "default"} disabled={saving || coolingDown}>
-          {profile ? <Check className="size-4" /> : <Save className="size-4" />}
-          {saving ? "Saving…" : coolingDown ? profile ? "Saved" : "Try again later" : profile ? "Save latest run" : "Save run"}
+        <Button type="submit" size="sm" variant={savedCurrentRun ? "outline" : "default"} disabled={saving || coolingDown}>
+          {savedCurrentRun ? <Check className="size-4" /> : <Save className="size-4" />}
+          {saving ? "Saving…" : coolingDown ? savedCurrentRun ? "Saved" : "Try again later" : savedCurrentRun ? "Update score" : "Save score"}
         </Button>
       </div>
       <div className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
-        {error ? <span className="text-destructive">{error}</span> : message ? <span className="text-emerald-700 dark:text-emerald-300">{message}</span> : profile ? <>Saved publicly as <span className="font-medium text-foreground">{profile.handle}</span>.</> : "Username is public and case-insensitively unique."}
+        {error ? <span className="text-destructive">{error}</span> : message ? <span className="text-emerald-700 dark:text-emerald-300">{message}</span> : savedCurrentRun ? <>Saved publicly as <span className="font-medium text-foreground">{profile.handle}</span>.</> : "Usernames are public arcade labels and may be reused across runs."}
       </div>
     </form>
   )

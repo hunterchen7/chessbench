@@ -27,7 +27,7 @@ Read (public, permissive CORS):
 | POST | `/api/human/solve` | record a fixed-corpus or rated-pool solve `{uid, puzzle_id, solved, move, handle?}` |
 | GET | `/api/human/training?uid=` | load the caller's explicitly saved adaptive training run |
 | GET | `/api/human/training/leaderboard` | public saved human puzzle ratings |
-| POST | `/api/human/training` | save one named training snapshot; unique username, two-minute cooldown |
+| POST | `/api/human/training` | save an arcade-style training score; usernames may repeat, while a stable run ID makes re-saves idempotent; two-minute cooldown |
 
 Ingest (Bearer `INGEST_TOKEN`):
 

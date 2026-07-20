@@ -32,7 +32,7 @@ export default function App() {
               <Route path="model/:model" element={<ModelDetail />} />
               <Route path="compare" element={<RunComparison />} />
               <Route path="puzzles" element={<PuzzleLeaderboard />} />
-              <Route path="human/:handle" element={<HumanDetail />} />
+              <Route path="human/:runId" element={<HumanDetail />} />
               <Route path="puzzles/browse" element={<PuzzleBrowser />} />
               <Route path="puzzles/play" element={<PuzzleStart />} />
               <Route path="puzzles/:id" element={<PuzzleDetail />} />

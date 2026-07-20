@@ -25,6 +25,7 @@ export interface TrainingAttempt {
 
 export interface TrainingSession {
   version: 1
+  run_id?: string
   state: TrainingState
   attempts: number
   solved: number
@@ -45,6 +46,7 @@ export interface TrainingSession {
 export interface ParsedTrainingSave {
   uid: string
   handle: string
+  runId: string
   session: TrainingSession
 }
 
@@ -115,6 +117,7 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
   const uid = normalizedTrainingUid(raw.uid)
   const handle = typeof raw.handle === "string" ? raw.handle.trim() : ""
   const session = raw.session as Partial<TrainingSession> | null
+  const runId = typeof session?.run_id === "string" ? session.run_id.trim() : ""
   const state = session?.state as Partial<TrainingState> | null
   const selector = session?.selector
   const validSelector = selector == null || (
@@ -126,6 +129,7 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
   )
   if (
     !uid || !HANDLE_PATTERN.test(handle) || session?.version !== 1 || !state ||
+    !runId || runId.length > 64 ||
     !finiteInRange(state.rating, 400, 4000) ||
     !finiteInRange(state.deviation, 45, 500) || state.deviation > HUMAN_TRAINING_MAX_SAVE_DEVIATION ||
     !finiteInRange(state.volatility, 0.000001, 0.1) ||
@@ -139,5 +143,5 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
     !(session.active_duration_ms == null || finiteInRange(session.active_duration_ms, 0, 100_000 * 24 * 60 * 60 * 1000)) ||
     !(session.updated_at == null || typeof session.updated_at === "string") || !validSelector
   ) return null
-  return { uid, handle, session: session as TrainingSession }
+  return { uid, handle, runId, session: session as TrainingSession }
 }

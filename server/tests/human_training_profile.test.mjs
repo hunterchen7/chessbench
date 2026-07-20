@@ -5,6 +5,7 @@ import { parseTrainingSave, trainingSessionSeed } from "../src/human_training_pa
 
 const session = {
   version: 1,
+  run_id: "run-arcade-1",
   state: { rating: 1642.5, deviation: 74.9, volatility: 0.089 },
   attempts: 52,
   solved: 31,
@@ -13,13 +14,15 @@ const session = {
   updated_at: "2026-07-17T00:00:00Z",
 }
 
-test("saved training profiles require a bounded snapshot and safe unique-handle shape", () => {
+test("saved training scores require a stable run id, bounded snapshot, and safe handle shape", () => {
   assert.deepEqual(parseTrainingSave({ uid: "browser-1", handle: "Knight_42", session }), {
     uid: "browser-1",
     handle: "Knight_42",
+    runId: "run-arcade-1",
     session,
   })
   for (const invalid of [
+    { uid: "browser-1", handle: "Knight_42", session: { ...session, run_id: "" } },
     { uid: "browser-1", handle: "x", session },
     { uid: "browser-1", handle: "not allowed", session },
     { uid: "browser-1", handle: "Knight_42", session: { ...session, attempts: 2, solved: 3 } },
