@@ -214,6 +214,58 @@ TARGETS = (
             "--request-timeout", "300", "--live-sync-every", "5",
         ),
     ),
+    Target(
+        "gpt-5-6-luna-seed-0",
+        "18a2f7bbc149461aba18b8172d954ab6",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gpt-5.6-luna", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "openai", "--no-provider-fallbacks",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gpt-5-6-luna-seed-1",
+        "217a4d4506a44a628010c432f582439e",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gpt-5.6-luna", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "openai", "--no-provider-fallbacks",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gpt-5-4-nano-seed-0",
+        "1b8a1c5808fa41ddac86c131bb4213d9",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gpt-5.4-nano", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "openai", "--no-provider-fallbacks",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gpt-5-4-nano-seed-1",
+        "688041a436ac4aa1a5a829846cb49075",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gpt-5.4-nano", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "openai", "--no-provider-fallbacks",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
 )
 
 
