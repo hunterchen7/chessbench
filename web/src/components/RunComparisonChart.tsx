@@ -1,5 +1,5 @@
 import { memo, useMemo, useState, type KeyboardEvent } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation } from "react-router-dom"
 import { GitCompareArrows, Rows3 } from "lucide-react"
 import type { PuzzleItem, Run } from "@/lib/data"
 import { puzzleContinuation, puzzleModelAttempts } from "@/lib/chess"
@@ -220,6 +220,7 @@ function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
 
 function DisagreementTable({ series }: { series: ComparisonSeries[] }) {
   const [filter, setFilter] = useState<"differences" | "all">("differences")
+  const loc = useLocation()
   const rows = useMemo(() => series[0].points.map((point, index) => {
     const points = series.map((entry) => entry.points[index])
     const differs = new Set(points.map((entry) => `${entry.outcome}:${entry.item.score.toFixed(6)}`)).size > 1
@@ -230,7 +231,21 @@ function DisagreementTable({ series }: { series: ComparisonSeries[] }) {
     <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><Rows3 className="size-4 text-amber-600" /> Puzzle-by-puzzle comparison</CardTitle><p className="mt-1 text-xs text-muted-foreground">Differences include any change in full, partial, or zero-credit outcomes.</p></div><Tabs value={filter} onValueChange={(value) => setFilter(value as "differences" | "all")}><TabsList><TabsTrigger value="differences">Disagreements · {rows.filter((row) => row.differs).length}</TabsTrigger><TabsTrigger value="all">All · {rows.length}</TabsTrigger></TabsList></Tabs></CardHeader>
     <CardContent className="max-h-[680px] overflow-auto p-0">
       <Table reorderableKey="run-comparison-puzzles" style={{ minWidth: 310 + series.length * 250 }}><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-28">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead>{series.map((entry) => <TableHead key={entry.run.run_id}><span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.run.model_variant.display_name}</span></TableHead>)}</TableRow></TableHeader><TableBody>
-        {visible.map(({ point, points, index }) => <TableRow key={point.item.puzzle_id} style={{ contentVisibility: "auto", containIntrinsicSize: "0 58px" }}><TableCell><Link to={`/puzzles/${encodeURIComponent(point.item.puzzle_id)}`} className="font-mono font-semibold hover:underline">{point.item.puzzle_id}</Link><div className="mt-0.5 text-[9px] text-muted-foreground">#{index + 1}</div></TableCell><TableCell className="text-right font-mono tabular-nums">{point.item.rating.toLocaleString()}</TableCell>{points.map((entry, seriesIndex) => <TableCell key={series[seriesIndex].run.run_id} className="max-w-[260px] whitespace-normal"><div className="flex items-center gap-2"><Badge variant="outline" className={cn("h-5 px-1.5 text-[9px] capitalize", outcomeClass(entry.outcome))}>{entry.outcome === "failed" ? "zero" : entry.outcome}</Badge><span className="font-mono text-xs font-semibold tabular-nums">{entry.item.score.toFixed(2)} pt</span></div><div className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={entry.answer}>{entry.answer}</div></TableCell>)}</TableRow>)}
+        {visible.map(({ point, points, index }) => (
+          <TableRow key={point.item.puzzle_id} style={{ contentVisibility: "auto", containIntrinsicSize: "0 58px" }}>
+            <TableCell>
+              <Link to={`/puzzles/${encodeURIComponent(point.item.puzzle_id)}`} state={{ from: loc.pathname + loc.search }} className="font-mono font-semibold hover:underline">{point.item.puzzle_id}</Link>
+              <div className="mt-0.5 text-[9px] text-muted-foreground">#{index + 1}</div>
+            </TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{point.item.rating.toLocaleString()}</TableCell>
+            {points.map((entry, seriesIndex) => (
+              <TableCell key={series[seriesIndex].run.run_id} className="max-w-[260px] whitespace-normal">
+                <div className="flex items-center gap-2"><Badge variant="outline" className={cn("h-5 px-1.5 text-[9px] capitalize", outcomeClass(entry.outcome))}>{entry.outcome === "failed" ? "zero" : entry.outcome}</Badge><span className="font-mono text-xs font-semibold tabular-nums">{entry.item.score.toFixed(2)} pt</span></div>
+                <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={entry.answer}>{entry.answer}</div>
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
         {visible.length === 0 ? <TableRow><TableCell colSpan={2 + series.length} className="h-32 text-center text-sm text-muted-foreground">Every selected run received the same score on every puzzle.</TableCell></TableRow> : null}
       </TableBody></Table>
     </CardContent>

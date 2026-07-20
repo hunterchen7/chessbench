@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Clock3, Play, Search, UserRound } from "lucide-react"
 import { fetchHumanTrainingLeaderboard, type HumanTrainingLeaderboardRow } from "@/lib/backend"
 import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
 import { useData } from "@/lib/useData"
+import { openHashRouteInNewTab } from "@/lib/hashNavigation"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,12 +14,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
+const HUMAN_FILTER_STORAGE_KEY = "chessbench.human-rating-filters.v1"
+
+function savedHumanFilters() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HUMAN_FILTER_STORAGE_KEY) ?? "null") as { search?: unknown; seed?: unknown } | null
+    return {
+      search: typeof parsed?.search === "string" ? parsed.search : "",
+      seed: typeof parsed?.seed === "string" ? parsed.seed : "all",
+    }
+  } catch {
+    return { search: "", seed: "all" }
+  }
+}
+
 export function HumanTrainingLeaderboard() {
-  const navigate = useNavigate()
   const { apiBase } = useData()
+  const [initialFilters] = useState(savedHumanFilters)
   const [rows, setRows] = useState<HumanTrainingLeaderboardRow[] | null>(null)
-  const [search, setSearch] = useState("")
-  const [seedFilter, setSeedFilter] = useState("all")
+  const [search, setSearch] = useState(initialFilters.search)
+  const [seedFilter, setSeedFilter] = useState(initialFilters.seed)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HUMAN_FILTER_STORAGE_KEY, JSON.stringify({ search, seed: seedFilter }))
+    } catch {
+      // Private browsing or storage policy can make persistence unavailable.
+    }
+  }, [search, seedFilter])
 
   useEffect(() => {
     let active = true
@@ -84,15 +107,15 @@ export function HumanTrainingLeaderboard() {
                 role="link"
                 tabIndex={0}
                 className={cn("cursor-pointer", row.me && "bg-emerald-500/[0.06]")}
-                onClick={() => navigate(`/human/${encodeURIComponent(row.run_id)}`)}
+                onClick={() => openHashRouteInNewTab(`/human/${encodeURIComponent(row.run_id)}`)}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") return
                   event.preventDefault()
-                  navigate(`/human/${encodeURIComponent(row.run_id)}`)
+                  openHashRouteInNewTab(`/human/${encodeURIComponent(row.run_id)}`)
                 }}
               >
                 <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.rank}</TableCell>
-                <TableCell><span className="font-medium">{row.handle}</span>{row.me ? <Badge variant="secondary" className="ml-2 text-[10px]">you</Badge> : null}</TableCell>
+                <TableCell><Link to={`/human/${encodeURIComponent(row.run_id)}`} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-2 hover:underline" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>{row.handle}</Link>{row.me ? <Badge variant="secondary" className="ml-2 text-[10px]">you</Badge> : null}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{row.seed ?? "—"}</TableCell>
                 <TableCell className="text-right font-mono font-semibold tabular-nums">{Math.round(row.rating).toLocaleString()}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{formatRatingDeviation(row.rating_deviation)}{row.provisional ? "?" : ""}</TableCell>

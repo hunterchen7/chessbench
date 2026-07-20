@@ -112,6 +112,7 @@ export function PuzzleDetail() {
 
 function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { id: string; entry: PuzzleEntry; apiBase: string | null; ratedIndex: number | null; ratedQuery: RatedPuzzleQuery; training: boolean }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const p = entry.position
   const startFen = entry.position.fen
   const orientation: "white" | "black" = entry.position.solver_is_white ? "white" : "black"
@@ -418,11 +419,21 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     ? `/puzzles/${encodeURIComponent(nextPuzzle.id)}?${nextPuzzle.trainingSearch ?? "source=train"}`
     : "/puzzles/play"
 
+  const referrer = (location.state as { from?: string } | null)?.from
+  const backHref = referrer ?? (training ? "/puzzles" : ratedIndex == null ? "/puzzles/browse?view=fixed" : ratedBrowserTo)
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><Link to={training ? "/puzzles" : ratedIndex == null ? "/puzzles/browse?view=fixed" : ratedBrowserTo} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
-      </Link><div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-3">{
+        referrer ? (
+          <button type="button" onClick={() => navigate(-1)} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
+          </button>
+        ) : (
+          <Link to={backHref} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="size-4" /> {training ? "End training" : "Puzzle browser"}
+          </Link>
+        )}<div className="flex flex-wrap items-center gap-2">{training && trainingSelector ? <Button type="button" variant="outline" size="sm" onClick={resetTrainingRun}><RotateCcw className="size-4" /> Reset run</Button> : null}<ExportButton track="puzzle" puzzle={id} label="Export this puzzle" /></div></div>
 
       <div className="grid items-stretch gap-5 lg:h-[calc(100dvh-12.5rem)] lg:grid-cols-2 xl:gap-8">
         <div className="relative aspect-square w-full max-w-[calc(100dvh-12.5rem)] justify-self-center self-start overflow-hidden rounded-xl border bg-card shadow-xl shadow-black/5 dark:shadow-black/20 lg:justify-self-end">
@@ -497,7 +508,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
               {!reveal && <Button variant="ghost" size="sm" onClick={giveUp}><Lightbulb className="size-4" /> View solution</Button>}
               {reveal && training && !trainingIsSettled && <Button asChild size="sm" className="ml-auto"><Link to={trainingNextTo} state={nextPuzzle?.position ? { trainingPuzzle: nextPuzzle.position } : undefined}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
               {reveal && trainingIsSettled && <div className="ml-auto text-sm font-medium text-emerald-700 dark:text-emerald-300">Run complete at RD {formatRatingDeviation(trainingState.deviation)}</div>}
-              {reveal && !training && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
+              {reveal && !training && nextPuzzle && <Button asChild size="sm" className="ml-auto"><Link to={nextPuzzle.index == null ? `/puzzles/${nextPuzzle.id}` : nextRatedPuzzleTo ?? `/puzzles/${nextPuzzle.id}`} state={location.state}>Next puzzle <ArrowRight className="size-4" /></Link></Button>}
             </div>
           </CardContent>
         </Card>

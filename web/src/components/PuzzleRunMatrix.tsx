@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { ArrowRight, BarChart3, Check, Filter, GitCompareArrows, Info } from "lucide-react"
 import type { ModelVariant, RunIndexEntry } from "@/lib/data"
 import { MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, type ModeNumber, type ResponseStyleKey } from "@/lib/format"
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { openHashRouteInNewTab } from "@/lib/hashNavigation"
 import { cn } from "@/lib/utils"
 
 export type PuzzleMode = ModeNumber
@@ -102,7 +103,6 @@ export function PuzzleRunMatrix({
   comparisonRunIds = [],
   onComparisonRunIdsChange,
 }: PuzzleRunMatrixProps) {
-  const navigate = useNavigate()
   const rows = useMemo(() => {
     const grouped = new Map<string, ModelRow>()
     for (const run of runs) {
@@ -234,11 +234,11 @@ export function PuzzleRunMatrix({
                                 tabIndex={0}
                                 aria-label={`Open ${info.displayN}. ${info.name}, ${responseStyleInfo(run.condition).label}`}
                                 className="group cursor-pointer outline-none hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                                onClick={() => navigate(path)}
+                                onClick={() => openHashRouteInNewTab(path)}
                                 onKeyDown={(event) => {
                                   if (event.key !== "Enter" && event.key !== " ") return
                                   event.preventDefault()
-                                  navigate(path)
+                                  openHashRouteInNewTab(path)
                                 }}
                               >
                                 {onComparisonRunIdsChange ? <TableCell className="text-center"><Button
@@ -253,7 +253,7 @@ export function PuzzleRunMatrix({
                                   onKeyDown={(event) => event.stopPropagation()}
                                   className={selectedForComparison ? "text-violet-700 dark:text-violet-300" : "text-muted-foreground"}
                                 >{selectedForComparison ? <Check /> : <GitCompareArrows />}</Button></TableCell> : null}
-                                <TableCell><div className="flex flex-wrap items-center gap-2"><div className="font-medium">{info.displayN}. {info.name}</div>{run.termination ? <Badge variant="outline" className="border-amber-500/35 bg-amber-500/8 text-[9px] text-amber-700 dark:text-amber-300">Stopped early</Badge> : null}</div><div className="text-[10px] text-muted-foreground">{run.termination?.message ?? info.blurb}</div></TableCell>
+                                <TableCell><div className="flex flex-wrap items-center gap-2"><Link to={path} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-2 hover:underline" onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>{info.displayN}. {info.name}</Link>{run.termination ? <Badge variant="outline" className="border-amber-500/35 bg-amber-500/8 text-[9px] text-amber-700 dark:text-amber-300">Stopped early</Badge> : null}</div><div className="text-[10px] text-muted-foreground">{run.termination?.message ?? info.blurb}</div></TableCell>
                                 <TableCell><ResponseStyleBadge condition={run.condition} /></TableCell>
                                 <TableCell className="text-right"><div className="font-mono font-semibold tabular-nums">{ratingText(run)}</div><div className="text-[10px] text-muted-foreground">{ratingNote(run)}</div></TableCell>
                                 <TableCell className="text-right font-mono font-semibold tabular-nums">{pointsText(run.summary)}</TableCell>

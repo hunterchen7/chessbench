@@ -1,5 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react"
-import { useNavigate } from "react-router-dom"
+import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
@@ -22,6 +21,7 @@ const HUMAN_HOURLY_RATE = 50
 const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
+const CHART_STATE_STORAGE_KEY = "chessbench.rating-efficiency-state.v1"
 const MODEL_COLORS = [
   "#2d6cdf", "#e95f0c", "#8e44ad", "#00897b", "#d81b60",
   "#6a994e", "#f4a261", "#5e60ce", "#9c6644", "#00a6a6",
@@ -54,6 +54,41 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
   "qwen3.5-flash": "#8e44ad",
   "qwen3.7-max": "#ff7f9d",
   "step-3.7-flash": "#826251",
+}
+
+interface SavedChartState {
+  modelSearch: string
+  reasoningFilters: string[]
+  hiddenModelKeys: string[]
+  showHuman: boolean
+  showLabels: boolean
+  showLegend: boolean
+}
+
+function savedChartState(): SavedChartState {
+  const fallback: SavedChartState = {
+    modelSearch: "",
+    reasoningFilters: [],
+    hiddenModelKeys: [],
+    showHuman: true,
+    showLabels: true,
+    showLegend: false,
+  }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHART_STATE_STORAGE_KEY) ?? "null") as Partial<SavedChartState> | null
+    if (!parsed || typeof parsed !== "object") return fallback
+    const strings = (value: unknown) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
+    return {
+      modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
+      reasoningFilters: strings(parsed.reasoningFilters),
+      hiddenModelKeys: strings(parsed.hiddenModelKeys),
+      showHuman: typeof parsed.showHuman === "boolean" ? parsed.showHuman : fallback.showHuman,
+      showLabels: typeof parsed.showLabels === "boolean" ? parsed.showLabels : fallback.showLabels,
+      showLegend: typeof parsed.showLegend === "boolean" ? parsed.showLegend : fallback.showLegend,
+    }
+  } catch {
+    return fallback
+  }
 }
 
 function formatCost(value: number) {
@@ -538,18 +573,33 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
 }
 
 export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggregate[] }) {
-  const navigate = useNavigate()
   const { apiBase } = useData()
   const plotContainerRef = useRef<HTMLDivElement>(null)
+  const [initialState] = useState(savedChartState)
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfile, setHumanProfile] = useState<HumanTrainingProfile | null>(null)
-  const [modelSearch, setModelSearch] = useState("")
-  const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
-  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set())
-  const [showHuman, setShowHuman] = useState(true)
-  const [showLabels, setShowLabels] = useState(true)
-  const [showLegend, setShowLegend] = useState(false)
+  const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
+  const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
+  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
+  const [showHuman, setShowHuman] = useState(initialState.showHuman)
+  const [showLabels, setShowLabels] = useState(initialState.showLabels)
+  const [showLegend, setShowLegend] = useState(initialState.showLegend)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHART_STATE_STORAGE_KEY, JSON.stringify({
+        modelSearch,
+        reasoningFilters: Array.from(reasoningFilters),
+        hiddenModelKeys: Array.from(hiddenModelKeys),
+        showHuman,
+        showLabels,
+        showLegend,
+      } satisfies SavedChartState))
+    } catch {
+      // Private browsing or storage policy can make persistence unavailable.
+    }
+  }, [hiddenModelKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
 
   useEffect(() => {
     let active = true
@@ -661,7 +711,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   if (allModelPoints.length === 0 && !humanPoint) return null
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
   const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || !showHuman
-  const positionTooltip = (event: ReactPointerEvent<SVGGElement>) => {
+  const positionTooltip = (event: ReactPointerEvent<HTMLAnchorElement>) => {
     const container = plotContainerRef.current
     if (!container) return
     const bounds = container.getBoundingClientRect()
@@ -701,13 +751,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     for (const entry of availableModelLegend) next.add(entry.key)
     return next
   })
-  const inspect = (event: KeyboardEvent<SVGGElement>, entry: PlottedPoint) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault()
-      navigate(runPath(entry.point))
-    }
-  }
-
   return <Card className="overflow-hidden border-border/70">
     <CardHeader className="gap-3 border-b">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -774,10 +817,11 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
-            {chart.plotted.map((entry) => <g
+            {chart.plotted.map((entry) => <a
               key={entry.point.key}
-              role="link"
-              tabIndex={0}
+              href={`#${runPath(entry.point)}`}
+              target="_blank"
+              rel="noopener noreferrer"
               aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
               className="cursor-pointer outline-none"
               onPointerEnter={(event) => { setActiveKey(entry.point.key); positionTooltip(event) }}
@@ -785,13 +829,13 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               onPointerLeave={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
               onFocus={() => { setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
               onBlur={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
-              onClick={() => navigate(runPath(entry.point))}
-              onKeyDown={(event) => inspect(event, entry)}
             >
-              <circle cx={entry.x} cy={entry.y} r="15" fill="transparent" />
-              <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-              {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
-            </g>)}
+              <g>
+                <circle cx={entry.x} cy={entry.y} r="15" fill="transparent" />
+                <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
+              </g>
+            </a>)}
           </svg>
           {active && tooltipPosition ? <div
             className="pointer-events-none absolute z-20"

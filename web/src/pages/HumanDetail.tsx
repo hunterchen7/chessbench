@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useLocation } from "react-router-dom"
 import { ArrowLeft, Check, Clock3, Gauge, Target, UserRound, X } from "lucide-react"
 import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib/backend"
 import { formatDuration, formatRatingDeviation, pct } from "@/lib/format"
@@ -34,6 +34,7 @@ function Outcome({ attempt }: { attempt: HumanTrainingAttempt }) {
 
 export function HumanDetail() {
   const { runId = "" } = useParams()
+  const location = useLocation()
   const { apiBase } = useData()
   const [profile, setProfile] = useState<HumanTrainingProfile | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
@@ -57,13 +58,13 @@ export function HumanDetail() {
   const attempts = useMemo(() => profile?.session.recent_attempts.toReversed() ?? [], [profile])
 
   if (profile === undefined && !error) return <div className="space-y-5"><Skeleton className="h-28 w-full" /><Skeleton className="h-[520px] w-full" /></div>
-  if (!profile || error) return <Card><CardContent className="py-16 text-center"><div className="font-semibold">Human run not found</div><p className="mt-1 text-sm text-muted-foreground">{error ?? "This username does not have a public saved run."}</p><Link to="/puzzles" className="mt-4 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline dark:text-emerald-300"><ArrowLeft className="size-4" /> Back to ratings</Link></CardContent></Card>
+  if (!profile || error) return <Card><CardContent className="py-16 text-center"><div className="font-semibold">Human run not found</div><p className="mt-1 text-sm text-muted-foreground">{error ?? "This username does not have a public saved run."}</p><Link to="/puzzles" state={{ from: location.pathname + location.search }} className="mt-4 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline dark:text-emerald-300"><ArrowLeft className="size-4" /> Back to ratings</Link></CardContent></Card>
 
   const seed = profile.session.selector?.seed
   const activeDuration = profile.session.active_duration_ms ?? null
   const timedAttempts = attempts.filter((attempt) => attempt.duration_ms != null).length
   return <div className="space-y-6">
-    <Link to="/puzzles" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Human ratings</Link>
+    <Link to="/puzzles" state={{ from: location.pathname + location.search }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Human ratings</Link>
 
     <Card className="overflow-hidden border-emerald-500/20 bg-emerald-500/[0.025]">
       <CardContent className="flex flex-col gap-5 py-6 md:flex-row md:items-center md:justify-between">
@@ -94,7 +95,7 @@ export function HumanDetail() {
           <TableBody>{attempts.map((attempt) => {
             const delta = Math.round(attempt.rating_after - attempt.rating_before)
             return <TableRow key={`${attempt.puzzle_id}-${attempt.played_at}`}>
-              <TableCell><Link to={`/puzzles/${encodeURIComponent(attempt.puzzle_id)}`} className="font-mono text-xs font-medium hover:underline">{attempt.puzzle_id}</Link></TableCell>
+              <TableCell><Link to={`/puzzles/${encodeURIComponent(attempt.puzzle_id)}`} state={{ from: location.pathname + location.search }} className="font-mono text-xs font-medium hover:underline">{attempt.puzzle_id}</Link></TableCell>
               <TableCell className="text-right font-mono text-xs tabular-nums">{Math.round(attempt.puzzle_rating).toLocaleString()}</TableCell>
               <TableCell><Outcome attempt={attempt} /></TableCell>
               <TableCell className="whitespace-normal"><MoveSequence attempt={attempt} /></TableCell>

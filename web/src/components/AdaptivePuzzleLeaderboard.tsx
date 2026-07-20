@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Eye, EyeOff, Gauge, Layers3, List, Play, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregates"
@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
 import { ratedPlayPath } from "@/lib/ratedPlay"
 import { formatRatingDeviation } from "@/lib/format"
+import { openHashRouteInNewTab } from "@/lib/hashNavigation"
 import { cn } from "@/lib/utils"
 
 function isRated(run: RunIndexEntry): run is RunIndexEntry & { protocol: RatedSessionProtocol } {
@@ -74,9 +75,27 @@ interface RatedModelGroup {
 }
 
 const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
+const LEADERBOARD_STATE_STORAGE_KEY = "chessbench.puzzle-leaderboard-state.v2"
 const LEADERBOARD_VIEW_STORAGE_KEY = "chessbench.puzzle-leaderboard-view.v1"
 const HIDDEN_MODELS_STORAGE_KEY = "chessbench.hidden-puzzle-leaderboard-models.v1"
 const HIDDEN_MODEL_ROW_CLASS = "!bg-muted/70 text-muted-foreground grayscale hover:!bg-muted/85 focus-visible:!bg-muted/85"
+
+interface SavedLeaderboardState {
+  modelSearch: string
+  reasoningFilters: string[]
+  view: LeaderboardView
+  expandedKeys: string[]
+  expandedModelKeys: string[]
+  expandedConfigurationKeys: string[]
+  hiddenModelKeys: string[]
+  sort: { key: RatingSortKey; direction: SortDirection }
+}
+
+const RATING_SORT_KEYS = new Set<RatingSortKey>(["model", "rating", "spread", "record", "puzzles", "runs", "cost", "costPer50Puzzles", "costPerMove", "status"])
+
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
+}
 
 function unitCost(cost: number | null, count: number) {
   return cost == null || count <= 0 ? null : cost / count
@@ -108,6 +127,40 @@ function savedHiddenModelKeys() {
     return new Set(Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : [])
   } catch {
     return new Set<string>()
+  }
+}
+
+function savedLeaderboardState(): SavedLeaderboardState {
+  const fallback: SavedLeaderboardState = {
+    modelSearch: "",
+    reasoningFilters: [],
+    view: savedLeaderboardView(),
+    expandedKeys: [],
+    expandedModelKeys: [],
+    expandedConfigurationKeys: [],
+    hiddenModelKeys: Array.from(savedHiddenModelKeys()),
+    sort: { key: "rating", direction: "desc" },
+  }
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LEADERBOARD_STATE_STORAGE_KEY) ?? "null") as Partial<SavedLeaderboardState> | null
+    if (!parsed || typeof parsed !== "object") return fallback
+    const sortKey = parsed.sort?.key
+    const sortDirection = parsed.sort?.direction
+    return {
+      modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
+      reasoningFilters: stringArray(parsed.reasoningFilters),
+      view: parsed.view === "model" || parsed.view === "configuration" ? parsed.view : fallback.view,
+      expandedKeys: stringArray(parsed.expandedKeys),
+      expandedModelKeys: stringArray(parsed.expandedModelKeys),
+      expandedConfigurationKeys: stringArray(parsed.expandedConfigurationKeys),
+      hiddenModelKeys: stringArray(parsed.hiddenModelKeys),
+      sort: {
+        key: typeof sortKey === "string" && RATING_SORT_KEYS.has(sortKey as RatingSortKey) ? sortKey as RatingSortKey : fallback.sort.key,
+        direction: sortDirection === "asc" || sortDirection === "desc" ? sortDirection : fallback.sort.direction,
+      },
+    }
+  } catch {
+    return fallback
   }
 }
 
@@ -312,29 +365,31 @@ function AnimatedDetailCell({
 }
 
 export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
-  const navigate = useNavigate()
-  const [modelSearch, setModelSearch] = useState("")
-  const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
-  const [view, setView] = useState<LeaderboardView>(savedLeaderboardView)
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set())
-  const [expandedModelKeys, setExpandedModelKeys] = useState<Set<string>>(() => new Set())
-  const [expandedConfigurationKeys, setExpandedConfigurationKeys] = useState<Set<string>>(() => new Set())
-  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(savedHiddenModelKeys)
-  const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
+  const [initialState] = useState(savedLeaderboardState)
+  const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
+  const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
+  const [view, setView] = useState<LeaderboardView>(initialState.view)
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set(initialState.expandedKeys))
+  const [expandedModelKeys, setExpandedModelKeys] = useState<Set<string>>(() => new Set(initialState.expandedModelKeys))
+  const [expandedConfigurationKeys, setExpandedConfigurationKeys] = useState<Set<string>>(() => new Set(initialState.expandedConfigurationKeys))
+  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
+  const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>(initialState.sort)
   useEffect(() => {
     try {
-      localStorage.setItem(LEADERBOARD_VIEW_STORAGE_KEY, view)
+      localStorage.setItem(LEADERBOARD_STATE_STORAGE_KEY, JSON.stringify({
+        modelSearch,
+        reasoningFilters: Array.from(reasoningFilters),
+        view,
+        expandedKeys: Array.from(expandedKeys),
+        expandedModelKeys: Array.from(expandedModelKeys),
+        expandedConfigurationKeys: Array.from(expandedConfigurationKeys),
+        hiddenModelKeys: Array.from(hiddenModelKeys),
+        sort,
+      } satisfies SavedLeaderboardState))
     } catch {
       // Private browsing or storage policy can make persistence unavailable.
     }
-  }, [view])
-  useEffect(() => {
-    try {
-      localStorage.setItem(HIDDEN_MODELS_STORAGE_KEY, JSON.stringify(Array.from(hiddenModelKeys)))
-    } catch {
-      // Private browsing or storage policy can make persistence unavailable.
-    }
-  }, [hiddenModelKeys])
+  }, [expandedConfigurationKeys, expandedKeys, expandedModelKeys, hiddenModelKeys, modelSearch, reasoningFilters, sort, view])
   const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
   const aggregates = useMemo(() => aggregateRatedRuns(ratedRuns), [ratedRuns])
   const modelGroups = useMemo(() => groupRatedModels(aggregates), [aggregates])
@@ -477,16 +532,23 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         hidden && HIDDEN_MODEL_ROW_CLASS,
       )}
       data-hidden-model={hidden || undefined}
-      onClick={open ? () => navigate(runPath(individual)) : undefined}
+      onClick={open ? () => openHashRouteInNewTab(runPath(individual)) : undefined}
       onKeyDown={open ? (event) => {
         if (event.key !== "Enter" && event.key !== " ") return
         event.preventDefault()
-        navigate(runPath(individual))
+        openHashRouteInNewTab(runPath(individual))
       } : undefined}
     >
       <AnimatedDetailCell open={open} />
       <AnimatedDetailCell open={open} className={nested ? "pl-16" : "pl-10"}>
-        <div className="font-medium">Seed {individual.protocol.selection.seed}</div>
+        <Link
+          to={runPath(individual)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium underline-offset-2 hover:underline"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >Seed {individual.protocol.selection.seed}</Link>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-mono text-[10px] text-muted-foreground">{individual.run_id.slice(0, 8)}</span>
           <Link

@@ -12,6 +12,7 @@ import { SuiteDescriptor } from "@/components/SuiteDescriptor"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { normalizeComparisonIds } from "@/lib/runComparison"
+import { usePersistentWindowScroll } from "@/lib/usePersistentWindowScroll"
 import { cn } from "@/lib/utils"
 import { AdaptivePuzzleLeaderboard } from "@/components/AdaptivePuzzleLeaderboard"
 import { HumanTrainingLeaderboard } from "@/components/HumanTrainingLeaderboard"
@@ -153,6 +154,7 @@ export function PuzzleLeaderboard() {
   const { runs } = useData()
   const [searchParams, setSearchParams] = useSearchParams()
   const fixed = searchParams.get("view") === "fixed"
+  usePersistentWindowScroll(`chessbench.puzzle-page-scroll.${fixed ? "fixed" : "rated"}.v1`, true)
   const [fallbackPhase, setFallbackPhase] = useState<"idle" | "out" | "in">("idle")
   const pendingNavigation = useRef<(() => void) | null>(null)
   const fixedSuiteOptions = useMemo(() => {

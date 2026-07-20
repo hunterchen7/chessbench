@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { Link, useSearchParams, useLocation } from "react-router-dom"
 import { Check, Play, RotateCcw } from "lucide-react"
 import { loadPuzzleIndex, type PuzzleEntry } from "@/lib/data"
 import { formatRatingDeviation, TIER_ORDER } from "@/lib/format"
@@ -45,6 +45,7 @@ function FixedPuzzleBrowser() {
   const [limit, setLimit] = useState(PAGE_SIZE)
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const store = humanStore()
+  const location = useLocation()
 
   const rows = useMemo(() => {
     let list = entries ? entries.slice() : []
@@ -169,6 +170,7 @@ function FixedPuzzleBrowser() {
                     <TableCell>
                       <Link
                         to={`/puzzles/${e.position.puzzle_id}`}
+                        state={{ from: location.pathname + location.search }}
                         className="font-mono text-sm font-medium hover:underline"
                       >
                         {e.position.puzzle_id}
@@ -195,6 +197,7 @@ function FixedPuzzleBrowser() {
                     <TableCell className="text-center">
                       <Link
                         to={`/puzzles/${e.position.puzzle_id}`}
+                        state={{ from: location.pathname + location.search }}
                         className="inline-flex min-h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                         aria-label={`${done?.solved ? "Review" : done ? "Retry" : "Play"} puzzle ${e.position.puzzle_id}`}
                       >
