@@ -22,11 +22,38 @@ const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
 const MODEL_COLORS = [
-  "#059669", "#7c3aed", "#0284c7", "#ea580c", "#e11d48",
-  "#2563eb", "#c026d3", "#65a30d", "#d97706", "#0d9488",
-  "#4f46e5", "#db2777", "#16a34a", "#9333ea", "#0891b2",
-  "#dc2626", "#4d7c0f", "#a21caf", "#0369a1", "#a16207",
+  "#2d6cdf", "#e95f0c", "#8e44ad", "#00897b", "#d81b60",
+  "#6a994e", "#f4a261", "#5e60ce", "#9c6644", "#00a6a6",
+  "#c44536", "#7a5195", "#ef5675", "#003f5c", "#bc5090",
+  "#ffa600", "#4c78a8", "#f58518", "#54a24b", "#e45756",
+  "#72b7b2", "#b279a2", "#ff7f9d", "#826251",
 ]
+const MODEL_COLOR_BY_KEY: Record<string, string> = {
+  "claude-fable-5": "#d81b60",
+  "claude-opus-4.8": "#7a5195",
+  "deepseek-v4": "#2d6cdf",
+  "deepseek-v4-flash": "#4c78a8",
+  "gemini-3.1-flash-lite": "#00a6a6",
+  "gemini-3.5-flash": "#00897b",
+  "glm-5.2": "#6a994e",
+  "gpt-5.4-nano": "#f4a261",
+  "gpt-5.6": "#ef5675",
+  "gpt-5.6-luna": "#003f5c",
+  "gpt-5.6-sol": "#5e60ce",
+  "grok-4.5": "#e95f0c",
+  inkling: "#9c6644",
+  "kimi-k2.6": "#c44536",
+  "kimi-k3": "#ffa600",
+  "llama-3.1-8b-instruct": "#bc5090",
+  "mercury-2": "#54a24b",
+  "minimax-m3": "#72b7b2",
+  "mistral-small-4": "#f58518",
+  "nemotron-3-super": "#b279a2",
+  "qwen-2.5-7b-instruct": "#e45756",
+  "qwen3.5-flash": "#8e44ad",
+  "qwen3.7-max": "#ff7f9d",
+  "step-3.7-flash": "#826251",
+}
 
 function formatCost(value: number) {
   if (value < 0.000001) return `$${value.toExponential(1)}`
@@ -538,7 +565,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     [allModelPoints],
   )
   const colorByModel = useMemo(
-    () => new Map(allModelKeys.map((key, index) => [key, MODEL_COLORS[index % MODEL_COLORS.length]])),
+    () => new Map(allModelKeys.map((key, index) => [key, MODEL_COLOR_BY_KEY[key] ?? MODEL_COLORS[index % MODEL_COLORS.length]])),
     [allModelKeys],
   )
   const reasoningOptions = useMemo(() => {
