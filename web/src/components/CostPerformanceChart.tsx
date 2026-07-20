@@ -117,7 +117,7 @@ interface LabelPlacement { x: number; y: number; box: LabelBox; leader: Segment 
 const LEADER_LINE_PENALTY = 240
 
 function boxesOverlap(a: LabelBox, b: LabelBox) {
-  return a.left < b.right + 1 && a.right + 1 > b.left && a.top < b.bottom + 1 && a.bottom + 1 > b.top
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
 }
 
 function pointInBox(x: number, y: number, box: LabelBox) {
@@ -162,10 +162,12 @@ function labelLeader(entry: PlottedPoint, x: number, y: number): Segment {
 function labelNeedsLeader(entry: PlottedPoint, x: number, y: number) {
   const box = labelBox(labelWidth(entry), x, y)
   const horizontallyCentered = Math.abs(x - entry.x) < 1
-  const edgeGap = box.bottom <= entry.errorTop ? entry.errorTop - box.bottom :
-    box.top >= entry.errorBottom ? box.top - entry.errorBottom :
+  const occupiedTop = Math.min(entry.errorTop, entry.y - 7)
+  const occupiedBottom = Math.max(entry.errorBottom, entry.y + 7)
+  const edgeGap = box.bottom <= occupiedTop ? occupiedTop - box.bottom :
+    box.top >= occupiedBottom ? box.top - occupiedBottom :
     Number.POSITIVE_INFINITY
-  return !horizontallyCentered || edgeGap > 6
+  return !horizontallyCentered || edgeGap > 2
 }
 
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
@@ -178,17 +180,19 @@ function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
 
 function labelWidth(entry: PlottedPoint) {
   const lines = pointLabelLines(entry.point)
-  return Math.max(58, Math.max(...lines.map((line) => line.length)) * 5.8 + 12)
+  return Math.max(58, Math.max(...lines.map((line) => line.length)) * 4.2 + 6)
 }
 
 function labelBox(width: number, x: number, y: number): LabelBox {
-  return { left: x - width / 2, right: x + width / 2, top: y - 13, bottom: y + 16 }
+  return { left: x - width / 2, right: x + width / 2, top: y - 10, bottom: y + 15 }
 }
 
 function directLabelCandidates(entry: PlottedPoint) {
+  const occupiedTop = Math.min(entry.errorTop, entry.y - 7)
+  const occupiedBottom = Math.max(entry.errorBottom, entry.y + 7)
   return [
-    { x: entry.x, y: entry.errorTop - 22 },
-    { x: entry.x, y: entry.errorBottom + 18 },
+    { x: entry.x, y: occupiedTop - 16 },
+    { x: entry.x, y: occupiedBottom + 12 },
   ]
 }
 
@@ -234,11 +238,11 @@ function scanLabelCandidates(entry: PlottedPoint, width: number) {
 function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   const markers = entries.map((entry) => ({
     key: entry.point.key,
-    box: { left: entry.x - 12, right: entry.x + 12, top: entry.y - 12, bottom: entry.y + 12 },
+    box: { left: entry.x - 7, right: entry.x + 7, top: entry.y - 7, bottom: entry.y + 7 },
   }))
   const whiskers = entries.map((entry) => ({
     key: entry.point.key,
-    box: { left: entry.x - 6, right: entry.x + 6, top: entry.errorTop - 3, bottom: entry.errorBottom + 3 },
+    box: { left: entry.x - 5, right: entry.x + 5, top: entry.errorTop - 1, bottom: entry.errorBottom + 1 },
   }))
   const ordered = entries.toSorted((a, b) => pointDensity(b, entries) - pointDensity(a, entries) || a.y - b.y || a.x - b.x)
 
