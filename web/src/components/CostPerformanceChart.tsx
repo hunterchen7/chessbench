@@ -1,9 +1,11 @@
-import { memo, useMemo, useState, type KeyboardEvent } from "react"
+import { memo, useEffect, useMemo, useState, type KeyboardEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { CircleDollarSign } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
+import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib/backend"
+import { useData } from "@/lib/useData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
@@ -12,6 +14,9 @@ const HEIGHT = 420
 const PLOT = { left: 76, right: 30, top: 40, bottom: 54 }
 const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
+const HUMAN_HOURLY_RATE = 50
+const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
+const HUMAN_COLOR = "#d946ef"
 const MODEL_COLORS = [
   "#059669", "#7c3aed", "#0284c7", "#ea580c", "#e11d48",
   "#2563eb", "#c026d3", "#65a30d", "#d97706", "#0d9488",
@@ -47,7 +52,27 @@ function compactReasoningLabel(effort: string) {
   return effort
 }
 
-function pointLabelParts(point: CostPerformancePoint) {
+interface HumanCostPerformancePoint {
+  kind: "human"
+  key: string
+  runId: string
+  rating: number
+  ratingDeviation: number
+  costPerPuzzle: number
+  totalCost: number
+  attempts: number
+  solved: number
+  runCount: 1
+}
+
+type ChartPoint = CostPerformancePoint | HumanCostPerformancePoint
+
+function isHumanPoint(point: ChartPoint): point is HumanCostPerformancePoint {
+  return "kind" in point && point.kind === "human"
+}
+
+function pointLabelParts(point: ChartPoint) {
+  if (isHumanPoint(point)) return { firstLine: "me", secondModel: "", effort: "", effortLabel: "" }
   const variant = point.representative.model_variant
   const configuredEffort = reasoningConfigurationEffort(variant)
   const resolvedEffort = configuredEffort === "provider" ? effectiveReasoningEffort(variant) : configuredEffort
@@ -67,8 +92,9 @@ function pointLabelParts(point: CostPerformancePoint) {
   }
 }
 
-function pointLabelLines(point: CostPerformancePoint): [string, string] {
+function pointLabelLines(point: ChartPoint): string[] {
   const label = pointLabelParts(point)
+  if (isHumanPoint(point)) return [label.firstLine]
   return [label.firstLine, label.secondModel ? `${label.secondModel} · ${label.effortLabel}` : label.effortLabel]
 }
 
@@ -95,12 +121,13 @@ function niceStep(range: number) {
   return multiplier * power
 }
 
-function runPath(point: CostPerformancePoint) {
+function runPath(point: ChartPoint) {
+  if (isHumanPoint(point)) return `/human/${encodeURIComponent(point.runId)}`
   return `/model/${encodeURIComponent(point.representative.model_variant.key)}?run=${encodeURIComponent(point.representative.run_id)}`
 }
 
 interface PlottedPoint {
-  point: CostPerformancePoint
+  point: ChartPoint
   x: number
   y: number
   errorTop: number
@@ -413,6 +440,14 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
     })}
     {plotted.map((entry) => {
       const label = pointLabelParts(entry.point)
+      if (isHumanPoint(entry.point)) return <text
+        key={`label-${entry.point.key}`}
+        x={entry.labelX}
+        y={entry.labelY + 5}
+        textAnchor="middle"
+        className="fill-fuchsia-600 text-[8.5px] font-semibold dark:fill-fuchsia-300"
+        style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
+      >me</text>
       return <text
         key={`label-${entry.point.key}`}
         x={entry.labelX}
@@ -432,6 +467,20 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
 })
 
 function Inspector({ entry }: { entry: PlottedPoint }) {
+  if (isHumanPoint(entry.point)) return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
+    <div className="flex items-start gap-2">
+      <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+      <div><div className="text-sm font-semibold">Me</div><div className="mt-0.5 text-[10px] text-muted-foreground">Human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
+    </div>
+    <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
+      <dt className="text-muted-foreground">Glicko-2 rating</dt><dd className="font-mono font-semibold tabular-nums">{Math.round(entry.point.rating).toLocaleString()}</dd>
+      <dt className="text-muted-foreground">RD</dt><dd className="font-mono tabular-nums">±{Math.round(entry.point.ratingDeviation)}</dd>
+      <dt className="text-muted-foreground">Labor cost / 50</dt><dd className="font-mono font-semibold tabular-nums">{formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)}</dd>
+      <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
+      <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts}</dd>
+    </dl>
+    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the saved human run.</div>
+  </div>
   const effort = reasoningEffortLabel(reasoningConfigurationEffort(entry.point.representative.model_variant))
   return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
@@ -453,9 +502,37 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
 
 export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggregate[] }) {
   const navigate = useNavigate()
+  const { apiBase } = useData()
   const [activeKey, setActiveKey] = useState<string | null>(null)
+  const [humanProfile, setHumanProfile] = useState<HumanTrainingProfile | null>(null)
+
+  useEffect(() => {
+    let active = true
+    if (!apiBase) return () => { active = false }
+    void fetchHumanTrainingProfileByRun(apiBase, HUMAN_RUN_ID)
+      .then((profile) => { if (active) setHumanProfile(profile) })
+      .catch(() => { if (active) setHumanProfile(null) })
+    return () => { active = false }
+  }, [apiBase])
+
   const chart = useMemo(() => {
-    const points = costPerformancePoints(aggregates)
+    const modelPoints = costPerformancePoints(aggregates)
+    const activeDurationMs = humanProfile?.session.active_duration_ms ?? 0
+    const humanPoint: HumanCostPerformancePoint | null = humanProfile && humanProfile.attempts > 0 && activeDurationMs > 0
+      ? {
+        kind: "human",
+        key: `human:${humanProfile.run_id}`,
+        runId: humanProfile.run_id,
+        rating: humanProfile.rating,
+        ratingDeviation: humanProfile.rating_deviation,
+        totalCost: activeDurationMs / 3_600_000 * HUMAN_HOURLY_RATE,
+        costPerPuzzle: activeDurationMs / 3_600_000 * HUMAN_HOURLY_RATE / humanProfile.attempts,
+        attempts: humanProfile.attempts,
+        solved: humanProfile.solved,
+        runCount: 1,
+      }
+      : null
+    const points: ChartPoint[] = humanPoint ? [...modelPoints, humanPoint] : modelPoints
     if (points.length === 0) return null
 
     const logCosts = points.map((point) => Math.log10(point.costPerPuzzle * NORMALIZED_PUZZLES))
@@ -471,7 +548,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const ratingMax = Math.max(ratingMin + step, Math.ceil(rawRatingMax / step) * step)
     const plotWidth = WIDTH - PLOT.left - PLOT.right
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom
-    const modelKeys = Array.from(new Set(points.map((point) => point.representative.model_variant.base_key))).toSorted()
+    const modelKeys = Array.from(new Set(modelPoints.map((point) => point.representative.model_variant.base_key))).toSorted()
     const colorByModel = new Map(modelKeys.map((key, index) => [key, MODEL_COLORS[index % MODEL_COLORS.length]]))
     const x = (value: number) => PLOT.left + (Math.log10(value) - logMin) / (logMax - logMin) * plotWidth
     const y = (value: number) => PLOT.top + (ratingMax - value) / (ratingMax - ratingMin) * plotHeight
@@ -481,7 +558,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       y: y(point.rating),
       errorTop: y(Math.min(ratingMax, point.rating + point.ratingDeviation)),
       errorBottom: y(Math.max(ratingMin, point.rating - point.ratingDeviation)),
-      color: colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
+      color: isHumanPoint(point)
+        ? HUMAN_COLOR
+        : colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
       labelX: 0,
       labelY: 0,
     })), y(MINIMUM_RATING))
@@ -489,13 +568,14 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     for (let value = ratingMin; value <= ratingMax + step / 2; value += step) yTicks.push(value)
     return {
       points,
+      modelPointCount: modelPoints.length,
       plotted,
       x,
       y,
       xTicks: logTicks(10 ** logMin, 10 ** logMax),
       yTicks,
     }
-  }, [aggregates])
+  }, [aggregates, humanProfile])
 
   if (!chart) return null
   const active = chart.plotted.find((entry) => entry.point.key === activeKey) ?? null
@@ -510,16 +590,16 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     <CardHeader className="gap-3 border-b sm:flex sm:flex-row sm:items-start sm:justify-between">
       <div>
         <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
-        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{chart.points.length} settled configuration{chart.points.length === 1 ? "" : "s"}</Badge>
+        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{chart.modelPointCount} settled configuration{chart.modelPointCount === 1 ? "" : "s"}</Badge>
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
       <div className="overflow-x-auto">
         <div className="relative min-w-[720px]">
-          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.points.length} settled model configurations. Lower cost and higher Glicko-2 puzzle rating are better.`}>
+          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
             <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
@@ -527,7 +607,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               key={entry.point.key}
               role="link"
               tabIndex={0}
-              aria-label={`${entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} estimated per 50 puzzles`}
+              aria-label={`${isHumanPoint(entry.point) ? "Me" : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
               className="cursor-pointer outline-none"
               onPointerEnter={() => setActiveKey(entry.point.key)}
               onPointerLeave={() => setActiveKey((current) => current === entry.point.key ? null : current)}
