@@ -29,6 +29,11 @@ export interface HumanTrainingAttempt {
   rating_before: number
   rating_after: number
   played_at: string
+  outcome?: "solved" | "incorrect" | "revealed"
+  moves?: string[]
+  experienced_line?: string[]
+  solution?: string[]
+  fen?: string
 }
 
 export interface HumanTrainingSession {
@@ -285,6 +290,7 @@ export function humanTrainingRecord(
   puzzleRating: number,
   puzzleDeviation: number,
   solved: boolean,
+  detail?: Pick<HumanTrainingAttempt, "outcome" | "moves" | "experienced_line" | "solution" | "fen">,
 ): HumanTrainingResult {
   const current = humanTrainingSession()
   const duplicateAttempt = current.recent_attempts.find((attempt) => attempt.puzzle_id === puzzleId)
@@ -303,6 +309,11 @@ export function humanTrainingRecord(
     rating_before: before.rating,
     rating_after: after.rating,
     played_at: now,
+    outcome: detail?.outcome ?? (solved ? "solved" : "incorrect"),
+    moves: detail?.moves?.slice(0, 64),
+    experienced_line: detail?.experienced_line?.slice(0, 64),
+    solution: detail?.solution?.slice(0, 64),
+    fen: detail?.fen,
   }
   const session = withRecentPuzzle({
     ...current,

@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 const WIDTH = 1000
-const HEIGHT = 440
-const PLOT = { left: 76, right: 30, top: 52, bottom: 64 }
+const HEIGHT = 480
+const PLOT = { left: 76, right: 30, top: 70, bottom: 70 }
 const NORMALIZED_PUZZLES = 50
+const MINIMUM_RATING = 400
 const MODEL_COLORS = [
   "#059669", "#7c3aed", "#0284c7", "#ea580c", "#e11d48",
   "#2563eb", "#c026d3", "#65a30d", "#d97706", "#0d9488",
@@ -24,6 +25,24 @@ function formatCost(value: number) {
   if (value < 0.01) return `$${value.toFixed(4)}`
   if (value < 1) return `$${value.toFixed(3)}`
   return `$${value.toFixed(2)}`
+}
+
+function compactReasoningLabel(point: CostPerformancePoint) {
+  const effort = reasoningConfigurationEffort(point.representative.model_variant)
+  if (effort === "none") return "off"
+  if (effort === "provider") return "default"
+  return effort
+}
+
+function pointLabelLines(point: CostPerformancePoint): [string, string] {
+  const model = point.representative.model_variant.display_name
+  const effort = compactReasoningLabel(point)
+  if (model.length <= 15) return [model, effort]
+
+  const middle = model.length / 2
+  const breaks = Array.from(model.matchAll(/-/g), (match) => match.index)
+  const split = breaks.toSorted((a, b) => Math.abs(a - middle) - Math.abs(b - middle))[0] ?? Math.round(middle)
+  return [model.slice(0, split), `${model.slice(split + (model[split] === "-" ? 1 : 0))} · ${effort}`]
 }
 
 function logTicks(min: number, max: number) {
@@ -72,26 +91,32 @@ function boxesOverlap(a: LabelBox, b: LabelBox) {
 
 function placeLabels(entries: PlottedPoint[]) {
   const placed: LabelBox[] = []
+  const markers: LabelBox[] = entries.map((entry) => ({
+    left: entry.x - 12,
+    right: entry.x + 12,
+    top: entry.y - 12,
+    bottom: entry.y + 12,
+  }))
   const positions = new Map<string, { x: number; y: number }>()
   const horizontalOffsets = [0, -52, 52, -104, 104]
   const ordered = entries.toSorted((a, b) => a.y - b.y || a.x - b.x)
 
   for (const entry of ordered) {
-    const label = entry.point.representative.model_variant.display_name
-    const width = Math.max(48, label.length * 5.7)
+    const lines = pointLabelLines(entry.point)
+    const width = Math.max(54, Math.max(...lines.map((line) => line.length)) * 5.3 + 8)
     const candidates: Array<{ x: number; y: number }> = []
-    for (let level = 0; level < 7; level += 1) {
-      for (const offset of horizontalOffsets) candidates.push({ x: entry.x + offset, y: entry.errorTop - 10 - level * 14 })
-    }
-    for (let level = 0; level < 3; level += 1) {
-      for (const offset of horizontalOffsets) candidates.push({ x: entry.x + offset, y: entry.errorBottom + 20 + level * 14 })
+    for (let level = 0; level < 9; level += 1) {
+      for (const offset of horizontalOffsets) {
+        candidates.push({ x: entry.x + offset, y: entry.errorTop - 22 - level * 24 })
+        candidates.push({ x: entry.x + offset, y: entry.errorBottom + 18 + level * 24 })
+      }
     }
 
-    let selected = { x: entry.x, y: Math.max(18, entry.errorTop - 10) }
+    let selected = { x: entry.x, y: Math.max(15, entry.errorTop - 21) }
     for (const candidate of candidates) {
       const x = Math.max(PLOT.left + width / 2, Math.min(WIDTH - PLOT.right - width / 2, candidate.x))
-      const box = { left: x - width / 2, right: x + width / 2, top: candidate.y - 10, bottom: candidate.y + 2 }
-      if (box.top < 8 || box.bottom > HEIGHT - PLOT.bottom - 4 || placed.some((other) => boxesOverlap(box, other))) continue
+      const box = { left: x - width / 2, right: x + width / 2, top: candidate.y - 11, bottom: candidate.y + 14 }
+      if (box.top < 8 || box.bottom > HEIGHT - PLOT.bottom - 4 || placed.some((other) => boxesOverlap(box, other)) || markers.some((marker) => boxesOverlap(box, marker))) continue
       selected = { x, y: candidate.y }
       placed.push(box)
       break
@@ -114,27 +139,42 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
 }) {
   return <>
     {xTicks.map((value) => <g key={`x-${value}`}>
-      <line x1={x(value)} y1={PLOT.top} x2={x(value)} y2={HEIGHT - PLOT.bottom} className="stroke-border" opacity="0.55" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
+      <line x1={x(value)} y1={PLOT.top} x2={x(value)} y2={HEIGHT - PLOT.bottom} className="stroke-muted-foreground/40" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
       <text x={x(value)} y={HEIGHT - 30} textAnchor="middle" className="fill-muted-foreground font-mono text-[11px]">{formatCost(value)}</text>
     </g>)}
     {yTicks.map((value) => <g key={`y-${value}`}>
-      <line x1={PLOT.left} y1={y(value)} x2={WIDTH - PLOT.right} y2={y(value)} className="stroke-border" opacity="0.55" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
+      <line x1={PLOT.left} y1={y(value)} x2={WIDTH - PLOT.right} y2={y(value)} className="stroke-muted-foreground/40" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
       <text x={PLOT.left - 12} y={y(value) + 4} textAnchor="end" className="fill-muted-foreground font-mono text-[11px]">{value.toLocaleString()}</text>
     </g>)}
-    {plotted.map((entry) => <g key={`static-${entry.point.key}`}>
+    <g>
+      <line x1={PLOT.left} y1={y(MINIMUM_RATING)} x2={WIDTH - PLOT.right} y2={y(MINIMUM_RATING)} className="stroke-rose-500" strokeWidth="1.25" opacity="0.7" strokeDasharray="2 5" vectorEffect="non-scaling-stroke" />
+      <text x={WIDTH - PLOT.right - 6} y={y(MINIMUM_RATING) - 7} textAnchor="end" className="fill-rose-600 text-[9px] font-semibold dark:fill-rose-400" style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4 }}>minimum rating</text>
+    </g>
+    {plotted.map((entry) => <g key={`mark-${entry.point.key}`}>
       <line x1={entry.x} y1={entry.errorTop} x2={entry.x} y2={entry.errorBottom} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
       <line x1={entry.x - 4} y1={entry.errorTop} x2={entry.x + 4} y2={entry.errorTop} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
       <line x1={entry.x - 4} y1={entry.errorBottom} x2={entry.x + 4} y2={entry.errorBottom} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
-      <circle cx={entry.x} cy={entry.y} r="7" fill={entry.color} className="stroke-background" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-      {Math.abs(entry.labelX - entry.x) > 2 || Math.abs(entry.labelY - (entry.errorTop - 10)) > 2 ? <line x1={entry.x} y1={entry.errorTop - 2} x2={entry.labelX} y2={entry.labelY + 3} stroke={entry.color} strokeWidth="1" opacity="0.28" vectorEffect="non-scaling-stroke" /> : null}
-      <text
-        x={entry.labelX}
-        y={entry.labelY}
-        textAnchor="middle"
-        className="fill-foreground text-[10px] font-semibold"
-        style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
-      >{entry.point.representative.model_variant.display_name}</text>
+      <circle cx={entry.x} cy={entry.y} r="5.5" fill={entry.color} className="stroke-background" strokeWidth="2" vectorEffect="non-scaling-stroke" />
     </g>)}
+    {plotted.map((entry) => <line
+      key={`leader-${entry.point.key}`}
+      x1={entry.x}
+      y1={entry.labelY < entry.y ? entry.errorTop - 2 : entry.errorBottom + 2}
+      x2={entry.labelX}
+      y2={entry.labelY < entry.y ? entry.labelY + 13 : entry.labelY - 10}
+      stroke={entry.color}
+      strokeWidth="1"
+      opacity="0.28"
+      vectorEffect="non-scaling-stroke"
+    />)}
+    {plotted.map((entry) => <text
+      key={`label-${entry.point.key}`}
+      x={entry.labelX}
+      y={entry.labelY}
+      textAnchor="middle"
+      className="fill-foreground text-[8.5px] font-semibold"
+      style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
+    >{pointLabelLines(entry.point).map((line, index) => <tspan key={`${line}-${index}`} x={entry.labelX} dy={index === 0 ? 0 : 10}>{line}</tspan>)}</text>)}
   </>
 })
 
@@ -174,7 +214,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const rawRatingMin = Math.min(...points.map((point) => point.rating - point.ratingDeviation))
     const rawRatingMax = Math.max(...points.map((point) => point.rating + point.ratingDeviation))
     const step = niceStep(rawRatingMax - rawRatingMin)
-    const ratingMin = Math.floor(rawRatingMin / step) * step
+    const ratingMin = Math.min(MINIMUM_RATING, Math.floor(rawRatingMin / step) * step)
     const ratingMax = Math.max(ratingMin + step, Math.ceil(rawRatingMax / step) * step)
     const plotWidth = WIDTH - PLOT.left - PLOT.right
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom
@@ -217,7 +257,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     <CardHeader className="gap-3 border-b sm:flex sm:flex-row sm:items-start sm:justify-between">
       <div>
         <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
-        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus estimated provider cost for 50 puzzles, normalized from each configuration’s settled runs. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus estimated provider cost for 50 puzzles, normalized from each configuration’s settled runs. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
         <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{chart.points.length} settled configuration{chart.points.length === 1 ? "" : "s"}</Badge>
@@ -244,8 +284,8 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               onKeyDown={(event) => inspect(event, entry)}
             >
               <circle cx={entry.x} cy={entry.y} r="15" fill="transparent" />
-              <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 10 : 7} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-              {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="13" fill="none" stroke={entry.color} strokeWidth="1.5" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
+              <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+              {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
             </g>)}
           </svg>
           {active ? <div

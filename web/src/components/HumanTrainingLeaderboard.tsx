@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Play, Search, UserRound } from "lucide-react"
 import { fetchHumanTrainingLeaderboard, type HumanTrainingLeaderboardRow } from "@/lib/backend"
 import { formatRatingDeviation, pct } from "@/lib/format"
 import { useData } from "@/lib/useData"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export function HumanTrainingLeaderboard() {
+  const navigate = useNavigate()
   const { apiBase } = useData()
   const [rows, setRows] = useState<HumanTrainingLeaderboardRow[] | null>(null)
   const [search, setSearch] = useState("")
@@ -77,7 +79,18 @@ export function HumanTrainingLeaderboard() {
           <div className="overflow-x-auto rounded-lg border">
             <Table reorderableKey="human-training-leaderboard">
               <TableHeader><TableRow><TableHead className="w-14 text-right">#</TableHead><TableHead>Username</TableHead><TableHead className="text-right">Seed</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">RD</TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Accuracy</TableHead></TableRow></TableHeader>
-              <TableBody>{visibleRows.map((row) => <TableRow key={row.handle} className={row.me ? "bg-emerald-500/[0.06]" : undefined}>
+              <TableBody>{visibleRows.map((row) => <TableRow
+                key={row.handle}
+                role="link"
+                tabIndex={0}
+                className={cn("cursor-pointer", row.me && "bg-emerald-500/[0.06]")}
+                onClick={() => navigate(`/human/${encodeURIComponent(row.handle)}`)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter" && event.key !== " ") return
+                  event.preventDefault()
+                  navigate(`/human/${encodeURIComponent(row.handle)}`)
+                }}
+              >
                 <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.rank}</TableCell>
                 <TableCell><span className="font-medium">{row.handle}</span>{row.me ? <Badge variant="secondary" className="ml-2 text-[10px]">you</Badge> : null}</TableCell>
                 <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{row.seed ?? "—"}</TableCell>

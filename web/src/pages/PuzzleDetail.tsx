@@ -162,12 +162,23 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
 
   // Record public progress separately from the adaptive rating. The first wrong
   // move or full solve rates the training puzzle exactly once.
-  const recordSolve = (solved: boolean, move: string | null, outcome: HumanOutcome = solved ? "solved" : "incorrect") => {
+  const recordSolve = (
+    solved: boolean,
+    move: string | null,
+    outcome: HumanOutcome = solved ? "solved" : "incorrect",
+    experiencedLine: string[] = [],
+  ) => {
     humanRecord(id, outcome)
     if (apiBase) void pushSolve(apiBase, id, solved, move)
     if (!training || trainingRatedRef.current) return
     trainingRatedRef.current = true
-    const result = humanTrainingRecord(id, p.rating, p.rating_deviation ?? 500, solved)
+    const result = humanTrainingRecord(id, p.rating, p.rating_deviation ?? 500, solved, {
+      outcome,
+      moves: experiencedLine.filter((_, index) => index % 2 === 0),
+      experienced_line: experiencedLine,
+      solution: [...solution],
+      fen: startFen,
+    })
     if (!result.duplicate) setTrainingResult(result)
     setTrainingSession(result.session)
   }
@@ -294,7 +305,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     if (!acceptedPuzzleMove(g, uci, expected, ply === solution.length - 1)) {
       g.undo()
       setMistake(true)
-      recordSolve(false, uci, "incorrect")
+      recordSolve(false, uci, "incorrect", [...solution.slice(0, ply), uci])
       return false
     }
     let idx = ply + 1
@@ -317,7 +328,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
     if (idx >= solution.length) {
       setStatus("solved")
       setReveal(true)
-      recordSolve(true, solution[0] ?? null)
+      recordSolve(true, solution[0] ?? null, "solved", [...solution])
     }
     return true
   }
@@ -330,7 +341,7 @@ function PuzzleView({ id, entry, apiBase, ratedIndex, ratedQuery, training }: { 
   }
 
   function giveUp() {
-    if (training && !trainingRatedRef.current) recordSolve(false, null, "revealed")
+    if (training && !trainingRatedRef.current) recordSolve(false, null, "revealed", solution.slice(0, ply))
     setStatus("revealed")
     setReveal(true)
   }

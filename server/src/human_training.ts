@@ -2,6 +2,7 @@ import type { Env } from "./types"
 import { error, json } from "./http"
 import {
   HUMAN_TRAINING_MAX_SAVE_DEVIATION,
+  normalizedTrainingHandle,
   normalizedTrainingUid,
   parseTrainingSave,
   trainingSessionSeed,
@@ -11,7 +12,7 @@ import {
 const SAVE_COOLDOWN_MS = 2 * 60 * 1000
 const IP_WINDOW_MS = 10 * 60 * 1000
 const IP_SAVES_PER_WINDOW = 10
-const MAX_BODY_BYTES = 64 * 1024
+const MAX_BODY_BYTES = 256 * 1024
 
 interface TrainingProfileRow {
   uid: string
@@ -81,13 +82,16 @@ async function consumeLimit(
     : 0
 }
 
-/** GET /api/human/training?uid= — the caller's saved browser-training run. */
+/** GET /api/human/training?uid= or ?handle= — one saved browser-training run. */
 export async function getHumanTrainingProfile(env: Env, url: URL): Promise<Response> {
   const uid = normalizedTrainingUid(url.searchParams.get("uid"))
-  if (!uid) return error(400, "uid query param required")
+  const handle = normalizedTrainingHandle(url.searchParams.get("handle"))
+  if (!uid && !handle) return error(400, "uid or handle query param required")
   const row = await env.DB.prepare(
-    `SELECT * FROM human_training_profiles WHERE uid=?`,
-  ).bind(uid).first<TrainingProfileRow>()
+    uid
+      ? `SELECT * FROM human_training_profiles WHERE uid=?`
+      : `SELECT * FROM human_training_profiles WHERE handle=? COLLATE NOCASE`,
+  ).bind(uid ?? handle).first<TrainingProfileRow>()
   return json({ profile: row ? publicProfile(row) : null })
 }
 

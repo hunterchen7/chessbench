@@ -107,6 +107,12 @@ export async function fetchHumanTrainingProfile(base: string): Promise<HumanTrai
   return request
 }
 
+export async function fetchHumanTrainingProfileByHandle(base: string, handle: string): Promise<HumanTrainingProfile | null> {
+  const response = await fetch(`${base}/human/training?handle=${encodeURIComponent(handle)}`)
+  if (!response.ok) throw new Error(`Could not load human training run (${response.status}).`)
+  return ((await response.json()) as { profile?: HumanTrainingProfile | null }).profile ?? null
+}
+
 export async function saveHumanTrainingProfile(
   base: string,
   handle: string,

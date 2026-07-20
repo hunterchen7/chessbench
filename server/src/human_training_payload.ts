@@ -7,13 +7,28 @@ export interface TrainingState {
   volatility: number
 }
 
+export interface TrainingAttempt {
+  puzzle_id: string
+  puzzle_rating: number
+  puzzle_deviation: number
+  solved: boolean
+  rating_before: number
+  rating_after: number
+  played_at: string
+  outcome?: "solved" | "incorrect" | "revealed"
+  moves?: string[]
+  experienced_line?: string[]
+  solution?: string[]
+  fen?: string
+}
+
 export interface TrainingSession {
   version: 1
   state: TrainingState
   attempts: number
   solved: number
   recent_puzzle_ids: string[]
-  recent_attempts: unknown[]
+  recent_attempts: TrainingAttempt[]
   updated_at: string | null
   selector?: {
     version: "deterministic_rating_band_v1"
@@ -50,6 +65,35 @@ export function normalizedTrainingUid(value: unknown): string | null {
   return uid && uid === value.trim() ? uid : null
 }
 
+export function normalizedTrainingHandle(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const handle = value.trim()
+  return HANDLE_PATTERN.test(handle) ? handle : null
+}
+
+const UCI_MOVE = /^[a-h][1-8][a-h][1-8][qrbn]?$/
+
+function validMoveList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length <= 64 && value.every((move) => typeof move === "string" && UCI_MOVE.test(move))
+}
+
+function validTrainingAttempt(value: unknown): value is TrainingAttempt {
+  if (!value || typeof value !== "object") return false
+  const attempt = value as Partial<TrainingAttempt>
+  return typeof attempt.puzzle_id === "string" && attempt.puzzle_id.length > 0 && attempt.puzzle_id.length <= 64
+    && finiteInRange(attempt.puzzle_rating, 0, 5_000)
+    && finiteInRange(attempt.puzzle_deviation, 0, 1_000)
+    && typeof attempt.solved === "boolean"
+    && finiteInRange(attempt.rating_before, 400, 4_000)
+    && finiteInRange(attempt.rating_after, 400, 4_000)
+    && typeof attempt.played_at === "string" && attempt.played_at.length <= 64
+    && (attempt.outcome == null || attempt.outcome === "solved" || attempt.outcome === "incorrect" || attempt.outcome === "revealed")
+    && (attempt.moves == null || validMoveList(attempt.moves))
+    && (attempt.experienced_line == null || validMoveList(attempt.experienced_line))
+    && (attempt.solution == null || validMoveList(attempt.solution))
+    && (attempt.fen == null || (typeof attempt.fen === "string" && attempt.fen.length <= 128))
+}
+
 export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
   if (!value || typeof value !== "object") return null
   const raw = value as Record<string, unknown>
@@ -75,6 +119,7 @@ export function parseTrainingSave(value: unknown): ParsedTrainingSave | null {
     !Array.isArray(session.recent_puzzle_ids) || session.recent_puzzle_ids.length > 100 ||
     session.recent_puzzle_ids.some((id) => typeof id !== "string" || !id || id.length > 64) ||
     !Array.isArray(session.recent_attempts) || session.recent_attempts.length > 100 ||
+    session.recent_attempts.some((attempt) => !validTrainingAttempt(attempt)) ||
     !(session.updated_at == null || typeof session.updated_at === "string") || !validSelector
   ) return null
   return { uid, handle, session: session as TrainingSession }
