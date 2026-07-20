@@ -18,7 +18,6 @@ const NAV = [
 export function Layout() {
   const [dark, setDark] = useState(() => localStorage.getItem("chessbench.theme") !== "light")
   const { pathname } = useLocation()
-  const useWidePuzzleLayout = pathname === "/puzzles" || pathname === "/puzzles/browse"
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark)
     localStorage.setItem("chessbench.theme", dark ? "dark" : "light")
@@ -28,7 +27,7 @@ export function Layout() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_15%_-10%,color-mix(in_oklch,var(--chart-2)_12%,transparent),transparent_30rem)]">
       <a href="#main-content" className="fixed left-3 top-3 z-[100] -translate-y-20 rounded-md bg-foreground px-3 py-2 text-sm font-medium text-background shadow-lg transition-transform focus:translate-y-0">Skip to content</a>
       <header className="sticky top-0 z-20 border-b border-border/70 bg-background/88 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-16 max-w-[1480px] items-center gap-5 px-4 lg:px-8">
+        <div className="flex min-h-16 w-full items-center gap-5 px-[clamp(1rem,2.5vw,5rem)]">
           <NavLink to="/" className="flex shrink-0 items-center gap-2.5">
             <span className="grid size-8 place-items-center rounded-lg bg-emerald-500/12 text-emerald-700 dark:text-emerald-300">
               <FlaskConical className="size-4.5" />
@@ -75,7 +74,7 @@ export function Layout() {
           </Sheet>
         </div>
       </header>
-      <main id="main-content" className={cn("mx-auto px-4 py-8 lg:px-8 lg:py-10", useWidePuzzleLayout ? "max-w-none" : "max-w-[1480px]")}>
+      <main id="main-content" className="w-full px-[clamp(1rem,2.5vw,5rem)] py-8 lg:py-10">
         <ErrorBoundary key={pathname}>
           <div key={pathname} className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300"><Outlet /></div>
         </ErrorBoundary>

@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 const WIDTH = 1000
-const HEIGHT = 480
-const PLOT = { left: 76, right: 30, top: 70, bottom: 70 }
+const HEIGHT = 420
+const PLOT = { left: 76, right: 30, top: 40, bottom: 54 }
 const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const MODEL_COLORS = [
@@ -112,7 +112,9 @@ interface PlottedPoint {
 
 interface LabelBox { left: number; right: number; top: number; bottom: number }
 interface Segment { x1: number; y1: number; x2: number; y2: number }
-interface LabelPlacement { x: number; y: number; box: LabelBox; leader: Segment; score: number }
+interface LabelPlacement { x: number; y: number; box: LabelBox; leader: Segment | null; score: number }
+
+const LEADER_LINE_PENALTY = 240
 
 function boxesOverlap(a: LabelBox, b: LabelBox) {
   return a.left < b.right + 1 && a.right + 1 > b.left && a.top < b.bottom + 1 && a.bottom + 1 > b.top
@@ -157,6 +159,15 @@ function labelLeader(entry: PlottedPoint, x: number, y: number): Segment {
   }
 }
 
+function labelNeedsLeader(entry: PlottedPoint, x: number, y: number) {
+  const box = labelBox(labelWidth(entry), x, y)
+  const horizontallyCentered = Math.abs(x - entry.x) < 1
+  const edgeGap = box.bottom <= entry.errorTop ? entry.errorTop - box.bottom :
+    box.top >= entry.errorBottom ? box.top - entry.errorBottom :
+    Number.POSITIVE_INFINITY
+  return !horizontallyCentered || edgeGap > 6
+}
+
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
   return entries.reduce((density, other) => {
     if (other.point.key === entry.point.key) return density
@@ -174,7 +185,14 @@ function labelBox(width: number, x: number, y: number): LabelBox {
   return { left: x - width / 2, right: x + width / 2, top: y - 13, bottom: y + 16 }
 }
 
-function localLabelCandidates(entry: PlottedPoint, width: number) {
+function directLabelCandidates(entry: PlottedPoint) {
+  return [
+    { x: entry.x, y: entry.errorTop - 22 },
+    { x: entry.x, y: entry.errorBottom + 18 },
+  ]
+}
+
+function displacedLabelCandidates(entry: PlottedPoint, width: number) {
   const candidates: Array<{ x: number; y: number }> = []
   const horizontalOffsets = [0]
   const maxHorizontalOffset = Math.max(180, width * 1.65)
@@ -222,10 +240,14 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
     key: entry.point.key,
     box: { left: entry.x - 6, right: entry.x + 6, top: entry.errorTop - 3, bottom: entry.errorBottom + 3 },
   }))
-  const placements = new Map<string, LabelPlacement>()
   const ordered = entries.toSorted((a, b) => pointDensity(b, entries) - pointDensity(a, entries) || a.y - b.y || a.x - b.x)
 
-  function bestPlacement(entry: PlottedPoint, candidates: Array<{ x: number; y: number }>) {
+  function bestPlacement(
+    entry: PlottedPoint,
+    candidates: Array<{ x: number; y: number }>,
+    placements: Map<string, LabelPlacement>,
+    allowLeader: boolean,
+  ) {
     const width = labelWidth(entry)
     let best: LabelPlacement | null = null
     const otherMarkers = markers.filter((marker) => marker.key !== entry.point.key)
@@ -240,46 +262,77 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         markers.some((marker) => boxesOverlap(box, marker.box)) ||
         whiskers.some((whisker) => boxesOverlap(box, whisker.box))
       if (blocked) continue
-      const leader = labelLeader(entry, x, candidate.y)
-      const obstructionCollisions =
+      const needsLeader = labelNeedsLeader(entry, x, candidate.y)
+      if (needsLeader && !allowLeader) continue
+      const leader = needsLeader ? labelLeader(entry, x, candidate.y) : null
+      const obstructionCollisions = leader ?
         otherPlacements.filter((other) => segmentIntersectsBox(leader, other.box)).length +
         otherMarkers.filter((marker) => segmentIntersectsBox(leader, marker.box)).length +
         otherWhiskers.filter((whisker) => segmentIntersectsBox(leader, whisker.box)).length +
-        otherPlacements.filter((other) => segmentIntersectsBox(other.leader, box)).length
-      const connectorCrossings = otherPlacements.filter((other) => segmentsIntersect(leader, other.leader)).length
+        otherPlacements.filter((other) => other.leader && segmentIntersectsBox(other.leader, box)).length :
+        0
+      const connectorCrossings = leader ? otherPlacements.filter((other) => other.leader && segmentsIntersect(leader, other.leader)).length : 0
       const straddlesMinimumLine = box.top <= minimumLineY + 2 && box.bottom >= minimumLineY - 2
       const score =
         obstructionCollisions * 240 +
         connectorCrossings * 90 +
         (straddlesMinimumLine ? 80 : 0) +
-        Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1)
+        (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.abs(candidate.y - entry.y))
       if (!best || score < best.score) best = { x, y: candidate.y, box, leader, score }
     }
     return best
   }
 
-  // Seed the layout greedily, putting the densest clusters first.
+  // First maximize labels that can sit directly above or below their marker.
+  // Several deterministic greedy orders avoid letting one arbitrary traversal
+  // decide which labels receive the limited connector-free slots.
+  const directOrders = [
+    ordered,
+    ordered.toReversed(),
+    entries.toSorted((a, b) => a.x - b.x || a.y - b.y),
+    entries.toSorted((a, b) => a.y - b.y || a.x - b.x),
+  ]
+  const directLayouts = directOrders.map((order) => {
+    const attempt = new Map<string, LabelPlacement>()
+    for (const entry of order) {
+      const placement = bestPlacement(entry, directLabelCandidates(entry), attempt, false)
+      if (placement) attempt.set(entry.point.key, placement)
+    }
+    return attempt
+  })
+  const placements = directLayouts.toSorted((a, b) => {
+    if (a.size !== b.size) return b.size - a.size
+    const scoreA = [...a.values()].reduce((sum, placement) => sum + placement.score, 0)
+    const scoreB = [...b.values()].reduce((sum, placement) => sum + placement.score, 0)
+    return scoreA - scoreB
+  })[0] ?? new Map<string, LabelPlacement>()
+
+  // Only labels that did not fit above or below enter the displaced/leader-line pass.
   for (const entry of ordered) {
+    if (placements.has(entry.point.key)) continue
     const width = labelWidth(entry)
-    const local = bestPlacement(entry, localLabelCandidates(entry, width))
-    const placement = local ?? bestPlacement(entry, scanLabelCandidates(entry, width))
+    const local = bestPlacement(entry, displacedLabelCandidates(entry, width), placements, true)
+    const placement = local ?? bestPlacement(entry, scanLabelCandidates(entry, width), placements, true)
     if (placement) placements.set(entry.point.key, placement)
   }
 
-  // Revisit every decision after its neighbors exist. Alternating direction avoids
-  // permanently favoring the labels that happened to win the initial greedy pass.
+  // Revisit only displaced labels. Connector-free labels remain locked, while a
+  // displaced label may still graduate to a newly available above/below position.
   for (let pass = 0; pass < 8; pass += 1) {
     let changed = false
-    const passEntries = pass % 2 === 0 ? ordered : ordered.toReversed()
+    const displacedEntries = ordered.filter((entry) => placements.get(entry.point.key)?.leader)
+    const passEntries = pass % 2 === 0 ? displacedEntries : displacedEntries.toReversed()
     for (const entry of passEntries) {
       const current = placements.get(entry.point.key)
       if (!current) continue
       placements.delete(entry.point.key)
       const candidates = [
         { x: current.x, y: current.y },
-        ...localLabelCandidates(entry, labelWidth(entry)),
+        ...directLabelCandidates(entry),
+        ...displacedLabelCandidates(entry, labelWidth(entry)),
+        ...scanLabelCandidates(entry, labelWidth(entry)),
       ]
-      const next = bestPlacement(entry, candidates)
+      const next = bestPlacement(entry, candidates, placements, true)
       if (next) {
         placements.set(entry.point.key, next)
         changed ||= next.x !== current.x || next.y !== current.y
@@ -339,6 +392,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
       />
     })}
     {plotted.map((entry) => {
+      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY)) return null
       const leader = labelLeader(entry, entry.labelX, entry.labelY)
       return <line
         key={`leader-${entry.point.key}`}
@@ -461,7 +515,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     <CardContent className="p-3 sm:p-5">
       <div className="overflow-x-auto">
         <div className="relative min-w-[720px]">
-          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block h-auto w-full" role="img" aria-label={`Cost-performance scatter plot with ${chart.points.length} settled model configurations. Lower cost and higher Glicko-2 puzzle rating are better.`}>
+          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.points.length} settled model configurations. Lower cost and higher Glicko-2 puzzle rating are better.`}>
             <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
