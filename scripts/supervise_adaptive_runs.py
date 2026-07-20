@@ -271,6 +271,18 @@ TARGETS = (
         ),
     ),
     Target(
+        "gpt-5-6-terra-seed-1",
+        "a9cce923213142c59867fa5a7554b5cc",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gpt-5.6", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
         "gpt-5-6-luna-seed-0",
         "18a2f7bbc149461aba18b8172d954ab6",
         900,
