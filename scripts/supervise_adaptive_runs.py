@@ -257,15 +257,15 @@ TARGETS = (
         ),
     ),
     Target(
-        "deepseek-v4-flash-high-seed-0",
-        "f8c5ad84915244d1bea030bc361d9275",
+        "deepseek-v4-flash-high-seed-0-streamlake",
+        "64a78728ccdb4e839f40e0e7da2d627e",
         900,
         (
             sys.executable, "-m", "chessbench", "rate-model",
             "--model", "deepseek-v4-flash", "--seed", "0",
             "--reasoning", "high", "--target-rd", "77",
             "--capture-reasoning", "--max-output-tokens", "0",
-            "--provider-only", "baidu", "--no-provider-fallbacks",
+            "--provider-only", "streamlake", "--no-provider-fallbacks",
             "--require-provider-parameters", "--request-timeout", "900",
             "--live-sync-every", "5",
         ),
