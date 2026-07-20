@@ -196,12 +196,12 @@ export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: st
     env.DB.prepare(
       `INSERT INTO benchmark_runs_v2
        (run_id, track, variant_key, condition_slug, condition_json, suite_name, suite_version,
-        suite_hash, suite_visibility, protocol_json, status, total_items, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?)
+        suite_hash, suite_visibility, protocol_json, status, total_items, model_moves, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?, ?, ?, ?)
        ON CONFLICT(run_id) DO UPDATE SET
          status=CASE WHEN benchmark_runs_v2.status='completed' THEN 'completed' ELSE 'running' END,
          total_items=excluded.total_items, condition_json=excluded.condition_json,
-         protocol_json=excluded.protocol_json,
+         protocol_json=excluded.protocol_json, model_moves=excluded.model_moves,
          updated_at=excluded.updated_at, error=NULL`,
     ).bind(
       doc.run_id,
@@ -215,6 +215,7 @@ export async function startRun(env: Env, doc: RunStartDoc): Promise<{ run_id: st
       doc.suite?.visibility ?? null,
       doc.protocol ? JSON.stringify(doc.protocol) : null,
       doc.total_items,
+      doc.model_moves ?? 0,
       stamp,
       now(),
     ),

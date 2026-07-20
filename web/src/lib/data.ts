@@ -176,6 +176,7 @@ export interface RunSummary {
   points: number
   max_points: number
   cost_usd: number | null
+  model_moves: number
   puzzle_performance_rating?: {
     rating: number
     stderr: number | null
@@ -695,6 +696,7 @@ function normalizeSummary(value: Partial<RunSummary> & Record<string, unknown>):
     points: Number(value.points ?? mean * n),
     max_points: Number(value.max_points ?? n),
     cost_usd: value.cost_usd == null ? null : Number(value.cost_usd),
+    model_moves: Number(value.model_moves ?? 0),
     puzzle_performance_rating: value.puzzle_performance_rating as RunSummary["puzzle_performance_rating"],
   }
 }

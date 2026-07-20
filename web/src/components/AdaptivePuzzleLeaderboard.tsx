@@ -6,6 +6,7 @@ import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregate
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
 import { ModelName } from "@/components/ModelMakerLogo"
+import { CostPerformanceChart } from "@/components/CostPerformanceChart"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,7 @@ function runPath(run: RunIndexEntry) {
   return `/model/${encodeURIComponent(run.model_variant.key)}?run=${encodeURIComponent(run.run_id)}`
 }
 
-type RatingSortKey = "model" | "rating" | "spread" | "record" | "puzzles" | "runs" | "cost" | "status"
+type RatingSortKey = "model" | "rating" | "spread" | "record" | "puzzles" | "runs" | "cost" | "costPer50Puzzles" | "costPerMove" | "status"
 type LeaderboardView = "model" | "configuration"
 
 interface RatedModelGroup {
@@ -68,6 +69,7 @@ interface RatedModelGroup {
   solved: number
   attempted: number
   cost: number
+  modelMoves: number
   visibleRunCount: number
 }
 
@@ -75,6 +77,21 @@ const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "m
 const LEADERBOARD_VIEW_STORAGE_KEY = "chessbench.puzzle-leaderboard-view.v1"
 const HIDDEN_MODELS_STORAGE_KEY = "chessbench.hidden-puzzle-leaderboard-models.v1"
 const HIDDEN_MODEL_ROW_CLASS = "!bg-muted/70 text-muted-foreground grayscale hover:!bg-muted/85 focus-visible:!bg-muted/85"
+
+function unitCost(cost: number | null, count: number) {
+  return cost == null || count <= 0 ? null : cost / count
+}
+
+function costPer50Puzzles(cost: number | null, puzzles: number) {
+  const perPuzzle = unitCost(cost, puzzles)
+  return perPuzzle == null ? null : perPuzzle * 50
+}
+
+function formatUnitCost(value: number | null) {
+  if (value == null) return "—"
+  const digits = value < 0.001 ? 5 : value < 0.01 ? 4 : value < 0.1 ? 3 : 2
+  return `$${value.toFixed(digits)}`
+}
 
 function savedLeaderboardView(): LeaderboardView {
   try {
@@ -128,6 +145,8 @@ function configurationSortValue(aggregate: RatedRunAggregate, key: RatingSortKey
   if (key === "puzzles") return aggregate.attempted
   if (key === "runs") return aggregate.runs.filter((run) => run.status !== "failed").length
   if (key === "cost") return aggregate.cost
+  if (key === "costPer50Puzzles") return costPer50Puzzles(aggregate.cost, aggregate.attempted)
+  if (key === "costPerMove") return unitCost(aggregate.cost, aggregate.modelMoves)
   return aggregateStatusRank(aggregate)
 }
 
@@ -140,6 +159,8 @@ function individualRunSortValue(run: RatedRunAggregate["runs"][number], key: Rat
   if (key === "puzzles") return run.progress.completed
   if (key === "runs") return 1
   if (key === "cost") return run.summary.cost_usd
+  if (key === "costPer50Puzzles") return costPer50Puzzles(run.summary.cost_usd, run.progress.completed)
+  if (key === "costPerMove") return unitCost(run.summary.cost_usd, run.summary.model_moves)
   return runStatusRank(run)
 }
 
@@ -193,6 +214,7 @@ function groupRatedModels(aggregates: RatedRunAggregate[]): RatedModelGroup[] {
       solved: ordered.reduce((sum, aggregate) => sum + aggregate.solved, 0),
       attempted: ordered.reduce((sum, aggregate) => sum + aggregate.attempted, 0),
       cost: ordered.reduce((sum, aggregate) => sum + aggregate.cost, 0),
+      modelMoves: ordered.reduce((sum, aggregate) => sum + aggregate.modelMoves, 0),
       visibleRunCount: ordered.reduce((sum, aggregate) => sum + aggregate.runs.filter((run) => run.status !== "failed").length, 0),
     }
   })
@@ -341,6 +363,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       if (sort.key === "puzzles") return aggregate.attempted
       if (sort.key === "runs") return aggregate.completedRuns.length
       if (sort.key === "cost") return aggregate.cost
+      if (sort.key === "costPer50Puzzles") return costPer50Puzzles(aggregate.cost, aggregate.attempted) ?? Infinity
+      if (sort.key === "costPerMove") return unitCost(aggregate.cost, aggregate.modelMoves) ?? Infinity
       return aggregateStatusRank(aggregate)
     }
     return filteredAggregates.toSorted((a, b) => {
@@ -372,6 +396,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       if (sort.key === "puzzles") return group.attempted
       if (sort.key === "runs") return group.visibleRunCount
       if (sort.key === "cost") return group.cost
+      if (sort.key === "costPer50Puzzles") return costPer50Puzzles(group.cost, group.attempted) ?? Infinity
+      if (sort.key === "costPerMove") return unitCost(group.cost, group.modelMoves) ?? Infinity
       return modelGroupStatusRank(group)
     }
     return groups.toSorted((a, b) => {
@@ -480,6 +506,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       <AnimatedDetailCell open={open} className="text-right font-mono text-sm tabular-nums">{individual.progress.completed}</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono text-sm">1 run</AnimatedDetailCell>
       <AnimatedDetailCell open={open} className="text-right font-mono text-xs">{individual.summary.cost_usd == null ? "—" : `$${individual.summary.cost_usd.toFixed(3)}`}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-xs tabular-nums">{formatUnitCost(costPer50Puzzles(individual.summary.cost_usd, individual.progress.completed))}</AnimatedDetailCell>
+      <AnimatedDetailCell open={open} className="text-right font-mono text-xs tabular-nums">{formatUnitCost(unitCost(individual.summary.cost_usd, individual.summary.model_moves))}</AnimatedDetailCell>
       <AnimatedDetailCell open={open}><StatusBadge run={individual} /></AnimatedDetailCell>
       <AnimatedDetailCell open={open}><ArrowRight className="size-4 text-muted-foreground" /></AnimatedDetailCell>
     </TableRow>
@@ -503,6 +531,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         <Button asChild className="sm:col-span-2 xl:col-span-4"><Link to="/puzzles/play"><Play className="fill-current" /> Play the same seeded protocol yourself</Link></Button>
       </CardContent>
     </Card>
+
+    <CostPerformanceChart aggregates={aggregates} />
 
     <Card className="overflow-hidden border-border/70">
       <CardHeader className="gap-4 border-b">
@@ -557,7 +587,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         <div className="mx-auto grid size-11 place-items-center rounded-full bg-secondary"><Gauge className="size-5 text-muted-foreground" /></div>
         <div className="mt-3 font-medium">No adaptive ratings have been published yet</div>
         <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">The calibrated 100,000-puzzle pool and runner are ready. Fixed-suite results remain available in the suite lab while the first canonical session is published.</p>
-      </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table reorderableKey="adaptive-puzzle-leaderboard" className="min-w-[980px]">
+      </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table reorderableKey="adaptive-puzzle-leaderboard" className="min-w-[1240px]">
         <TableHeader><TableRow>
           <TableHead className="w-14 text-center">#</TableHead>
           <SortableTableHead label={view === "model" ? "Model" : "Model configuration"} active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model")} />
@@ -567,10 +597,12 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           <SortableTableHead label="Puzzles" active={sort.key === "puzzles"} direction={sort.direction} align="right" onSort={() => toggleSort("puzzles")} />
           <SortableTableHead label="Runs" active={sort.key === "runs"} direction={sort.direction} align="right" onSort={() => toggleSort("runs")} />
           <SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost")} />
+          <SortableTableHead label="Cost / 50 puzzles" active={sort.key === "costPer50Puzzles"} direction={sort.direction} align="right" onSort={() => toggleSort("costPer50Puzzles", "asc")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain cost per 50 puzzles"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs px-3 py-2 leading-relaxed">Average provider-reported cost normalized to 50 completed puzzle attempts. Group totals are weighted by their actual puzzle counts.</TooltipContent></Tooltip>} />
+          <SortableTableHead label="Avg / move" active={sort.key === "costPerMove"} direction={sort.direction} align="right" onSort={() => toggleSort("costPerMove", "asc")} suffix={<Tooltip><TooltipTrigger asChild><button type="button" className="rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Explain average cost per model move"><CircleHelp className="size-3.5" /></button></TooltipTrigger><TooltipContent side="top" sideOffset={8} className="max-w-xs px-3 py-2 leading-relaxed">Provider-reported cost divided by model turns. Every returned solver move counts once; built-in puzzle replies do not count.</TooltipContent></Tooltip>} />
           <SortableTableHead label="Status" active={sort.key === "status"} direction={sort.direction} onSort={() => toggleSort("status")} />
           <TableHead className="w-20" />
         </TableRow></TableHeader>
-        <TableBody>{(view === "model" ? visibleModelGroups.length : visibleAggregates.length) === 0 ? <TableRow><TableCell colSpan={10} className="h-32 text-center"><div className="font-medium">No matching models</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : view === "configuration" ? visibleAggregates.flatMap((aggregate, index) => {
+        <TableBody>{(view === "model" ? visibleModelGroups.length : visibleAggregates.length) === 0 ? <TableRow><TableCell colSpan={12} className="h-32 text-center"><div className="font-medium">No matching models</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : view === "configuration" ? visibleAggregates.flatMap((aggregate, index) => {
           const run = aggregate.representative
           const modelKey = run.model_variant.base_key
           const hidden = hiddenModelKeys.has(modelKey)
@@ -586,6 +618,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono tabular-nums">{aggregate.attempted.toLocaleString()}</TableCell>
             <TableCell className="text-right font-mono tabular-nums">{visibleRunCount}</TableCell>
             <TableCell className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</TableCell>
+            <TableCell className="text-right font-mono text-xs tabular-nums">{formatUnitCost(costPer50Puzzles(aggregate.cost, aggregate.attempted))}</TableCell>
+            <TableCell className="text-right font-mono text-xs tabular-nums">{formatUnitCost(unitCost(aggregate.cost, aggregate.modelMoves))}</TableCell>
             <TableCell><AggregateStatusBadge aggregate={aggregate} /></TableCell>
             <TableCell><div className="flex items-center justify-end gap-1"><ModelVisibilityButton hidden={hidden} modelName={run.model_variant.display_name} onToggle={() => toggleHiddenModel(modelKey)} /><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></div></TableCell>
           </TableRow>, ...individualRunRows(aggregate, expanded, false, hidden)]
@@ -605,6 +639,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono tabular-nums">{group.attempted.toLocaleString()}</TableCell>
             <TableCell className="text-right font-mono tabular-nums">{group.visibleRunCount}</TableCell>
             <TableCell className="text-right font-mono text-xs">${group.cost.toFixed(3)}</TableCell>
+            <TableCell className="text-right font-mono text-xs tabular-nums">{formatUnitCost(costPer50Puzzles(group.cost, group.attempted))}</TableCell>
+            <TableCell className="text-right font-mono text-xs tabular-nums">{formatUnitCost(unitCost(group.cost, group.modelMoves))}</TableCell>
             <TableCell><ModelGroupStatusBadge group={group} /></TableCell>
             <TableCell><div className="flex items-center justify-end gap-1"><ModelVisibilityButton hidden={hidden} modelName={modelName} onToggle={() => toggleHiddenModel(modelKey)} /><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></div></TableCell>
           </TableRow>]
@@ -622,6 +658,8 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
               <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{aggregate.attempted.toLocaleString()}</AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right font-mono tabular-nums">{visibleRunCount}</AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs tabular-nums">{formatUnitCost(costPer50Puzzles(aggregate.cost, aggregate.attempted))}</AnimatedDetailCell>
+              <AnimatedDetailCell open={expanded} className="text-right font-mono text-xs tabular-nums">{formatUnitCost(unitCost(aggregate.cost, aggregate.modelMoves))}</AnimatedDetailCell>
               <AnimatedDetailCell open={expanded}><AggregateStatusBadge aggregate={aggregate} /></AnimatedDetailCell>
               <AnimatedDetailCell open={expanded}><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", configurationExpanded && "rotate-90")} /></AnimatedDetailCell>
             </TableRow>)

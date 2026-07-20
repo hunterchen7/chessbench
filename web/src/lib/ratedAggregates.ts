@@ -13,6 +13,7 @@ export interface RatedRunAggregate {
   solved: number
   attempted: number
   cost: number
+  modelMoves: number
 }
 
 function estimate(run: RunIndexEntry) {
@@ -88,6 +89,7 @@ export function aggregateRatedRuns(
       solved: visibleRuns.reduce((sum, run) => sum + run.summary.solved, 0),
       attempted: visibleRuns.reduce((sum, run) => sum + run.progress.completed, 0),
       cost: ordered.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
+      modelMoves: visibleRuns.reduce((sum, run) => sum + run.summary.model_moves, 0),
     }
   })
 }

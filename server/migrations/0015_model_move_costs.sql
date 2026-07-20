@@ -1,0 +1,1 @@
+ALTER TABLE benchmark_runs_v2 ADD COLUMN model_moves INTEGER NOT NULL DEFAULT 0;

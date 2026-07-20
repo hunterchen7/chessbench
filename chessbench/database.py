@@ -1404,6 +1404,11 @@ class BenchmarkStore:
         ).fetchone()
         if row is None:
             raise KeyError(run_id)
+        model_moves = self._db.execute(
+            """SELECT COALESCE(SUM(json_array_length(json_extract(result_json, '$.turns'))), 0)
+                 FROM puzzle_attempt WHERE run_id=?""",
+            (run_id,),
+        ).fetchone()[0]
         return {
             "run_id": row["run_id"],
             "track": "esoteric" if row["track"] == "composed" else row["track"],
@@ -1418,6 +1423,7 @@ class BenchmarkStore:
             if row["suite_name"]
             else None,
             "total_items": row["total_items"],
+            "model_moves": int(model_moves or 0),
             "protocol": json.loads(row["protocol_json"])
             if row["protocol_json"]
             else None,
