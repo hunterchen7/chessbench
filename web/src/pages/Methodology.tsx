@@ -5,6 +5,7 @@ import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { PromptCatalog } from "@/components/PromptCatalog"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { RatedPoolDownloads } from "@/components/RatedPoolDownloads"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 function Prose({ children }: { children: React.ReactNode }) {
   return <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">{children}</div>
@@ -181,34 +182,32 @@ export function Methodology() {
         </div>
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-sm">
-                <thead className="border-b bg-muted/35 text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Model configuration</th>
-                    <th className="px-4 py-3 font-medium">Route</th>
-                    <th className="px-4 py-3 text-right font-medium">Outcome</th>
-                    <th className="px-4 py-3 text-right font-medium">Legal first</th>
-                    <th className="px-4 py-3 text-right font-medium">Cost</th>
-                    <th className="px-4 py-3 text-right font-medium">Completion / reasoning</th>
-                    <th className="px-4 py-3 font-medium">Reasoning text</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <Table reorderableKey="methodology-frontier-probes" className="min-w-[860px] text-left">
+                <TableHeader className="bg-muted/35 text-xs text-muted-foreground">
+                  <TableRow>
+                    <TableHead className="px-4">Model configuration</TableHead>
+                    <TableHead className="px-4">Route</TableHead>
+                    <TableHead className="px-4 text-right">Outcome</TableHead>
+                    <TableHead className="px-4 text-right">Legal first</TableHead>
+                    <TableHead className="px-4 text-right">Cost</TableHead>
+                    <TableHead className="px-4 text-right">Completion / reasoning</TableHead>
+                    <TableHead className="px-4">Reasoning text</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {FRONTIER_PRELIMINARY.map((row) => (
-                    <tr key={`${row.model}-${row.effort}-${row.route}`} className="border-b last:border-b-0">
-                      <td className="px-4 py-3 font-medium">{row.model} <Badge variant="secondary" className="ml-2">{row.effort}</Badge></td>
-                      <td className="px-4 py-3 text-muted-foreground">{row.route}</td>
-                      <td className="px-4 py-3 text-right font-mono">{row.solved}</td>
-                      <td className="px-4 py-3 text-right font-mono">{row.legal}</td>
-                      <td className="px-4 py-3 text-right font-mono">{row.cost}</td>
-                      <td className="px-4 py-3 text-right font-mono text-xs">{row.tokens}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{row.reasoning}</td>
-                    </tr>
+                    <TableRow key={`${row.model}-${row.effort}-${row.route}`}>
+                      <TableCell className="px-4 py-3 font-medium">{row.model} <Badge variant="secondary" className="ml-2">{row.effort}</Badge></TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground">{row.route}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-mono">{row.solved}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-mono">{row.legal}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-mono">{row.cost}</TableCell>
+                      <TableCell className="px-4 py-3 text-right font-mono text-xs">{row.tokens}</TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground">{row.reasoning}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
           </CardContent>
         </Card>
         <Prose>

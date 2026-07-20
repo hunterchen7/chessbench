@@ -504,7 +504,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         <div className="mx-auto grid size-11 place-items-center rounded-full bg-secondary"><Gauge className="size-5 text-muted-foreground" /></div>
         <div className="mt-3 font-medium">No adaptive ratings have been published yet</div>
         <p className="mx-auto mt-1 max-w-lg text-sm text-muted-foreground">The calibrated 100,000-puzzle pool and runner are ready. Fixed-suite results remain available in the suite lab while the first canonical session is published.</p>
-      </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table className="min-w-[980px]">
+      </CardContent> : <TooltipProvider delayDuration={150}><div className="overflow-x-auto"><Table reorderableKey="adaptive-puzzle-leaderboard" className="min-w-[980px]">
         <TableHeader><TableRow>
           <TableHead className="w-14 text-center">#</TableHead>
           <SortableTableHead label={view === "model" ? "Model" : "Model configuration"} active={sort.key === "model"} direction={sort.direction} onSort={() => toggleSort("model")} />

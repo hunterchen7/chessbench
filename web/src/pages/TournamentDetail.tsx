@@ -176,7 +176,7 @@ export function TournamentDetail() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table reorderableKey="tournament-standings">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12 text-center">#</TableHead>
@@ -215,7 +215,7 @@ export function TournamentDetail() {
           <Input value={gameQuery} onChange={(event) => setGameQuery(event.target.value)} placeholder="Filter player or result…" className="w-56" />
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table reorderableKey="tournament-games">
             <TableHeader>
               <TableRow>
                 <SortableTableHead label="White" active={gameSort.key === "white"} direction={gameSort.direction} onSort={() => toggleGameSort("white")} />

@@ -131,7 +131,7 @@ export function RunComparison() {
       <Card className="overflow-hidden">
         <CardHeader><CardTitle className="text-base">Summary deltas</CardTitle><p className="text-xs text-muted-foreground">All percentages use the selected suite denominator. Positive cost deltas mean the run was more expensive than the baseline.</p></CardHeader>
         <CardContent className="overflow-x-auto p-0">
-          <Table className="min-w-[900px]"><TableHeader><TableRow><TableHead>Run</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader><TableBody>
+          <Table reorderableKey="run-comparison-summary" className="min-w-[900px]"><TableHeader><TableRow><TableHead>Run</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader><TableBody>
             {selectedEntries.map((entry, index) => {
               const currentRating = rating(entry)
               const pointsRate = entry.summary.points / Math.max(1, entry.summary.max_points)

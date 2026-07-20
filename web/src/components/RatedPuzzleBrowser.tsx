@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type UIEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode, type UIEvent } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Database, Gauge, RotateCcw } from "lucide-react"
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/data"
 import { humanStore } from "@/lib/human"
 import { formatRatingDeviation } from "@/lib/format"
+import { usePersistentColumnOrder } from "@/lib/usePersistentColumnOrder"
 import { useData } from "@/lib/useData"
 import { PuzzleNav } from "@/components/PuzzleNav"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +31,8 @@ const ROW_HEIGHT = 68
 const HEADER_HEIGHT = 44
 const OVERSCAN_ROWS = 8
 const INITIAL_SKELETON_ROWS = Array.from({ length: 5 }, (_, index) => index)
+const RATED_COLUMN_WIDTHS = ["72px", "minmax(160px,1fr)", "100px", "90px", "minmax(250px,1.5fr)", "110px", "100px", "90px"]
+const RATED_COLUMN_DRAG_TYPE = "application/x-chessbench-rated-column"
 const QUERY_PARAM_KEYS = ["sort", "direction", "tier", "theme", "id_prefix", "min_rating", "max_rating"]
 let sessionRatedPages = new Map<number, RatedPuzzlePage>()
 let sessionRatedPoolHash: string | null = null
@@ -91,30 +94,45 @@ function RatedSortHeader({
   label,
   value,
   query,
-  align = "left",
   onSort,
 }: {
   label: string
   value: RatedPuzzleSort
   query: RatedPuzzleQuery
-  align?: "left" | "right"
   onSort: (value: RatedPuzzleSort) => void
 }) {
   const active = query.sort === value
   const Icon = active ? query.direction === "asc" ? ArrowUp : ArrowDown : ArrowUpDown
-  return <div role="columnheader" aria-sort={active ? query.direction === "asc" ? "ascending" : "descending" : "none"} className={align === "right" ? "flex justify-end" : "pl-4"}><button type="button" onClick={() => onSort(value)} className="group inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60">{label}<Icon className={active ? "size-3.5 text-foreground" : "size-3.5 opacity-45 group-hover:opacity-90"} /></button></div>
+  return <button type="button" onClick={() => onSort(value)} className="group inline-flex min-h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60">{label}<Icon className={active ? "size-3.5 text-foreground" : "size-3.5 opacity-45 group-hover:opacity-90"} /></button>
 }
 
-function RatedPuzzleRowSkeleton() {
-  return <>
-    <div className="space-y-2 pl-4" role="cell"><Skeleton className="h-4 w-24" /><Skeleton className="h-2.5 w-16" /></div>
-    <div className="flex justify-end" role="cell"><Skeleton className="h-4 w-12" /></div>
-    <div className="flex justify-end" role="cell"><Skeleton className="h-3 w-9" /></div>
-    <div className="flex gap-2 pl-5" role="cell"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-16" /></div>
-    <div className="flex justify-end" role="cell"><Skeleton className="h-3 w-14" /></div>
-    <div className="flex justify-end" role="cell"><Skeleton className="h-3 w-10" /></div>
-    <div className="flex justify-center" role="cell"><Skeleton className="h-3 w-8" /></div>
-  </>
+function ReorderableGridHeader({ columnKey, order, move, className, ariaSort, children }: { columnKey: string; order: string[]; move: (source: string, target: string) => void; className?: string; ariaSort?: "ascending" | "descending" | "none"; children: ReactNode }) {
+  const moveByKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return
+    const index = order.indexOf(columnKey)
+    const target = order[index + (event.key === "ArrowLeft" ? -1 : 1)]
+    if (target == null) return
+    event.preventDefault()
+    move(columnKey, target)
+  }
+  return <div role="columnheader" aria-sort={ariaSort} draggable tabIndex={0} title="Drag to reorder column · Alt+Left/Right from the keyboard" className={`cursor-grab active:cursor-grabbing ${className ?? ""}`} onKeyDown={moveByKeyboard} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData(RATED_COLUMN_DRAG_TYPE, columnKey) }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move" }} onDrop={(event) => { event.preventDefault(); move(event.dataTransfer.getData(RATED_COLUMN_DRAG_TYPE), columnKey) }}>{children}</div>
+}
+
+function orderedCells(order: string[], cells: ReactNode[]) {
+  return order.map((key) => cells[Number(key)])
+}
+
+function ratedPuzzleSkeletonCells(index?: number) {
+  return [
+    <div key="index" className="flex justify-end" role="cell">{index == null ? <Skeleton className="h-3 w-5" /> : <span className="font-mono text-[11px] text-muted-foreground">{rowLabel(index)}</span>}</div>,
+    <div key="puzzle" className="space-y-2 pl-4" role="cell"><Skeleton className="h-4 w-24" /><Skeleton className="h-2.5 w-16" /></div>,
+    <div key="rating" className="flex justify-end" role="cell"><Skeleton className="h-4 w-12" /></div>,
+    <div key="rd" className="flex justify-end" role="cell"><Skeleton className="h-3 w-9" /></div>,
+    <div key="themes" className="flex gap-2 pl-5" role="cell"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-16" /></div>,
+    <div key="plays" className="flex justify-end" role="cell"><Skeleton className="h-3 w-14" /></div>,
+    <div key="popularity" className="flex justify-end" role="cell"><Skeleton className="h-3 w-10" /></div>,
+    <div key="you" className="flex justify-center" role="cell"><Skeleton className="h-3 w-8" /></div>,
+  ]
 }
 
 export function RatedPuzzleBrowser() {
@@ -138,6 +156,7 @@ export function RatedPuzzleBrowser() {
   const [pageInput, setPageInput] = useState("1")
   const [draft, setDraft] = useState<FilterDraft>(() => filterDraft(query))
   const [filterError, setFilterError] = useState<string | null>(null)
+  const { order: ratedColumnOrder, move: moveRatedColumn } = usePersistentColumnOrder("rated-puzzle-browser", RATED_COLUMN_WIDTHS.length)
   const pageMetadata = pages.get(1) ?? pages.values().next().value
   const pool = pageMetadata?.pool
   const transportTotalItems = pageMetadata?.pagination.total_items ?? pool?.items ?? 0
@@ -340,6 +359,18 @@ export function RatedPuzzleBrowser() {
       : sort === "plays" || sort === "popularity" ? "desc" : "asc"
     changeQuery({ ...query, sort, direction })
   }
+  const ratedGridTemplate = ratedColumnOrder.map((key) => RATED_COLUMN_WIDTHS[Number(key)]).join(" ")
+  const ariaSortFor = (sort: RatedPuzzleSort) => query.sort === sort ? query.direction === "asc" ? "ascending" as const : "descending" as const : "none" as const
+  const headerCells = [
+    <ReorderableGridHeader key="index" columnKey="0" order={ratedColumnOrder} move={moveRatedColumn} className="text-right">#</ReorderableGridHeader>,
+    <ReorderableGridHeader key="puzzle" columnKey="1" order={ratedColumnOrder} move={moveRatedColumn} className="pl-4" ariaSort={ariaSortFor("puzzle_id")}><RatedSortHeader label="Puzzle" value="puzzle_id" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="rating" columnKey="2" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("rating")}><RatedSortHeader label="Rating" value="rating" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="rd" columnKey="3" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("rating_deviation")}><RatedSortHeader label="RD" value="rating_deviation" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="themes" columnKey="4" order={ratedColumnOrder} move={moveRatedColumn} className="pl-5">Themes</ReorderableGridHeader>,
+    <ReorderableGridHeader key="plays" columnKey="5" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("plays")}><RatedSortHeader label="Lichess plays" value="plays" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="popularity" columnKey="6" order={ratedColumnOrder} move={moveRatedColumn} className="flex justify-end" ariaSort={ariaSortFor("popularity")}><RatedSortHeader label="Popularity" value="popularity" query={query} onSort={toggleSort} /></ReorderableGridHeader>,
+    <ReorderableGridHeader key="you" columnKey="7" order={ratedColumnOrder} move={moveRatedColumn} className="text-center">You</ReorderableGridHeader>,
+  ]
 
   if (!apiBase) return <Card className="border-dashed"><CardContent className="py-16 text-center"><Database className="mx-auto size-8 text-muted-foreground" /><h1 className="mt-4 text-xl font-semibold">Rated pool unavailable offline</h1><p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">The full rated pool is available through the live ChessBench API and is not bundled into the static site.</p></CardContent></Card>
 
@@ -386,28 +417,25 @@ export function RatedPuzzleBrowser() {
 
       <div ref={viewportRef} onScroll={onScroll} className="h-[min(70vh,760px)] min-h-[420px] overflow-auto" aria-label="Rated puzzle pool">
         <div className="relative min-w-[1080px]" style={{ height: totalItems ? HEADER_HEIGHT + totalItems * ROW_HEIGHT : 420 }} role="table" aria-rowcount={pageMetadata ? totalItems + 1 : undefined}>
-          <div className="sticky top-0 z-20 grid h-11 grid-cols-[72px_minmax(160px,1fr)_100px_90px_minmax(250px,1.5fr)_110px_100px_90px] items-center border-b bg-card/95 px-3 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur" role="row">
-            <div className="text-right" role="columnheader">#</div><RatedSortHeader label="Puzzle" value="puzzle_id" query={query} onSort={toggleSort} /><RatedSortHeader label="Rating" value="rating" query={query} align="right" onSort={toggleSort} /><RatedSortHeader label="RD" value="rating_deviation" query={query} align="right" onSort={toggleSort} /><div className="pl-5" role="columnheader">Themes</div><RatedSortHeader label="Lichess plays" value="plays" query={query} align="right" onSort={toggleSort} /><RatedSortHeader label="Popularity" value="popularity" query={query} align="right" onSort={toggleSort} /><div className="text-center" role="columnheader">You</div>
-          </div>
+          <div className="sticky top-0 z-20 grid h-11 items-center border-b bg-card/95 px-3 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur" style={{ gridTemplateColumns: ratedGridTemplate }} role="row">{orderedCells(ratedColumnOrder, headerCells)}</div>
           {visibleIndices.map((index) => {
             const pageNumber = pageForIndex(index)
             const page = pages.get(pageNumber)
             const puzzle = localPuzzles?.[index] ?? (isCanonicalQuery ? page?.puzzles[index % PAGE_SIZE] : undefined)
             const failed = failedPages.has(pageNumber)
-            return <div key={index} className="absolute left-0 grid w-full grid-cols-[72px_minmax(160px,1fr)_100px_90px_minmax(250px,1.5fr)_110px_100px_90px] items-center border-b px-3 text-sm" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)` }} role="row" aria-rowindex={index + 2}>
-              <div className="text-right font-mono text-[11px] text-muted-foreground" role="cell">{rowLabel(index)}</div>
-              {puzzle ? <>
-                <div className="min-w-0 pl-4" role="cell"><Link to={ratedPuzzleHref(puzzle.puzzle_id, index, query)} className="font-mono font-medium hover:underline">{puzzle.puzzle_id}</Link><div className="mt-1 truncate text-[10px] capitalize text-muted-foreground">{puzzle.categories?.tier?.[0] ?? "calibrated"}</div></div>
-                <div className="text-right font-mono font-semibold tabular-nums" role="cell">{puzzle.rating.toLocaleString()}</div>
-                <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">±{formatRatingDeviation(puzzle.rating_deviation)}</div>
-                <div className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{(puzzle.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>
-                <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{(puzzle.plays ?? 0).toLocaleString()}</div>
-                <div className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{puzzle.popularity ?? "—"}</div>
-                <div className="text-center text-xs text-muted-foreground" role="cell">{store[puzzle.puzzle_id]?.solved ? "solved" : store[puzzle.puzzle_id] ? "retry" : "—"}</div>
-              </> : failed ? <div className="col-span-7 pl-4" role="cell"><button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button></div> : <RatedPuzzleRowSkeleton />}
-            </div>
+            const cells = puzzle ? [
+              <div key="index" className="text-right font-mono text-[11px] text-muted-foreground" role="cell">{rowLabel(index)}</div>,
+              <div key="puzzle" className="min-w-0 pl-4" role="cell"><Link to={ratedPuzzleHref(puzzle.puzzle_id, index, query)} className="font-mono font-medium hover:underline">{puzzle.puzzle_id}</Link><div className="mt-1 truncate text-[10px] capitalize text-muted-foreground">{puzzle.categories?.tier?.[0] ?? "calibrated"}</div></div>,
+              <div key="rating" className="text-right font-mono font-semibold tabular-nums" role="cell">{puzzle.rating.toLocaleString()}</div>,
+              <div key="rd" className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">±{formatRatingDeviation(puzzle.rating_deviation)}</div>,
+              <div key="themes" className="flex min-w-0 gap-1 overflow-hidden pl-5" role="cell">{(puzzle.themes ?? []).slice(0, 4).map((theme) => <Badge key={theme} variant="outline" className="shrink-0 text-[10px] font-normal">{theme}</Badge>)}</div>,
+              <div key="plays" className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{(puzzle.plays ?? 0).toLocaleString()}</div>,
+              <div key="popularity" className="text-right font-mono text-xs tabular-nums text-muted-foreground" role="cell">{puzzle.popularity ?? "—"}</div>,
+              <div key="you" className="text-center text-xs text-muted-foreground" role="cell">{store[puzzle.puzzle_id]?.solved ? "solved" : store[puzzle.puzzle_id] ? "retry" : "—"}</div>,
+            ] : ratedPuzzleSkeletonCells(index)
+            return <div key={index} className="absolute left-0 grid w-full items-center border-b px-3 text-sm" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-rowindex={index + 2}>{failed ? <div className="col-span-full pl-4" role="cell"><button type="button" className="text-xs text-destructive underline underline-offset-4" onClick={() => loadPage(pageNumber)}>Page failed · retry</button></div> : orderedCells(ratedColumnOrder, cells)}</div>
           })}
-          {(!pageMetadata || waitingForLocalView) && !failedPages.size ? INITIAL_SKELETON_ROWS.map((index) => <div key={index} className="absolute left-0 grid w-full grid-cols-[72px_minmax(160px,1fr)_100px_90px_minmax(250px,1.5fr)_110px_100px_90px] items-center border-b px-3" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)` }} role="row" aria-hidden="true"><div className="flex justify-end" role="cell"><Skeleton className="h-3 w-5" /></div><RatedPuzzleRowSkeleton /></div>) : null}
+          {(!pageMetadata || waitingForLocalView) && !failedPages.size ? INITIAL_SKELETON_ROWS.map((index) => <div key={index} className="absolute left-0 grid w-full items-center border-b px-3" style={{ height: ROW_HEIGHT, transform: `translateY(${HEADER_HEIGHT + index * ROW_HEIGHT}px)`, gridTemplateColumns: ratedGridTemplate }} role="row" aria-hidden="true">{orderedCells(ratedColumnOrder, ratedPuzzleSkeletonCells())}</div>) : null}
           {waitingForLocalView && failedPages.size ? <div className="absolute inset-x-0 top-11 grid h-[376px] place-items-center text-center"><div><div className="font-medium text-destructive">Some puzzle pages could not be loaded</div><Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => failedPages.forEach(loadPage)}>Retry</Button></div></div> : null}
           {pageMetadata && localPuzzles && !totalItems ? <div className="absolute inset-x-0 top-11 grid h-[376px] place-items-center text-center"><div><div className="font-medium">No puzzles match those filters</div><Button type="button" variant="ghost" size="sm" className="mt-2" onClick={clearFilters}>Clear filters</Button></div></div> : null}
         </div>

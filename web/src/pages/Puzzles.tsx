@@ -148,7 +148,7 @@ function FixedPuzzleBrowser() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table reorderableKey="puzzle-browser">
             <TableHeader>
               <TableRow>
                 <SortableTableHead label="Puzzle" active={sort.key === "puzzle"} direction={sort.direction} onSort={() => toggleSort("puzzle")} />

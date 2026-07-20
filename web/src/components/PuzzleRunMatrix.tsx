@@ -218,7 +218,7 @@ export function PuzzleRunMatrix({
                       <div className="border-t bg-muted/15 px-4 py-5">
                         <div className="mb-4"><div className="text-sm font-semibold">Published runs</div><div className="mt-0.5 text-xs text-muted-foreground">Each row is a distinct prompt method and response protocol. Open one for its full result, or select two to four for a synchronized comparison.</div></div>
                         <div className="overflow-hidden rounded-lg border bg-background">
-                          <Table>
+                          <Table reorderableKey="published-puzzle-runs">
                             <TableHeader><TableRow>
                               {onComparisonRunIdsChange ? <TableHead className="w-14 text-center">Compare</TableHead> : null}
                               <TableHead>Method</TableHead><TableHead>Response</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead><TableHead className="text-right">Completed</TableHead>

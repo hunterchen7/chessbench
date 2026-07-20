@@ -75,7 +75,7 @@ export function HumanTrainingLeaderboard() {
       <CardContent>
         {rows == null ? <div className="space-y-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div> : rows.length ? (
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table reorderableKey="human-training-leaderboard">
               <TableHeader><TableRow><TableHead className="w-14 text-right">#</TableHead><TableHead>Username</TableHead><TableHead className="text-right">Seed</TableHead><TableHead className="text-right">Rating</TableHead><TableHead className="text-right">RD</TableHead><TableHead className="text-right">Record</TableHead><TableHead className="text-right">Accuracy</TableHead></TableRow></TableHeader>
               <TableBody>{visibleRows.map((row) => <TableRow key={row.handle} className={row.me ? "bg-emerald-500/[0.06]" : undefined}>
                 <TableCell className="text-right font-mono text-xs text-muted-foreground">{row.rank}</TableCell>

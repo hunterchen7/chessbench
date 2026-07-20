@@ -94,7 +94,7 @@ export function Esoteric() {
           <CardTitle className="text-base">Who solves the weird ones</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table reorderableKey="esoteric-leaderboard">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12 text-center">#</TableHead>
@@ -156,7 +156,7 @@ export function Esoteric() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
+          <Table reorderableKey="esoteric-problems">
             <TableHeader>
               <TableRow>
                 <TableHead>Problem</TableHead>

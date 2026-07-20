@@ -13,6 +13,7 @@ export function SortableTableHead({
   onSort,
   className,
   suffix,
+  columnKey,
 }: {
   label: string
   active: boolean
@@ -21,11 +22,13 @@ export function SortableTableHead({
   onSort: () => void
   className?: string
   suffix?: ReactNode
+  columnKey?: string
 }) {
   const Icon = active ? direction === "asc" ? ArrowUp : ArrowDown : ArrowUpDown
   return (
     <TableHead
       aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}
+      columnKey={columnKey}
       className={cn(align === "right" && "text-right", align === "center" && "text-center", className)}
     >
       <span className={cn("flex items-center gap-0.5", align === "right" && "justify-end", align === "center" && "justify-center")}>
