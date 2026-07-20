@@ -1,6 +1,6 @@
-import { memo, useEffect, useMemo, useState, type KeyboardEvent } from "react"
+import { memo, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react"
 import { useNavigate } from "react-router-dom"
-import { CircleDollarSign } from "lucide-react"
+import { Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
@@ -8,6 +8,9 @@ import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib
 import { useData } from "@/lib/useData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 
 const WIDTH = 1000
 const HEIGHT = 420
@@ -16,7 +19,7 @@ const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const HUMAN_HOURLY_RATE = 50
 const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
-const HUMAN_LABEL = "hunter"
+const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
 const MODEL_COLORS = [
   "#059669", "#7c3aed", "#0284c7", "#ea580c", "#e11d48",
@@ -72,12 +75,16 @@ function isHumanPoint(point: ChartPoint): point is HumanCostPerformancePoint {
   return "kind" in point && point.kind === "human"
 }
 
+function modelPointReasoningEffort(point: CostPerformancePoint) {
+  const variant = point.representative.model_variant
+  const configured = reasoningConfigurationEffort(variant)
+  const resolved = configured === "provider" ? effectiveReasoningEffort(variant) : configured
+  return resolved === "provider" ? "none" : resolved
+}
+
 function pointLabelParts(point: ChartPoint) {
   if (isHumanPoint(point)) return { firstLine: HUMAN_LABEL, secondModel: "", effort: "", effortLabel: "" }
-  const variant = point.representative.model_variant
-  const configuredEffort = reasoningConfigurationEffort(variant)
-  const resolvedEffort = configuredEffort === "provider" ? effectiveReasoningEffort(variant) : configuredEffort
-  const effort = resolvedEffort === "provider" ? "none" : resolvedEffort
+  const effort = modelPointReasoningEffort(point)
   const effortLabel = compactReasoningLabel(effort)
   const model = point.representative.model_variant.display_name
   if (model.length <= 15) return { firstLine: model, secondModel: "", effort, effortLabel }
@@ -381,12 +388,13 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   })
 }
 
-const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
+const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, showLabels }: {
   plotted: PlottedPoint[]
   xTicks: number[]
   yTicks: number[]
   x: (value: number) => number
   y: (value: number) => number
+  showLabels: boolean
 }) {
   return <>
     {xTicks.map((value) => <g key={`x-${value}`}>
@@ -407,7 +415,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
       <line x1={entry.x - 4} y1={entry.errorBottom} x2={entry.x + 4} y2={entry.errorBottom} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
       <circle cx={entry.x} cy={entry.y} r="4.75" fill={entry.color} className="stroke-background" strokeWidth="1.75" vectorEffect="non-scaling-stroke" />
     </g>)}
-    {plotted.map((entry) => {
+    {showLabels ? plotted.map((entry) => {
       const box = labelBox(labelWidth(entry), entry.labelX, entry.labelY)
       const minimumLineY = y(MINIMUM_RATING)
       if (box.top > minimumLineY + 2 || box.bottom < minimumLineY - 2) return null
@@ -422,8 +430,8 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
         opacity="0.96"
         style={{ filter: "drop-shadow(0 1px 2px rgb(0 0 0 / 0.16))" }}
       />
-    })}
-    {plotted.map((entry) => {
+    }) : null}
+    {showLabels ? plotted.map((entry) => {
       if (!labelNeedsLeader(entry, entry.labelX, entry.labelY)) return null
       const leader = labelLeader(entry, entry.labelX, entry.labelY)
       return <line
@@ -438,8 +446,8 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
         opacity="0.4"
         vectorEffect="non-scaling-stroke"
       />
-    })}
-    {plotted.map((entry) => {
+    }) : null}
+    {showLabels ? plotted.map((entry) => {
       const label = pointLabelParts(entry.point)
       if (isHumanPoint(entry.point)) return <text
         key={`label-${entry.point.key}`}
@@ -463,7 +471,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y }: {
           <tspan className={REASONING_TEXT_CLASSES[label.effort] ?? REASONING_TEXT_CLASSES.provider}>{label.effortLabel}</tspan>
         </tspan>
       </text>
-    })}
+    }) : null}
   </>
 })
 
@@ -482,7 +490,7 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
     </dl>
     <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the saved human run.</div>
   </div>
-  const effort = reasoningEffortLabel(reasoningConfigurationEffort(entry.point.representative.model_variant))
+  const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
   return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -504,8 +512,15 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
 export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggregate[] }) {
   const navigate = useNavigate()
   const { apiBase } = useData()
+  const plotContainerRef = useRef<HTMLDivElement>(null)
   const [activeKey, setActiveKey] = useState<string | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfile, setHumanProfile] = useState<HumanTrainingProfile | null>(null)
+  const [modelSearch, setModelSearch] = useState("")
+  const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set())
+  const [showHuman, setShowHuman] = useState(true)
+  const [showLabels, setShowLabels] = useState(true)
+  const [showLegend, setShowLegend] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -516,10 +531,41 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     return () => { active = false }
   }, [apiBase])
 
-  const chart = useMemo(() => {
-    const modelPoints = costPerformancePoints(aggregates)
+  const allModelPoints = useMemo(() => costPerformancePoints(aggregates), [aggregates])
+  const allModelKeys = useMemo(
+    () => Array.from(new Set(allModelPoints.map((point) => point.representative.model_variant.base_key))).toSorted(),
+    [allModelPoints],
+  )
+  const colorByModel = useMemo(
+    () => new Map(allModelKeys.map((key, index) => [key, MODEL_COLORS[index % MODEL_COLORS.length]])),
+    [allModelKeys],
+  )
+  const reasoningOptions = useMemo(() => {
+    const order = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget"]
+    return Array.from(new Set(allModelPoints.map(modelPointReasoningEffort))).toSorted((a, b) => {
+      const aIndex = order.indexOf(a)
+      const bIndex = order.indexOf(b)
+      return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex)
+    })
+  }, [allModelPoints])
+  const modelPoints = useMemo(() => {
+    const query = modelSearch.trim().toLowerCase()
+    return allModelPoints.filter((point) => {
+      const variant = point.representative.model_variant
+      const matchesName = !query || [variant.display_name, variant.model_id, variant.base_key]
+        .some((value) => value.toLowerCase().includes(query))
+      const matchesReasoning = reasoningFilters.size === 0 || reasoningFilters.has(modelPointReasoningEffort(point))
+      return matchesName && matchesReasoning
+    })
+  }, [allModelPoints, modelSearch, reasoningFilters])
+  const visibleModelLegend = useMemo(() => Array.from(new Map(modelPoints.map((point) => {
+    const variant = point.representative.model_variant
+    return [variant.base_key, { key: variant.base_key, label: variant.display_name, color: colorByModel.get(variant.base_key) ?? MODEL_COLORS[0] }]
+  })).values()), [colorByModel, modelPoints])
+
+  const humanPoint = useMemo((): HumanCostPerformancePoint | null => {
     const activeDurationMs = humanProfile?.session.active_duration_ms ?? 0
-    const humanPoint: HumanCostPerformancePoint | null = humanProfile && humanProfile.attempts > 0 && activeDurationMs > 0
+    return humanProfile && humanProfile.attempts > 0 && activeDurationMs > 0
       ? {
         kind: "human",
         key: `human:${humanProfile.run_id}`,
@@ -533,7 +579,10 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         runCount: 1,
       }
       : null
-    const points: ChartPoint[] = humanPoint ? [...modelPoints, humanPoint] : modelPoints
+  }, [humanProfile])
+
+  const chart = useMemo(() => {
+    const points: ChartPoint[] = showHuman && humanPoint ? [...modelPoints, humanPoint] : modelPoints
     if (points.length === 0) return null
 
     const logCosts = points.map((point) => Math.log10(point.costPerPuzzle * NORMALIZED_PUZZLES))
@@ -549,11 +598,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const ratingMax = Math.max(ratingMin + step, Math.ceil(rawRatingMax / step) * step)
     const plotWidth = WIDTH - PLOT.left - PLOT.right
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom
-    const modelKeys = Array.from(new Set(modelPoints.map((point) => point.representative.model_variant.base_key))).toSorted()
-    const colorByModel = new Map(modelKeys.map((key, index) => [key, MODEL_COLORS[index % MODEL_COLORS.length]]))
     const x = (value: number) => PLOT.left + (Math.log10(value) - logMin) / (logMax - logMin) * plotWidth
     const y = (value: number) => PLOT.top + (ratingMax - value) / (ratingMax - ratingMin) * plotHeight
-    const plotted = placeLabels(points.map((point) => ({
+    const rawPlotted = points.map((point) => ({
       point,
       x: x(point.costPerPuzzle * NORMALIZED_PUZZLES),
       y: y(point.rating),
@@ -564,7 +611,8 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         : colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
       labelX: 0,
       labelY: 0,
-    })), y(MINIMUM_RATING))
+    }))
+    const plotted = showLabels ? placeLabels(rawPlotted, y(MINIMUM_RATING)) : rawPlotted
     const yTicks: number[] = []
     for (let value = ratingMin; value <= ratingMax + step / 2; value += step) yTicks.push(value)
     return {
@@ -576,10 +624,34 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       xTicks: logTicks(10 ** logMin, 10 ** logMax),
       yTicks,
     }
-  }, [aggregates, humanProfile])
+  }, [colorByModel, humanPoint, modelPoints, showHuman, showLabels])
 
-  if (!chart) return null
-  const active = chart.plotted.find((entry) => entry.point.key === activeKey) ?? null
+  if (allModelPoints.length === 0 && !humanPoint) return null
+  const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
+  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || !showHuman
+  const positionTooltip = (event: ReactPointerEvent<SVGGElement>) => {
+    const container = plotContainerRef.current
+    if (!container) return
+    const bounds = container.getBoundingClientRect()
+    setTooltipPosition({ x: event.clientX - bounds.left, y: event.clientY - bounds.top })
+  }
+  const positionTooltipAtPoint = (entry: PlottedPoint) => {
+    const container = plotContainerRef.current
+    if (!container) return
+    const svg = container.querySelector("svg")
+    if (!svg) return
+    const containerBounds = container.getBoundingClientRect()
+    const svgBounds = svg.getBoundingClientRect()
+    setTooltipPosition({
+      x: svgBounds.left - containerBounds.left + entry.x / WIDTH * svgBounds.width,
+      y: svgBounds.top - containerBounds.top + entry.y / HEIGHT * svgBounds.height,
+    })
+  }
+  const clearFilters = () => {
+    setModelSearch("")
+    setReasoningFilters(new Set())
+    setShowHuman(true)
+  }
   const inspect = (event: KeyboardEvent<SVGGElement>, entry: PlottedPoint) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
@@ -588,20 +660,43 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   }
 
   return <Card className="overflow-hidden border-border/70">
-    <CardHeader className="gap-3 border-b sm:flex sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
-        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
+    <CardHeader className="gap-3 border-b">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
+        </div>
+        <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allModelPoints.length ? ` of ${allModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
-        <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{chart.modelPointCount} settled configuration{chart.modelPointCount === 1 ? "" : "s"}</Badge>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1 sm:max-w-72">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input value={modelSearch} onChange={(event) => setModelSearch(event.target.value)} placeholder="Filter model name…" className="h-8 pl-8 text-xs" aria-label="Filter chart by model name" />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs"><ListFilter className="size-3.5" />{reasoningFilters.size === 0 ? "All reasoning" : `${reasoningFilters.size} reasoning`}<ChevronDown className="size-3" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-48">
+            <DropdownMenuCheckboxItem checked={reasoningFilters.size === 0} onSelect={(event) => event.preventDefault()} onCheckedChange={() => setReasoningFilters(new Set())} className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent"><DropdownMenuItemIndicator className="absolute left-2"><Check className="size-4" /></DropdownMenuItemIndicator>All reasoning</DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            {reasoningOptions.map((effort) => <DropdownMenuCheckboxItem key={effort} checked={reasoningFilters.has(effort)} onSelect={(event) => event.preventDefault()} onCheckedChange={() => setReasoningFilters((current) => {
+              const next = new Set(current)
+              if (next.has(effort)) next.delete(effort)
+              else next.add(effort)
+              return next
+            })} className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent"><DropdownMenuItemIndicator className="absolute left-2"><Check className="size-4" /></DropdownMenuItemIndicator>{reasoningEffortLabel(effort)}</DropdownMenuCheckboxItem>)}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button>
+        <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
+        <Button variant={showLegend ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLegend} onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend</Button>
+        <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
-      <div className="overflow-x-auto">
-        <div className="relative min-w-[720px]">
+      {chart ? <><div className="overflow-x-auto">
+        <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
-            <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} />
+            <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
             {chart.plotted.map((entry) => <g
@@ -610,10 +705,11 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               tabIndex={0}
               aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
               className="cursor-pointer outline-none"
-              onPointerEnter={() => setActiveKey(entry.point.key)}
-              onPointerLeave={() => setActiveKey((current) => current === entry.point.key ? null : current)}
-              onFocus={() => setActiveKey(entry.point.key)}
-              onBlur={() => setActiveKey((current) => current === entry.point.key ? null : current)}
+              onPointerEnter={(event) => { setActiveKey(entry.point.key); positionTooltip(event) }}
+              onPointerMove={positionTooltip}
+              onPointerLeave={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
+              onFocus={() => { setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
+              onBlur={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
               onClick={() => navigate(runPath(entry.point))}
               onKeyDown={(event) => inspect(event, entry)}
             >
@@ -622,18 +718,25 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
             </g>)}
           </svg>
-          {active ? <div
+          {active && tooltipPosition ? <div
             className="pointer-events-none absolute z-20"
             style={{
-              left: active.x <= WIDTH / 2 ? `${active.x / WIDTH * 100}%` : undefined,
-              right: active.x > WIDTH / 2 ? `${(WIDTH - active.x) / WIDTH * 100}%` : undefined,
-              top: `${Math.max(20, Math.min(80, active.y / HEIGHT * 100))}%`,
-              transform: active.x <= WIDTH / 2 ? "translate(18px, -50%)" : "translate(-18px, -50%)",
+              left: Math.max(8, Math.min(tooltipPosition.x + (tooltipPosition.x > (plotContainerRef.current?.clientWidth ?? 0) - 290 ? -272 : 14), (plotContainerRef.current?.clientWidth ?? 0) - 264)),
+              top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 264)),
             }}
-          ><div style={{ transform: active.x > WIDTH / 2 ? "translateX(-100%)" : undefined }}><Inspector entry={active} /></div></div> : null}
+          ><Inspector entry={active} /></div> : null}
         </div>
       </div>
+      {showLegend ? <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-muted/25 px-3 py-2 text-[10px] text-muted-foreground">
+        <span className="font-semibold uppercase tracking-wider">Models</span>
+        {visibleModelLegend.map((entry) => <span key={entry.key} className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}</span>)}
+        {showHuman && humanPoint ? <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: HUMAN_COLOR }} />hunter (me)</span> : null}
+        <span className="mx-1 h-3 w-px bg-border" />
+        <span className="font-semibold uppercase tracking-wider">Reasoning</span>
+        {reasoningOptions.map((effort) => <span key={effort} className="inline-flex items-center gap-1.5"><span className={`font-semibold ${effort === "none" ? "text-slate-600 dark:text-slate-300" : effort === "minimal" ? "text-sky-600 dark:text-sky-300" : effort === "low" ? "text-cyan-600 dark:text-cyan-300" : effort === "medium" ? "text-emerald-600 dark:text-emerald-300" : effort === "high" ? "text-amber-600 dark:text-amber-300" : effort === "xhigh" ? "text-orange-600 dark:text-orange-300" : effort === "max" ? "text-rose-600 dark:text-rose-300" : "text-violet-600 dark:text-violet-300"}`}>Aa</span>{reasoningEffortLabel(effort)}</span>)}
+      </div> : null}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
+      </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
   </Card>
 }
