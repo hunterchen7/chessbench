@@ -364,6 +364,20 @@ TARGETS = (
             "--request-timeout", "900", "--live-sync-every", "5",
         ),
     ),
+    Target(
+        "qwen3-8b-high-seed-0",
+        "e483873d98fa447c93a2f95dfc14f7bb",
+        600,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "qwen3-8b", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "alibaba", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "600",
+            "--live-sync-every", "5",
+        ),
+    ),
 )
 
 
