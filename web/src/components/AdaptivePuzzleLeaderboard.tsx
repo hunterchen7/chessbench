@@ -5,6 +5,7 @@ import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregates"
 import { isModelVariant } from "@/lib/participants"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ModelName } from "@/components/ModelMakerLogo"
 import { SortableTableHead, type SortDirection } from "@/components/SortableTableHead"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -221,7 +222,7 @@ function ModelGroupIdentity({ group }: { group: RatedModelGroup }) {
   const variant = group.representative.representative.model_variant
   const efforts = Array.from(new Set(group.configurations.map((aggregate) => reasoningEffort(aggregate.representative))))
   return <div className="min-w-0">
-    <div className="truncate font-medium">{variant.display_name}</div>
+    <ModelName variant={variant} className="font-medium" />
     <div className="mt-1 flex flex-wrap items-center gap-1.5">
       <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">{variant.provider}</Badge>
       <span className="text-[10px] text-muted-foreground">

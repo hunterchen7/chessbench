@@ -3,6 +3,7 @@ import type { ModelVariant } from "@/lib/data"
 import { Badge } from "@/components/ui/badge"
 import { reasoningConfigurationEffort, reasoningLabel, reasoningTitle } from "@/lib/modelReasoning"
 import { participantKind } from "@/lib/participants"
+import { ModelName } from "@/components/ModelMakerLogo"
 
 const REASONING_BADGE_CLASSES: Record<string, string> = {
   none: "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300",
@@ -20,7 +21,7 @@ export function ModelIdentity({ variant, compact = false }: { variant: ModelVari
   const kind = participantKind(`${variant.key} ${variant.model_id} ${variant.display_name}`, variant.provider)
   return (
     <div className="min-w-0">
-      <div className="truncate font-medium">{variant.display_name}</div>
+      <ModelName variant={variant} className="font-medium" />
       <div className="mt-1 flex flex-wrap items-center gap-1.5">
         <Badge variant="outline" className="h-5 border-border/70 px-1.5 text-[10px] font-normal uppercase tracking-wide">
           {variant.provider}
