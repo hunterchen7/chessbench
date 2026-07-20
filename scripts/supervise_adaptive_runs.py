@@ -287,6 +287,20 @@ TARGETS = (
         ),
     ),
     Target(
+        "mercury-2-high-seed-0",
+        "24dbce2a46164420a3c03c9a7d301a30",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "mercury-2", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "inception", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "900",
+            "--live-sync-every", "5",
+        ),
+    ),
+    Target(
         "gpt-5-6-terra-seed-1",
         "a9cce923213142c59867fa5a7554b5cc",
         900,
