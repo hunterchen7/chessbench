@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Gauge, Layers3, List, Play, Search, ShieldCheck, Target } from "lucide-react"
+import { Activity, ArrowRight, Check, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CircleHelp, Eye, EyeOff, Gauge, Layers3, List, Play, Search, ShieldCheck, Target } from "lucide-react"
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
 import { aggregateRatedRuns, type RatedRunAggregate } from "@/lib/ratedAggregates"
 import { isModelVariant } from "@/lib/participants"
@@ -73,6 +73,8 @@ interface RatedModelGroup {
 
 const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
 const LEADERBOARD_VIEW_STORAGE_KEY = "chessbench.puzzle-leaderboard-view.v1"
+const HIDDEN_MODELS_STORAGE_KEY = "chessbench.hidden-puzzle-leaderboard-models.v1"
+const HIDDEN_MODEL_ROW_CLASS = "!bg-muted/70 text-muted-foreground grayscale hover:!bg-muted/85 focus-visible:!bg-muted/85"
 
 function savedLeaderboardView(): LeaderboardView {
   try {
@@ -80,6 +82,15 @@ function savedLeaderboardView(): LeaderboardView {
     return saved === "configuration" || saved === "model" ? saved : "model"
   } catch {
     return "model"
+  }
+}
+
+function savedHiddenModelKeys() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HIDDEN_MODELS_STORAGE_KEY) ?? "[]")
+    return new Set(Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : [])
+  } catch {
+    return new Set<string>()
   }
 }
 
@@ -232,6 +243,27 @@ function ModelGroupIdentity({ group }: { group: RatedModelGroup }) {
   </div>
 }
 
+function ModelVisibilityButton({ hidden, modelName, onToggle }: { hidden: boolean; modelName: string; onToggle: () => void }) {
+  const label = hidden ? `Restore ${modelName} to the leaderboard` : `Move ${modelName} to hidden models`
+  return <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        className={cn("shrink-0 text-muted-foreground hover:text-foreground", hidden && "bg-background/80 text-foreground shadow-xs")}
+        aria-label={label}
+        aria-pressed={hidden}
+        onClick={(event) => { event.stopPropagation(); onToggle() }}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        {hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent side="left">{hidden ? "Restore model" : "Hide model"}</TooltipContent>
+  </Tooltip>
+}
+
 function AnimatedDetailCell({
   open,
   className,
@@ -265,6 +297,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => new Set())
   const [expandedModelKeys, setExpandedModelKeys] = useState<Set<string>>(() => new Set())
   const [expandedConfigurationKeys, setExpandedConfigurationKeys] = useState<Set<string>>(() => new Set())
+  const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(savedHiddenModelKeys)
   const [sort, setSort] = useState<{ key: RatingSortKey; direction: SortDirection }>({ key: "rating", direction: "desc" })
   useEffect(() => {
     try {
@@ -273,6 +306,13 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       // Private browsing or storage policy can make persistence unavailable.
     }
   }, [view])
+  useEffect(() => {
+    try {
+      localStorage.setItem(HIDDEN_MODELS_STORAGE_KEY, JSON.stringify(Array.from(hiddenModelKeys)))
+    } catch {
+      // Private browsing or storage policy can make persistence unavailable.
+    }
+  }, [hiddenModelKeys])
   const ratedRuns = useMemo(() => runs.filter(isRated), [runs])
   const aggregates = useMemo(() => aggregateRatedRuns(ratedRuns), [ratedRuns])
   const modelGroups = useMemo(() => groupRatedModels(aggregates), [aggregates])
@@ -304,14 +344,16 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       return aggregateStatusRank(aggregate)
     }
     return filteredAggregates.toSorted((a, b) => {
+      const hiddenComparison = Number(hiddenModelKeys.has(a.representative.model_variant.base_key)) - Number(hiddenModelKeys.has(b.representative.model_variant.base_key))
       const aValue = value(a)
       const bValue = value(b)
       const comparison = typeof aValue === "string" && typeof bValue === "string" ? aValue.localeCompare(bValue) : Number(aValue) - Number(bValue)
-      return comparison * (sort.direction === "asc" ? 1 : -1)
+      return hiddenComparison
+        || comparison * (sort.direction === "asc" ? 1 : -1)
         || (b.meanRating ?? -Infinity) - (a.meanRating ?? -Infinity)
         || a.representative.model_variant.display_name.localeCompare(b.representative.model_variant.display_name)
     })
-  }, [filteredAggregates, sort])
+  }, [filteredAggregates, hiddenModelKeys, sort])
   const visibleModelGroups = useMemo(() => {
     const groups = groupRatedModels(filteredAggregates).map((group) => ({
       ...group,
@@ -333,14 +375,16 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
       return modelGroupStatusRank(group)
     }
     return groups.toSorted((a, b) => {
+      const hiddenComparison = Number(hiddenModelKeys.has(a.representative.representative.model_variant.base_key)) - Number(hiddenModelKeys.has(b.representative.representative.model_variant.base_key))
       const aValue = value(a)
       const bValue = value(b)
       const comparison = typeof aValue === "string" && typeof bValue === "string" ? aValue.localeCompare(bValue) : Number(aValue) - Number(bValue)
-      return comparison * (sort.direction === "asc" ? 1 : -1)
+      return hiddenComparison
+        || comparison * (sort.direction === "asc" ? 1 : -1)
         || (b.bestRating ?? -Infinity) - (a.bestRating ?? -Infinity)
         || a.representative.representative.model_variant.display_name.localeCompare(b.representative.representative.model_variant.display_name)
     })
-  }, [filteredAggregates, sort])
+  }, [filteredAggregates, hiddenModelKeys, sort])
   const reasoningFilterLabel = reasoningFilters.size === 0
     ? "All reasoning efforts"
     : reasoningFilters.size === 1
@@ -373,6 +417,12 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     else next.add(key)
     return next
   })
+  const toggleHiddenModel = (key: string) => setHiddenModelKeys((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
   const protocol = ratedRuns[0]?.protocol
   const targetRd = protocol?.stopping.target_rating_deviation ?? 77
   const totals = {
@@ -382,7 +432,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
     attempts: ratedRuns.reduce((sum, run) => sum + run.progress.completed, 0),
     cost: ratedRuns.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0),
   }
-  const individualRunRows = (aggregate: RatedRunAggregate, open: boolean, nested = false) => aggregate.runs.toSorted((a, b) =>
+  const individualRunRows = (aggregate: RatedRunAggregate, open: boolean, nested = false, hidden = false) => aggregate.runs.toSorted((a, b) =>
     compareSortValues(individualRunSortValue(a, sort.key), individualRunSortValue(b, sort.key), sort.direction)
     || a.protocol.selection.seed - b.protocol.selection.seed
     || a.run_id.localeCompare(b.run_id),
@@ -398,7 +448,9 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
         open
           ? "cursor-pointer border-border hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none"
           : "pointer-events-none border-transparent",
+        hidden && HIDDEN_MODEL_ROW_CLASS,
       )}
+      data-hidden-model={hidden || undefined}
       onClick={open ? () => navigate(runPath(individual)) : undefined}
       onKeyDown={open ? (event) => {
         if (event.key !== "Enter" && event.key !== " ") return
@@ -516,14 +568,16 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
           <SortableTableHead label="Runs" active={sort.key === "runs"} direction={sort.direction} align="right" onSort={() => toggleSort("runs")} />
           <SortableTableHead label="Cost" active={sort.key === "cost"} direction={sort.direction} align="right" onSort={() => toggleSort("cost")} />
           <SortableTableHead label="Status" active={sort.key === "status"} direction={sort.direction} onSort={() => toggleSort("status")} />
-          <TableHead className="w-10" />
+          <TableHead className="w-20" />
         </TableRow></TableHeader>
         <TableBody>{(view === "model" ? visibleModelGroups.length : visibleAggregates.length) === 0 ? <TableRow><TableCell colSpan={10} className="h-32 text-center"><div className="font-medium">No matching models</div><button type="button" className="mt-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" onClick={() => { setModelSearch(""); setReasoningFilters(new Set()) }}>Clear filters</button></TableCell></TableRow> : view === "configuration" ? visibleAggregates.flatMap((aggregate, index) => {
           const run = aggregate.representative
+          const modelKey = run.model_variant.base_key
+          const hidden = hiddenModelKeys.has(modelKey)
           const expanded = expandedKeys.has(aggregate.key)
           const visibleRunCount = aggregate.runs.filter((individual) => individual.status !== "failed").length
           const toggle = () => toggleExpanded(aggregate.key)
-          return [<TableRow key={`configuration::${aggregate.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
+          return [<TableRow key={`configuration::${aggregate.key}`} tabIndex={0} role="button" aria-expanded={expanded} data-hidden-model={hidden || undefined} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", aggregate.runs.some((individual) => individual.status === "running" || individual.status === "partial") && "bg-sky-500/[0.025]", hidden && HIDDEN_MODEL_ROW_CLASS)} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></TableCell>
             <TableCell className="text-right"><RatingEstimate rating={aggregate.meanRating} deviation={aggregate.meanRatingDeviation} provisional={aggregateIsProvisional(aggregate)} /></TableCell>
@@ -533,13 +587,16 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono tabular-nums">{visibleRunCount}</TableCell>
             <TableCell className="text-right font-mono text-xs">${aggregate.cost.toFixed(3)}</TableCell>
             <TableCell><AggregateStatusBadge aggregate={aggregate} /></TableCell>
-            <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
-          </TableRow>, ...individualRunRows(aggregate, expanded)]
+            <TableCell><div className="flex items-center justify-end gap-1"><ModelVisibilityButton hidden={hidden} modelName={run.model_variant.display_name} onToggle={() => toggleHiddenModel(modelKey)} /><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></div></TableCell>
+          </TableRow>, ...individualRunRows(aggregate, expanded, false, hidden)]
         }) : visibleModelGroups.flatMap((group, index) => {
+          const modelKey = group.representative.representative.model_variant.base_key
+          const modelName = group.representative.representative.model_variant.display_name
+          const hidden = hiddenModelKeys.has(modelKey)
           const expanded = expandedModelKeys.has(group.key)
           const toggle = () => toggleExpandedModel(group.key)
           const bestEffort = reasoningEffort(group.representative.representative)
-          const rows = [<TableRow key={`model::${group.key}`} tabIndex={0} role="button" aria-expanded={expanded} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", modelGroupStatusRank(group) === 3 && "bg-sky-500/[0.025]")} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
+          const rows = [<TableRow key={`model::${group.key}`} tabIndex={0} role="button" aria-expanded={expanded} data-hidden-model={hidden || undefined} className={cn("cursor-pointer transition-colors hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none", modelGroupStatusRank(group) === 3 && "bg-sky-500/[0.025]", hidden && HIDDEN_MODEL_ROW_CLASS)} onClick={toggle} onKeyDown={(event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggle() }}>
             <TableCell className="text-center font-mono text-muted-foreground">{index + 1}</TableCell>
             <TableCell><ModelGroupIdentity group={group} /><div className="mt-1 font-mono text-[10px] text-muted-foreground">{group.visibleRunCount} run{group.visibleRunCount === 1 ? "" : "s"} total</div></TableCell>
             <TableCell className="text-right"><RatingEstimate rating={group.bestRating} deviation={group.representative.meanRatingDeviation} provisional={aggregateIsProvisional(group.representative)} /><div className="text-[10px] text-muted-foreground">{group.bestRating == null ? null : reasoningEffortLabel(bestEffort)}</div></TableCell>
@@ -549,14 +606,14 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
             <TableCell className="text-right font-mono tabular-nums">{group.visibleRunCount}</TableCell>
             <TableCell className="text-right font-mono text-xs">${group.cost.toFixed(3)}</TableCell>
             <TableCell><ModelGroupStatusBadge group={group} /></TableCell>
-            <TableCell><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></TableCell>
+            <TableCell><div className="flex items-center justify-end gap-1"><ModelVisibilityButton hidden={hidden} modelName={modelName} onToggle={() => toggleHiddenModel(modelKey)} /><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", expanded && "rotate-90")} /></div></TableCell>
           </TableRow>]
           group.configurations.forEach((aggregate) => {
             const run = aggregate.representative
             const configurationExpanded = expanded && expandedConfigurationKeys.has(aggregate.key)
             const visibleRunCount = aggregate.runs.filter((individual) => individual.status !== "failed").length
             const toggleConfiguration = () => toggleExpandedConfiguration(aggregate.key)
-            rows.push(<TableRow key={`nested-configuration::${aggregate.key}`} tabIndex={expanded ? 0 : -1} role="button" aria-expanded={configurationExpanded} aria-hidden={!expanded} className={cn("transition-[background-color,border-color] duration-200 motion-reduce:transition-none", expanded ? "cursor-pointer border-border bg-muted/25 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none" : "pointer-events-none border-transparent")} onClick={expanded ? toggleConfiguration : undefined} onKeyDown={expanded ? (event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggleConfiguration() } : undefined}>
+            rows.push(<TableRow key={`nested-configuration::${aggregate.key}`} tabIndex={expanded ? 0 : -1} role="button" aria-expanded={configurationExpanded} aria-hidden={!expanded} data-hidden-model={hidden || undefined} className={cn("transition-[background-color,border-color] duration-200 motion-reduce:transition-none", expanded ? "cursor-pointer border-border bg-muted/25 hover:bg-muted/60 focus-visible:bg-muted focus-visible:outline-none" : "pointer-events-none border-transparent", hidden && HIDDEN_MODEL_ROW_CLASS)} onClick={expanded ? toggleConfiguration : undefined} onKeyDown={expanded ? (event) => { if (event.key !== "Enter" && event.key !== " ") return; event.preventDefault(); toggleConfiguration() } : undefined}>
               <AnimatedDetailCell open={expanded} />
               <AnimatedDetailCell open={expanded} className="pl-8"><ModelIdentity variant={run.model_variant} compact /><div className="mt-1 font-mono text-[10px] text-muted-foreground">Reasoning configuration · {visibleRunCount} run{visibleRunCount === 1 ? "" : "s"}</div></AnimatedDetailCell>
               <AnimatedDetailCell open={expanded} className="text-right"><RatingEstimate rating={aggregate.meanRating} deviation={aggregate.meanRatingDeviation} provisional={aggregateIsProvisional(aggregate)} className="text-lg" /></AnimatedDetailCell>
@@ -568,7 +625,7 @@ export function AdaptivePuzzleLeaderboard({ runs }: { runs: RunIndexEntry[] }) {
               <AnimatedDetailCell open={expanded}><AggregateStatusBadge aggregate={aggregate} /></AnimatedDetailCell>
               <AnimatedDetailCell open={expanded}><ChevronRight className={cn("size-4 text-muted-foreground transition-transform duration-200 ease-out motion-reduce:transition-none", configurationExpanded && "rotate-90")} /></AnimatedDetailCell>
             </TableRow>)
-            rows.push(...individualRunRows(aggregate, configurationExpanded, true))
+            rows.push(...individualRunRows(aggregate, configurationExpanded, true, hidden))
           })
           return rows
         })}</TableBody>
