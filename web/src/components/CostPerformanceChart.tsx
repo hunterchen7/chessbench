@@ -17,6 +17,7 @@ const HEIGHT = 420
 const PLOT = { left: 76, right: 30, top: 40, bottom: 54 }
 const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
+const RATING_AXIS_FLOOR = 100
 const HUMAN_HOURLY_RATE = 50
 const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
 const HUMAN_LABEL = "hunter (me)"
@@ -623,10 +624,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const logSpan = Math.max(rawLogMax - rawLogMin, 0.7)
     const logMin = rawLogMin - logSpan * 0.09
     const logMax = rawLogMax + logSpan * 0.09
-    const rawRatingMin = Math.min(...points.map((point) => point.rating - point.ratingDeviation))
     const rawRatingMax = Math.max(...points.map((point) => point.rating + point.ratingDeviation))
-    const step = niceStep(rawRatingMax - rawRatingMin)
-    const ratingMin = Math.min(MINIMUM_RATING, Math.floor(rawRatingMin / step) * step)
+    const step = niceStep(rawRatingMax - RATING_AXIS_FLOOR)
+    const ratingMin = RATING_AXIS_FLOOR
     const ratingMax = Math.max(ratingMin + step, Math.ceil(rawRatingMax / step) * step)
     const plotWidth = WIDTH - PLOT.left - PLOT.right
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom

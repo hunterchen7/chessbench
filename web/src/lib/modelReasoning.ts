@@ -14,6 +14,18 @@ export function effectiveReasoningEffort(variant: ModelVariant): string {
   return PROVIDER_REASONING_DEFAULTS[variant.model_id] ?? "provider"
 }
 
+/**
+ * Collapse a known provider default onto the equivalent explicit effort.
+ * Exact token budgets remain distinct, and unknown provider defaults do not
+ * get guessed into an explicit configuration.
+ */
+export function equivalentReasoningKey(variant: ModelVariant): string {
+  const { effort, max_tokens: tokens } = variant.reasoning ?? {}
+  if (tokens) return `tokens:${tokens}`
+  const equivalentEffort = effort || PROVIDER_REASONING_DEFAULTS[variant.model_id]
+  return equivalentEffort ? `effort:${equivalentEffort}` : "provider"
+}
+
 /** Preserve whether reasoning was explicitly requested or left to the provider. */
 export function reasoningConfigurationEffort(variant: ModelVariant): string {
   const { effort, max_tokens: tokens } = variant.reasoning ?? {}

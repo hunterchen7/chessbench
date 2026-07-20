@@ -228,7 +228,7 @@ function StatusBadge({ run }: { run: RunIndexEntry }) {
   if (estimate?.settled) {
     return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
   }
-  return <Badge variant="outline">Cap reached</Badge>
+  return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
 }
 
 function AggregateStatusBadge({ aggregate }: { aggregate: RatedRunAggregate }) {
@@ -238,7 +238,7 @@ function AggregateStatusBadge({ aggregate }: { aggregate: RatedRunAggregate }) {
   if (aggregate.settledRuns.length > 0) {
     return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
   }
-  return <Badge variant="outline">Cap reached</Badge>
+  return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
 }
 
 function ModelGroupStatusBadge({ group }: { group: RatedModelGroup }) {
@@ -248,7 +248,7 @@ function ModelGroupStatusBadge({ group }: { group: RatedModelGroup }) {
   if (modelGroupStatusRank(group) === 2) {
     return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
   }
-  return <Badge variant="outline">Cap reached</Badge>
+  return <Badge variant="outline" className="border-emerald-500/35 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="size-3" /> Settled</Badge>
 }
 
 function ModelGroupIdentity({ group }: { group: RatedModelGroup }) {
