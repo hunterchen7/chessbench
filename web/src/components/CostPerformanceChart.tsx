@@ -12,9 +12,9 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 
-const WIDTH = 1000
-const HEIGHT = 420
-const PLOT = { left: 76, right: 30, top: 40, bottom: 54 }
+const WIDTH = 1300
+const HEIGHT = 462
+const PLOT = { left: 76, right: 34, top: 44, bottom: 58 }
 const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const RATING_AXIS_FLOOR = 100
@@ -950,7 +950,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       </div>
       {chart ? <><div className="overflow-x-auto">
         <div ref={plotContainerRef} className="relative min-w-[720px]">
-          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
+          <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto max-h-[74vh] w-full" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
             <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
