@@ -378,6 +378,48 @@ TARGETS = (
             "--live-sync-every", "5",
         ),
     ),
+    Target(
+        "qwen3-8b-none-seed-0",
+        "b6a2119bc7d840aa956b63ee6024a52e",
+        600,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "qwen3-8b", "--seed", "0",
+            "--reasoning", "none", "--target-rd", "77",
+            "--no-capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "alibaba", "--no-provider-fallbacks",
+            "--require-provider-parameters", "--request-timeout", "600",
+            "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-1-pro-preview-high-seed-0",
+        "6cd9e3f9552745cba1a1594f7b0b2730",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.1-pro-preview", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-1-pro-preview-high-seed-1",
+        "0cf083dada7e49048a03834abf012846",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.1-pro-preview", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
 )
 
 

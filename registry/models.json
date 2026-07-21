@@ -55,6 +55,15 @@
    "enabled": true
   },
   {
+   "label": "gemini-3.1-pro-preview",
+   "provider": "openrouter",
+   "model_id": "google/gemini-3.1-pro-preview",
+   "display_name": "",
+   "family": "gemini",
+   "notes": "Gemini 3.1 Pro Preview reasoning model",
+   "enabled": true
+  },
+  {
    "label": "gemini-3.5-flash",
    "provider": "openrouter",
    "model_id": "google/gemini-3.5-flash",
