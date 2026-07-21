@@ -26,6 +26,12 @@ const HUMAN_RUN_IDS = [
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
 const CHART_STATE_STORAGE_KEY = "chessbench.rating-efficiency-state.v1"
+type CostScale = "log" | "sqrt" | "linear"
+const COST_SCALE_OPTIONS: Array<{ value: CostScale; label: string; axisLabel: string }> = [
+  { value: "log", label: "Log", axisLabel: "log" },
+  { value: "sqrt", label: "Sqrt", axisLabel: "square root" },
+  { value: "linear", label: "Linear", axisLabel: "linear" },
+]
 const MODEL_COLORS = [
   "#2d6cdf", "#e95f0c", "#8e44ad", "#00897b", "#d81b60",
   "#6a994e", "#f4a261", "#5e60ce", "#9c6644", "#00a6a6",
@@ -61,6 +67,7 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
 }
 
 interface SavedChartState {
+  costScale: CostScale
   modelSearch: string
   reasoningFilters: string[]
   hiddenModelKeys: string[]
@@ -72,6 +79,7 @@ interface SavedChartState {
 
 function savedChartState(): SavedChartState {
   const fallback: SavedChartState = {
+    costScale: "log",
     modelSearch: "",
     reasoningFilters: [],
     hiddenModelKeys: [],
@@ -85,6 +93,7 @@ function savedChartState(): SavedChartState {
     if (!parsed || typeof parsed !== "object") return fallback
     const strings = (value: unknown) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
     return {
+      costScale: parsed.costScale === "sqrt" || parsed.costScale === "linear" ? parsed.costScale : fallback.costScale,
       modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
       reasoningFilters: strings(parsed.reasoningFilters),
       hiddenModelKeys: strings(parsed.hiddenModelKeys),
@@ -99,6 +108,7 @@ function savedChartState(): SavedChartState {
 }
 
 function formatCost(value: number) {
+  if (value === 0) return "$0.00"
   if (value < 0.000001) return `$${value.toExponential(1)}`
   if (value < 0.0001) return `$${value.toFixed(6)}`
   if (value < 0.01) return `$${value.toFixed(4)}`
@@ -195,6 +205,31 @@ function logTicks(min: number, max: number) {
   if (values.length <= 7) return values
   const stride = Math.ceil(values.length / 7)
   return values.filter((_, index) => index % stride === 0 || index === values.length - 1)
+}
+
+function transformCost(value: number, scale: CostScale) {
+  if (scale === "log") return Math.log10(value)
+  if (scale === "sqrt") return Math.sqrt(value)
+  return value
+}
+
+function inverseCost(value: number, scale: CostScale) {
+  if (scale === "log") return 10 ** value
+  if (scale === "sqrt") return value ** 2
+  return value
+}
+
+function costTicks(min: number, max: number, scale: CostScale) {
+  if (scale === "log") return logTicks(10 ** min, 10 ** max)
+  const rough = (max - min) / 6
+  const power = 10 ** Math.floor(Math.log10(Math.max(rough, Number.EPSILON)))
+  const normalized = rough / power
+  const step = (normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10) * power
+  const values: number[] = []
+  for (let value = Math.ceil(min / step) * step; value <= max + Number.EPSILON; value += step) {
+    values.push(inverseCost(value, scale))
+  }
+  return values
 }
 
 function niceStep(range: number) {
@@ -629,6 +664,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [selectedPoint, setSelectedPoint] = useState<ChartPoint | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
+  const [costScale, setCostScale] = useState<CostScale>(initialState.costScale)
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
   const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
@@ -640,6 +676,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   useEffect(() => {
     try {
       localStorage.setItem(CHART_STATE_STORAGE_KEY, JSON.stringify({
+        costScale,
         modelSearch,
         reasoningFilters: Array.from(reasoningFilters),
         hiddenModelKeys: Array.from(hiddenModelKeys),
@@ -651,7 +688,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     } catch {
       // Private browsing or storage policy can make persistence unavailable.
     }
-  }, [hiddenModelKeys, hiddenModelReasoningKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
+  }, [costScale, hiddenModelKeys, hiddenModelReasoningKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
 
   useEffect(() => {
     let active = true
@@ -756,19 +793,20 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const points: ChartPoint[] = showHuman && humanPoint ? [...modelPoints, humanPoint] : modelPoints
     if (points.length === 0) return null
 
-    const logCosts = points.map((point) => Math.log10(point.costPerPuzzle * NORMALIZED_PUZZLES))
-    const rawLogMin = Math.min(...logCosts)
-    const rawLogMax = Math.max(...logCosts)
-    const logSpan = Math.max(rawLogMax - rawLogMin, 0.7)
-    const logMin = rawLogMin - logSpan * 0.09
-    const logMax = rawLogMax + logSpan * 0.09
+    const transformedCosts = points.map((point) => transformCost(point.costPerPuzzle * NORMALIZED_PUZZLES, costScale))
+    const rawCostMin = Math.min(...transformedCosts)
+    const rawCostMax = Math.max(...transformedCosts)
+    const minimumSpan = costScale === "log" ? 0.7 : Math.max(rawCostMax * 0.15, 0.001)
+    const costSpan = Math.max(rawCostMax - rawCostMin, minimumSpan)
+    const costMin = costScale === "log" ? rawCostMin - costSpan * 0.09 : Math.max(0, rawCostMin - costSpan * 0.05)
+    const costMax = rawCostMax + costSpan * 0.09
     const rawRatingMax = Math.max(...points.map((point) => point.rating + point.ratingDeviation))
     const step = niceStep(rawRatingMax - RATING_AXIS_FLOOR)
     const ratingMin = RATING_AXIS_FLOOR
     const ratingMax = Math.max(ratingMin + step, Math.ceil(rawRatingMax / step) * step)
     const plotWidth = WIDTH - PLOT.left - PLOT.right
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom
-    const x = (value: number) => PLOT.left + (Math.log10(value) - logMin) / (logMax - logMin) * plotWidth
+    const x = (value: number) => PLOT.left + (transformCost(value, costScale) - costMin) / (costMax - costMin) * plotWidth
     const y = (value: number) => PLOT.top + (ratingMax - value) / (ratingMax - ratingMin) * plotHeight
     const rawPlotted = points.map((point) => ({
       point,
@@ -791,10 +829,10 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       plotted,
       x,
       y,
-      xTicks: logTicks(10 ** logMin, 10 ** logMax),
+      xTicks: costTicks(costMin, costMax, costScale),
       yTicks,
     }
-  }, [colorByModel, humanPoint, modelPoints, showHuman, showLabels])
+  }, [colorByModel, costScale, humanPoint, modelPoints, showHuman, showLabels])
 
   if (allModelPoints.length === 0 && !humanPoint) return null
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
@@ -883,7 +921,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis is logarithmic.</p>
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis supports log, square-root, and linear scaling.</p>
         </div>
         <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allModelPoints.length ? ` of ${allModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
       </div>
@@ -905,6 +943,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             })} className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent"><DropdownMenuItemIndicator className="absolute left-2"><Check className="size-4" /></DropdownMenuItemIndicator>{reasoningEffortLabel(effort)}</DropdownMenuCheckboxItem>)}
           </DropdownMenuContent>
         </DropdownMenu>
+        <div role="group" aria-label="Cost axis scale" className="inline-flex h-8 items-center rounded-md border bg-background p-0.5">
+          {COST_SCALE_OPTIONS.map((option) => <button key={option.value} type="button" aria-pressed={costScale === option.value} onClick={() => setCostScale(option.value)} className={`h-7 cursor-pointer rounded px-2 text-[11px] font-medium transition-colors ${costScale === option.value ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>{option.label}</button>)}
+        </div>
         <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button>
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
         <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
@@ -952,7 +993,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto max-h-[74vh] w-full" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
             <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} />
-            <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles (log scale)</text>
+            <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Avg. cost per 50 puzzles ({COST_SCALE_OPTIONS.find((option) => option.value === costScale)?.axisLabel} scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
             {chart.plotted.map((entry) => <a
               key={entry.point.key}
