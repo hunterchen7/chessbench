@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 
 const WIDTH = 1300
@@ -69,6 +70,8 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
 
 interface SavedChartState {
   costScale: CostScale
+  ratingMin: number | null
+  ratingMax: number | null
   modelSearch: string
   reasoningFilters: string[]
   hiddenModelKeys: string[]
@@ -81,6 +84,8 @@ interface SavedChartState {
 function savedChartState(): SavedChartState {
   const fallback: SavedChartState = {
     costScale: "log",
+    ratingMin: null,
+    ratingMax: null,
     modelSearch: "",
     reasoningFilters: [],
     hiddenModelKeys: [],
@@ -93,8 +98,11 @@ function savedChartState(): SavedChartState {
     const parsed = JSON.parse(localStorage.getItem(CHART_STATE_STORAGE_KEY) ?? "null") as Partial<SavedChartState> | null
     if (!parsed || typeof parsed !== "object") return fallback
     const strings = (value: unknown) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
+    const optionalNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
     return {
       costScale: parsed.costScale === "fourth" || parsed.costScale === "sqrt" || parsed.costScale === "linear" ? parsed.costScale : fallback.costScale,
+      ratingMin: optionalNumber(parsed.ratingMin),
+      ratingMax: optionalNumber(parsed.ratingMax),
       modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
       reasoningFilters: strings(parsed.reasoningFilters),
       hiddenModelKeys: strings(parsed.hiddenModelKeys),
@@ -668,6 +676,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
   const [costScale, setCostScale] = useState<CostScale>(initialState.costScale)
+  const [ratingRange, setRatingRange] = useState<[number | null, number | null]>(() => [initialState.ratingMin, initialState.ratingMax])
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
   const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
@@ -680,6 +689,8 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     try {
       localStorage.setItem(CHART_STATE_STORAGE_KEY, JSON.stringify({
         costScale,
+        ratingMin: ratingRange[0],
+        ratingMax: ratingRange[1],
         modelSearch,
         reasoningFilters: Array.from(reasoningFilters),
         hiddenModelKeys: Array.from(hiddenModelKeys),
@@ -691,7 +702,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     } catch {
       // Private browsing or storage policy can make persistence unavailable.
     }
-  }, [costScale, hiddenModelKeys, hiddenModelReasoningKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
+  }, [costScale, hiddenModelKeys, hiddenModelReasoningKeys, modelSearch, ratingRange, reasoningFilters, showHuman, showLabels, showLegend])
 
   useEffect(() => {
     let active = true
@@ -759,7 +770,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     }
     return Array.from(entries.values())
   }, [colorByModel, filteredModelPoints])
-  const modelPoints = useMemo(
+  const visibleModelPoints = useMemo(
     () => filteredModelPoints.filter((point) => {
       const modelKey = point.representative.model_variant.base_key
       return !hiddenModelKeys.has(modelKey) && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(modelKey, modelPointReasoningEffort(point)))
@@ -792,8 +803,29 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       : null
   }, [humanProfiles])
 
+  const ratingBounds = useMemo(() => {
+    const ratings = humanPoint ? [...allModelPoints.map((point) => point.rating), humanPoint.rating] : allModelPoints.map((point) => point.rating)
+    if (ratings.length === 0) return { min: MINIMUM_RATING, max: MINIMUM_RATING + 100 }
+    const rawMin = Math.min(...ratings)
+    const rawMax = Math.max(...ratings)
+    return {
+      min: Math.floor(rawMin / 100) * 100,
+      max: Math.ceil(rawMax / 100) * 100,
+    }
+  }, [allModelPoints, humanPoint])
+  const effectiveRatingRange = useMemo((): [number, number] => {
+    const min = Math.max(ratingBounds.min, Math.min(ratingRange[0] ?? ratingBounds.min, ratingBounds.max))
+    const max = Math.min(ratingBounds.max, Math.max(ratingRange[1] ?? ratingBounds.max, ratingBounds.min))
+    return min <= max ? [min, max] : [max, min]
+  }, [ratingBounds, ratingRange])
+  const modelPoints = useMemo(
+    () => visibleModelPoints.filter((point) => point.rating >= effectiveRatingRange[0] && point.rating <= effectiveRatingRange[1]),
+    [effectiveRatingRange, visibleModelPoints],
+  )
+  const humanWithinRatingRange = humanPoint != null && humanPoint.rating >= effectiveRatingRange[0] && humanPoint.rating <= effectiveRatingRange[1]
+
   const chart = useMemo(() => {
-    const points: ChartPoint[] = showHuman && humanPoint ? [...modelPoints, humanPoint] : modelPoints
+    const points: ChartPoint[] = showHuman && humanPoint && humanWithinRatingRange ? [...modelPoints, humanPoint] : modelPoints
     if (points.length === 0) return null
 
     const transformedCosts = points.map((point) => transformCost(point.costPerPuzzle * NORMALIZED_PUZZLES, costScale))
@@ -835,11 +867,12 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       xTicks: costTicks(costMin, costMax, costScale),
       yTicks,
     }
-  }, [colorByModel, costScale, humanPoint, modelPoints, showHuman, showLabels])
+  }, [colorByModel, costScale, humanPoint, humanWithinRatingRange, modelPoints, showHuman, showLabels])
 
   if (allModelPoints.length === 0 && !humanPoint) return null
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
-  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || hiddenModelReasoningKeys.size > 0 || !showHuman
+  const ratingFilterActive = effectiveRatingRange[0] > ratingBounds.min || effectiveRatingRange[1] < ratingBounds.max
+  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || hiddenModelReasoningKeys.size > 0 || ratingFilterActive || !showHuman
   const positionTooltip = (event: ReactPointerEvent<HTMLAnchorElement>) => {
     const container = plotContainerRef.current
     if (!container) return
@@ -863,6 +896,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     setReasoningFilters(new Set())
     setHiddenModelKeys(new Set())
     setHiddenModelReasoningKeys(new Set())
+    setRatingRange([null, null])
     setShowHuman(true)
   }
   const toggleModel = (group: ModelVisibilityGroup) => {
@@ -948,6 +982,12 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         </DropdownMenu>
         <div role="group" aria-label="Cost axis scale" className="inline-flex h-8 items-center rounded-md border bg-background p-0.5">
           {COST_SCALE_OPTIONS.map((option) => <button key={option.value} type="button" aria-pressed={costScale === option.value} onClick={() => setCostScale(option.value)} className={`h-7 cursor-pointer rounded px-2 text-[11px] font-medium transition-colors ${costScale === option.value ? "bg-secondary text-secondary-foreground shadow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}>{option.label}</button>)}
+        </div>
+        <div className="inline-flex h-8 min-w-64 items-center gap-2 rounded-md border bg-background px-2" title="Filter chart points by Glicko-2 rating">
+          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">Rating</span>
+          <span className="w-8 shrink-0 text-right font-mono text-[10px] tabular-nums text-foreground">{effectiveRatingRange[0].toLocaleString()}</span>
+          <Slider value={effectiveRatingRange} min={ratingBounds.min} max={ratingBounds.max} step={25} thumbLabels={["Minimum rating", "Maximum rating"]} onValueChange={(value) => { if (value.length === 2) setRatingRange([value[0], value[1]]) }} className="min-w-24 flex-1" />
+          <span className="w-9 shrink-0 font-mono text-[10px] tabular-nums text-foreground">{effectiveRatingRange[1].toLocaleString()}</span>
         </div>
         <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button>
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
