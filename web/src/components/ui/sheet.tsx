@@ -27,7 +27,7 @@ function SheetContent({ className, children, ...props }: React.ComponentProps<ty
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close navigation">
+        <DialogPrimitive.Close className="fixed right-4 top-4 z-70 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label="Close navigation">
           <X className="size-4" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, SlidersHorizontal, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
@@ -64,6 +64,7 @@ interface SavedChartState {
   modelSearch: string
   reasoningFilters: string[]
   hiddenModelKeys: string[]
+  hiddenModelReasoningKeys: string[]
   showHuman: boolean
   showLabels: boolean
   showLegend: boolean
@@ -74,6 +75,7 @@ function savedChartState(): SavedChartState {
     modelSearch: "",
     reasoningFilters: [],
     hiddenModelKeys: [],
+    hiddenModelReasoningKeys: [],
     showHuman: true,
     showLabels: true,
     showLegend: false,
@@ -86,6 +88,7 @@ function savedChartState(): SavedChartState {
       modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
       reasoningFilters: strings(parsed.reasoningFilters),
       hiddenModelKeys: strings(parsed.hiddenModelKeys),
+      hiddenModelReasoningKeys: strings(parsed.hiddenModelReasoningKeys),
       showHuman: typeof parsed.showHuman === "boolean" ? parsed.showHuman : fallback.showHuman,
       showLabels: typeof parsed.showLabels === "boolean" ? parsed.showLabels : fallback.showLabels,
       showLegend: typeof parsed.showLegend === "boolean" ? parsed.showLegend : fallback.showLegend,
@@ -114,6 +117,7 @@ const REASONING_TEXT_CLASSES: Record<string, string> = {
   budget: "fill-violet-600 dark:fill-violet-300",
   provider: "fill-zinc-600 dark:fill-zinc-300",
 }
+const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
 
 function compactReasoningLabel(effort: string) {
   if (effort === "none") return "off"
@@ -148,6 +152,10 @@ function modelPointReasoningEffort(point: CostPerformancePoint) {
   const configured = reasoningConfigurationEffort(variant)
   const resolved = configured === "provider" ? effectiveReasoningEffort(variant) : configured
   return resolved === "provider" ? "none" : resolved
+}
+
+function modelReasoningVisibilityKey(modelKey: string, effort: string) {
+  return JSON.stringify([modelKey, effort])
 }
 
 function pointLabelParts(point: ChartPoint) {
@@ -227,6 +235,87 @@ function RunPickerSheet({ point, onOpenChange }: { point: ChartPoint | null; onO
         })}
       </div>
       {point && !isHumanPoint(point) ? <p className="mt-4 rounded-lg border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">The run page also includes a reasoning-configuration selector for moving between this model’s other reasoning levels.</p> : null}
+    </SheetContent>
+  </Sheet>
+}
+
+interface ModelVisibilityGroup {
+  key: string
+  label: string
+  color: string
+  efforts: Array<{ effort: string; pointCount: number }>
+}
+
+function ModelVisibilitySheet({
+  open,
+  groups,
+  hiddenModelKeys,
+  hiddenModelReasoningKeys,
+  onOpenChange,
+  onToggleModel,
+  onToggleReasoning,
+  onShowAll,
+  onHideAll,
+}: {
+  open: boolean
+  groups: ModelVisibilityGroup[]
+  hiddenModelKeys: Set<string>
+  hiddenModelReasoningKeys: Set<string>
+  onOpenChange: (open: boolean) => void
+  onToggleModel: (group: ModelVisibilityGroup) => void
+  onToggleReasoning: (group: ModelVisibilityGroup, effort: string) => void
+  onShowAll: () => void
+  onHideAll: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleGroups = normalizedQuery
+    ? groups.filter((group) => group.label.toLowerCase().includes(normalizedQuery) || group.key.toLowerCase().includes(normalizedQuery))
+    : groups
+
+  return <Sheet open={open} onOpenChange={onOpenChange}>
+    <SheetContent className="w-[min(94vw,520px)] overflow-y-auto">
+      <div className="sticky top-0 z-10 -mx-5 -mt-5 border-b bg-background/95 px-5 pb-3 pt-5 backdrop-blur">
+        <SheetTitle className="pr-8 text-lg font-semibold">Model visibility</SheetTitle>
+        <SheetDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          Hide a whole model or tune its reasoning levels independently. These choices are saved for your next visit.
+        </SheetDescription>
+        <div className="mt-4 flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a model…" className="h-9 pl-8 text-xs" aria-label="Find a model to configure" />
+          </div>
+          <Button variant="outline" size="sm" className="h-9" onClick={onShowAll}>Show all</Button>
+          <Button variant="outline" size="sm" className="h-9" onClick={onHideAll}>Hide all</Button>
+        </div>
+      </div>
+      <p className="mt-3 rounded-lg border border-dashed px-3 py-2 text-xs leading-relaxed text-muted-foreground">Tip: selecting a reasoning level on a fully hidden model reveals only that level.</p>
+      <div className="mt-4 space-y-2.5">
+        {visibleGroups.map((group) => {
+          const hiddenByModel = hiddenModelKeys.has(group.key)
+          const visibleEfforts = group.efforts.filter(({ effort }) => !hiddenByModel && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort))).length
+          return <section key={group.key} className="rounded-xl border bg-card p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: group.color }} />
+                <div className="min-w-0"><div className="truncate text-sm font-semibold">{group.label}</div><div className="mt-0.5 text-[11px] text-muted-foreground">{visibleEfforts} of {group.efforts.length} reasoning level{group.efforts.length === 1 ? "" : "s"} visible</div></div>
+              </div>
+              <Button variant={visibleEfforts > 0 ? "secondary" : "outline"} size="sm" className="h-8 shrink-0 gap-1.5 px-2.5 text-xs" aria-pressed={visibleEfforts > 0} onClick={() => onToggleModel(group)}>
+                {visibleEfforts > 0 ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}{visibleEfforts > 0 ? "Shown" : "Hidden"}
+              </Button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {group.efforts.map(({ effort, pointCount }) => {
+                const visible = !hiddenByModel && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort))
+                return <button key={effort} type="button" aria-pressed={visible} onClick={() => onToggleReasoning(group, effort)} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition-[opacity,background-color,color,border-color] ${visible ? "border-border bg-background font-medium text-foreground hover:bg-accent" : "border-transparent bg-muted/50 text-muted-foreground opacity-55 hover:opacity-80"}`}>
+                  {visible ? <Eye className="size-3" /> : <EyeOff className="size-3" />}<span className={visible ? "" : "line-through"}>{reasoningEffortLabel(effort)}</span>{pointCount > 1 ? <span className="font-mono text-[10px] opacity-70">×{pointCount}</span> : null}
+                </button>
+              })}
+            </div>
+          </section>
+        })}
+        {visibleGroups.length === 0 ? <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">No matching models.</div> : null}
+      </div>
     </SheetContent>
   </Sheet>
 }
@@ -617,6 +706,8 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
   const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
+  const [hiddenModelReasoningKeys, setHiddenModelReasoningKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelReasoningKeys))
+  const [modelVisibilityOpen, setModelVisibilityOpen] = useState(false)
   const [showHuman, setShowHuman] = useState(initialState.showHuman)
   const [showLabels, setShowLabels] = useState(initialState.showLabels)
   const [showLegend, setShowLegend] = useState(initialState.showLegend)
@@ -627,6 +718,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         modelSearch,
         reasoningFilters: Array.from(reasoningFilters),
         hiddenModelKeys: Array.from(hiddenModelKeys),
+        hiddenModelReasoningKeys: Array.from(hiddenModelReasoningKeys),
         showHuman,
         showLabels,
         showLegend,
@@ -634,7 +726,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     } catch {
       // Private browsing or storage policy can make persistence unavailable.
     }
-  }, [hiddenModelKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
+  }, [hiddenModelKeys, hiddenModelReasoningKeys, modelSearch, reasoningFilters, showHuman, showLabels, showLegend])
 
   useEffect(() => {
     let active = true
@@ -654,12 +746,32 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     () => new Map(allModelKeys.map((key, index) => [key, MODEL_COLOR_BY_KEY[key] ?? MODEL_COLORS[index % MODEL_COLORS.length]])),
     [allModelKeys],
   )
+  const modelVisibilityGroups = useMemo(() => {
+    const groups = new Map<string, { label: string; efforts: Map<string, number> }>()
+    for (const point of allModelPoints) {
+      const variant = point.representative.model_variant
+      const effort = modelPointReasoningEffort(point)
+      const group = groups.get(variant.base_key) ?? { label: variant.display_name, efforts: new Map<string, number>() }
+      group.efforts.set(effort, (group.efforts.get(effort) ?? 0) + 1)
+      groups.set(variant.base_key, group)
+    }
+    return Array.from(groups, ([key, group]): ModelVisibilityGroup => ({
+      key,
+      label: group.label,
+      color: colorByModel.get(key) ?? MODEL_COLORS[0],
+      efforts: Array.from(group.efforts, ([effort, pointCount]) => ({ effort, pointCount })).toSorted((a, b) => {
+        const aIndex = REASONING_ORDER.indexOf(a.effort)
+        const bIndex = REASONING_ORDER.indexOf(b.effort)
+        return (aIndex < 0 ? REASONING_ORDER.length : aIndex) - (bIndex < 0 ? REASONING_ORDER.length : bIndex)
+      }),
+    })).toSorted((a, b) => a.label.localeCompare(b.label))
+  }, [allModelPoints, colorByModel])
+  const modelVisibilityByKey = useMemo(() => new Map(modelVisibilityGroups.map((group) => [group.key, group])), [modelVisibilityGroups])
   const reasoningOptions = useMemo(() => {
-    const order = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget"]
     return Array.from(new Set(allModelPoints.map(modelPointReasoningEffort))).toSorted((a, b) => {
-      const aIndex = order.indexOf(a)
-      const bIndex = order.indexOf(b)
-      return (aIndex < 0 ? order.length : aIndex) - (bIndex < 0 ? order.length : bIndex)
+      const aIndex = REASONING_ORDER.indexOf(a)
+      const bIndex = REASONING_ORDER.indexOf(b)
+      return (aIndex < 0 ? REASONING_ORDER.length : aIndex) - (bIndex < 0 ? REASONING_ORDER.length : bIndex)
     })
   }, [allModelPoints])
   const filteredModelPoints = useMemo(() => {
@@ -672,14 +784,27 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       return matchesName && matchesReasoning
     })
   }, [allModelPoints, modelSearch, reasoningFilters])
-  const availableModelLegend = useMemo(() => Array.from(new Map(filteredModelPoints.map((point) => {
-    const variant = point.representative.model_variant
-    return [variant.base_key, { key: variant.base_key, label: variant.display_name, color: colorByModel.get(variant.base_key) ?? MODEL_COLORS[0] }]
-  })).values()), [colorByModel, filteredModelPoints])
+  const availableModelLegend = useMemo(() => {
+    const entries = new Map<string, { key: string; label: string; color: string; efforts: Set<string> }>()
+    for (const point of filteredModelPoints) {
+      const variant = point.representative.model_variant
+      const entry = entries.get(variant.base_key) ?? { key: variant.base_key, label: variant.display_name, color: colorByModel.get(variant.base_key) ?? MODEL_COLORS[0], efforts: new Set<string>() }
+      entry.efforts.add(modelPointReasoningEffort(point))
+      entries.set(variant.base_key, entry)
+    }
+    return Array.from(entries.values())
+  }, [colorByModel, filteredModelPoints])
   const modelPoints = useMemo(
-    () => filteredModelPoints.filter((point) => !hiddenModelKeys.has(point.representative.model_variant.base_key)),
-    [filteredModelPoints, hiddenModelKeys],
+    () => filteredModelPoints.filter((point) => {
+      const modelKey = point.representative.model_variant.base_key
+      return !hiddenModelKeys.has(modelKey) && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(modelKey, modelPointReasoningEffort(point)))
+    }),
+    [filteredModelPoints, hiddenModelKeys, hiddenModelReasoningKeys],
   )
+  const hiddenConfigurationCount = useMemo(() => allModelPoints.filter((point) => {
+    const modelKey = point.representative.model_variant.base_key
+    return hiddenModelKeys.has(modelKey) || hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(modelKey, modelPointReasoningEffort(point)))
+  }).length, [allModelPoints, hiddenModelKeys, hiddenModelReasoningKeys])
 
   const humanPoint = useMemo((): HumanCostPerformancePoint | null => {
     const profiles = humanProfiles.filter((profile) => profile.attempts > 0 && (profile.session.active_duration_ms ?? 0) > 0)
@@ -748,7 +873,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
 
   if (allModelPoints.length === 0 && !humanPoint) return null
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
-  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || !showHuman
+  const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || hiddenModelReasoningKeys.size > 0 || !showHuman
   const positionTooltip = (event: ReactPointerEvent<HTMLAnchorElement>) => {
     const container = plotContainerRef.current
     if (!container) return
@@ -771,24 +896,64 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     setModelSearch("")
     setReasoningFilters(new Set())
     setHiddenModelKeys(new Set())
+    setHiddenModelReasoningKeys(new Set())
     setShowHuman(true)
   }
-  const toggleModel = (key: string) => setHiddenModelKeys((current) => {
-    const next = new Set(current)
-    if (next.has(key)) next.delete(key)
-    else next.add(key)
-    return next
-  })
-  const showAllAvailableModels = () => setHiddenModelKeys((current) => {
-    const next = new Set(current)
-    for (const entry of availableModelLegend) next.delete(entry.key)
-    return next
-  })
+  const toggleModel = (group: ModelVisibilityGroup) => {
+    const visible = !hiddenModelKeys.has(group.key) && group.efforts.some(({ effort }) => !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort)))
+    setHiddenModelKeys((current) => {
+      const next = new Set(current)
+      if (visible) next.add(group.key)
+      else next.delete(group.key)
+      return next
+    })
+    if (!visible) setHiddenModelReasoningKeys((current) => {
+      const next = new Set(current)
+      for (const { effort } of group.efforts) next.delete(modelReasoningVisibilityKey(group.key, effort))
+      return next
+    })
+  }
+  const toggleModelReasoning = (group: ModelVisibilityGroup, effort: string) => {
+    const key = modelReasoningVisibilityKey(group.key, effort)
+    if (hiddenModelKeys.has(group.key)) {
+      setHiddenModelKeys((current) => { const next = new Set(current); next.delete(group.key); return next })
+      setHiddenModelReasoningKeys((current) => {
+        const next = new Set(current)
+        for (const option of group.efforts) {
+          const optionKey = modelReasoningVisibilityKey(group.key, option.effort)
+          if (option.effort === effort) next.delete(optionKey)
+          else next.add(optionKey)
+        }
+        return next
+      })
+      return
+    }
+    setHiddenModelReasoningKeys((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+  const showModelGroups = (groups: ModelVisibilityGroup[]) => {
+    setHiddenModelKeys((current) => {
+      const next = new Set(current)
+      for (const group of groups) next.delete(group.key)
+      return next
+    })
+    setHiddenModelReasoningKeys((current) => {
+      const next = new Set(current)
+      for (const group of groups) for (const { effort } of group.efforts) next.delete(modelReasoningVisibilityKey(group.key, effort))
+      return next
+    })
+  }
+  const showAllAvailableModels = () => showModelGroups(modelVisibilityGroups.filter((group) => availableModelLegend.some((entry) => entry.key === group.key)))
   const hideAllAvailableModels = () => setHiddenModelKeys((current) => {
     const next = new Set(current)
     for (const entry of availableModelLegend) next.add(entry.key)
     return next
   })
+  const hideAllModels = () => setHiddenModelKeys(new Set(modelVisibilityGroups.map((group) => group.key)))
   return <Card className="overflow-hidden border-border/70">
     <CardHeader className="gap-3 border-b">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -816,6 +981,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             })} className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent"><DropdownMenuItemIndicator className="absolute left-2"><Check className="size-4" /></DropdownMenuItemIndicator>{reasoningEffortLabel(effort)}</DropdownMenuCheckboxItem>)}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant={hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setModelVisibilityOpen(true)}>
+          <SlidersHorizontal className="size-3.5" />Models{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}
+        </Button>
         <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button>
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
         <Button variant={showLegend ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLegend} onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend</Button>
@@ -828,13 +996,14 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={showAllAvailableModels}>Show all</button>
         <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={hideAllAvailableModels}>Hide all</button>
         {availableModelLegend.map((entry) => {
-          const visible = !hiddenModelKeys.has(entry.key)
+          const group = modelVisibilityByKey.get(entry.key)
+          const visible = group != null && !hiddenModelKeys.has(entry.key) && Array.from(entry.efforts).some((effort) => !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(entry.key, effort)))
           return <button
             key={entry.key}
             type="button"
             aria-pressed={visible}
             title={`${visible ? "Hide" : "Show"} ${entry.label}`}
-            onClick={() => toggleModel(entry.key)}
+            onClick={() => { if (group) toggleModel(group) }}
             className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-[opacity,background-color,color,border-color] ${visible ? "border-border bg-background text-foreground hover:bg-accent" : "border-transparent bg-muted/50 opacity-40 hover:opacity-70"}`}
           ><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}</button>
         })}
@@ -892,5 +1061,16 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
     <RunPickerSheet point={selectedPoint} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
+    <ModelVisibilitySheet
+      open={modelVisibilityOpen}
+      groups={modelVisibilityGroups}
+      hiddenModelKeys={hiddenModelKeys}
+      hiddenModelReasoningKeys={hiddenModelReasoningKeys}
+      onOpenChange={setModelVisibilityOpen}
+      onToggleModel={toggleModel}
+      onToggleReasoning={toggleModelReasoning}
+      onShowAll={() => showModelGroups(modelVisibilityGroups)}
+      onHideAll={hideAllModels}
+    />
   </Card>
 }
