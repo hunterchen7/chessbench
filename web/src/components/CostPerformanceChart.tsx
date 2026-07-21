@@ -1,8 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
-import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel } from "@/lib/modelReasoning"
+import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
 import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib/backend"
 import { useData } from "@/lib/useData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 
 const WIDTH = 1000
 const HEIGHT = 420
@@ -133,6 +134,7 @@ interface HumanCostPerformancePoint {
   attempts: number
   solved: number
   runCount: number
+  profiles: HumanTrainingProfile[]
 }
 
 type ChartPoint = CostPerformancePoint | HumanCostPerformancePoint
@@ -198,6 +200,35 @@ function niceStep(range: number) {
 function runPath(point: ChartPoint) {
   if (isHumanPoint(point)) return `/human/${encodeURIComponent(point.runId)}`
   return `/model/${encodeURIComponent(point.representative.model_variant.key)}?run=${encodeURIComponent(point.representative.run_id)}`
+}
+
+function RunPickerSheet({ point, onOpenChange }: { point: ChartPoint | null; onOpenChange: (open: boolean) => void }) {
+  const title = point && isHumanPoint(point) ? HUMAN_LABEL : point?.representative.model_variant.display_name ?? "Choose a run"
+  return <Sheet open={point != null} onOpenChange={onOpenChange}>
+    <SheetContent className="w-[min(92vw,440px)] overflow-y-auto">
+      <SheetTitle className="pr-8 text-lg font-semibold">Choose a run</SheetTitle>
+      <SheetDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {title} has {point?.runCount ?? 0} settled run{point?.runCount === 1 ? "" : "s"} in this chart point. Choose the exact run you want to inspect.
+      </SheetDescription>
+      <div className="mt-5 space-y-2">
+        {point && isHumanPoint(point) ? point.profiles.map((profile) => <SheetClose asChild key={profile.run_id}>
+          <a href={`#${runPath({ ...point, runId: profile.run_id })}`} target="_blank" rel="noopener noreferrer" className="flex items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:border-fuchsia-500/40 hover:bg-fuchsia-500/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <span className="min-w-0"><span className="block font-medium">Seed {profile.session.selector?.seed ?? "—"}</span><span className="mt-1 block text-xs text-muted-foreground">{profile.solved}/{profile.attempts} solved · rating {Math.round(profile.rating).toLocaleString()} · RD {profile.rating_deviation.toFixed(2)}</span><span className="mt-1 block font-mono text-[10px] text-muted-foreground">{profile.run_id}</span></span>
+            <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          </a>
+        </SheetClose>) : point?.runs.map((run) => {
+          const estimate = run.summary.puzzle_performance_rating
+          return <SheetClose asChild key={run.run_id}>
+            <a href={`#${runPath({ ...point, representative: run })}`} target="_blank" rel="noopener noreferrer" className="flex items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:border-sky-500/40 hover:bg-sky-500/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <span className="min-w-0"><span className="block font-medium">Seed {run.protocol.selection.seed} · {reasoningLabel(run.model_variant)}</span><span className="mt-1 block text-xs text-muted-foreground">{run.summary.solved}/{run.progress.completed} solved · rating {estimate ? Math.round(estimate.rating).toLocaleString() : "—"} · RD {estimate?.rating_deviation?.toFixed(2) ?? "—"} · {formatCost(run.summary.cost_usd ?? 0)}</span><span className="mt-1 block font-mono text-[10px] text-muted-foreground">{run.run_id}</span></span>
+              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            </a>
+          </SheetClose>
+        })}
+      </div>
+      {point && !isHumanPoint(point) ? <p className="mt-4 rounded-lg border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">The run page also includes a reasoning-configuration selector for moving between this model’s other reasoning levels.</p> : null}
+    </SheetContent>
+  </Sheet>
 }
 
 interface PlottedPoint {
@@ -554,7 +585,7 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts}</dd>
     </dl>
-    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the representative saved human run.</div>
+    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to choose a saved human run.</div>
   </div>
   const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
   return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
@@ -571,7 +602,7 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts.toLocaleString()}</dd>
     </dl>
-    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the representative settled run.</div>
+    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to choose a contributing settled run.</div>
   </div>
 }
 
@@ -580,6 +611,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const plotContainerRef = useRef<HTMLDivElement>(null)
   const [initialState] = useState(savedChartState)
   const [activeKey, setActiveKey] = useState<string | null>(null)
+  const [selectedPoint, setSelectedPoint] = useState<ChartPoint | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
@@ -665,6 +697,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         attempts,
         solved: profiles.reduce((total, profile) => total + profile.solved, 0),
         runCount: profiles.length,
+        profiles,
       }
       : null
   }, [humanProfiles])
@@ -829,6 +862,10 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               rel="noopener noreferrer"
               aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles`}
               className="cursor-pointer outline-none"
+              onClick={(event) => {
+                event.preventDefault()
+                setSelectedPoint(entry.point)
+              }}
               onPointerEnter={(event) => { setActiveKey(entry.point.key); positionTooltip(event) }}
               onPointerMove={positionTooltip}
               onPointerLeave={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
@@ -854,5 +891,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
+    <RunPickerSheet point={selectedPoint} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
   </Card>
 }

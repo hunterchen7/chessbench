@@ -24,6 +24,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { comparisonPath } from "@/lib/runComparison"
 import { ratedPlayPath } from "@/lib/ratedPlay"
+import { reasoningConfigurationEffort, reasoningLabel } from "@/lib/modelReasoning"
+
+const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
 
 function suiteIdentity(run: RunIndexEntry) {
   return `${run.track}:${run.suite?.content_hash ?? run.suite?.name ?? "unspecified"}`
@@ -31,6 +34,12 @@ function suiteIdentity(run: RunIndexEntry) {
 
 function conditionIdentity(run: RunIndexEntry) {
   return run.condition_slug || run.condition.slug
+}
+
+function runSeed(run: RunIndexEntry) {
+  return run.protocol?.kind === "adaptive_glicko2"
+    ? (run.protocol as RatedSessionProtocol).selection.seed
+    : null
 }
 
 function runConfigurationLabel(run: RunIndexEntry) {
@@ -399,6 +408,31 @@ export function ModelDetail() {
     group,
     run: group.runs.find((candidate) => conditionIdentity(candidate) === conditionIdentity(meta)),
   }))
+  const reasoningVariants = Array.from(runs
+    .filter((candidate) => isVisibleUiTrack(candidate.track) && candidate.status !== "failed" && candidate.model_variant.base_key === variant.base_key)
+    .reduce((groups, candidate) => {
+      const existing = groups.get(candidate.model_variant.key)
+      if (existing) existing.push(candidate)
+      else groups.set(candidate.model_variant.key, [candidate])
+      return groups
+    }, new Map<string, RunIndexEntry[]>()))
+    .map(([variantKey, candidates]) => {
+      const destination = candidates.toSorted((a, b) =>
+        Number(suiteIdentity(b) === activeSuiteKey) - Number(suiteIdentity(a) === activeSuiteKey)
+        || Number(conditionIdentity(b) === conditionIdentity(meta)) - Number(conditionIdentity(a) === conditionIdentity(meta))
+        || Number(runSeed(b) === runSeed(meta)) - Number(runSeed(a) === runSeed(meta))
+        || Number(b.status === "completed") - Number(a.status === "completed")
+        || (b.completed_at ?? b.updated_at ?? b.created).localeCompare(a.completed_at ?? a.updated_at ?? a.created),
+      )[0]
+      return { key: variantKey, destination, runCount: candidates.length }
+    })
+    .toSorted((a, b) => {
+      const aEffort = reasoningConfigurationEffort(a.destination.model_variant)
+      const bEffort = reasoningConfigurationEffort(b.destination.model_variant)
+      return (REASONING_ORDER.indexOf(aEffort) + 1 || REASONING_ORDER.length + 1)
+        - (REASONING_ORDER.indexOf(bEffort) + 1 || REASONING_ORDER.length + 1)
+        || a.destination.model_variant.provider.localeCompare(b.destination.model_variant.provider)
+    })
 
   const byTier = TIER_ORDER.map((tier) => {
     const items = displayRun.items.filter((item) => item.categories?.tier?.includes(tier))
@@ -482,7 +516,30 @@ export function ModelDetail() {
             </button>
           })}
         </div>
-        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-[minmax(0,420px)_1fr]">
+        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,300px)_minmax(0,420px)_1fr]">
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reasoning configuration</div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 w-full cursor-pointer justify-between gap-3 bg-background px-3 font-normal" aria-label="Choose reasoning configuration">
+                  <span className="min-w-0 truncate text-left"><span className="font-medium">{reasoningLabel(variant)}</span><span className="text-muted-foreground"> · {variant.provider}</span></span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-72 max-w-[calc(100vw-2rem)]">
+                <DropdownMenuLabel>Same model, different reasoning</DropdownMenuLabel>
+                {reasoningVariants.map(({ key: siblingKey, destination, runCount }) => {
+                  const active = siblingKey === variant.key
+                  return <DropdownMenuItem key={siblingKey} onSelect={() => {
+                    if (!active) navigate(`/model/${encodeURIComponent(siblingKey)}?run=${encodeURIComponent(destination.run_id)}`)
+                  }} className="items-start py-2.5">
+                    <Check className={cn("mt-0.5 size-4 shrink-0", active ? "text-emerald-600 opacity-100" : "opacity-0")} />
+                    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{reasoningLabel(destination.model_variant)}</span><span className="mt-0.5 block text-[11px] text-muted-foreground">{destination.model_variant.provider} · {runCount} run{runCount === 1 ? "" : "s"} · opens seed {runSeed(destination) ?? "—"}</span></span>
+                  </DropdownMenuItem>
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <div className="space-y-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run configuration</div>
             <DropdownMenu>
@@ -504,7 +561,7 @@ export function ModelDetail() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2.5 text-xs leading-relaxed text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" /><span>Puzzles are isolated from one another. Conversation state persists only between moves of the same puzzle.</span></div>
+          <div className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2.5 text-xs leading-relaxed text-muted-foreground sm:col-span-2 xl:col-span-1"><Info className="mt-0.5 size-3.5 shrink-0" /><span>Puzzles are isolated from one another. Conversation state persists only between moves of the same puzzle.</span></div>
         </div>
       </CardContent>
     </Card>

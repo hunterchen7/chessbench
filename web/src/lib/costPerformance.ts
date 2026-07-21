@@ -6,6 +6,7 @@ export interface CostPerformancePoint {
   key: string
   aggregate: RatedRunAggregate
   representative: RunIndexEntry & { protocol: RatedSessionProtocol }
+  runs: Array<RunIndexEntry & { protocol: RatedSessionProtocol }>
   rating: number
   ratingDeviation: number
   costPerPuzzle: number
@@ -83,6 +84,9 @@ export function costPerformancePoints(aggregates: RatedRunAggregate[]): CostPerf
       key,
       aggregate,
       representative,
+      runs: complete.toSorted((a, b) =>
+        a.protocol.selection.seed - b.protocol.selection.seed || a.run_id.localeCompare(b.run_id),
+      ),
       rating: mean(ratings),
       ratingDeviation: deviations.length > 0 ? mean(deviations) : 0,
       costPerPuzzle: totalCost / attempts,
