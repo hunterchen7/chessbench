@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, SlidersHorizontal, Tags, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
@@ -244,80 +244,6 @@ interface ModelVisibilityGroup {
   label: string
   color: string
   efforts: Array<{ effort: string; pointCount: number }>
-}
-
-function ModelVisibilitySheet({
-  open,
-  groups,
-  hiddenModelKeys,
-  hiddenModelReasoningKeys,
-  onOpenChange,
-  onToggleModel,
-  onToggleReasoning,
-  onShowAll,
-  onHideAll,
-}: {
-  open: boolean
-  groups: ModelVisibilityGroup[]
-  hiddenModelKeys: Set<string>
-  hiddenModelReasoningKeys: Set<string>
-  onOpenChange: (open: boolean) => void
-  onToggleModel: (group: ModelVisibilityGroup) => void
-  onToggleReasoning: (group: ModelVisibilityGroup, effort: string) => void
-  onShowAll: () => void
-  onHideAll: () => void
-}) {
-  const [query, setQuery] = useState("")
-  const normalizedQuery = query.trim().toLowerCase()
-  const visibleGroups = normalizedQuery
-    ? groups.filter((group) => group.label.toLowerCase().includes(normalizedQuery) || group.key.toLowerCase().includes(normalizedQuery))
-    : groups
-
-  return <Sheet open={open} onOpenChange={onOpenChange}>
-    <SheetContent className="w-[min(94vw,520px)] overflow-y-auto">
-      <div className="sticky top-0 z-10 -mx-5 -mt-5 border-b bg-background/95 px-5 pb-3 pt-5 backdrop-blur">
-        <SheetTitle className="pr-8 text-lg font-semibold">Model visibility</SheetTitle>
-        <SheetDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Hide a whole model or tune its reasoning levels independently. These choices are saved for your next visit.
-        </SheetDescription>
-        <div className="mt-4 flex items-center gap-2">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a model…" className="h-9 pl-8 text-xs" aria-label="Find a model to configure" />
-          </div>
-          <Button variant="outline" size="sm" className="h-9" onClick={onShowAll}>Show all</Button>
-          <Button variant="outline" size="sm" className="h-9" onClick={onHideAll}>Hide all</Button>
-        </div>
-      </div>
-      <p className="mt-3 rounded-lg border border-dashed px-3 py-2 text-xs leading-relaxed text-muted-foreground">Tip: selecting a reasoning level on a fully hidden model reveals only that level.</p>
-      <div className="mt-4 space-y-2.5">
-        {visibleGroups.map((group) => {
-          const hiddenByModel = hiddenModelKeys.has(group.key)
-          const visibleEfforts = group.efforts.filter(({ effort }) => !hiddenByModel && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort))).length
-          return <section key={group.key} className="rounded-xl border bg-card p-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: group.color }} />
-                <div className="min-w-0"><div className="truncate text-sm font-semibold">{group.label}</div><div className="mt-0.5 text-[11px] text-muted-foreground">{visibleEfforts} of {group.efforts.length} reasoning level{group.efforts.length === 1 ? "" : "s"} visible</div></div>
-              </div>
-              <Button variant={visibleEfforts > 0 ? "secondary" : "outline"} size="sm" className="h-8 shrink-0 gap-1.5 px-2.5 text-xs" aria-pressed={visibleEfforts > 0} onClick={() => onToggleModel(group)}>
-                {visibleEfforts > 0 ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}{visibleEfforts > 0 ? "Shown" : "Hidden"}
-              </Button>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {group.efforts.map(({ effort, pointCount }) => {
-                const visible = !hiddenByModel && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort))
-                return <button key={effort} type="button" aria-pressed={visible} onClick={() => onToggleReasoning(group, effort)} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition-[opacity,background-color,color,border-color] ${visible ? "border-border bg-background font-medium text-foreground hover:bg-accent" : "border-transparent bg-muted/50 text-muted-foreground opacity-55 hover:opacity-80"}`}>
-                  {visible ? <Eye className="size-3" /> : <EyeOff className="size-3" />}<span className={visible ? "" : "line-through"}>{reasoningEffortLabel(effort)}</span>{pointCount > 1 ? <span className="font-mono text-[10px] opacity-70">×{pointCount}</span> : null}
-                </button>
-              })}
-            </div>
-          </section>
-        })}
-        {visibleGroups.length === 0 ? <div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">No matching models.</div> : null}
-      </div>
-    </SheetContent>
-  </Sheet>
 }
 
 interface PlottedPoint {
@@ -707,7 +633,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
   const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
   const [hiddenModelReasoningKeys, setHiddenModelReasoningKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelReasoningKeys))
-  const [modelVisibilityOpen, setModelVisibilityOpen] = useState(false)
   const [showHuman, setShowHuman] = useState(initialState.showHuman)
   const [showLabels, setShowLabels] = useState(initialState.showLabels)
   const [showLegend, setShowLegend] = useState(initialState.showLegend)
@@ -953,7 +878,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     for (const entry of availableModelLegend) next.add(entry.key)
     return next
   })
-  const hideAllModels = () => setHiddenModelKeys(new Set(modelVisibilityGroups.map((group) => group.key)))
   return <Card className="overflow-hidden border-border/70">
     <CardHeader className="gap-3 border-b">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -981,43 +905,49 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             })} className="relative flex cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm outline-none focus:bg-accent"><DropdownMenuItemIndicator className="absolute left-2"><Check className="size-4" /></DropdownMenuItemIndicator>{reasoningEffortLabel(effort)}</DropdownMenuCheckboxItem>)}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant={hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setModelVisibilityOpen(true)}>
-          <SlidersHorizontal className="size-3.5" />Models{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}
-        </Button>
         <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button>
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
-        <Button variant={showLegend ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLegend} onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend</Button>
+        <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
         <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
-      {showLegend ? <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-lg border bg-muted/25 px-3 py-2 text-[10px] text-muted-foreground">
-        <span className="mr-1 font-semibold uppercase tracking-wider">Models</span>
-        <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={showAllAvailableModels}>Show all</button>
-        <button type="button" className="rounded px-1.5 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={hideAllAvailableModels}>Hide all</button>
-        {availableModelLegend.map((entry) => {
-          const group = modelVisibilityByKey.get(entry.key)
-          const visible = group != null && !hiddenModelKeys.has(entry.key) && Array.from(entry.efforts).some((effort) => !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(entry.key, effort)))
-          return <button
-            key={entry.key}
-            type="button"
-            aria-pressed={visible}
-            title={`${visible ? "Hide" : "Show"} ${entry.label}`}
-            onClick={() => { if (group) toggleModel(group) }}
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-[opacity,background-color,color,border-color] ${visible ? "border-border bg-background text-foreground hover:bg-accent" : "border-transparent bg-muted/50 opacity-40 hover:opacity-70"}`}
-          ><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}</button>
-        })}
-        {humanPoint ? <button
-          type="button"
-          aria-pressed={showHuman}
-          title={`${showHuman ? "Hide" : "Show"} hunter (me)`}
-          onClick={() => setShowHuman((value) => !value)}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 transition-[opacity,background-color,color,border-color] ${showHuman ? "border-border bg-background text-foreground hover:bg-accent" : "border-transparent bg-muted/50 opacity-40 hover:opacity-70"}`}
-        ><span className="size-2 rounded-full" style={{ backgroundColor: HUMAN_COLOR }} />hunter (me)</button> : null}
-        <span className="mx-1 h-3 w-px bg-border" />
-        <span className="font-semibold uppercase tracking-wider">Reasoning labels</span>
-        {reasoningOptions.map((effort) => <span key={effort} className="inline-flex items-center gap-1.5"><span className={`font-semibold ${effort === "none" ? "text-slate-600 dark:text-slate-300" : effort === "minimal" ? "text-sky-600 dark:text-sky-300" : effort === "low" ? "text-cyan-600 dark:text-cyan-300" : effort === "medium" ? "text-emerald-600 dark:text-emerald-300" : effort === "high" ? "text-amber-600 dark:text-amber-300" : effort === "xhigh" ? "text-orange-600 dark:text-orange-300" : effort === "max" ? "text-rose-600 dark:text-rose-300" : "text-violet-600 dark:text-violet-300"}`}>Aa</span>{reasoningEffortLabel(effort)}</span>)}
-      </div> : null}
+      <div id="rating-efficiency-legend" className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out motion-reduce:transition-none ${showLegend ? "mb-3 grid-rows-[1fr] opacity-100" : "mb-0 grid-rows-[0fr] opacity-0"}`} aria-hidden={!showLegend} inert={!showLegend}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="rounded-lg border bg-muted/25 px-3 py-3 text-[10px] text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div><span className="font-semibold uppercase tracking-wider text-foreground">Models &amp; reasoning</span><span className="ml-2">Click a model to toggle all levels, or choose a level.</span></div>
+              <div className="flex items-center gap-1">
+                <button type="button" className="cursor-pointer rounded px-2 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={showAllAvailableModels}>Show all</button>
+                <button type="button" className="cursor-pointer rounded px-2 py-1 font-medium transition-colors hover:bg-accent hover:text-foreground" onClick={hideAllAvailableModels}>Hide all</button>
+              </div>
+            </div>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {availableModelLegend.map((entry) => {
+                const group = modelVisibilityByKey.get(entry.key)
+                if (!group) return null
+                const hiddenByModel = hiddenModelKeys.has(entry.key)
+                const modelVisible = !hiddenByModel && Array.from(entry.efforts).some((effort) => !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(entry.key, effort)))
+                return <div key={entry.key} className={`inline-flex items-stretch overflow-hidden rounded-full border transition-[opacity,background-color,color,border-color] ${modelVisible ? "border-border bg-background text-foreground" : "border-transparent bg-muted/50 opacity-45 hover:opacity-75"}`}>
+                  <button type="button" aria-pressed={modelVisible} title={`${modelVisible ? "Hide" : "Show"} every ${entry.label} configuration`} onClick={() => toggleModel(group)} className="inline-flex cursor-pointer items-center gap-1.5 px-2.5 py-1 font-medium transition-colors hover:bg-accent">
+                    <span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.label}
+                  </button>
+                  <span className="my-1 w-px bg-border" aria-hidden="true" />
+                  <span className="flex items-center pr-1">
+                    {group.efforts.filter(({ effort }) => entry.efforts.has(effort)).map(({ effort }) => {
+                      const visible = !hiddenByModel && !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(entry.key, effort))
+                      return <button key={effort} type="button" aria-pressed={visible} title={`${visible ? "Hide" : "Show"} ${entry.label} · ${reasoningEffortLabel(effort)}`} onClick={() => toggleModelReasoning(group, effort)} className={`cursor-pointer rounded-full px-1.5 py-1 font-semibold transition-[opacity,background-color,color] hover:bg-accent ${visible ? "text-foreground" : "text-muted-foreground opacity-45 line-through hover:opacity-80"}`}>
+                        {compactReasoningLabel(effort)}
+                      </button>
+                    })}
+                  </span>
+                </div>
+              })}
+              {humanPoint ? <button type="button" aria-pressed={showHuman} title={`${showHuman ? "Hide" : "Show"} hunter (me)`} onClick={() => setShowHuman((value) => !value)} className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium transition-[opacity,background-color,color,border-color] hover:bg-accent ${showHuman ? "border-border bg-background text-foreground" : "border-transparent bg-muted/50 opacity-45 hover:opacity-75"}`}><span className="size-2 rounded-full" style={{ backgroundColor: HUMAN_COLOR }} />hunter (me)</button> : null}
+            </div>
+          </div>
+        </div>
+      </div>
       {chart ? <><div className="overflow-x-auto">
         <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto w-full xl:w-3/4" role="img" aria-label={`Cost-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower cost and higher Glicko-2 puzzle rating are better.`}>
@@ -1061,16 +991,5 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
     <RunPickerSheet point={selectedPoint} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
-    <ModelVisibilitySheet
-      open={modelVisibilityOpen}
-      groups={modelVisibilityGroups}
-      hiddenModelKeys={hiddenModelKeys}
-      hiddenModelReasoningKeys={hiddenModelReasoningKeys}
-      onOpenChange={setModelVisibilityOpen}
-      onToggleModel={toggleModel}
-      onToggleReasoning={toggleModelReasoning}
-      onShowAll={() => showModelGroups(modelVisibilityGroups)}
-      onHideAll={hideAllModels}
-    />
   </Card>
 }
