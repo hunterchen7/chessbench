@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactP
 import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
-import { effectiveReasoningEffort, reasoningConfigurationEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
+import { effectiveReasoningEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
 import { fetchHumanTrainingProfileByRun, type HumanTrainingProfile } from "@/lib/backend"
 import { useData } from "@/lib/useData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -168,8 +168,7 @@ function isHumanPoint(point: ChartPoint): point is HumanCostPerformancePoint {
 
 function modelPointReasoningEffort(point: CostPerformancePoint) {
   const variant = point.representative.model_variant
-  const configured = reasoningConfigurationEffort(variant)
-  const resolved = configured === "provider" ? effectiveReasoningEffort(variant) : configured
+  const resolved = effectiveReasoningEffort(variant)
   return resolved === "provider" ? "none" : resolved
 }
 

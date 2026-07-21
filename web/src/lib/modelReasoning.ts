@@ -7,11 +7,24 @@ const PROVIDER_REASONING_DEFAULTS: Record<string, string> = {
   "mistralai/mistral-small-2603": "none",
 }
 
+// OpenRouter accepts the gateway-wide `minimal` value for every request, but
+// maps it to the nearest effort supported by the selected model. Keep these
+// aliases model-specific so models with a native minimal tier (for example,
+// Gemini 3.1 Flash Lite) remain distinct.
+const PROVIDER_REASONING_EQUIVALENTS: Record<string, Record<string, string>> = {
+  "openai/gpt-5.6-luna": { minimal: "low" },
+}
+
+function equivalentEffort(modelId: string, effort: string) {
+  return PROVIDER_REASONING_EQUIVALENTS[modelId]?.[effort] ?? effort
+}
+
 export function effectiveReasoningEffort(variant: ModelVariant): string {
   const { effort, max_tokens: tokens } = variant.reasoning ?? {}
   if (tokens) return "budget"
-  if (effort) return effort
-  return PROVIDER_REASONING_DEFAULTS[variant.model_id] ?? "provider"
+  if (effort) return equivalentEffort(variant.model_id, effort)
+  const providerDefault = PROVIDER_REASONING_DEFAULTS[variant.model_id]
+  return providerDefault ? equivalentEffort(variant.model_id, providerDefault) : "provider"
 }
 
 /**
@@ -22,8 +35,10 @@ export function effectiveReasoningEffort(variant: ModelVariant): string {
 export function equivalentReasoningKey(variant: ModelVariant): string {
   const { effort, max_tokens: tokens } = variant.reasoning ?? {}
   if (tokens) return `tokens:${tokens}`
-  const equivalentEffort = effort || PROVIDER_REASONING_DEFAULTS[variant.model_id]
-  return equivalentEffort ? `effort:${equivalentEffort}` : "provider"
+  const configuredEffort = effort || PROVIDER_REASONING_DEFAULTS[variant.model_id]
+  return configuredEffort
+    ? `effort:${equivalentEffort(variant.model_id, configuredEffort)}`
+    : "provider"
 }
 
 /** Preserve whether reasoning was explicitly requested or left to the provider. */
