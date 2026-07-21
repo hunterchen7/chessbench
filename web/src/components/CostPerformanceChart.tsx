@@ -18,7 +18,10 @@ const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const RATING_AXIS_FLOOR = 100
 const HUMAN_HOURLY_RATE = 50
-const HUMAN_RUN_ID = "legacy:af491903-33b9-46c3-9f1f-f551054600fa"
+const HUMAN_RUN_IDS = [
+  "legacy:af491903-33b9-46c3-9f1f-f551054600fa",
+  "e5ab2979-f16b-43a3-a603-e728355a1002",
+] as const
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
 const CHART_STATE_STORAGE_KEY = "chessbench.rating-efficiency-state.v1"
@@ -129,7 +132,7 @@ interface HumanCostPerformancePoint {
   totalCost: number
   attempts: number
   solved: number
-  runCount: 1
+  runCount: number
 }
 
 type ChartPoint = CostPerformancePoint | HumanCostPerformancePoint
@@ -542,16 +545,16 @@ function Inspector({ entry }: { entry: PlottedPoint }) {
   if (isHumanPoint(entry.point)) return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-      <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">Human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
+      <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
     </div>
     <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
       <dt className="text-muted-foreground">Glicko-2 rating</dt><dd className="font-mono font-semibold tabular-nums">{Math.round(entry.point.rating).toLocaleString()}</dd>
-      <dt className="text-muted-foreground">RD</dt><dd className="font-mono tabular-nums">±{Math.round(entry.point.ratingDeviation)}</dd>
+      <dt className="text-muted-foreground">Mean RD</dt><dd className="font-mono tabular-nums">±{Math.round(entry.point.ratingDeviation)}</dd>
       <dt className="text-muted-foreground">Labor cost / 50</dt><dd className="font-mono font-semibold tabular-nums">{formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)}</dd>
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts}</dd>
     </dl>
-    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the saved human run.</div>
+    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to inspect the representative saved human run.</div>
   </div>
   const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
   return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
@@ -578,7 +581,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [initialState] = useState(savedChartState)
   const [activeKey, setActiveKey] = useState<string | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
-  const [humanProfile, setHumanProfile] = useState<HumanTrainingProfile | null>(null)
+  const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
   const [reasoningFilters, setReasoningFilters] = useState<Set<string>>(() => new Set(initialState.reasoningFilters))
   const [hiddenModelKeys, setHiddenModelKeys] = useState<Set<string>>(() => new Set(initialState.hiddenModelKeys))
@@ -604,9 +607,9 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   useEffect(() => {
     let active = true
     if (!apiBase) return () => { active = false }
-    void fetchHumanTrainingProfileByRun(apiBase, HUMAN_RUN_ID)
-      .then((profile) => { if (active) setHumanProfile(profile) })
-      .catch(() => { if (active) setHumanProfile(null) })
+    void Promise.all(HUMAN_RUN_IDS.map((runId) => fetchHumanTrainingProfileByRun(apiBase, runId)))
+      .then((profiles) => { if (active) setHumanProfiles(profiles.filter((profile): profile is HumanTrainingProfile => profile != null)) })
+      .catch(() => { if (active) setHumanProfiles([]) })
     return () => { active = false }
   }, [apiBase])
 
@@ -647,22 +650,24 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   )
 
   const humanPoint = useMemo((): HumanCostPerformancePoint | null => {
-    const activeDurationMs = humanProfile?.session.active_duration_ms ?? 0
-    return humanProfile && humanProfile.attempts > 0 && activeDurationMs > 0
+    const profiles = humanProfiles.filter((profile) => profile.attempts > 0 && (profile.session.active_duration_ms ?? 0) > 0)
+    const attempts = profiles.reduce((total, profile) => total + profile.attempts, 0)
+    const activeDurationMs = profiles.reduce((total, profile) => total + (profile.session.active_duration_ms ?? 0), 0)
+    return profiles.length > 0 && attempts > 0 && activeDurationMs > 0
       ? {
         kind: "human",
-        key: `human:${humanProfile.run_id}`,
-        runId: humanProfile.run_id,
-        rating: humanProfile.rating,
-        ratingDeviation: humanProfile.rating_deviation,
+        key: `human:${profiles.map((profile) => profile.run_id).join("+")}`,
+        runId: profiles[0].run_id,
+        rating: profiles.reduce((total, profile) => total + profile.rating, 0) / profiles.length,
+        ratingDeviation: profiles.reduce((total, profile) => total + profile.rating_deviation, 0) / profiles.length,
         totalCost: activeDurationMs / 3_600_000 * HUMAN_HOURLY_RATE,
-        costPerPuzzle: activeDurationMs / 3_600_000 * HUMAN_HOURLY_RATE / humanProfile.attempts,
-        attempts: humanProfile.attempts,
-        solved: humanProfile.solved,
-        runCount: 1,
+        costPerPuzzle: activeDurationMs / 3_600_000 * HUMAN_HOURLY_RATE / attempts,
+        attempts,
+        solved: profiles.reduce((total, profile) => total + profile.solved, 0),
+        runCount: profiles.length,
       }
       : null
-  }, [humanProfile])
+  }, [humanProfiles])
 
   const chart = useMemo(() => {
     const points: ChartPoint[] = showHuman && humanPoint ? [...modelPoints, humanPoint] : modelPoints
