@@ -26,9 +26,10 @@ const HUMAN_RUN_IDS = [
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
 const CHART_STATE_STORAGE_KEY = "chessbench.rating-efficiency-state.v1"
-type CostScale = "log" | "sqrt" | "linear"
+type CostScale = "log" | "fourth" | "sqrt" | "linear"
 const COST_SCALE_OPTIONS: Array<{ value: CostScale; label: string; axisLabel: string }> = [
   { value: "log", label: "Log", axisLabel: "log" },
+  { value: "fourth", label: "4th root", axisLabel: "fourth root" },
   { value: "sqrt", label: "Sqrt", axisLabel: "square root" },
   { value: "linear", label: "Linear", axisLabel: "linear" },
 ]
@@ -93,7 +94,7 @@ function savedChartState(): SavedChartState {
     if (!parsed || typeof parsed !== "object") return fallback
     const strings = (value: unknown) => Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : []
     return {
-      costScale: parsed.costScale === "sqrt" || parsed.costScale === "linear" ? parsed.costScale : fallback.costScale,
+      costScale: parsed.costScale === "fourth" || parsed.costScale === "sqrt" || parsed.costScale === "linear" ? parsed.costScale : fallback.costScale,
       modelSearch: typeof parsed.modelSearch === "string" ? parsed.modelSearch : fallback.modelSearch,
       reasoningFilters: strings(parsed.reasoningFilters),
       hiddenModelKeys: strings(parsed.hiddenModelKeys),
@@ -209,12 +210,14 @@ function logTicks(min: number, max: number) {
 
 function transformCost(value: number, scale: CostScale) {
   if (scale === "log") return Math.log10(value)
+  if (scale === "fourth") return value ** 0.25
   if (scale === "sqrt") return Math.sqrt(value)
   return value
 }
 
 function inverseCost(value: number, scale: CostScale) {
   if (scale === "log") return 10 ** value
+  if (scale === "fourth") return value ** 4
   if (scale === "sqrt") return value ** 2
   return value
 }
@@ -921,7 +924,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-base"><CircleDollarSign className="size-4 text-sky-600" /> Rating efficiency</CardTitle>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis supports log, square-root, and linear scaling.</p>
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the cost axis supports log, fourth-root, square-root, and linear scaling.</p>
         </div>
         <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allModelPoints.length ? ` of ${allModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
       </div>
