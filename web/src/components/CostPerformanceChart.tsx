@@ -301,11 +301,14 @@ interface PlottedPoint {
   color: string
   labelX: number
   labelY: number
+  labelLayout: LabelLayout
 }
 
+type LabelLayout = "stacked" | "inline"
 interface LabelBox { left: number; right: number; top: number; bottom: number }
 interface Segment { x1: number; y1: number; x2: number; y2: number }
-interface LabelPlacement { x: number; y: number; box: LabelBox; leader: Segment | null; score: number }
+interface LabelCandidate { x: number; y: number; layout: LabelLayout }
+interface LabelPlacement extends LabelCandidate { box: LabelBox; leader: Segment | null; score: number }
 
 const LEADER_LINE_PENALTY = 240
 
@@ -336,8 +339,8 @@ function segmentIntersectsBox(segment: Segment, box: LabelBox) {
   return edges.some((edge) => segmentsIntersect(segment, edge))
 }
 
-function labelLeader(entry: PlottedPoint, x: number, y: number): Segment {
-  const box = labelBox(labelWidth(entry), x, y)
+function labelLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout): Segment {
+  const box = labelBox(labelWidth(entry, layout), x, y, layout)
   const edgeX = Math.max(box.left, Math.min(box.right, entry.x))
   const edgeY = Math.max(box.top, Math.min(box.bottom, entry.y))
   const towardCenterX = x - edgeX
@@ -352,15 +355,21 @@ function labelLeader(entry: PlottedPoint, x: number, y: number): Segment {
   }
 }
 
-function labelNeedsLeader(entry: PlottedPoint, x: number, y: number) {
-  const box = labelBox(labelWidth(entry), x, y)
-  const horizontallyCentered = Math.abs(x - entry.x) < 1
+function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout) {
+  const box = labelBox(labelWidth(entry, layout), x, y, layout)
+  const occupiedLeft = entry.x - 7
+  const occupiedRight = entry.x + 7
   const occupiedTop = Math.min(entry.errorTop, entry.y - 7)
   const occupiedBottom = Math.max(entry.errorBottom, entry.y + 7)
-  const edgeGap = box.bottom <= occupiedTop ? occupiedTop - box.bottom :
+  const verticalGap = box.bottom <= occupiedTop ? occupiedTop - box.bottom :
     box.top >= occupiedBottom ? box.top - occupiedBottom :
     Number.POSITIVE_INFINITY
-  return !horizontallyCentered || edgeGap > 2
+  const horizontalGap = box.right <= occupiedLeft ? occupiedLeft - box.right :
+    box.left >= occupiedRight ? box.left - occupiedRight :
+    Number.POSITIVE_INFINITY
+  const directlyAboveOrBelow = box.left <= entry.x && box.right >= entry.x && verticalGap <= 2
+  const directlyBeside = box.top <= entry.y && box.bottom >= entry.y && horizontalGap <= 2
+  return !directlyAboveOrBelow && !directlyBeside
 }
 
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
@@ -371,26 +380,43 @@ function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
   }, 0)
 }
 
-function labelWidth(entry: PlottedPoint) {
-  const lines = pointLabelLines(entry.point)
+function labelWidth(entry: PlottedPoint, layout: LabelLayout = "stacked") {
+  const lines = layout === "inline" && !isHumanPoint(entry.point)
+    ? [`${entry.point.representative.model_variant.display_name} · ${compactReasoningLabel(modelPointReasoningEffort(entry.point))}`]
+    : pointLabelLines(entry.point)
   return Math.max(58, Math.max(...lines.map((line) => line.length)) * 4.2 + 6)
 }
 
-function labelBox(width: number, x: number, y: number): LabelBox {
-  return { left: x - width / 2, right: x + width / 2, top: y - 10, bottom: y + 15 }
+function labelBox(width: number, x: number, y: number, layout: LabelLayout = "stacked"): LabelBox {
+  return layout === "inline"
+    ? { left: x - width / 2, right: x + width / 2, top: y - 8, bottom: y + 8 }
+    : { left: x - width / 2, right: x + width / 2, top: y - 10, bottom: y + 15 }
 }
 
 function directLabelCandidates(entry: PlottedPoint) {
   const occupiedTop = Math.min(entry.errorTop, entry.y - 7)
   const occupiedBottom = Math.max(entry.errorBottom, entry.y + 7)
-  return [
-    { x: entry.x, y: occupiedTop - 16 },
-    { x: entry.x, y: occupiedBottom + 12 },
-  ]
+  const candidates: LabelCandidate[] = []
+  const stackedWidth = labelWidth(entry)
+  const maximumShift = Math.max(0, stackedWidth / 2 - 4)
+  for (const horizontalShift of [0, -12, 12, -24, 24]) {
+    if (Math.abs(horizontalShift) > maximumShift) continue
+    candidates.push({ x: entry.x + horizontalShift, y: occupiedTop - 16, layout: "stacked" })
+    candidates.push({ x: entry.x + horizontalShift, y: occupiedBottom + 12, layout: "stacked" })
+  }
+  // Inline side labels trade horizontal room for a shorter label and sit flush
+  // against the marker's seven-pixel collision box.
+  const sideDistance = labelWidth(entry, "inline") / 2 + 7
+  for (const verticalShift of [0, -6, 6]) {
+    const y = entry.y + verticalShift
+    candidates.push({ x: entry.x - sideDistance, y, layout: "inline" })
+    candidates.push({ x: entry.x + sideDistance, y, layout: "inline" })
+  }
+  return candidates
 }
 
 function displacedLabelCandidates(entry: PlottedPoint, width: number) {
-  const candidates: Array<{ x: number; y: number }> = []
+  const candidates: LabelCandidate[] = []
   const horizontalOffsets = [0]
   const maxHorizontalOffset = Math.max(180, width * 1.65)
   for (let offset = 12; offset <= maxHorizontalOffset; offset += 12) {
@@ -399,8 +425,8 @@ function displacedLabelCandidates(entry: PlottedPoint, width: number) {
   for (let level = 0; level < 8; level += 1) {
     const verticalOffset = level * 18
     for (const offset of horizontalOffsets) {
-      candidates.push({ x: entry.x + offset, y: entry.errorTop - 22 - verticalOffset })
-      candidates.push({ x: entry.x + offset, y: entry.errorBottom + 18 + verticalOffset })
+      candidates.push({ x: entry.x + offset, y: entry.errorTop - 22 - verticalOffset, layout: "stacked" })
+      candidates.push({ x: entry.x + offset, y: entry.errorBottom + 18 + verticalOffset, layout: "stacked" })
     }
   }
   const centeredY = entry.y - 2
@@ -408,19 +434,19 @@ function displacedLabelCandidates(entry: PlottedPoint, width: number) {
   for (let level = 0; level < 8; level += 1) {
     const sideDistance = width / 2 + 18 + level * 12
     for (const verticalOffset of verticalOffsets) {
-      candidates.push({ x: entry.x - sideDistance, y: centeredY + verticalOffset })
-      candidates.push({ x: entry.x + sideDistance, y: centeredY + verticalOffset })
+      candidates.push({ x: entry.x - sideDistance, y: centeredY + verticalOffset, layout: "stacked" })
+      candidates.push({ x: entry.x + sideDistance, y: centeredY + verticalOffset, layout: "stacked" })
     }
   }
   return candidates
 }
 
 function scanLabelCandidates(entry: PlottedPoint, width: number) {
-  const candidates: Array<{ x: number; y: number }> = []
+  const candidates: LabelCandidate[] = []
   const stepX = Math.max(width + 4, 64)
   for (let y = 18; y <= HEIGHT - PLOT.bottom - 18; y += 22) {
     for (let x = PLOT.left + width / 2; x <= WIDTH - PLOT.right - width / 2; x += stepX) {
-      candidates.push({ x, y })
+      candidates.push({ x, y, layout: "stacked" })
     }
   }
   return candidates.toSorted((a, b) =>
@@ -441,27 +467,27 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
 
   function bestPlacement(
     entry: PlottedPoint,
-    candidates: Array<{ x: number; y: number }>,
+    candidates: LabelCandidate[],
     placements: Map<string, LabelPlacement>,
     allowLeader: boolean,
   ) {
-    const width = labelWidth(entry)
     let best: LabelPlacement | null = null
     const otherMarkers = markers.filter((marker) => marker.key !== entry.point.key)
     const otherWhiskers = whiskers.filter((whisker) => whisker.key !== entry.point.key)
     const otherPlacements = [...placements.entries()].filter(([key]) => key !== entry.point.key).map(([, value]) => value)
     for (const candidate of candidates) {
+      const width = labelWidth(entry, candidate.layout)
       const x = Math.max(PLOT.left + width / 2, Math.min(WIDTH - PLOT.right - width / 2, candidate.x))
-      const box = labelBox(width, x, candidate.y)
+      const box = labelBox(width, x, candidate.y, candidate.layout)
       if (box.top < 8 || box.bottom > HEIGHT - PLOT.bottom - 4) continue
       const blocked =
         otherPlacements.some((other) => boxesOverlap(box, other.box)) ||
         markers.some((marker) => boxesOverlap(box, marker.box)) ||
         whiskers.some((whisker) => boxesOverlap(box, whisker.box))
       if (blocked) continue
-      const needsLeader = labelNeedsLeader(entry, x, candidate.y)
+      const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout)
       if (needsLeader && !allowLeader) continue
-      const leader = needsLeader ? labelLeader(entry, x, candidate.y) : null
+      const leader = needsLeader ? labelLeader(entry, x, candidate.y, candidate.layout) : null
       const obstructionCollisions = leader ?
         otherPlacements.filter((other) => segmentIntersectsBox(leader, other.box)).length +
         otherMarkers.filter((marker) => segmentIntersectsBox(leader, marker.box)).length +
@@ -474,13 +500,15 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         obstructionCollisions * 240 +
         connectorCrossings * 90 +
         (straddlesMinimumLine ? 80 : 0) +
-        (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.abs(candidate.y - entry.y))
-      if (!best || score < best.score) best = { x, y: candidate.y, box, leader, score }
+        (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
+      if (!best || score < best.score) best = { x, y: candidate.y, layout: candidate.layout, box, leader, score }
     }
     return best
   }
 
-  // First maximize labels that can sit directly above or below their marker.
+  // First maximize labels that can sit directly above, below, or beside their
+  // marker. Small horizontal shifts let top/bottom labels share dense bands
+  // without immediately falling back to leader lines.
   // Several deterministic greedy orders avoid letting one arbitrary traversal
   // decide which labels receive the limited connector-free slots.
   const directOrders = [
@@ -504,7 +532,7 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
     return scoreA - scoreB
   })[0] ?? new Map<string, LabelPlacement>()
 
-  // Only labels that did not fit above or below enter the displaced/leader-line pass.
+  // Only labels that did not fit around their marker enter the displaced/leader-line pass.
   for (const entry of ordered) {
     if (placements.has(entry.point.key)) continue
     const width = labelWidth(entry)
@@ -514,7 +542,7 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   }
 
   // Revisit only displaced labels. Connector-free labels remain locked, while a
-  // displaced label may still graduate to a newly available above/below position.
+  // displaced label may still graduate to a newly available direct position.
   for (let pass = 0; pass < 8; pass += 1) {
     let changed = false
     const displacedEntries = ordered.filter((entry) => placements.get(entry.point.key)?.leader)
@@ -524,7 +552,7 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
       if (!current) continue
       placements.delete(entry.point.key)
       const candidates = [
-        { x: current.x, y: current.y },
+        { x: current.x, y: current.y, layout: current.layout },
         ...directLabelCandidates(entry),
         ...displacedLabelCandidates(entry, labelWidth(entry)),
         ...scanLabelCandidates(entry, labelWidth(entry)),
@@ -541,8 +569,8 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   }
 
   return entries.map((entry) => {
-    const position = placements.get(entry.point.key) ?? { x: entry.x, y: entry.errorTop - 10 }
-    return { ...entry, labelX: position.x, labelY: position.y }
+    const position = placements.get(entry.point.key) ?? { x: entry.x, y: entry.errorTop - 10, layout: "stacked" as const }
+    return { ...entry, labelX: position.x, labelY: position.y, labelLayout: position.layout }
   })
 }
 
@@ -574,7 +602,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
       <circle cx={entry.x} cy={entry.y} r="4.75" fill={entry.color} className="stroke-background" strokeWidth="1.75" vectorEffect="non-scaling-stroke" />
     </g>)}
     {showLabels ? plotted.map((entry) => {
-      const box = labelBox(labelWidth(entry), entry.labelX, entry.labelY)
+      const box = labelBox(labelWidth(entry, entry.labelLayout), entry.labelX, entry.labelY, entry.labelLayout)
       const minimumLineY = y(MINIMUM_RATING)
       if (box.top > minimumLineY + 2 || box.bottom < minimumLineY - 2) return null
       return <rect
@@ -590,8 +618,8 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
       />
     }) : null}
     {showLabels ? plotted.map((entry) => {
-      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY)) return null
-      const leader = labelLeader(entry, entry.labelX, entry.labelY)
+      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)) return null
+      const leader = labelLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)
       return <line
         key={`leader-${entry.point.key}`}
         x1={leader.x1}
@@ -615,6 +643,16 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
         className="fill-fuchsia-600 text-[8.5px] font-semibold dark:fill-fuchsia-300"
         style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
       >{HUMAN_LABEL}</text>
+      if (entry.labelLayout === "inline") return <text
+        key={`label-${entry.point.key}`}
+        x={entry.labelX}
+        y={entry.labelY + 3}
+        textAnchor="middle"
+        className="fill-foreground text-[8.5px] font-semibold"
+        style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4, strokeLinecap: "round", strokeLinejoin: "round" }}
+      >
+        {entry.point.representative.model_variant.display_name} · <tspan className={REASONING_TEXT_CLASSES[label.effort] ?? REASONING_TEXT_CLASSES.provider}>{label.effortLabel}</tspan>
+      </text>
       return <text
         key={`label-${entry.point.key}`}
         x={entry.labelX}
@@ -854,6 +892,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         : colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
       labelX: 0,
       labelY: 0,
+      labelLayout: "stacked" as const,
     }))
     const plotted = showLabels ? placeLabels(rawPlotted, y(MINIMUM_RATING)) : rawPlotted
     const yTicks: number[] = []
