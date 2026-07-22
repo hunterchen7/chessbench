@@ -23,6 +23,7 @@ const HUMAN_HOURLY_RATE = 50
 const HUMAN_RUN_IDS = [
   "legacy:af491903-33b9-46c3-9f1f-f551054600fa",
   "e5ab2979-f16b-43a3-a603-e728355a1002",
+  "7caff0c9-9117-4a18-9c53-aa2f636ec235",
 ] as const
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
