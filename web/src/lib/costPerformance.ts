@@ -11,6 +11,10 @@ export interface CostPerformancePoint {
   ratingDeviation: number
   costPerPuzzle: number
   totalCost: number
+  completionTokens: number
+  reasoningTokens: number
+  modelMoves: number
+  tokensPerMove: number | null
   attempts: number
   solved: number
   runCount: number
@@ -70,6 +74,9 @@ export function costPerformancePoints(aggregates: RatedRunAggregate[]): CostPerf
 
     const attempts = complete.reduce((sum, run) => sum + run.progress.completed, 0)
     const totalCost = complete.reduce((sum, run) => sum + (run.summary.cost_usd ?? 0), 0)
+    const completionTokens = complete.reduce((sum, run) => sum + (run.usage?.completion_tokens ?? 0), 0)
+    const reasoningTokens = complete.reduce((sum, run) => sum + (run.usage?.reasoning_tokens ?? 0), 0)
+    const modelMoves = complete.reduce((sum, run) => sum + (run.summary.model_moves ?? 0), 0)
     const ratings = complete.map((run) => run.summary.puzzle_performance_rating!.rating)
     const deviations = complete.flatMap((run) => {
       const value = run.summary.puzzle_performance_rating?.rating_deviation
@@ -91,6 +98,10 @@ export function costPerformancePoints(aggregates: RatedRunAggregate[]): CostPerf
       ratingDeviation: deviations.length > 0 ? mean(deviations) : 0,
       costPerPuzzle: totalCost / attempts,
       totalCost,
+      completionTokens,
+      reasoningTokens,
+      modelMoves,
+      tokensPerMove: completionTokens > 0 && modelMoves > 0 ? completionTokens / modelMoves : null,
       attempts,
       solved: complete.reduce((sum, run) => sum + run.summary.solved, 0),
       runCount: complete.length,
