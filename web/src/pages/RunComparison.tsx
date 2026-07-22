@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
-import { ArrowLeft, Download, GitCompareArrows, Plus, ShieldAlert, Star, X } from "lucide-react"
+import { ArrowLeft, Download, GitCompareArrows, ShieldAlert, Star, X } from "lucide-react"
 import { loadRun, type Run, type RunIndexEntry } from "@/lib/data"
 import { useData } from "@/lib/useData"
 import { isModelVariant } from "@/lib/participants"
 import { modeInfo, pct, pointsText, responseStyleInfo } from "@/lib/format"
 import { comparisonRunLabel, comparisonSuiteKey, MAX_COMPARISON_RUNS, normalizeComparisonIds } from "@/lib/runComparison"
 import { ModelIdentity } from "@/components/ModelIdentity"
+import { ComparisonRunPicker } from "@/components/ComparisonRunPicker"
 import { PerformanceHistorySkeleton } from "@/components/LoadingSkeletons"
 import { ResponseStyleBadge } from "@/components/ResponseStyle"
 import { RunComparisonResults } from "@/components/RunComparisonChart"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 function signed(value: number, digits = 0, suffix = "") {
@@ -102,12 +102,14 @@ export function RunComparison() {
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">Overlay two to four model or prompting configurations on the exact same frozen puzzle order. The first run is the baseline for every displayed delta.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Select key={selectedIds.join("-")} onValueChange={addRun} disabled={selectedIds.length >= MAX_COMPARISON_RUNS || available.length === 0}>
-          <SelectTrigger className="w-[min(22rem,80vw)]"><Plus className="size-4" /><SelectValue placeholder={selectedIds.length >= MAX_COMPARISON_RUNS ? "Four-run limit reached" : selectedIds.length ? "Add compatible run" : "Choose a run"} /></SelectTrigger>
-          <SelectContent position="popper" align="end" className="max-w-[min(34rem,92vw)]">
-            {available.map((entry) => <SelectItem key={entry.run_id} value={entry.run_id}>{comparisonRunLabel(entry)}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <ComparisonRunPicker
+          key={selectedIds.join("-")}
+          runs={available}
+          onSelect={addRun}
+          disabled={selectedIds.length >= MAX_COMPARISON_RUNS || available.length === 0}
+          placeholder={selectedIds.length >= MAX_COMPARISON_RUNS ? "Four-run limit reached" : selectedIds.length ? "Add compatible run" : "Choose a run"}
+          suiteConstrained={Boolean(suiteKey)}
+        />
         <Button variant="outline" disabled={!loaded.length} onClick={() => downloadComparison(loaded)}><Download /> Export comparison</Button>
       </div>
     </section>
