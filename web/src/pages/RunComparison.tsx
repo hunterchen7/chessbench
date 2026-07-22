@@ -99,7 +99,7 @@ export function RunComparison() {
         <Button variant="ghost" size="sm" asChild className="-ml-2 mb-4 text-muted-foreground"><Link to="/puzzles"><ArrowLeft /> Puzzle leaderboard</Link></Button>
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-violet-700 dark:text-violet-300"><GitCompareArrows className="size-4" /> Synchronized analysis</div>
         <h1 className="text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Compare benchmark runs</h1>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">Overlay two to four model or prompting configurations on the exact same frozen puzzle order. The first run is the baseline for every displayed delta.</p>
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground">Compare two to four model or prompting configurations from the same puzzle pool. Exact-order runs get a synchronized trajectory; adaptive runs align safely by puzzle ID. The first run is the baseline for every displayed delta.</p>
       </div>
       <div className="flex flex-wrap gap-2">
         <ComparisonRunPicker
@@ -131,7 +131,7 @@ export function RunComparison() {
       </section>
 
       <Card className="overflow-hidden">
-        <CardHeader><CardTitle className="text-base">Summary deltas</CardTitle><p className="text-xs text-muted-foreground">All percentages use the selected suite denominator. Positive cost deltas mean the run was more expensive than the baseline.</p></CardHeader>
+        <CardHeader><CardTitle className="text-base">Summary deltas</CardTitle><p className="text-xs text-muted-foreground">Each percentage uses that run's attempted-puzzle denominator. Positive cost deltas mean the run was more expensive than the baseline.</p></CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <Table reorderableKey="run-comparison-summary" className="min-w-[900px]"><TableHeader><TableRow><TableHead>Run</TableHead><TableHead className="text-right">Puzzle Elo</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Full solves</TableHead><TableHead className="text-right">Legal first</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader><TableBody>
             {selectedEntries.map((entry, index) => {

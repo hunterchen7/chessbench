@@ -272,7 +272,7 @@ export function ComparisonRunPicker({
 
         <div className="flex items-center justify-between gap-3 border-b px-4 py-2 text-xs text-muted-foreground sm:px-6">
           <span>{filtered.length} matching run{filtered.length === 1 ? "" : "s"}</span>
-          <span className="hidden items-center gap-1 sm:flex"><Database className="size-3" /> {suiteConstrained ? "Same frozen suite only" : "All completed puzzle runs"}</span>
+          <span className="hidden items-center gap-1 sm:flex"><Database className="size-3" /> {suiteConstrained ? "Same puzzle pool only" : "All completed puzzle runs"}</span>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">

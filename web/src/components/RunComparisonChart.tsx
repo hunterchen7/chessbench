@@ -1,9 +1,10 @@
 import { memo, useMemo, useState, type KeyboardEvent } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { GitCompareArrows, Rows3 } from "lucide-react"
-import type { PuzzleItem, Run } from "@/lib/data"
+import type { PuzzleItem, RatedSessionProtocol, Run } from "@/lib/data"
 import { puzzleContinuation, puzzleModelAttempts } from "@/lib/chess"
 import { comparisonRunLabel } from "@/lib/runComparison"
+import { reasoningLabel } from "@/lib/modelReasoning"
 import { puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
 import { PUZZLE_OUTCOME_COLORS, puzzleOutcome, type PuzzleOutcome } from "@/lib/puzzleOutcome"
 import { modeInfo, pct, responseStyleInfo } from "@/lib/format"
@@ -17,6 +18,7 @@ type Outcome = PuzzleOutcome
 
 interface ComparisonPoint {
   item: PuzzleItem
+  sequence: number
   outcome: Outcome
   answer: string
   cumulativePoints: number
@@ -33,6 +35,15 @@ interface ComparisonSeries {
   run: Run
   color: string
   points: ComparisonPoint[]
+}
+
+interface PuzzleComparisonRow {
+  puzzleId: string
+  rating: number
+  firstSequence: number
+  points: Array<ComparisonPoint | null>
+  coverage: number
+  differs: boolean
 }
 
 const SERIES_COLORS = ["#8b5cf6", "#06b6d4", "#f59e0b", "#f43f5e"]
@@ -66,6 +77,16 @@ function methodLabel(run: Run): string {
   return `${mode ? `${mode.displayN}. ${mode.name}` : "Special protocol"} · ${responseStyleInfo(run.condition).label}`
 }
 
+function runSeed(run: Run): number | null {
+  if (run.protocol?.kind !== "adaptive_glicko2") return null
+  return (run.protocol as RatedSessionProtocol).selection.seed
+}
+
+function runConfigurationLabel(run: Run): string {
+  const seed = runSeed(run)
+  return `${reasoningLabel(run.model_variant)} · ${seed == null ? "Unseeded" : `Seed ${seed}`}`
+}
+
 function modelAnswer(item: PuzzleItem): string {
   const attempts = puzzleModelAttempts(item)
   const correctMoves = item.plies_correct ?? (item.solved
@@ -85,6 +106,7 @@ function buildSeries(runs: Run[]): ComparisonSeries[] {
       const turns = item.turns ?? []
       const point: ComparisonPoint = {
         item,
+        sequence: index,
         outcome: puzzleOutcome(item),
         answer: modelAnswer(item),
         cumulativePoints,
@@ -103,9 +125,41 @@ function buildSeries(runs: Run[]): ComparisonSeries[] {
   })
 }
 
-function aligned(runs: Run[]): boolean {
+function samePuzzleOrder(runs: Run[]): boolean {
   const reference = runs[0]?.items ?? []
   return runs.every((run) => run.items.length === reference.length && run.items.every((item, index) => item.puzzle_id === reference[index]?.puzzle_id))
+}
+
+function buildPuzzleRows(series: ComparisonSeries[]): PuzzleComparisonRow[] {
+  const rows = new Map<string, Omit<PuzzleComparisonRow, "coverage" | "differs">>()
+  for (let seriesIndex = 0; seriesIndex < series.length; seriesIndex += 1) {
+    for (const point of series[seriesIndex].points) {
+      const existing = rows.get(point.item.puzzle_id)
+      const row = existing ?? {
+        puzzleId: point.item.puzzle_id,
+        rating: point.item.rating,
+        firstSequence: point.sequence,
+        points: Array<ComparisonPoint | null>(series.length).fill(null),
+      }
+      row.points[seriesIndex] = point
+      row.firstSequence = Math.min(row.firstSequence, point.sequence)
+      rows.set(point.item.puzzle_id, row)
+    }
+  }
+
+  return [...rows.values()].map((row) => {
+    const present = row.points.filter((point): point is ComparisonPoint => point != null)
+    return {
+      ...row,
+      coverage: present.length,
+      differs: present.length > 1 && new Set(present.map((point) => `${point.outcome}:${point.item.score.toFixed(6)}`)).size > 1,
+    }
+  }).toSorted((left, right) =>
+    right.coverage - left.coverage ||
+    left.rating - right.rating ||
+    left.firstSequence - right.firstSequence ||
+    left.puzzleId.localeCompare(right.puzzleId)
+  )
 }
 
 function pointLeft(index: number, total: number) {
@@ -218,35 +272,35 @@ function ComparisonChart({ series }: { series: ComparisonSeries[] }) {
   </Card>
 }
 
-function DisagreementTable({ series }: { series: ComparisonSeries[] }) {
-  const [filter, setFilter] = useState<"differences" | "all">("differences")
+function PuzzleComparisonTable({ series, rows, exactOrder }: { series: ComparisonSeries[]; rows: PuzzleComparisonRow[]; exactOrder: boolean }) {
+  const [filter, setFilter] = useState<"differences" | "shared" | "all">(exactOrder ? "differences" : "all")
   const loc = useLocation()
-  const rows = useMemo(() => series[0].points.map((point, index) => {
-    const points = series.map((entry) => entry.points[index])
-    const differs = new Set(points.map((entry) => `${entry.outcome}:${entry.item.score.toFixed(6)}`)).size > 1
-    return { index, point, points, differs }
-  }), [series])
-  const visible = filter === "differences" ? rows.filter((row) => row.differs) : rows
+  const sharedCount = rows.reduce((count, row) => count + Number(row.coverage > 1), 0)
+  const uniqueCount = rows.length - sharedCount
+  const disagreementCount = rows.reduce((count, row) => count + Number(row.differs), 0)
+  const visible = filter === "differences"
+    ? rows.filter((row) => row.differs)
+    : filter === "shared" ? rows.filter((row) => row.coverage > 1) : rows
   return <Card className="overflow-hidden">
-    <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><Rows3 className="size-4 text-amber-600" /> Puzzle-by-puzzle comparison</CardTitle><p className="mt-1 text-xs text-muted-foreground">Differences include any change in full, partial, or zero-credit outcomes.</p></div><Tabs value={filter} onValueChange={(value) => setFilter(value as "differences" | "all")}><TabsList><TabsTrigger value="differences">Disagreements · {rows.filter((row) => row.differs).length}</TabsTrigger><TabsTrigger value="all">All · {rows.length}</TabsTrigger></TabsList></Tabs></CardHeader>
+    <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between"><div><CardTitle className="flex items-center gap-2 text-base"><Rows3 className="size-4 text-amber-600" /> {exactOrder ? "Puzzle-by-puzzle comparison" : "Puzzle overlap comparison"}</CardTitle><p className="mt-1 text-xs text-muted-foreground">{exactOrder ? "Differences include any change in full, partial, or zero-credit outcomes." : `${sharedCount} shared puzzles are aligned by ID. ${uniqueCount} one-run-only puzzles remain visible as muted rows.`}</p></div><Tabs value={filter} onValueChange={(value) => setFilter(value as "differences" | "shared" | "all")}><TabsList><TabsTrigger value="differences">Disagreements · {disagreementCount}</TabsTrigger>{!exactOrder ? <TabsTrigger value="shared">Shared · {sharedCount}</TabsTrigger> : null}<TabsTrigger value="all">All · {rows.length}</TabsTrigger></TabsList></Tabs></CardHeader>
     <CardContent className="max-h-[680px] overflow-auto p-0">
-      <Table reorderableKey="run-comparison-puzzles" style={{ minWidth: 310 + series.length * 250 }}><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-28">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead>{series.map((entry) => <TableHead key={entry.run.run_id}><span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.run.model_variant.display_name}</span></TableHead>)}</TableRow></TableHeader><TableBody>
-        {visible.map(({ point, points, index }) => (
-          <TableRow key={point.item.puzzle_id} style={{ contentVisibility: "auto", containIntrinsicSize: "0 58px" }}>
+      <Table reorderableKey="run-comparison-puzzles" style={{ minWidth: 310 + series.length * 250 }}><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-28">Puzzle</TableHead><TableHead className="w-20 text-right">Rating</TableHead>{series.map((entry) => <TableHead key={entry.run.run_id}><span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />{entry.run.model_variant.display_name}</span><div className="mt-0.5 text-[9px] font-normal text-muted-foreground">{runConfigurationLabel(entry.run)}</div></TableHead>)}</TableRow></TableHeader><TableBody>
+        {visible.map((row) => (
+          <TableRow key={row.puzzleId} className={cn(row.coverage === 1 && "bg-muted/25 text-muted-foreground")} style={{ contentVisibility: "auto", containIntrinsicSize: "0 64px" }}>
             <TableCell>
-              <Link to={`/puzzles/${encodeURIComponent(point.item.puzzle_id)}`} state={{ from: loc.pathname + loc.search }} className="font-mono font-semibold hover:underline">{point.item.puzzle_id}</Link>
-              <div className="mt-0.5 text-[9px] text-muted-foreground">#{index + 1}</div>
+              <Link to={`/puzzles/${encodeURIComponent(row.puzzleId)}`} state={{ from: loc.pathname + loc.search }} className="font-mono font-semibold hover:underline">{row.puzzleId}</Link>
+              <div className="mt-1 text-[9px] text-muted-foreground">{row.coverage === 1 ? "1 run only" : `Shared ${row.coverage}/${series.length}`}</div>
             </TableCell>
-            <TableCell className="text-right font-mono tabular-nums">{point.item.rating.toLocaleString()}</TableCell>
-            {points.map((entry, seriesIndex) => (
-              <TableCell key={series[seriesIndex].run.run_id} className="max-w-[260px] whitespace-normal">
-                <div className="flex items-center gap-2"><Badge variant="outline" className={cn("h-5 px-1.5 text-[9px] capitalize", outcomeClass(entry.outcome))}>{entry.outcome === "failed" ? "zero" : entry.outcome}</Badge><span className="font-mono text-xs font-semibold tabular-nums">{entry.item.score.toFixed(2)} pt</span></div>
-                <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={entry.answer}>{entry.answer}</div>
+            <TableCell className="text-right font-mono tabular-nums">{row.rating.toLocaleString()}</TableCell>
+            {row.points.map((point, seriesIndex) => point ? (
+              <TableCell key={series[seriesIndex].run.run_id} className={cn("max-w-[260px] whitespace-normal", row.coverage === 1 && "opacity-65")}>
+                <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Badge variant="outline" className={cn("h-5 px-1.5 text-[9px] capitalize", outcomeClass(point.outcome))}>{point.outcome === "failed" ? "zero" : point.outcome}</Badge><span className="font-mono text-xs font-semibold tabular-nums">{point.item.score.toFixed(2)} pt</span></div><span className="font-mono text-[9px] text-muted-foreground">#{point.sequence + 1}</span></div>
+                <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground" title={point.answer}>{point.answer}</div>
               </TableCell>
-            ))}
+            ) : <TableCell key={series[seriesIndex].run.run_id} className="bg-muted/15 text-muted-foreground/60"><span className="text-xs">— Not in this run</span></TableCell>)}
           </TableRow>
         ))}
-        {visible.length === 0 ? <TableRow><TableCell colSpan={2 + series.length} className="h-32 text-center text-sm text-muted-foreground">Every selected run received the same score on every puzzle.</TableCell></TableRow> : null}
+        {visible.length === 0 ? <TableRow><TableCell colSpan={2 + series.length} className="h-32 text-center text-sm text-muted-foreground">{filter === "differences" ? "The selected runs agree on every shared puzzle." : "No puzzles match this view."}</TableCell></TableRow> : null}
       </TableBody></Table>
     </CardContent>
   </Card>
@@ -254,7 +308,14 @@ function DisagreementTable({ series }: { series: ComparisonSeries[] }) {
 
 export function RunComparisonResults({ runs }: { runs: Run[] }) {
   const series = useMemo(() => buildSeries(runs), [runs])
-  if (!aligned(runs)) return <div className="rounded-xl border border-destructive/30 bg-destructive/[0.05] p-4 text-sm text-destructive">The suite identifiers match, but the detailed puzzle order does not. The overlay was stopped to prevent a false comparison.</div>
+  const exactOrder = useMemo(() => samePuzzleOrder(runs), [runs])
+  const rows = useMemo(() => buildPuzzleRows(series), [series])
   if (!series.length || !series[0].points.length) return null
-  return <><ComparisonChart series={series} /><DisagreementTable series={series} /></>
+  const overlapCount = rows.reduce((count, row) => count + Number(row.coverage > 1), 0)
+  const fullySharedCount = rows.reduce((count, row) => count + Number(row.coverage === series.length), 0)
+  const uniqueCount = rows.length - overlapCount
+  return <>
+    {exactOrder ? <ComparisonChart series={series} /> : <div className="flex items-start gap-3 rounded-xl border border-violet-500/25 bg-violet-500/[0.05] p-4 text-sm"><GitCompareArrows className="mt-0.5 size-4 shrink-0 text-violet-600" /><div><div className="font-medium">Adaptive overlap view</div><div className="mt-1 text-muted-foreground">The run order differs, so the trajectory chart is hidden. {overlapCount} of {rows.length} distinct puzzles appear in at least two runs; {fullySharedCount} appear in every run. {uniqueCount} one-run-only puzzles are retained as muted rows.</div></div></div>}
+    <PuzzleComparisonTable series={series} rows={rows} exactOrder={exactOrder} />
+  </>
 }
