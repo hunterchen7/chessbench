@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
@@ -72,6 +72,7 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
 
 interface SavedChartState {
   metric: EfficiencyMetric
+  showFrontier: boolean
   costScale: CostScale
   ratingMin: number | null
   ratingMax: number | null
@@ -87,6 +88,7 @@ interface SavedChartState {
 function savedChartState(): SavedChartState {
   const fallback: SavedChartState = {
     metric: "cost",
+    showFrontier: true,
     costScale: "log",
     ratingMin: null,
     ratingMax: null,
@@ -105,6 +107,7 @@ function savedChartState(): SavedChartState {
     const optionalNumber = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : null
     return {
       metric: parsed.metric === "tokens" ? "tokens" : fallback.metric,
+      showFrontier: typeof parsed.showFrontier === "boolean" ? parsed.showFrontier : fallback.showFrontier,
       costScale: parsed.costScale === "fourth" || parsed.costScale === "sqrt" || parsed.costScale === "linear" ? parsed.costScale : fallback.costScale,
       ratingMin: optionalNumber(parsed.ratingMin),
       ratingMax: optionalNumber(parsed.ratingMax),
@@ -182,6 +185,19 @@ function isHumanPoint(point: ChartPoint): point is HumanCostPerformancePoint {
 function metricValue(point: ChartPoint, metric: EfficiencyMetric) {
   if (metric === "cost") return point.costPerPuzzle * NORMALIZED_PUZZLES
   return isHumanPoint(point) ? null : point.tokensPerMove
+}
+
+function paretoPointKeys(points: CostPerformancePoint[], metric: EfficiencyMetric) {
+  const candidates = points.flatMap((point) => {
+    const value = metricValue(point, metric)
+    return value == null ? [] : [{ point, value }]
+  })
+  return new Set(candidates.filter((candidate) => !candidates.some((other) =>
+    other.point.key !== candidate.point.key
+    && other.value <= candidate.value
+    && other.point.rating >= candidate.point.rating
+    && (other.value < candidate.value || other.point.rating > candidate.point.rating),
+  )).map(({ point }) => point.key))
 }
 
 function modelPointReasoningEffort(point: CostPerformancePoint) {
@@ -320,6 +336,12 @@ interface PlottedPoint {
   labelX: number
   labelY: number
   labelLayout: LabelLayout
+}
+
+function frontierStepPath(frontier: PlottedPoint[]) {
+  const [first, ...rest] = frontier
+  if (!first) return ""
+  return rest.reduce((path, entry) => `${path} H ${entry.x} V ${entry.y}`, `M ${first.x} ${first.y}`)
 }
 
 type LabelLayout = "stacked" | "inline"
@@ -592,13 +614,15 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   })
 }
 
-const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, showLabels, metric }: {
+const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks, x, y, showLabels, showFrontier, metric }: {
   plotted: PlottedPoint[]
+  frontier: PlottedPoint[]
   xTicks: number[]
   yTicks: number[]
   x: (value: number) => number
   y: (value: number) => number
   showLabels: boolean
+  showFrontier: boolean
   metric: EfficiencyMetric
 }) {
   return <>
@@ -610,6 +634,10 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
       <line x1={PLOT.left} y1={y(value)} x2={WIDTH - PLOT.right} y2={y(value)} className="stroke-muted-foreground/65" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
       <text x={PLOT.left - 12} y={y(value) + 4} textAnchor="end" className="fill-muted-foreground font-mono text-[11px]">{value.toLocaleString()}</text>
     </g>)}
+    {showFrontier && frontier.length > 1 ? <g aria-hidden="true">
+      <path d={frontierStepPath(frontier)} fill="none" stroke="var(--card)" strokeWidth="6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <path d={frontierStepPath(frontier)} fill="none" className="stroke-emerald-500" strokeWidth="2.25" strokeLinejoin="round" opacity="0.8" vectorEffect="non-scaling-stroke" />
+    </g> : null}
     <g>
       <line x1={PLOT.left} y1={y(MINIMUM_RATING)} x2={WIDTH - PLOT.right} y2={y(MINIMUM_RATING)} className="stroke-rose-500" strokeWidth="1.25" opacity="0.9" strokeDasharray="2 5" vectorEffect="non-scaling-stroke" />
       <text x={WIDTH - PLOT.right - 6} y={y(MINIMUM_RATING) + 14} textAnchor="end" className="fill-rose-600 text-[9px] font-semibold dark:fill-rose-400" style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4 }}>minimum rating (400)</text>
@@ -740,6 +768,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
   const [metric, setMetric] = useState<EfficiencyMetric>(initialState.metric)
+  const [showFrontier, setShowFrontier] = useState(initialState.showFrontier)
   const [costScale, setCostScale] = useState<CostScale>(initialState.costScale)
   const [ratingRange, setRatingRange] = useState<[number | null, number | null]>(() => [initialState.ratingMin, initialState.ratingMax])
   const [modelSearch, setModelSearch] = useState(initialState.modelSearch)
@@ -754,6 +783,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     try {
       localStorage.setItem(CHART_STATE_STORAGE_KEY, JSON.stringify({
         metric,
+        showFrontier,
         costScale,
         ratingMin: ratingRange[0],
         ratingMax: ratingRange[1],
@@ -768,7 +798,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     } catch {
       // Private browsing or storage policy can make persistence unavailable.
     }
-  }, [costScale, hiddenModelKeys, hiddenModelReasoningKeys, metric, modelSearch, ratingRange, reasoningFilters, showHuman, showLabels, showLegend])
+  }, [costScale, hiddenModelKeys, hiddenModelReasoningKeys, metric, modelSearch, ratingRange, reasoningFilters, showFrontier, showHuman, showLabels, showLegend])
 
   useEffect(() => {
     let active = true
@@ -897,6 +927,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const chart = useMemo(() => {
     const points: ChartPoint[] = metric === "cost" && showHuman && humanPoint && humanWithinRatingRange ? [...modelPoints, humanPoint] : modelPoints
     if (points.length === 0) return null
+    const frontierKeys = paretoPointKeys(modelPoints, metric)
 
     const xValue = (point: ChartPoint) => metricValue(point, metric) ?? 0
     const transformedValues = points.map((point) => transformCost(xValue(point), costScale))
@@ -928,12 +959,17 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       labelLayout: "stacked" as const,
     }))
     const plotted = showLabels ? placeLabels(rawPlotted, y(MINIMUM_RATING)) : rawPlotted
+    const frontier = plotted
+      .filter((entry) => !isHumanPoint(entry.point) && frontierKeys.has(entry.point.key))
+      .toSorted((a, b) => a.x - b.x || b.point.rating - a.point.rating || a.point.key.localeCompare(b.point.key))
     const yTicks: number[] = []
     for (let value = ratingMin; value <= ratingMax + step / 2; value += step) yTicks.push(value)
     return {
       points,
       modelPointCount: modelPoints.length,
       plotted,
+      frontier,
+      frontierKeys,
       x,
       y,
       xTicks: costTicks(valueMin, valueMax, costScale),
@@ -1032,7 +1068,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
           <CardTitle className="flex items-center gap-2 text-base">{metric === "cost" ? <CircleDollarSign className="size-4 text-sky-600" /> : <Gauge className="size-4 text-violet-600" />} Rating efficiency</CardTitle>
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">{metric === "cost"
             ? "Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the horizontal axis supports log, fourth-root, square-root, and linear scaling."
-            : "Glicko-2 puzzle rating versus average provider-reported completion tokens per model move across each configuration’s settled runs. Completion usage already includes reasoning tokens when a provider reports them that way, so reasoning is not added twice. Lower token use and higher rating are better; vertical whiskers are mean rating deviation."}</p>
+            : "Glicko-2 puzzle rating versus average provider-reported completion tokens per model move across each configuration’s settled runs. Completion usage already includes reasoning tokens when a provider reports them that way, so reasoning is not added twice. Lower token use and higher rating are better; vertical whiskers are mean rating deviation."}{showFrontier ? " The emerald staircase connects the visible, non-dominated model configurations; it is a Pareto guide, not a fitted curve." : ""}</p>
         </div>
         <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allMetricModelPoints.length ? ` of ${allMetricModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
       </div>
@@ -1069,6 +1105,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         </div>
         {metric === "cost" ? <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button> : null}
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
+        <Button variant={showFrontier ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showFrontier} onClick={() => setShowFrontier((value) => !value)}><TrendingUp className="size-3.5" />Frontier{chart ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{chart.frontier.length}</span> : null}</Button>
         <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
         <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
       </div>
@@ -1113,10 +1150,12 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       {chart ? <><div className="overflow-x-auto">
         <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto max-h-[74vh] w-full" role="img" aria-label={`${metric === "cost" ? "Cost" : "Token"}-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower ${metric === "cost" ? "cost" : "token use"} and higher Glicko-2 puzzle rating are better.`}>
-            <StaticPlot plotted={chart.plotted} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} metric={metric} />
+            <StaticPlot plotted={chart.plotted} frontier={chart.frontier} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} showFrontier={showFrontier} metric={metric} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">{metric === "cost" ? "Avg. cost per 50 puzzles" : "Avg. generated tokens per model move"} ({COST_SCALE_OPTIONS.find((option) => option.value === costScale)?.axisLabel} scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
-            {chart.plotted.map((entry) => <a
+            {chart.plotted.map((entry) => {
+              const onFrontier = showFrontier && chart.frontierKeys.has(entry.point.key)
+              return <a
               key={entry.point.key}
               href={`#${runPath(entry.point)}`}
               target="_blank"
@@ -1135,10 +1174,11 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             >
               <g>
                 <circle cx={entry.x} cy={entry.y} r="15" fill="transparent" />
+                {onFrontier ? <circle cx={entry.x} cy={entry.y} r="8.5" fill="var(--card)" className="stroke-emerald-500" strokeWidth="2" opacity="0.9" vectorEffect="non-scaling-stroke" /> : null}
                 <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                 {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
               </g>
-            </a>)}
+            </a>})}
           </svg>
           {active && tooltipPosition ? <div
             className="pointer-events-none absolute z-20"
@@ -1149,7 +1189,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
           ><Inspector entry={active} metric={metric} /></div> : null}
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.{showFrontier ? " The emerald staircase marks the visible model-only Pareto frontier." : ""}</span><span>Hover, focus, or click a dot to inspect it.</span></div>
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
     <RunPickerSheet point={selectedPoint} metric={metric} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
