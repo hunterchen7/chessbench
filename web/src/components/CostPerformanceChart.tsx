@@ -329,6 +329,8 @@ interface LabelCandidate { x: number; y: number; layout: LabelLayout }
 interface LabelPlacement extends LabelCandidate { box: LabelBox; leader: Segment | null; score: number }
 
 const LEADER_LINE_PENALTY = 240
+const OWNERSHIP_CLEARANCE = 16
+const OWNERSHIP_TARGET_CLEARANCE = 24
 
 function boxesOverlap(a: LabelBox, b: LabelBox) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
@@ -373,7 +375,27 @@ function labelLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLay
   }
 }
 
-function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout) {
+function pointToBoxDistance(x: number, y: number, box: LabelBox) {
+  const horizontalDistance = x < box.left ? box.left - x : x > box.right ? x - box.right : 0
+  const verticalDistance = y < box.top ? box.top - y : y > box.bottom ? y - box.bottom : 0
+  return Math.hypot(horizontalDistance, verticalDistance)
+}
+
+function labelOwnership(entry: PlottedPoint, box: LabelBox, entries: PlottedPoint[]) {
+  const ownDistance = pointToBoxDistance(entry.x, entry.y, box)
+  let nearestOtherDistance = Number.POSITIVE_INFINITY
+  for (const other of entries) {
+    if (other.point.key === entry.point.key) continue
+    nearestOtherDistance = Math.min(nearestOtherDistance, pointToBoxDistance(other.x, other.y, box))
+  }
+  const clearance = nearestOtherDistance - ownDistance
+  return {
+    ambiguous: clearance < OWNERSHIP_CLEARANCE,
+    penalty: Math.max(0, OWNERSHIP_TARGET_CLEARANCE - clearance) * 12,
+  }
+}
+
+function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
   const box = labelBox(labelWidth(entry, layout), x, y, layout)
   const occupiedLeft = entry.x - 7
   const occupiedRight = entry.x + 7
@@ -387,7 +409,7 @@ function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: Lab
     Number.POSITIVE_INFINITY
   const directlyAboveOrBelow = box.left <= entry.x && box.right >= entry.x && verticalGap <= 2
   const directlyBeside = box.top <= entry.y && box.bottom >= entry.y && horizontalGap <= 2
-  return !directlyAboveOrBelow && !directlyBeside
+  return (!directlyAboveOrBelow && !directlyBeside) || labelOwnership(entry, box, entries).ambiguous
 }
 
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
@@ -417,7 +439,7 @@ function directLabelCandidates(entry: PlottedPoint) {
   const candidates: LabelCandidate[] = []
   const stackedWidth = labelWidth(entry)
   const maximumShift = Math.max(0, stackedWidth / 2 - 4)
-  for (const horizontalShift of [0, -12, 12, -24, 24]) {
+  for (const horizontalShift of [0, -12, 12, -24, 24, -36, 36]) {
     if (Math.abs(horizontalShift) > maximumShift) continue
     candidates.push({ x: entry.x + horizontalShift, y: occupiedTop - 16, layout: "stacked" })
     candidates.push({ x: entry.x + horizontalShift, y: occupiedBottom + 12, layout: "stacked" })
@@ -503,7 +525,8 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         markers.some((marker) => boxesOverlap(box, marker.box)) ||
         whiskers.some((whisker) => boxesOverlap(box, whisker.box))
       if (blocked) continue
-      const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout)
+      const ownership = labelOwnership(entry, box, entries)
+      const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout, entries)
       if (needsLeader && !allowLeader) continue
       const leader = needsLeader ? labelLeader(entry, x, candidate.y, candidate.layout) : null
       const obstructionCollisions = leader ?
@@ -517,6 +540,7 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
       const score =
         obstructionCollisions * 240 +
         connectorCrossings * 90 +
+        ownership.penalty +
         (straddlesMinimumLine ? 80 : 0) +
         (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
       if (!best || score < best.score) best = { x, y: candidate.y, layout: candidate.layout, box, leader, score }
@@ -637,7 +661,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
       />
     }) : null}
     {showLabels ? plotted.map((entry) => {
-      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)) return null
+      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY, entry.labelLayout, plotted)) return null
       const leader = labelLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)
       return <line
         key={`leader-${entry.point.key}`}
@@ -646,9 +670,9 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
         x2={leader.x2}
         y2={leader.y2}
         stroke={entry.color}
-        strokeWidth="1.1"
+        strokeWidth="1.2"
         strokeLinecap="round"
-        opacity="0.4"
+        opacity="0.52"
         vectorEffect="non-scaling-stroke"
       />
     }) : null}
