@@ -329,6 +329,8 @@ interface LabelCandidate { x: number; y: number; layout: LabelLayout }
 interface LabelPlacement extends LabelCandidate { box: LabelBox; leader: Segment | null; score: number }
 
 const LEADER_LINE_PENALTY = 240
+const CONNECTOR_OVERHANG_FRACTION = 2 / 3
+const CONNECTOR_OVERHANG_TOLERANCE = 2
 const OWNERSHIP_CLEARANCE = 16
 const OWNERSHIP_TARGET_CLEARANCE = 24
 
@@ -390,12 +392,13 @@ function labelOwnership(entry: PlottedPoint, box: LabelBox, entries: PlottedPoin
   }
   const clearance = nearestOtherDistance - ownDistance
   return {
+    ownDistance,
     ambiguous: clearance < OWNERSHIP_CLEARANCE,
     penalty: Math.max(0, OWNERSHIP_TARGET_CLEARANCE - clearance) * 12,
   }
 }
 
-function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
+function labelRequiresLeaderForPlacement(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
   const box = labelBox(labelWidth(entry, layout), x, y, layout)
   const occupiedLeft = entry.x - 7
   const occupiedRight = entry.x + 7
@@ -409,7 +412,26 @@ function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: Lab
     Number.POSITIVE_INFINITY
   const directlyAboveOrBelow = box.left <= entry.x && box.right >= entry.x && verticalGap <= 2
   const directlyBeside = box.top <= entry.y && box.bottom >= entry.y && horizontalGap <= 2
-  return (!directlyAboveOrBelow && !directlyBeside) || labelOwnership(entry, box, entries).ambiguous
+  const ownership = labelOwnership(entry, box, entries)
+  return (!directlyAboveOrBelow && !directlyBeside) || ownership.ambiguous
+}
+
+function labelHasExcessiveOverhang(entry: PlottedPoint, box: LabelBox, layout: LabelLayout) {
+  if (layout === "inline") return false
+  const width = box.right - box.left
+  const leftShare = (entry.x - box.left) / width
+  const rightShare = (box.right - entry.x) / width
+  // Keep a connector-free label only when neither side holds more than two
+  // thirds of its width. A small tolerance keeps font-estimation noise from
+  // turning borderline cases into connectors. Side labels are already flush.
+  return Math.max(leftShare, rightShare) * width >
+    CONNECTOR_OVERHANG_FRACTION * width + CONNECTOR_OVERHANG_TOLERANCE
+}
+
+function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
+  const box = labelBox(labelWidth(entry, layout), x, y, layout)
+  return labelRequiresLeaderForPlacement(entry, x, y, layout, entries) ||
+    labelHasExcessiveOverhang(entry, box, layout)
 }
 
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
@@ -526,8 +548,9 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         whiskers.some((whisker) => boxesOverlap(box, whisker.box))
       if (blocked) continue
       const ownership = labelOwnership(entry, box, entries)
+      const requiresLeaderForPlacement = labelRequiresLeaderForPlacement(entry, x, candidate.y, candidate.layout, entries)
       const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout, entries)
-      if (needsLeader && !allowLeader) continue
+      if (requiresLeaderForPlacement && !allowLeader) continue
       const leader = needsLeader ? labelLeader(entry, x, candidate.y, candidate.layout) : null
       const obstructionCollisions = leader ?
         otherPlacements.filter((other) => segmentIntersectsBox(leader, other.box)).length +
@@ -537,12 +560,13 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         0
       const connectorCrossings = leader ? otherPlacements.filter((other) => other.leader && segmentsIntersect(leader, other.leader)).length : 0
       const straddlesMinimumLine = box.top <= minimumLineY + 2 && box.bottom >= minimumLineY - 2
+      const leaderPenalty = requiresLeaderForPlacement ? LEADER_LINE_PENALTY : 0
       const score =
         obstructionCollisions * 240 +
         connectorCrossings * 90 +
         ownership.penalty +
         (straddlesMinimumLine ? 80 : 0) +
-        (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
+        (leader ? leaderPenalty + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
       if (!best || score < best.score) best = { x, y: candidate.y, layout: candidate.layout, box, leader, score }
     }
     return best
@@ -587,7 +611,10 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   // displaced label may still graduate to a newly available direct position.
   for (let pass = 0; pass < 8; pass += 1) {
     let changed = false
-    const displacedEntries = ordered.filter((entry) => placements.get(entry.point.key)?.leader)
+    const displacedEntries = ordered.filter((entry) => {
+      const placement = placements.get(entry.point.key)
+      return placement && labelRequiresLeaderForPlacement(entry, placement.x, placement.y, placement.layout, entries)
+    })
     const passEntries = pass % 2 === 0 ? displacedEntries : displacedEntries.toReversed()
     for (const entry of passEntries) {
       const current = placements.get(entry.point.key)
@@ -670,9 +697,9 @@ const StaticPlot = memo(function StaticPlot({ plotted, xTicks, yTicks, x, y, sho
         x2={leader.x2}
         y2={leader.y2}
         stroke={entry.color}
-        strokeWidth="1.2"
+        strokeWidth="1.35"
         strokeLinecap="round"
-        opacity="0.52"
+        opacity="0.68"
         vectorEffect="non-scaling-stroke"
       />
     }) : null}
