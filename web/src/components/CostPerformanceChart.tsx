@@ -1348,9 +1348,11 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         </div>
         {metric === "cost" ? <Button variant={showHuman ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showHuman} onClick={() => setShowHuman((value) => !value)}><UserRound className="size-3.5" />hunter (me){showHuman ? <Eye className="size-3" /> : <EyeOff className="size-3" />}</Button> : null}
         <Button variant={showLabels ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showLabels} onClick={() => setShowLabels((value) => !value)}><Tags className="size-3.5" />Labels</Button>
+        <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
+        <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" disabled={!chart || exporting != null}>
+            <Button variant="outline" size="sm" className="ml-auto h-8 gap-1.5 text-xs" disabled={!chart || exporting != null}>
               <Download className="size-3.5" />{exporting ? "Saving…" : "Save as"}<ChevronDown className="size-3" />
             </Button>
           </DropdownMenuTrigger>
@@ -1361,8 +1363,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             </DropdownMenuItem>)}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
-        <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
