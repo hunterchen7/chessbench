@@ -763,7 +763,16 @@ class _OpenAICompatModel:
             )
         content = message.get("content")
         if not isinstance(content, str) or not content.strip():
-            error_type = EmptyCompletionError if finish_reason == "stop" else ModelError
+            # ``stop`` and ``length`` are both completed, billed model
+            # outcomes. With no visible answer they score like any other
+            # unparseable response instead of relaunching the paid puzzle.
+            # Provider/transport failures still raise ``ModelError`` above and
+            # remain eligible for infrastructure recovery.
+            error_type = (
+                EmptyCompletionError
+                if finish_reason in {"stop", "length"}
+                else ModelError
+            )
             raise error_type(
                 f"{self._model}: provider returned no visible content"
                 f" (finish={finish_reason!r}, native={native_finish_reason!r},"

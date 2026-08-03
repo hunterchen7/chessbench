@@ -497,7 +497,9 @@ def test_choice_error_is_not_coerced_to_empty_chess_answer(monkeypatch):
 
 
 @pytest.mark.parametrize("content", [None, "", "   \n"])
-def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content):
+def test_length_stop_without_visible_content_is_model_answer_failure(
+    monkeypatch, content
+):
     _capture_request(
         monkeypatch,
         {
@@ -513,7 +515,7 @@ def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content)
     )
     model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
 
-    with pytest.raises(ModelError, match="no visible content"):
+    with pytest.raises(EmptyCompletionError, match="no visible content"):
         model.chat([{"role": "user", "content": "move"}])
 
     assert model.last_response_id == "gen-empty"
