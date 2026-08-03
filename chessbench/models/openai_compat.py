@@ -10,6 +10,7 @@ harness can report and cap spend.
 from __future__ import annotations
 
 import http.client
+import hashlib
 import json
 import os
 import socket
@@ -26,6 +27,7 @@ from ..types import Message
 # 5xx responses and transport failures are outcome-ambiguous: the provider may
 # have completed and charged the generation before the response was lost.
 _SAFE_RETRY_STATUS = {429, 503}
+_MAX_RAW_AUDIT_BYTES = 256 * 1024
 _SENSITIVE_RESPONSE_HEADERS = {
     "authorization",
     "cookie",
@@ -194,6 +196,37 @@ class _OpenAICompatModel:
             idle_deadline = time.monotonic() + idle_timeout
 
     @staticmethod
+    def _merge_reasoning_details(prior: list[object], incoming: list[object]) -> None:
+        """Append provider reasoning details without one object per SSE token.
+
+        OpenRouter can stream tens of thousands of adjacent ``reasoning.text``
+        fragments with identical metadata. Keeping every token-sized object
+        made one DeepSeek puzzle's durable audit envelope hundreds of
+        megabytes. Concatenating adjacent text fragments is lossless: their
+        ordered text and all non-text metadata remain identical.
+        """
+        for value in incoming:
+            detail = deepcopy(value)
+            if (
+                isinstance(detail, dict)
+                and detail.get("type") == "reasoning.text"
+                and isinstance(detail.get("text"), str)
+            ):
+                previous = prior[-1] if prior else None
+                if isinstance(previous, dict):
+                    detail_metadata = {k: v for k, v in detail.items() if k != "text"}
+                    previous_metadata = {
+                        k: v for k, v in previous.items() if k != "text"
+                    }
+                    previous_text = previous.get("text")
+                    if detail_metadata == previous_metadata and isinstance(
+                        previous_text, str
+                    ):
+                        previous["text"] = previous_text + detail["text"]
+                        continue
+            prior.append(detail)
+
+    @staticmethod
     def _merge_stream_chunk(
         response: dict[str, object], chunk: dict[str, object]
     ) -> None:
@@ -217,9 +250,7 @@ class _OpenAICompatModel:
         incoming = choices[0]
         if not isinstance(incoming, dict):
             return
-        output_choices = response.setdefault(
-            "choices", [{"index": 0, "message": {}}]
-        )
+        output_choices = response.setdefault("choices", [{"index": 0, "message": {}}])
         if not isinstance(output_choices, list) or not output_choices:
             return
         output = output_choices[0]
@@ -249,7 +280,10 @@ class _OpenAICompatModel:
             if isinstance(value, list):
                 prior = message.setdefault(key, [])
                 if isinstance(prior, list):
-                    prior.extend(deepcopy(value))
+                    if key == "reasoning_details":
+                        _OpenAICompatModel._merge_reasoning_details(prior, value)
+                    else:
+                        prior.extend(deepcopy(value))
 
     def _capture_stream_progress(self, response: dict[str, object]) -> None:
         """Keep the latest partial envelope available if a stream disconnects."""
@@ -323,9 +357,7 @@ class _OpenAICompatModel:
                     f"stream returned invalid JSON event: {payload[:200]}"
                 ) from exc
             if not isinstance(value, dict):
-                raise ModelError(
-                    f"stream returned a non-object event: {payload[:200]}"
-                )
+                raise ModelError(f"stream returned a non-object event: {payload[:200]}")
             saw_data = True
             idle_deadline = time.monotonic() + idle_timeout
             self._merge_stream_chunk(response, value)
@@ -385,7 +417,20 @@ class _OpenAICompatModel:
             response_id = self.last_response_headers.get("x-generation-id")
             if isinstance(response_id, str):
                 self.last_response_id = response_id
-        self.last_provider_response_raw = body
+        encoded = body.encode("utf-8")
+        if len(encoded) <= _MAX_RAW_AUDIT_BYTES:
+            self.last_provider_response_raw = body
+            return
+        half = _MAX_RAW_AUDIT_BYTES // 2
+        digest = hashlib.sha256(encoded).hexdigest()
+        prefix = encoded[:half].decode("utf-8", "replace")
+        suffix = encoded[-half:].decode("utf-8", "replace")
+        self.last_provider_response_raw = (
+            prefix
+            + f"\n...[raw response truncated; bytes={len(encoded)}; "
+            + f"sha256={digest}]...\n"
+            + suffix
+        )
 
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST without silently duplicating an outcome-ambiguous generation.

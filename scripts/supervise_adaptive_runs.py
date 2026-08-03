@@ -886,6 +886,7 @@ def supervise(args: argparse.Namespace) -> int:
     retry_after: dict[str, float] = {}
     failures: dict[str, int] = {}
     next_sync = 0.0
+    last_state_write = 0.0
     stopping = False
 
     def stop(_signum, _frame) -> None:
@@ -898,12 +899,14 @@ def supervise(args: argparse.Namespace) -> int:
     while not stopping:
         now = time.time()
         states = read_states(db_path)
+        state_changed = False
 
         for name, process in list(children.items()):
             code = process.poll()
             if code is None:
                 continue
             children.pop(name)
+            state_changed = True
             failures[name] = failures.get(name, 0) + 1
             delay = min(30 * (2 ** (failures[name] - 1)), 300)
             retry_after[name] = now + delay
@@ -934,6 +937,7 @@ def supervise(args: argparse.Namespace) -> int:
                 continue
 
             children[target.name] = spawn(target, runtime)
+            state_changed = True
             failures.setdefault(target.name, 0)
             supervisor_log.write(
                 f"[{datetime.now(timezone.utc).isoformat()}] resumed {target.name} "
@@ -947,8 +951,11 @@ def supervise(args: argparse.Namespace) -> int:
                     sync_run(target.run_id, supervisor_log)
             next_sync = now + args.sync_seconds
 
-        write_state(pid_path, children, states)
+        if state_changed or now - last_state_write >= args.state_seconds:
+            write_state(pid_path, children, states)
+            last_state_write = now
         if complete == len(TARGETS):
+            write_state(pid_path, children, states)
             supervisor_log.write(b"all adaptive runs completed\n")
             return 0
         time.sleep(args.poll_seconds)
@@ -971,7 +978,14 @@ def launch_daemon(args: argparse.Namespace) -> int:
             return 0
 
     command = [sys.executable, str(Path(__file__).resolve())]
-    for key in ("db", "runtime_dir", "poll_seconds", "sync_seconds", "grace_seconds"):
+    for key in (
+        "db",
+        "runtime_dir",
+        "poll_seconds",
+        "sync_seconds",
+        "state_seconds",
+        "grace_seconds",
+    ):
         command.extend((f"--{key.replace('_', '-')}", str(getattr(args, key))))
     log = (runtime / "launcher.log").open("ab", buffering=0)
     process = subprocess.Popen(
@@ -993,11 +1007,19 @@ def main() -> int:
     parser.add_argument("--runtime-dir", default="runs/adaptive-supervisor")
     parser.add_argument("--poll-seconds", type=int, default=15)
     parser.add_argument("--sync-seconds", type=int, default=300)
+    parser.add_argument("--state-seconds", type=int, default=60)
     parser.add_argument("--grace-seconds", type=int, default=180)
     parser.add_argument("--daemon", action="store_true")
     args = parser.parse_args()
-    if args.poll_seconds < 1 or args.sync_seconds < 1 or args.grace_seconds < 0:
-        parser.error("poll/sync intervals must be positive and grace must be non-negative")
+    if (
+        args.poll_seconds < 1
+        or args.sync_seconds < 1
+        or args.state_seconds < 1
+        or args.grace_seconds < 0
+    ):
+        parser.error(
+            "poll/sync/state intervals must be positive and grace must be non-negative"
+        )
     return launch_daemon(args) if args.daemon else supervise(args)
 
 

@@ -233,9 +233,7 @@ def test_stream_progress_reuses_private_accumulator_without_quadratic_copy():
             {
                 "index": 0,
                 "message": {
-                    "reasoning_details": [
-                        {"type": "reasoning.text", "text": "working"}
-                    ]
+                    "reasoning_details": [{"type": "reasoning.text", "text": "working"}]
                 },
             }
         ]
@@ -244,6 +242,68 @@ def test_stream_progress_reuses_private_accumulator_without_quadratic_copy():
     model._capture_stream_progress(response)
 
     assert model.last_provider_response is response
+
+
+def test_stream_coalesces_adjacent_reasoning_text_fragments_losslessly():
+    response: dict[str, object] = {}
+    first = {
+        "choices": [
+            {
+                "delta": {
+                    "reasoning_details": [
+                        {
+                            "type": "reasoning.text",
+                            "format": "deepseek-v3",
+                            "index": 0,
+                            "text": "calcu",
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    second = {
+        "choices": [
+            {
+                "delta": {
+                    "reasoning_details": [
+                        {
+                            "type": "reasoning.text",
+                            "format": "deepseek-v3",
+                            "index": 0,
+                            "text": "late",
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    OpenRouterModel._merge_stream_chunk(response, first)
+    OpenRouterModel._merge_stream_chunk(response, second)
+
+    assert response["choices"][0]["message"]["reasoning_details"] == [
+        {
+            "type": "reasoning.text",
+            "format": "deepseek-v3",
+            "index": 0,
+            "text": "calculate",
+        }
+    ]
+
+
+def test_large_raw_response_audit_is_bounded_with_digest():
+    model = OpenRouterModel("test/model", api_key="test")
+    body = "begin" + ("x" * 300_000) + "end"
+
+    model._capture_http_response(_Response({}), body)
+
+    assert model.last_provider_response_raw is not None
+    assert model.last_provider_response_raw.startswith("begin")
+    assert model.last_provider_response_raw.endswith("end")
+    assert "raw response truncated; bytes=" in model.last_provider_response_raw
+    assert "sha256=" in model.last_provider_response_raw
+    assert len(model.last_provider_response_raw) < len(body)
 
 
 def test_ambiguous_502_is_not_retried(monkeypatch):
