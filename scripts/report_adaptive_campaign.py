@@ -250,6 +250,8 @@ def classify_health(
         return "hard stall/recovery active: repeated exits"
     if evidence_age is not None and evidence_age <= interval:
         return "in-flight but active"
+    if worker_age is not None and worker_age <= interval:
+        return "in-flight but active"
     if connected:
         request_age_bound = evidence_age if evidence_age is not None else worker_age
         if request_age_bound is not None and request_age_bound <= request_timeout + 120:
@@ -406,6 +408,7 @@ def build_report(
                 "checkpoint_updated_at": None,
                 "checkpoint_detail": {},
                 "flat_reports": 0,
+                "worker_pid": None,
                 "attempt": {
                     key: row.get(key) for key in ATTEMPT_FIELDS if key in row
                 },
@@ -448,8 +451,11 @@ def build_report(
             and checkpoint.get("updated_at") != previous_row.get("checkpoint_updated_at")
         )
         item_changed = bool(delta is not None and delta > 0)
+        child_changed = bool(
+            child_pid and child_pid != previous_row.get("worker_pid")
+        )
         flat_reports = 0
-        if delta == 0 and not checkpoint_changed:
+        if delta == 0 and not checkpoint_changed and not child_changed:
             flat_reports = int(previous_row.get("flat_reports", 0)) + 1
         last_exit_at = parse_time(state.get("last_exit_at")) or 0
         last_item_at = parse_time(row.get("last_item_at")) or 0
@@ -531,6 +537,7 @@ def build_report(
             "checkpoint_updated_at": checkpoint.get("updated_at") if checkpoint else None,
             "checkpoint_detail": detail,
             "flat_reports": flat_reports,
+            "worker_pid": child_pid,
             "attempt": {key: row.get(key) for key in ATTEMPT_FIELDS},
         }
 

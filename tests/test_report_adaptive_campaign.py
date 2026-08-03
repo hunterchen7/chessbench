@@ -44,7 +44,7 @@ def test_health_does_not_equate_a_pid_with_a_healthy_run():
         == "hard stall/recovery active: repeated exits"
     )
     assert (
-        health(flat_reports=2, evidence_age=700)
+        health(flat_reports=2, evidence_age=700, worker_age=700)
         == "hard stall/recovery needed: two flat reports"
     )
 
@@ -56,10 +56,17 @@ def test_live_socket_uses_latest_durable_activity_as_request_age_bound():
     )
 
 
-def test_soft_and_timeout_stalls_are_distinct():
-    assert health(evidence_age=700) == "soft stall"
+def test_recent_relaunch_is_active_even_before_a_socket_or_checkpoint():
     assert (
-        health(evidence_age=1100)
+        health(worker_age=30, evidence_age=1200, flat_reports=2)
+        == "in-flight but active"
+    )
+
+
+def test_soft_and_timeout_stalls_are_distinct():
+    assert health(evidence_age=700, worker_age=700) == "soft stall"
+    assert (
+        health(evidence_age=1100, worker_age=1100)
         == "hard stall/recovery needed: timeout exceeded"
     )
 
