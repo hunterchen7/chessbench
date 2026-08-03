@@ -480,7 +480,10 @@ def build_report(
         )
         flat_for = age_seconds(row.get("last_item_at"), now)
         if not advanced and row["status"] != "completed":
-            health = f"{health}; flat {format_duration(flat_for)}"
+            health = (
+                f"{health}; no completed item {format_duration(flat_for)}; "
+                f"current worker age {format_duration(worker_age)}"
+            )
 
         activity_provider = detail.get("provider") or row.get("response_provider")
         enriched = {
