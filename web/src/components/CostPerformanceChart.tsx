@@ -54,6 +54,7 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
   "deepseek-v4-flash": "#4c78a8",
   "gemini-3.1-flash-lite": "#00a6a6",
   "gemini-3.5-flash": "#00897b",
+  "gemini-3.5-flash-lite": "#16a085",
   "glm-5.2": "#6a994e",
   "gpt-5.4-nano": "#f4a261",
   "gpt-5.6": "#ef5675",

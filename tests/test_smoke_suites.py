@@ -202,7 +202,7 @@ def test_smoke_model_registry_slugs_are_exact():
         "model_id": "openai/gpt-5.6-luna",
         "display_name": "",
         "family": "openai",
-        "notes": "cheaper GPT-5.6 tier ($1/$6)",
+        "notes": "cheaper GPT-5.6 tier ($0.10/$0.60 on OpenAI)",
         "enabled": True,
     }
     assert by_label["claude-haiku-4.5"] == {
@@ -221,6 +221,15 @@ def test_smoke_model_registry_slugs_are_exact():
         "display_name": "",
         "family": "qwen",
         "notes": "Low-cost Qwen 3.5 Flash proof model",
+        "enabled": True,
+    }
+    assert by_label["gemini-3.5-flash-lite"] == {
+        "label": "gemini-3.5-flash-lite",
+        "provider": "openrouter",
+        "model_id": "google/gemini-3.5-flash-lite",
+        "display_name": "",
+        "family": "google",
+        "notes": "Google Gemini 3.5 Flash Lite",
         "enabled": True,
     }
     assert by_label["mistral-small-4"] == {
