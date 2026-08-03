@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
@@ -8,18 +8,20 @@ import { useData } from "@/lib/useData"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 
 const WIDTH = 1300
-const HEIGHT = 462
+const HEIGHT = 520
 const PLOT = { left: 76, right: 34, top: 44, bottom: 58 }
 const NORMALIZED_PUZZLES = 50
 const MINIMUM_RATING = 400
 const RATING_AXIS_FLOOR = 100
-const HUMAN_HOURLY_RATE = 50
+const HUMAN_HOURLY_RATE_MIN = 50
+const HUMAN_HOURLY_RATE_MAX = 75
+const HUMAN_HOURLY_RATE = (HUMAN_HOURLY_RATE_MIN + HUMAN_HOURLY_RATE_MAX) / 2
 const HUMAN_RUN_IDS = [
   "legacy:af491903-33b9-46c3-9f1f-f551054600fa",
   "e5ab2979-f16b-43a3-a603-e728355a1002",
@@ -27,9 +29,11 @@ const HUMAN_RUN_IDS = [
 ] as const
 const HUMAN_LABEL = "hunter (me)"
 const HUMAN_COLOR = "#d946ef"
+const CHART_EXPORT_NAME = "chessbench-rating-efficiency"
 const CHART_STATE_STORAGE_KEY = "chessbench.rating-efficiency-state.v1"
 type EfficiencyMetric = "cost" | "tokens"
 type CostScale = "log" | "fourth" | "sqrt" | "linear"
+type ChartExportFormat = "svg" | "png" | "jpg" | "pdf"
 const COST_SCALE_OPTIONS: Array<{ value: CostScale; label: string; axisLabel: string }> = [
   { value: "log", label: "Log", axisLabel: "log" },
   { value: "fourth", label: "4th root", axisLabel: "fourth root" },
@@ -50,6 +54,7 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
   "deepseek-v4-flash": "#4c78a8",
   "gemini-3.1-flash-lite": "#00a6a6",
   "gemini-3.5-flash": "#00897b",
+  "gemini-3.5-flash-lite": "#16a085",
   "glm-5.2": "#6a994e",
   "gpt-5.4-nano": "#f4a261",
   "gpt-5.6": "#ef5675",
@@ -68,6 +73,182 @@ const MODEL_COLOR_BY_KEY: Record<string, string> = {
   "qwen3.5-flash": "#8e44ad",
   "qwen3.7-max": "#ff7f9d",
   "step-3.7-flash": "#826251",
+}
+
+const SVG_EXPORT_STYLE_PROPERTIES = [
+  "fill",
+  "stroke",
+  "stroke-width",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-dasharray",
+  "opacity",
+  "font-family",
+  "font-size",
+  "font-style",
+  "font-weight",
+  "letter-spacing",
+  "paint-order",
+  "text-anchor",
+  "dominant-baseline",
+  "vector-effect",
+] as const
+
+function chartBackground(svg: SVGSVGElement) {
+  let element: Element | null = svg
+  while (element) {
+    const background = getComputedStyle(element).backgroundColor
+    if (background && background !== "transparent" && background !== "rgba(0, 0, 0, 0)") return background
+    element = element.parentElement
+  }
+  return "#ffffff"
+}
+
+function serializeChartSvg(svg: SVGSVGElement) {
+  const clone = svg.cloneNode(true) as SVGSVGElement
+  const sourceElements = [svg, ...svg.querySelectorAll<SVGElement>("*")]
+  const clonedElements = [clone, ...clone.querySelectorAll<SVGElement>("*")]
+  sourceElements.forEach((source, index) => {
+    const target = clonedElements[index]
+    if (!target) return
+    const styles = getComputedStyle(source)
+    for (const property of SVG_EXPORT_STYLE_PROPERTIES) {
+      const value = styles.getPropertyValue(property)
+      if (value) target.style.setProperty(property, value)
+    }
+    target.removeAttribute("class")
+  })
+
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+  clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink")
+  clone.setAttribute("width", String(WIDTH))
+  clone.setAttribute("height", String(HEIGHT))
+  clone.removeAttribute("role")
+  clone.removeAttribute("aria-label")
+
+  const background = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+  background.setAttribute("x", "0")
+  background.setAttribute("y", "0")
+  background.setAttribute("width", String(WIDTH))
+  background.setAttribute("height", String(HEIGHT))
+  background.setAttribute("fill", chartBackground(svg))
+  clone.insertBefore(background, clone.firstChild)
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n${new XMLSerializer().serializeToString(clone)}`
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1_000)
+}
+
+function canvasBlob(canvas: HTMLCanvasElement, type: string, quality?: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error(`Could not encode ${type}`)), type, quality)
+  })
+}
+
+async function rasterizeChart(svgText: string) {
+  const source = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" })
+  const url = URL.createObjectURL(source)
+  try {
+    const image = new Image()
+    image.decoding = "async"
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error("Could not render chart SVG"))
+      image.src = url
+    })
+    const canvas = document.createElement("canvas")
+    canvas.width = WIDTH * 2
+    canvas.height = HEIGHT * 2
+    const context = canvas.getContext("2d")
+    if (!context) throw new Error("Canvas is unavailable")
+    context.drawImage(image, 0, 0, canvas.width, canvas.height)
+    return canvas
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function concatenateBytes(parts: Uint8Array[]) {
+  const length = parts.reduce((total, part) => total + part.length, 0)
+  const result = new Uint8Array(length)
+  let offset = 0
+  for (const part of parts) {
+    result.set(part, offset)
+    offset += part.length
+  }
+  return result
+}
+
+async function chartPdf(jpeg: Blob, imageWidth: number, imageHeight: number) {
+  const encoder = new TextEncoder()
+  const jpegBytes = new Uint8Array(await jpeg.arrayBuffer())
+  const pageWidth = 750
+  const pageHeight = pageWidth * imageHeight / imageWidth
+  const content = encoder.encode(`q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ\n`)
+  const chunks: Uint8Array[] = []
+  const offsets = Array<number>(6).fill(0)
+  let length = 0
+  const add = (part: Uint8Array | string) => {
+    const bytes = typeof part === "string" ? encoder.encode(part) : part
+    chunks.push(bytes)
+    length += bytes.length
+  }
+  const object = (number: number, body: () => void) => {
+    offsets[number] = length
+    add(`${number} 0 obj\n`)
+    body()
+    add("\nendobj\n")
+  }
+
+  add("%PDF-1.4\n")
+  object(1, () => add("<< /Type /Catalog /Pages 2 0 R >>"))
+  object(2, () => add("<< /Type /Pages /Kids [3 0 R] /Count 1 >>"))
+  object(3, () => add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`))
+  object(4, () => {
+    add(`<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`)
+    add(jpegBytes)
+    add("\nendstream")
+  })
+  object(5, () => {
+    add(`<< /Length ${content.length} >>\nstream\n`)
+    add(content)
+    add("endstream")
+  })
+
+  const xrefOffset = length
+  add("xref\n0 6\n0000000000 65535 f \n")
+  for (let number = 1; number <= 5; number += 1) add(`${String(offsets[number]).padStart(10, "0")} 00000 n \n`)
+  add(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`)
+  return new Blob([concatenateBytes(chunks)], { type: "application/pdf" })
+}
+
+async function exportChart(svg: SVGSVGElement, format: ChartExportFormat) {
+  const svgText = serializeChartSvg(svg)
+  if (format === "svg") {
+    downloadBlob(new Blob([svgText], { type: "image/svg+xml;charset=utf-8" }), `${CHART_EXPORT_NAME}.svg`)
+    return
+  }
+
+  const canvas = await rasterizeChart(svgText)
+  if (format === "png") {
+    downloadBlob(await canvasBlob(canvas, "image/png"), `${CHART_EXPORT_NAME}.png`)
+    return
+  }
+  const jpeg = await canvasBlob(canvas, "image/jpeg", 0.95)
+  if (format === "jpg") {
+    downloadBlob(jpeg, `${CHART_EXPORT_NAME}.jpg`)
+    return
+  }
+  downloadBlob(await chartPdf(jpeg, canvas.width, canvas.height), `${CHART_EXPORT_NAME}.pdf`)
 }
 
 interface SavedChartState {
@@ -330,6 +511,8 @@ interface PlottedPoint {
   point: ChartPoint
   x: number
   y: number
+  errorLeft: number
+  errorRight: number
   errorTop: number
   errorBottom: number
   color: string
@@ -351,6 +534,10 @@ interface LabelCandidate { x: number; y: number; layout: LabelLayout }
 interface LabelPlacement extends LabelCandidate { box: LabelBox; leader: Segment | null; score: number }
 
 const LEADER_LINE_PENALTY = 240
+const CONNECTOR_OVERHANG_FRACTION = 2 / 3
+const CONNECTOR_OVERHANG_TOLERANCE = 2
+const OWNERSHIP_CLEARANCE = 16
+const OWNERSHIP_TARGET_CLEARANCE = 24
 
 function boxesOverlap(a: LabelBox, b: LabelBox) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
@@ -395,7 +582,28 @@ function labelLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLay
   }
 }
 
-function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout) {
+function pointToBoxDistance(x: number, y: number, box: LabelBox) {
+  const horizontalDistance = x < box.left ? box.left - x : x > box.right ? x - box.right : 0
+  const verticalDistance = y < box.top ? box.top - y : y > box.bottom ? y - box.bottom : 0
+  return Math.hypot(horizontalDistance, verticalDistance)
+}
+
+function labelOwnership(entry: PlottedPoint, box: LabelBox, entries: PlottedPoint[]) {
+  const ownDistance = pointToBoxDistance(entry.x, entry.y, box)
+  let nearestOtherDistance = Number.POSITIVE_INFINITY
+  for (const other of entries) {
+    if (other.point.key === entry.point.key) continue
+    nearestOtherDistance = Math.min(nearestOtherDistance, pointToBoxDistance(other.x, other.y, box))
+  }
+  const clearance = nearestOtherDistance - ownDistance
+  return {
+    ownDistance,
+    ambiguous: clearance < OWNERSHIP_CLEARANCE,
+    penalty: Math.max(0, OWNERSHIP_TARGET_CLEARANCE - clearance) * 12,
+  }
+}
+
+function labelRequiresLeaderForPlacement(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
   const box = labelBox(labelWidth(entry, layout), x, y, layout)
   const occupiedLeft = entry.x - 7
   const occupiedRight = entry.x + 7
@@ -409,7 +617,26 @@ function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: Lab
     Number.POSITIVE_INFINITY
   const directlyAboveOrBelow = box.left <= entry.x && box.right >= entry.x && verticalGap <= 2
   const directlyBeside = box.top <= entry.y && box.bottom >= entry.y && horizontalGap <= 2
-  return !directlyAboveOrBelow && !directlyBeside
+  const ownership = labelOwnership(entry, box, entries)
+  return (!directlyAboveOrBelow && !directlyBeside) || ownership.ambiguous
+}
+
+function labelHasExcessiveOverhang(entry: PlottedPoint, box: LabelBox, layout: LabelLayout) {
+  if (layout === "inline") return false
+  const width = box.right - box.left
+  const leftShare = (entry.x - box.left) / width
+  const rightShare = (box.right - entry.x) / width
+  // Keep a connector-free label only when neither side holds more than two
+  // thirds of its width. A small tolerance keeps font-estimation noise from
+  // turning borderline cases into connectors. Side labels are already flush.
+  return Math.max(leftShare, rightShare) * width >
+    CONNECTOR_OVERHANG_FRACTION * width + CONNECTOR_OVERHANG_TOLERANCE
+}
+
+function labelNeedsLeader(entry: PlottedPoint, x: number, y: number, layout: LabelLayout, entries: PlottedPoint[]) {
+  const box = labelBox(labelWidth(entry, layout), x, y, layout)
+  return labelRequiresLeaderForPlacement(entry, x, y, layout, entries) ||
+    labelHasExcessiveOverhang(entry, box, layout)
 }
 
 function pointDensity(entry: PlottedPoint, entries: PlottedPoint[]) {
@@ -439,7 +666,7 @@ function directLabelCandidates(entry: PlottedPoint) {
   const candidates: LabelCandidate[] = []
   const stackedWidth = labelWidth(entry)
   const maximumShift = Math.max(0, stackedWidth / 2 - 4)
-  for (const horizontalShift of [0, -12, 12, -24, 24]) {
+  for (const horizontalShift of [0, -12, 12, -24, 24, -36, 36]) {
     if (Math.abs(horizontalShift) > maximumShift) continue
     candidates.push({ x: entry.x + horizontalShift, y: occupiedTop - 16, layout: "stacked" })
     candidates.push({ x: entry.x + horizontalShift, y: occupiedBottom + 12, layout: "stacked" })
@@ -499,10 +726,16 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
     key: entry.point.key,
     box: { left: entry.x - 7, right: entry.x + 7, top: entry.y - 7, bottom: entry.y + 7 },
   }))
-  const whiskers = entries.map((entry) => ({
-    key: entry.point.key,
-    box: { left: entry.x - 5, right: entry.x + 5, top: entry.errorTop - 1, bottom: entry.errorBottom + 1 },
-  }))
+  const whiskers = entries.flatMap((entry) => [
+    {
+      key: entry.point.key,
+      box: { left: entry.x - 5, right: entry.x + 5, top: entry.errorTop - 1, bottom: entry.errorBottom + 1 },
+    },
+    ...(entry.errorRight - entry.errorLeft > 0.5 ? [{
+      key: entry.point.key,
+      box: { left: entry.errorLeft - 1, right: entry.errorRight + 1, top: entry.y - 5, bottom: entry.y + 5 },
+    }] : []),
+  ])
   const ordered = entries.toSorted((a, b) => pointDensity(b, entries) - pointDensity(a, entries) || a.y - b.y || a.x - b.x)
 
   function bestPlacement(
@@ -525,8 +758,10 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         markers.some((marker) => boxesOverlap(box, marker.box)) ||
         whiskers.some((whisker) => boxesOverlap(box, whisker.box))
       if (blocked) continue
-      const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout)
-      if (needsLeader && !allowLeader) continue
+      const ownership = labelOwnership(entry, box, entries)
+      const requiresLeaderForPlacement = labelRequiresLeaderForPlacement(entry, x, candidate.y, candidate.layout, entries)
+      const needsLeader = labelNeedsLeader(entry, x, candidate.y, candidate.layout, entries)
+      if (requiresLeaderForPlacement && !allowLeader) continue
       const leader = needsLeader ? labelLeader(entry, x, candidate.y, candidate.layout) : null
       const obstructionCollisions = leader ?
         otherPlacements.filter((other) => segmentIntersectsBox(leader, other.box)).length +
@@ -536,11 +771,13 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
         0
       const connectorCrossings = leader ? otherPlacements.filter((other) => other.leader && segmentsIntersect(leader, other.leader)).length : 0
       const straddlesMinimumLine = box.top <= minimumLineY + 2 && box.bottom >= minimumLineY - 2
+      const leaderPenalty = requiresLeaderForPlacement ? LEADER_LINE_PENALTY : 0
       const score =
         obstructionCollisions * 240 +
         connectorCrossings * 90 +
+        ownership.penalty +
         (straddlesMinimumLine ? 80 : 0) +
-        (leader ? LEADER_LINE_PENALTY + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
+        (leader ? leaderPenalty + Math.hypot(leader.x2 - leader.x1, leader.y2 - leader.y1) : Math.hypot(x - entry.x, candidate.y - entry.y))
       if (!best || score < best.score) best = { x, y: candidate.y, layout: candidate.layout, box, leader, score }
     }
     return best
@@ -585,7 +822,10 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   // displaced label may still graduate to a newly available direct position.
   for (let pass = 0; pass < 8; pass += 1) {
     let changed = false
-    const displacedEntries = ordered.filter((entry) => placements.get(entry.point.key)?.leader)
+    const displacedEntries = ordered.filter((entry) => {
+      const placement = placements.get(entry.point.key)
+      return placement && labelRequiresLeaderForPlacement(entry, placement.x, placement.y, placement.layout, entries)
+    })
     const passEntries = pass % 2 === 0 ? displacedEntries : displacedEntries.toReversed()
     for (const entry of passEntries) {
       const current = placements.get(entry.point.key)
@@ -643,6 +883,11 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
       <text x={WIDTH - PLOT.right - 6} y={y(MINIMUM_RATING) + 14} textAnchor="end" className="fill-rose-600 text-[9px] font-semibold dark:fill-rose-400" style={{ paintOrder: "stroke", stroke: "var(--card)", strokeWidth: 4 }}>minimum rating (400)</text>
     </g>
     {plotted.map((entry) => <g key={`mark-${entry.point.key}`}>
+      {entry.errorRight - entry.errorLeft > 0.5 ? <>
+        <line x1={entry.errorLeft} y1={entry.y} x2={entry.errorRight} y2={entry.y} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
+        <line x1={entry.errorLeft} y1={entry.y - 4} x2={entry.errorLeft} y2={entry.y + 4} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
+        <line x1={entry.errorRight} y1={entry.y - 4} x2={entry.errorRight} y2={entry.y + 4} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
+      </> : null}
       <line x1={entry.x} y1={entry.errorTop} x2={entry.x} y2={entry.errorBottom} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
       <line x1={entry.x - 4} y1={entry.errorTop} x2={entry.x + 4} y2={entry.errorTop} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
       <line x1={entry.x - 4} y1={entry.errorBottom} x2={entry.x + 4} y2={entry.errorBottom} stroke={entry.color} strokeWidth="1.5" opacity="0.6" vectorEffect="non-scaling-stroke" />
@@ -665,7 +910,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
       />
     }) : null}
     {showLabels ? plotted.map((entry) => {
-      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)) return null
+      if (!labelNeedsLeader(entry, entry.labelX, entry.labelY, entry.labelLayout, plotted)) return null
       const leader = labelLeader(entry, entry.labelX, entry.labelY, entry.labelLayout)
       return <line
         key={`leader-${entry.point.key}`}
@@ -674,9 +919,9 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
         x2={leader.x2}
         y2={leader.y2}
         stroke={entry.color}
-        strokeWidth="1.1"
+        strokeWidth="1.35"
         strokeLinecap="round"
-        opacity="0.4"
+        opacity="0.68"
         vectorEffect="non-scaling-stroke"
       />
     }) : null}
@@ -722,12 +967,12 @@ function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyM
   if (isHumanPoint(entry.point)) return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-      <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE}/hour</div></div>
+      <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE_MIN}–${HUMAN_HOURLY_RATE_MAX}/hour</div></div>
     </div>
     <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
       <dt className="text-muted-foreground">Glicko-2 rating</dt><dd className="font-mono font-semibold tabular-nums">{Math.round(entry.point.rating).toLocaleString()}</dd>
       <dt className="text-muted-foreground">Mean RD</dt><dd className="font-mono tabular-nums">±{Math.round(entry.point.ratingDeviation)}</dd>
-      <dt className="text-muted-foreground">Labor cost / 50</dt><dd className="font-mono font-semibold tabular-nums">{formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)}</dd>
+      <dt className="text-muted-foreground">Labor cost / 50</dt><dd className="font-mono font-semibold tabular-nums">{formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE)}–{formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE)}</dd>
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts}</dd>
     </dl>
@@ -778,6 +1023,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [showHuman, setShowHuman] = useState(initialState.showHuman)
   const [showLabels, setShowLabels] = useState(initialState.showLabels)
   const [showLegend, setShowLegend] = useState(initialState.showLegend)
+  const [exporting, setExporting] = useState<ChartExportFormat | null>(null)
 
   useEffect(() => {
     try {
@@ -930,7 +1176,15 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const frontierKeys = paretoPointKeys(modelPoints, metric)
 
     const xValue = (point: ChartPoint) => metricValue(point, metric) ?? 0
-    const transformedValues = points.map((point) => transformCost(xValue(point), costScale))
+    const transformedValues = points.flatMap((point) => {
+      const value = xValue(point)
+      return isHumanPoint(point) && metric === "cost"
+        ? [
+          transformCost(value * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE, costScale),
+          transformCost(value * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE, costScale),
+        ]
+        : [transformCost(value, costScale)]
+    })
     const rawValueMin = Math.min(...transformedValues)
     const rawValueMax = Math.max(...transformedValues)
     const minimumSpan = costScale === "log" ? 0.7 : Math.max(rawValueMax * 0.15, 0.001)
@@ -945,19 +1199,33 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     const plotHeight = HEIGHT - PLOT.top - PLOT.bottom
     const x = (value: number) => PLOT.left + (transformCost(value, costScale) - valueMin) / (valueMax - valueMin) * plotWidth
     const y = (value: number) => PLOT.top + (ratingMax - value) / (ratingMax - ratingMin) * plotHeight
-    const rawPlotted = points.map((point) => ({
-      point,
-      x: x(xValue(point)),
-      y: y(point.rating),
-      errorTop: y(Math.min(ratingMax, point.rating + point.ratingDeviation)),
-      errorBottom: y(Math.max(ratingMin, point.rating - point.ratingDeviation)),
-      color: isHumanPoint(point)
-        ? HUMAN_COLOR
-        : colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
-      labelX: 0,
-      labelY: 0,
-      labelLayout: "stacked" as const,
-    }))
+    const rawPlotted = points.map((point) => {
+      const value = xValue(point)
+      const errorLeft = isHumanPoint(point) && metric === "cost"
+        ? x(value * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE)
+        : x(value)
+      const errorRight = isHumanPoint(point) && metric === "cost"
+        ? x(value * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE)
+        : x(value)
+      const xPosition = isHumanPoint(point) && metric === "cost"
+        ? (errorLeft + errorRight) / 2
+        : x(value)
+      return {
+        point,
+        x: xPosition,
+        y: y(point.rating),
+        errorLeft,
+        errorRight,
+        errorTop: y(Math.min(ratingMax, point.rating + point.ratingDeviation)),
+        errorBottom: y(Math.max(ratingMin, point.rating - point.ratingDeviation)),
+        color: isHumanPoint(point)
+          ? HUMAN_COLOR
+          : colorByModel.get(point.representative.model_variant.base_key) ?? MODEL_COLORS[0],
+        labelX: 0,
+        labelY: 0,
+        labelLayout: "stacked" as const,
+      }
+    })
     const plotted = showLabels ? placeLabels(rawPlotted, y(MINIMUM_RATING)) : rawPlotted
     const frontier = plotted
       .filter((entry) => !isHumanPoint(entry.point) && frontierKeys.has(entry.point.key))
@@ -1006,6 +1274,18 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     setHiddenModelReasoningKeys(new Set())
     setRatingRange([null, null])
     setShowHuman(true)
+  }
+  const saveChart = async (format: ChartExportFormat) => {
+    const svg = plotContainerRef.current?.querySelector("svg")
+    if (!svg || exporting) return
+    setExporting(format)
+    try {
+      await exportChart(svg, format)
+    } catch (error) {
+      console.error(`Could not export chart as ${format}`, error)
+    } finally {
+      setExporting(null)
+    }
   }
   const toggleModel = (group: ModelVisibilityGroup) => {
     const visible = !hiddenModelKeys.has(group.key) && group.efforts.some(({ effort }) => !hiddenModelReasoningKeys.has(modelReasoningVisibilityKey(group.key, effort)))
@@ -1067,7 +1347,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         <div>
           <CardTitle className="flex items-center gap-2 text-base">{metric === "cost" ? <CircleDollarSign className="size-4 text-sky-600" /> : <Gauge className="size-4 text-violet-600" />} Rating efficiency</CardTitle>
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">{metric === "cost"
-            ? "Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50/hour. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the horizontal axis supports log, fourth-root, square-root, and linear scaling."
+            ? "Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50–$75/hour, shown by its horizontal whisker. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the horizontal axis supports log, fourth-root, square-root, and linear scaling."
             : "Glicko-2 puzzle rating versus average provider-reported completion tokens per model move across each configuration’s settled runs. Completion usage already includes reasoning tokens when a provider reports them that way, so reasoning is not added twice. Lower token use and higher rating are better; vertical whiskers are mean rating deviation."}{showFrontier ? " The emerald staircase connects the visible, non-dominated model configurations; it is a Pareto guide, not a fitted curve." : ""}</p>
         </div>
         <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allMetricModelPoints.length ? ` of ${allMetricModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
@@ -1108,6 +1388,19 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
         <Button variant={showFrontier ? "secondary" : "outline"} size="sm" className="h-8 gap-1.5 text-xs" aria-pressed={showFrontier} onClick={() => setShowFrontier((value) => !value)}><TrendingUp className="size-3.5" />Frontier{chart ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{chart.frontier.length}</span> : null}</Button>
         <Button variant={showLegend || hiddenConfigurationCount > 0 ? "secondary" : "outline"} size="sm" className="h-8 cursor-pointer gap-1.5 text-xs" aria-expanded={showLegend} aria-controls="rating-efficiency-legend" onClick={() => setShowLegend((value) => !value)}><ListFilter className="size-3.5" />Legend{hiddenConfigurationCount > 0 ? <span className="rounded-full bg-background/80 px-1.5 py-0.5 font-mono text-[10px] tabular-nums">{hiddenConfigurationCount} hidden</span> : null}<ChevronDown className={`size-3 transition-transform duration-300 motion-reduce:transition-none ${showLegend ? "rotate-180" : ""}`} /></Button>
         <Button variant="ghost" size="icon" className="size-8" disabled={!filtersActive} onClick={clearFilters} aria-label="Clear chart filters"><RotateCcw className="size-3.5" /></Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="ml-auto h-8 gap-1.5 text-xs" disabled={!chart || exporting != null}>
+              <Download className="size-3.5" />{exporting ? "Saving…" : "Save as"}<ChevronDown className="size-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-36">
+            {(["svg", "png", "jpg", "pdf"] as const).map((format) => <DropdownMenuItem key={format} disabled={exporting != null} onSelect={() => { void saveChart(format) }} className="justify-between gap-4">
+              <span className="font-mono text-[10px] font-semibold uppercase">{format}</span>
+              <span className="text-xs text-muted-foreground">{format === "svg" ? "Vector" : format === "pdf" ? "Document" : "2× image"}</span>
+            </DropdownMenuItem>)}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </CardHeader>
     <CardContent className="p-3 sm:p-5">
@@ -1160,7 +1453,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               href={`#${runPath(entry.point)}`}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${metric === "cost" ? `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles` : `${formatTokens(isHumanPoint(entry.point) ? 0 : entry.point.tokensPerMove ?? 0)} generated tokens per model move`}`}
+              aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${metric === "cost" ? isHumanPoint(entry.point) ? `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE)} to ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE)} per 50 puzzles` : `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles` : `${formatTokens(isHumanPoint(entry.point) ? 0 : entry.point.tokensPerMove ?? 0)} generated tokens per model move`}`}
               className="cursor-pointer outline-none"
               onClick={(event) => {
                 event.preventDefault()

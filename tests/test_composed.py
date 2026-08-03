@@ -249,6 +249,34 @@ def test_composed_reasoning_usage_is_not_double_counted():
     assert _turn_usage_totals(turns) == (22, 15, 7, pytest.approx(0.03))
 
 
+def test_provider_error_usage_is_audited_but_not_scored():
+    from chessbench.__main__ import _turn_usage_totals
+
+    turns = [
+        {
+            "prompt_tokens": 273,
+            "completion_tokens": 65_536,
+            "reasoning_tokens": 12_937,
+            "cost_usd": 3.2467347,
+            "model_error": "provider returned no visible content",
+        },
+        {
+            "prompt_tokens": 273,
+            "completion_tokens": 26_031,
+            "reasoning_tokens": 5_308,
+            "cost_usd": 1.2912372,
+            "model_error": None,
+        },
+    ]
+
+    assert _turn_usage_totals(turns) == (
+        273,
+        26_031,
+        5_308,
+        pytest.approx(1.2912372),
+    )
+
+
 def test_study_keeps_every_attempt_audit_envelope():
     from chessbench.solvers import grade_study
 

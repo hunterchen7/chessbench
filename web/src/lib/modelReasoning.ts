@@ -3,6 +3,7 @@ import type { ModelVariant } from "@/lib/data"
 const PROVIDER_REASONING_DEFAULTS: Record<string, string> = {
   "google/gemini-3.1-flash-lite": "minimal",
   "google/gemini-3.5-flash": "none",
+  "google/gemini-3.5-flash-lite": "minimal",
   "inception/mercury-2": "medium",
   "mistralai/mistral-small-2603": "none",
 }

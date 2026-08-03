@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import json
 import urllib.error
 
@@ -39,6 +40,9 @@ class _Response:
 
 
 class _HeartbeatResponse:
+    status = 200
+    headers = {"Content-Type": "application/json"}
+
     def __enter__(self):
         return self
 
@@ -47,6 +51,29 @@ class _HeartbeatResponse:
 
     def read1(self, _size: int) -> bytes:
         return b" "
+
+
+class _StreamingResponse:
+    status = 200
+    headers = {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "X-Generation-Id": "gen-stream-header",
+    }
+
+    def __init__(self, lines: list[bytes | BaseException]) -> None:
+        self._lines = iter(lines)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def readline(self) -> bytes:
+        value = next(self._lines, b"")
+        if isinstance(value, BaseException):
+            raise value
+        return value
 
 
 def _http_error(code: int, *, retry_after: str | None = None):
@@ -76,7 +103,7 @@ def test_transport_failure_is_not_retried(monkeypatch):
     assert calls == 1
 
 
-def test_chunked_heartbeats_cannot_extend_total_response_deadline(monkeypatch):
+def test_nonstreaming_chunks_cannot_extend_total_response_deadline(monkeypatch):
     calls = 0
     clock = iter([0.0, 0.4, 1.1])
 
@@ -87,11 +114,196 @@ def test_chunked_heartbeats_cannot_extend_total_response_deadline(monkeypatch):
 
     monkeypatch.setattr("urllib.request.urlopen", respond)
     monkeypatch.setattr("time.monotonic", lambda: next(clock))
-    model = OpenRouterModel("test/model", api_key="test", timeout=1.0)
+    model = OpenRouterModel(
+        "test/model", api_key="test", timeout=10.0, total_timeout=1.0
+    )
 
     with pytest.raises(ModelError, match="total response deadline exceeded"):
         model.chat([{"role": "user", "content": "move"}])
     assert calls == 1
+
+
+def test_streaming_response_aggregates_content_reasoning_usage_and_audit(monkeypatch):
+    events = [
+        b": OPENROUTER PROCESSING\n",
+        b"\n",
+        b'data: {"id":"gen-stream","model":"test/model","provider":"Fast Provider","choices":[{"index":0,"delta":{"reasoning":"calculate "},"finish_reason":null}]}\n',
+        b"\n",
+        b'data: {"choices":[{"index":0,"delta":{"reasoning":"more","content":"e2"},"finish_reason":null}]}\n',
+        b"\n",
+        b'data: {"choices":[{"index":0,"delta":{"content":"e4"},"finish_reason":"stop","native_finish_reason":"stop"}],"usage":{"prompt_tokens":7,"completion_tokens":11,"completion_tokens_details":{"reasoning_tokens":9},"cost":0.002}}\n',
+        b"\n",
+        b"data: [DONE]\n",
+        b"\n",
+    ]
+    captured: dict[str, object] = {}
+
+    def respond(request, **_kwargs):
+        captured["payload"] = json.loads(request.data)
+        return _StreamingResponse(events)
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+    assert captured["payload"] == {
+        "model": "test/model",
+        "messages": [{"role": "user", "content": "move"}],
+        "temperature": 0.0,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+        "max_tokens": 2048,
+    }
+    assert model.last_reasoning == "calculate more"
+    assert model.last_response_id == "gen-stream"
+    assert model.last_response_provider == "Fast Provider"
+    assert model.last_finish_reason == "stop"
+    assert model.last_usage == {
+        "prompt_tokens": 7,
+        "completion_tokens": 11,
+        "completion_tokens_details": {"reasoning_tokens": 9},
+        "cost": 0.002,
+    }
+    assert model.last_cost == pytest.approx(0.002)
+    assert model.last_provider_response_raw is not None
+    assert ": OPENROUTER PROCESSING" in model.last_provider_response_raw
+    assert "data: [DONE]" in model.last_provider_response_raw
+
+
+def test_stream_keepalive_comments_do_not_reset_idle_deadline(monkeypatch):
+    clock = iter([0.0, 0.1, 0.2, 1.2])
+    response = _StreamingResponse(
+        [b": OPENROUTER PROCESSING\n", b"\n", b": OPENROUTER PROCESSING\n"]
+    )
+    monkeypatch.setattr("urllib.request.urlopen", lambda *_a, **_kw: response)
+    monkeypatch.setattr("time.monotonic", lambda: next(clock))
+    model = OpenRouterModel(
+        "test/model", api_key="test", timeout=1.0, total_timeout=10.0
+    )
+
+    with pytest.raises(ModelError, match="stream idle deadline exceeded"):
+        model.chat([{"role": "user", "content": "move"}])
+
+
+def test_stream_total_deadline_still_bounds_active_generation(monkeypatch):
+    clock = itertools.chain([0.0, 0.0, 0.1, 0.2], itertools.repeat(1.1))
+    response = _StreamingResponse(
+        [
+            b'data: {"choices":[{"delta":{"reasoning":"a"}}]}\n',
+            b"\n",
+            b'data: {"choices":[{"delta":{"reasoning":"b"}}]}\n',
+        ]
+    )
+    monkeypatch.setattr("urllib.request.urlopen", lambda *_a, **_kw: response)
+    monkeypatch.setattr("time.monotonic", lambda: next(clock))
+    model = OpenRouterModel(
+        "test/model", api_key="test", timeout=10.0, total_timeout=1.0
+    )
+
+    with pytest.raises(ModelError, match="total response deadline exceeded"):
+        model.chat([{"role": "user", "content": "move"}])
+
+
+def test_midstream_timeout_keeps_partial_provider_audit(monkeypatch):
+    response = _StreamingResponse(
+        [
+            b'data: {"id":"gen-partial","model":"test/model","provider":"Fast Provider","choices":[{"delta":{"reasoning":"working"}}]}\n',
+            b"\n",
+            TimeoutError("socket timed out"),
+        ]
+    )
+    monkeypatch.setattr("urllib.request.urlopen", lambda *_a, **_kw: response)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    with pytest.raises(ModelError, match="stream idle deadline exceeded"):
+        model.chat([{"role": "user", "content": "move"}])
+
+    assert model.last_response_id == "gen-partial"
+    assert model.last_response_model == "test/model"
+    assert model.last_response_provider == "Fast Provider"
+    assert model.last_provider_response is not None
+    assert model.last_provider_response_raw is not None
+    assert "working" in model.last_provider_response_raw
+
+
+def test_stream_progress_reuses_private_accumulator_without_quadratic_copy():
+    model = OpenRouterModel("test/model", api_key="test")
+    response = {
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "reasoning_details": [{"type": "reasoning.text", "text": "working"}]
+                },
+            }
+        ]
+    }
+
+    model._capture_stream_progress(response)
+
+    assert model.last_provider_response is response
+
+
+def test_stream_coalesces_adjacent_reasoning_text_fragments_losslessly():
+    response: dict[str, object] = {}
+    first = {
+        "choices": [
+            {
+                "delta": {
+                    "reasoning_details": [
+                        {
+                            "type": "reasoning.text",
+                            "format": "deepseek-v3",
+                            "index": 0,
+                            "text": "calcu",
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    second = {
+        "choices": [
+            {
+                "delta": {
+                    "reasoning_details": [
+                        {
+                            "type": "reasoning.text",
+                            "format": "deepseek-v3",
+                            "index": 0,
+                            "text": "late",
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    OpenRouterModel._merge_stream_chunk(response, first)
+    OpenRouterModel._merge_stream_chunk(response, second)
+
+    assert response["choices"][0]["message"]["reasoning_details"] == [
+        {
+            "type": "reasoning.text",
+            "format": "deepseek-v3",
+            "index": 0,
+            "text": "calculate",
+        }
+    ]
+
+
+def test_large_raw_response_audit_is_bounded_with_digest():
+    model = OpenRouterModel("test/model", api_key="test")
+    body = "begin" + ("x" * 300_000) + "end"
+
+    model._capture_http_response(_Response({}), body)
+
+    assert model.last_provider_response_raw is not None
+    assert model.last_provider_response_raw.startswith("begin")
+    assert model.last_provider_response_raw.endswith("end")
+    assert "raw response truncated; bytes=" in model.last_provider_response_raw
+    assert "sha256=" in model.last_provider_response_raw
+    assert len(model.last_provider_response_raw) < len(body)
 
 
 def test_ambiguous_502_is_not_retried(monkeypatch):
@@ -285,7 +497,9 @@ def test_choice_error_is_not_coerced_to_empty_chess_answer(monkeypatch):
 
 
 @pytest.mark.parametrize("content", [None, "", "   \n"])
-def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content):
+def test_length_stop_without_visible_content_is_model_answer_failure(
+    monkeypatch, content
+):
     _capture_request(
         monkeypatch,
         {
@@ -301,7 +515,7 @@ def test_null_or_blank_visible_content_is_provider_failure(monkeypatch, content)
     )
     model = OpenRouterModel("z-ai/glm-5.2", api_key="test")
 
-    with pytest.raises(ModelError, match="no visible content"):
+    with pytest.raises(EmptyCompletionError, match="no visible content"):
         model.chat([{"role": "user", "content": "move"}])
 
     assert model.last_response_id == "gen-empty"
@@ -381,6 +595,8 @@ def test_successful_response_keeps_full_provider_envelope(monkeypatch):
         "model": "z-ai/glm-5.2",
         "messages": [{"role": "user", "content": "move"}],
         "temperature": 0.0,
+        "stream": True,
+        "stream_options": {"include_usage": True},
         "max_tokens": 2048,
     }
     assert model.last_response_provider == "Example Inference"
@@ -516,7 +732,9 @@ def test_openrouter_openai_keeps_reasoning_for_audit_but_does_not_replay_it(
     assert assistant == {"role": "assistant", "content": "e2e4"}
 
 
-def test_openrouter_non_openai_still_replays_provider_reasoning(monkeypatch):
+def test_openrouter_anthropic_keeps_reasoning_for_audit_but_does_not_replay_it(
+    monkeypatch,
+):
     captured = _capture_request(
         monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
     )
@@ -544,7 +762,57 @@ def test_openrouter_non_openai_still_replays_provider_reasoning(monkeypatch):
     assert isinstance(messages, list)
     assistant = messages[0]
     assert isinstance(assistant, dict)
-    assert assistant["reasoning_details"] == details
+    assert assistant == {"role": "assistant", "content": "e2e4"}
+
+
+def test_openrouter_anthropic_drops_all_reasoning_fields_before_replay(monkeypatch):
+    captured = _capture_request(
+        monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
+    )
+    model = OpenRouterModel("anthropic/claude-opus-5", api_key="test")
+    substantive = {
+        "type": "reasoning.text",
+        "text": "preserve me",
+        "format": "anthropic-claude-v1",
+        "index": 0,
+    }
+    opaque = {
+        "type": "reasoning.encrypted",
+        "data": "opaque-provider-ciphertext",
+        "format": "anthropic-claude-v1",
+        "index": 0,
+    }
+
+    model.chat(
+        [
+            {
+                "role": "assistant",
+                "content": "e2e4",
+                "reasoning": "   \n",
+                "reasoning_content": "\t",
+                "reasoning_details": [
+                    substantive,
+                    {
+                        "type": "reasoning.text",
+                        "text": " \n\t ",
+                        "format": "anthropic-claude-v1",
+                        "index": 0,
+                    },
+                    opaque,
+                ],
+            },
+            {"role": "user", "content": "The position is now ..."},
+        ],
+        max_tokens=0,
+    )
+
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    messages = payload["messages"]
+    assert isinstance(messages, list)
+    assistant = messages[0]
+    assert isinstance(assistant, dict)
+    assert assistant == {"role": "assistant", "content": "e2e4"}
 
 
 def test_provider_route_is_sent_without_tools(monkeypatch):

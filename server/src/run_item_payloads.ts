@@ -1,8 +1,8 @@
 export const RUN_ITEM_PAYLOAD_INLINE_BYTES = 512 * 1024
 export const RUN_ITEM_PAYLOAD_CHUNK_BYTES = 128 * 1024
-// Base64 expands by 4/3. A 16 MiB raw ceiling keeps the parsed request,
-// decoded chunks, and reconstructed payload comfortably inside Worker memory.
-export const RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 16 * 1024 * 1024
+// Base64 expands by 4/3. A 32 MiB raw ceiling accommodates unusually large
+// audited reasoning traces while keeping delivery bounded and chunked.
+export const RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 32 * 1024 * 1024
 export const RUN_ITEM_PAYLOAD_MAX_CHUNKS = Math.ceil(
   RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES / RUN_ITEM_PAYLOAD_CHUNK_BYTES,
 )

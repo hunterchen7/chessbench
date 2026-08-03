@@ -1,4 +1,5 @@
 import type { RatedSessionProtocol, RunIndexEntry } from "@/lib/data"
+import { equivalentReasoningKey } from "@/lib/modelReasoning"
 
 export interface RatedRunAggregate {
   key: string
@@ -22,7 +23,13 @@ function estimate(run: RunIndexEntry) {
 
 function aggregateKey(run: RunIndexEntry & { protocol: RatedSessionProtocol }) {
   return [
-    run.model_variant.key,
+    // A reasoning configuration is the model's effective effort, not its
+    // transport-era variant key. Output-limit, capture, or routing changes can
+    // produce distinct durable variants without changing the experiment cell
+    // shown to users. Keep every underlying run, but aggregate those variants
+    // into one low/high/max row.
+    run.model_variant.base_key,
+    equivalentReasoningKey(run.model_variant),
     run.protocol.pool.content_hash,
     run.protocol.version,
     run.protocol.prompt.version,

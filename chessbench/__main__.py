@@ -109,6 +109,12 @@ def _usage_float(value: object) -> float:
     return float(value) if isinstance(value, (str, int, float)) else 0.0
 
 
+def _is_invalid_thinking_signature_error(exc: BaseException) -> bool:
+    """Identify provider-bound reasoning state that cannot be replayed safely."""
+    message = str(exc).lower().replace("`", "")
+    return "invalid signature" in message and "thinking" in message
+
+
 def _sync_run_outbox(
     db_path: str,
     run_id: str,
@@ -162,16 +168,20 @@ def _sync_live_run(db_path: str, run_id: str, *, disabled: bool = False) -> None
 def _turn_usage_totals(
     turns: list[dict[str, object]],
 ) -> tuple[int, int, int, float]:
-    """Aggregate audited turns without double-counting reasoning tokens.
+    """Aggregate scored turns without double-counting reasoning tokens.
 
     Game/study envelopes expose a normalized ``reasoning_tokens`` field while
     provider usage often exposes the same value inside
     ``completion_tokens_details``. Prefer the provider field when present and
-    only fall back to the normalized field.
+    only fall back to the normalized field. Provider-error turns remain in the
+    audit envelope, but their billed usage is infrastructure retry overhead and
+    is excluded from benchmark efficiency totals.
     """
     prompt = completion = reasoning = 0
     cost = 0.0
     for turn in turns:
+        if turn.get("model_error"):
+            continue
         usage = turn.get("usage")
         turn_reasoning: object | None = None
         if isinstance(usage, dict):
@@ -200,6 +210,8 @@ def _turn_cache_totals(
     cache_read = cache_write = uncached_prompt = 0
     cache_discount = 0.0
     for turn in turns:
+        if turn.get("model_error"):
+            continue
         cache_read += _usage_int(turn.get("cache_read_tokens", 0))
         cache_write += _usage_int(turn.get("cache_write_tokens", 0))
         uncached_prompt += _usage_int(turn.get("uncached_prompt_tokens", 0))
@@ -714,6 +726,7 @@ def _build_model(
     reasoning_max_tokens: int | None = None,
     reasoning_exclude: bool = True,
     request_timeout: float = 120.0,
+    request_total_timeout: float = 3600.0,
     provider_preferences: dict[str, object] | None = None,
 ) -> "Model":
     from .models import AnthropicModel, OpenAIModel, OpenRouterModel
@@ -721,11 +734,16 @@ def _build_model(
     if spec == "anthropic":
         return AnthropicModel(model_id or "claude-opus-4-8")
     if spec == "openai":
-        return OpenAIModel(model_id or "gpt-4.1", timeout=request_timeout)
+        return OpenAIModel(
+            model_id or "gpt-4.1",
+            timeout=request_timeout,
+            total_timeout=request_total_timeout,
+        )
     if spec == "openrouter":
         return OpenRouterModel(
             model_id or "openai/gpt-4o-mini",
             timeout=request_timeout,
+            total_timeout=request_total_timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
             reasoning_exclude=reasoning_exclude,
@@ -871,6 +889,8 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         raise ValueError("--max-new-items must be positive")
     if args.request_timeout <= 0:
         raise ValueError("--request-timeout must be positive")
+    if args.request_total_timeout <= 0:
+        raise ValueError("--request-total-timeout must be positive")
     entry = get_model(args.model)
     suite = load_suite(args.suite)
     condition = _base_condition(args)
@@ -1037,6 +1057,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
         reasoning_max_tokens=condition.reasoning_max_tokens,
         reasoning_exclude=condition.reasoning_exclude,
         request_timeout=args.request_timeout,
+        request_total_timeout=args.request_total_timeout,
         provider_preferences=provider_route.to_request(),
     )
     agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
@@ -1139,6 +1160,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
     """Run or resume the canonical deterministic adaptive rating protocol."""
     from .agents import LLMAgent
     from .database import BenchmarkStore, RunSpec
+    from .models import ModelError
     from .rated_pool import iter_rated_pool, load_rated_pool_manifest
     from .rated_sessions import (
         DeterministicPuzzleSelector,
@@ -1161,6 +1183,8 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
         raise ValueError("--accept-rounded-rating and --export-only are mutually exclusive")
     if args.request_timeout <= 0:
         raise ValueError("--request-timeout must be positive")
+    if args.request_total_timeout <= 0:
+        raise ValueError("--request-total-timeout must be positive")
     config = RatedSessionConfig(
         seed=args.seed,
         target_radius=args.target_radius,
@@ -1241,7 +1265,11 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
     handle = (
         store.find_run(spec)
         if args.export_only or args.accept_rounded_rating
-        else store.start_run(spec, force=args.force)
+        else store.start_run(
+            spec,
+            force=args.force,
+            replicate_id=args.replicate_id,
+        )
     )
     if handle is None:
         store.close()
@@ -1413,6 +1441,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
         reasoning_max_tokens=condition.reasoning_max_tokens,
         reasoning_exclude=condition.reasoning_exclude,
         request_timeout=args.request_timeout,
+        request_total_timeout=args.request_total_timeout,
         provider_preferences=provider_route.to_request(),
     )
     agent = LLMAgent(model, condition, cache_namespace=handle.run_id)
@@ -1433,13 +1462,29 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
                 )
 
             before = state
-            result = grade_puzzle(
-                agent,
-                puzzle,
-                condition,
-                checkpoint=checkpoints.get(puzzle.id),
-                on_checkpoint=persist_checkpoint,
-            )
+            try:
+                result = grade_puzzle(
+                    agent,
+                    puzzle,
+                    condition,
+                    checkpoint=checkpoints.get(puzzle.id),
+                    on_checkpoint=persist_checkpoint,
+                )
+            except ModelError as exc:
+                if _is_invalid_thinking_signature_error(exc):
+                    reset = store.reset_puzzle_checkpoint(
+                        handle.run_id,
+                        puzzle.id,
+                        reason="provider rejected replayed signed thinking",
+                    )
+                    checkpoints.pop(puzzle.id, None)
+                    if reset:
+                        print(
+                            f"  [recover] discarded signed reasoning checkpoint "
+                            f"for {puzzle.id}; next launch retries from move one",
+                            file=sys.stderr,
+                        )
+                raise
             after = update_solver_rating(
                 before,
                 puzzle_rating=puzzle.rating,
@@ -2372,9 +2417,15 @@ def main(argv: list[str] | None = None) -> int:
         type=float,
         default=120.0,
         help=(
-            "absolute per-response deadline in seconds; transport failures are "
-            "never retried automatically because billing may have occurred"
+            "maximum seconds without a real streamed data event; transport "
+            "failures are never retried automatically because billing may have occurred"
         ),
+    )
+    rmp.add_argument(
+        "--request-total-timeout",
+        type=float,
+        default=3600.0,
+        help="overall per-response safety ceiling in seconds (default: 3600)",
     )
     rmp.add_argument(
         "--max-new-items",
@@ -2483,7 +2534,16 @@ def main(argv: list[str] | None = None) -> int:
     rated.add_argument("--out-dir", default="runs/exports")
     rated.add_argument("--db", default="runs/chessbench.db")
     rated.add_argument("--no-sync", action="store_true")
-    rated.add_argument("--force", action="store_true")
+    rated_replicate = rated.add_mutually_exclusive_group()
+    rated_replicate.add_argument(
+        "--force",
+        action="store_true",
+        help="create a one-shot replicate with a random durable key",
+    )
+    rated_replicate.add_argument(
+        "--replicate-id",
+        help="create or resume a replicate with this stable identifier",
+    )
     rated.add_argument("--export-only", action="store_true")
     rated.add_argument(
         "--accept-rounded-rating",
@@ -2501,7 +2561,18 @@ def main(argv: list[str] | None = None) -> int:
         default=5,
         help="publish current attempts and provisional rating every N puzzles (0 disables)",
     )
-    rated.add_argument("--request-timeout", type=float, default=120.0)
+    rated.add_argument(
+        "--request-timeout",
+        type=float,
+        default=120.0,
+        help="maximum seconds without a real streamed data event",
+    )
+    rated.add_argument(
+        "--request-total-timeout",
+        type=float,
+        default=3600.0,
+        help="overall per-response safety ceiling in seconds (default: 3600)",
+    )
     rated.add_argument("--temperature", type=float, default=1.0)
     rated.add_argument(
         "--reasoning",

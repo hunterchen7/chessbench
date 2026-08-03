@@ -112,6 +112,25 @@ def test_rate_model_defaults_to_the_local_export_directory(monkeypatch):
     assert seen["target_rd"] == 77.0
 
 
+def test_rate_model_accepts_a_stable_replicate_id(monkeypatch):
+    seen: dict[str, object] = {}
+
+    def fake_rate_model(args):
+        seen["replicate_id"] = args.replicate_id
+        seen["force"] = args.force
+        return 0
+
+    monkeypatch.setattr(cli, "cmd_rate_model", fake_rate_model)
+    assert cli.main([
+        "rate-model",
+        "--model",
+        "model",
+        "--replicate-id",
+        "corroboration-2",
+    ]) == 0
+    assert seen == {"replicate_id": "corroboration-2", "force": False}
+
+
 def test_run_model_accepts_export_only_without_changing_condition(monkeypatch):
     seen: dict[str, object] = {}
 
@@ -145,6 +164,7 @@ def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):
 
     def fake_run_model(args):
         seen["request_timeout"] = args.request_timeout
+        seen["request_total_timeout"] = args.request_total_timeout
         return 0
 
     monkeypatch.setattr(cli, "cmd_run_model", fake_run_model)
@@ -158,11 +178,14 @@ def test_run_model_accepts_a_slow_model_response_deadline(monkeypatch):
                 "suite.json",
                 "--request-timeout",
                 "600",
+                "--request-total-timeout",
+                "7200",
             ]
         )
         == 0
     )
     assert seen["request_timeout"] == 600.0
+    assert seen["request_total_timeout"] == 7200.0
 
 
 def test_model_factory_threads_response_deadline_to_openrouter():
@@ -170,9 +193,11 @@ def test_model_factory_threads_response_deadline_to_openrouter():
         "openrouter",
         "test/model",
         request_timeout=600.0,
+        request_total_timeout=7200.0,
     )
 
     assert model._timeout == 600.0
+    assert model._total_timeout == 7200.0
 
 
 def test_model_factory_threads_openrouter_provider_preferences():

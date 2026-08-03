@@ -15,7 +15,7 @@ PostDocument = Callable[[str, str, str, dict[str, object]], dict[str, object]]
 
 RUN_ITEM_PAYLOAD_INLINE_BYTES = 512 * 1024
 RUN_ITEM_PAYLOAD_CHUNK_BYTES = 128 * 1024
-RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 16 * 1024 * 1024
+RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES = 32 * 1024 * 1024
 RUN_ITEM_PAYLOAD_ENCODING = "json-utf8-base64-v1"
 
 
