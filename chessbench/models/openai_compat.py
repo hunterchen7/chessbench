@@ -253,7 +253,14 @@ class _OpenAICompatModel:
 
     def _capture_stream_progress(self, response: dict[str, object]) -> None:
         """Keep the latest partial envelope available if a stream disconnects."""
-        self.last_provider_response = deepcopy(response)
+        # ``response`` is the private accumulator owned by the synchronous SSE
+        # reader. Keep a live reference while that reader is active instead of
+        # deep-copying the entire, ever-growing envelope for every data event.
+        # The old behavior became quadratic when providers emitted thousands of
+        # reasoning_details fragments. If the stream fails, this reference is
+        # still the exact latest partial envelope; successful calls replace it
+        # with the decoded final response in ``_complete`` below.
+        self.last_provider_response = response
         for key, attribute in (
             ("id", "last_response_id"),
             ("model", "last_response_model"),

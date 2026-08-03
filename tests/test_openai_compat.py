@@ -226,6 +226,26 @@ def test_midstream_timeout_keeps_partial_provider_audit(monkeypatch):
     assert "working" in model.last_provider_response_raw
 
 
+def test_stream_progress_reuses_private_accumulator_without_quadratic_copy():
+    model = OpenRouterModel("test/model", api_key="test")
+    response = {
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "reasoning_details": [
+                        {"type": "reasoning.text", "text": "working"}
+                    ]
+                },
+            }
+        ]
+    }
+
+    model._capture_stream_progress(response)
+
+    assert model.last_provider_response is response
+
+
 def test_ambiguous_502_is_not_retried(monkeypatch):
     calls = 0
 
