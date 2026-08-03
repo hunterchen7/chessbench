@@ -16,6 +16,7 @@ The command writes full local exports to `runs/exports` and paid checkpoints to 
 | `sync_rated_pool.py` | Upload and activate the pinned adaptive puzzle pool. |
 | `sync_cloudflare.py` | Drain durable local run records to D1. |
 | `export_rated_campaign.py` | Create a compact, commit-safe adaptive campaign artifact. |
+| `report_adaptive_campaign.py` | Emit one read-only adaptive progress, provider, sync, and worker-health report; add `--record` to preserve the next report's deltas. |
 | `reproduce_rated_selection.py` | Reproduce one deterministic adaptive puzzle selection. |
 | `audit_rated_alternate_mates.py` | Verify the accepted alternate-mate report. |
 

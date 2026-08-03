@@ -1,0 +1,22 @@
+{
+ "schema": "chessbench.adaptive_monitor_spec.v1",
+ "name": "adaptive-2026-08-02",
+ "interval_seconds": 600,
+ "runs": [
+  {"name":"deepseek-0731-low-seed-0","label":"DS low s0","run_id":"4f4f3e0e1fc1404386d8b5b46207fed5","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-low-seed-0-recovery.log"},
+  {"name":"deepseek-0731-low-seed-1","label":"DS low s1","run_id":"d01675d64f1743759af2c91b3f821fe0","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-low-seed-1-recovery.log"},
+  {"name":"deepseek-0731-low-seed-2","label":"DS low s2","run_id":"64c9cd3f208841bf811e6de05f6f50d0","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-low-seed-2-recovery.log"},
+  {"name":"deepseek-0731-high-seed-0","label":"DS high s0","run_id":"eac77d727d1348f28e9d7d086b0be046","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-high-seed-0-recovery.log"},
+  {"name":"deepseek-0731-high-seed-1","label":"DS high s1","run_id":"d9087297a3674d55ad2a8399f971c2a4","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-high-seed-1-recovery.log"},
+  {"name":"deepseek-0731-high-seed-2","label":"DS high s2","run_id":"19eb78da81f44921a1c8751e4f28b91b","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-high-seed-2-recovery.log"},
+  {"name":"deepseek-0731-max-seed-0","label":"DS max s0","run_id":"1f9d702e975a4c71920a1af27717ee23","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-max-seed-0-recovery.log"},
+  {"name":"deepseek-0731-max-seed-1","label":"DS max s1","run_id":"b341f5ff09b045e1bb4e5c5db477c96d","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-max-seed-1-recovery.log"},
+  {"name":"deepseek-0731-max-seed-2","label":"DS max s2","run_id":"cce3e4fa44814366a20ef32f17181d8e","model_id":"deepseek/deepseek-v4-flash-0731","request_timeout_seconds":900,"preferred_provider":"DeepSeek","log":"runs/adaptive-supervisor/deepseek-0731-max-seed-2-recovery.log"},
+  {"name":"gpt-5.6-luna-max-seed-0","label":"Luna max s0","run_id":"0c28794229b54a81afcae740caf1619e","model_id":"openai/gpt-5.6-luna","request_timeout_seconds":1800,"preferred_provider":"OpenAI"},
+  {"name":"gpt-5.6-luna-max-seed-1","label":"Luna max s1","run_id":"43ab3c4120654b05aac3f3ebd06f0026","model_id":"openai/gpt-5.6-luna","request_timeout_seconds":1800,"preferred_provider":"OpenAI"},
+  {"name":"gpt-5.6-luna-max-seed-2","label":"Luna max s2","run_id":"4dd078cd09554031aea854b190e22bca","model_id":"openai/gpt-5.6-luna","request_timeout_seconds":1800,"preferred_provider":"OpenAI"},
+  {"name":"claude-fable-5-max-seed-0","label":"Fable max s0","run_id":"2136f9f37689489da391309105d7f327","model_id":"anthropic/claude-fable-5","request_timeout_seconds":1800,"preferred_provider":"Google","log":"runs/adaptive-supervisor/claude-fable-5-max-seed-0-recovery.log"},
+  {"name":"gpt-5.6-sol-max-seed-0","label":"Sol max s0","run_id":"49f60667ad7c4627aa4d993f2afd89d8","model_id":"openai/gpt-5.6-sol","request_timeout_seconds":1800,"preferred_provider":"OpenAI","log":"runs/adaptive-supervisor/gpt-5.6-sol-max-seed-0-recovery.log"},
+  {"name":"claude-opus-5-max-seed-0","label":"Opus max s0","run_id":"75c8f80a359643eabfc94cf4f7475f08","model_id":"anthropic/claude-opus-5","request_timeout_seconds":1800,"log":"runs/adaptive-supervisor/claude-opus-5-max-seed-0-recovery.log"}
+ ]
+}
