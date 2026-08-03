@@ -1348,7 +1348,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
           <CardTitle className="flex items-center gap-2 text-base">{metric === "cost" ? <CircleDollarSign className="size-4 text-sky-600" /> : <Gauge className="size-4 text-violet-600" />} Rating efficiency</CardTitle>
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">{metric === "cost"
             ? "Glicko-2 puzzle rating versus average provider-reported cost normalized to 50 puzzles from each configuration’s settled runs. The human point values visible solve time at $50–$75/hour, shown by its horizontal whisker. Reaching the puzzle cap also settles a run. Vertical whiskers are mean rating deviation; the horizontal axis supports log, fourth-root, square-root, and linear scaling."
-            : "Glicko-2 puzzle rating versus average provider-reported completion tokens per model move across each configuration’s settled runs. Completion usage already includes reasoning tokens when a provider reports them that way, so reasoning is not added twice. Lower token use and higher rating are better; vertical whiskers are mean rating deviation."}{showFrontier ? " The emerald staircase connects the visible, non-dominated model configurations; it is a Pareto guide, not a fitted curve." : ""}</p>
+            : "Glicko-2 puzzle rating versus average provider-reported completion tokens per model move across each configuration’s settled runs. Completion usage already includes reasoning tokens when a provider reports them that way, so reasoning is not added twice. Lower token use and higher rating are better; vertical whiskers are mean rating deviation."}</p>
         </div>
         <Badge variant="outline" className="shrink-0 border-emerald-500/30 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300">{modelPoints.length}{modelPoints.length !== allMetricModelPoints.length ? ` of ${allMetricModelPoints.length}` : ""} settled configuration{modelPoints.length === 1 ? "" : "s"}</Badge>
       </div>
@@ -1482,7 +1482,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
           ><Inspector entry={active} metric={metric} /></div> : null}
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.{showFrontier ? " The emerald staircase marks the visible model-only Pareto frontier." : ""}</span><span>Hover, focus, or click a dot to inspect it.</span></div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
     <RunPickerSheet point={selectedPoint} metric={metric} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
