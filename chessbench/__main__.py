@@ -109,6 +109,12 @@ def _usage_float(value: object) -> float:
     return float(value) if isinstance(value, (str, int, float)) else 0.0
 
 
+def _is_invalid_thinking_signature_error(exc: BaseException) -> bool:
+    """Identify provider-bound reasoning state that cannot be replayed safely."""
+    message = str(exc).lower().replace("`", "")
+    return "invalid signature" in message and "thinking" in message
+
+
 def _sync_run_outbox(
     db_path: str,
     run_id: str,
@@ -1154,6 +1160,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
     """Run or resume the canonical deterministic adaptive rating protocol."""
     from .agents import LLMAgent
     from .database import BenchmarkStore, RunSpec
+    from .models import ModelError
     from .rated_pool import iter_rated_pool, load_rated_pool_manifest
     from .rated_sessions import (
         DeterministicPuzzleSelector,
@@ -1455,13 +1462,29 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
                 )
 
             before = state
-            result = grade_puzzle(
-                agent,
-                puzzle,
-                condition,
-                checkpoint=checkpoints.get(puzzle.id),
-                on_checkpoint=persist_checkpoint,
-            )
+            try:
+                result = grade_puzzle(
+                    agent,
+                    puzzle,
+                    condition,
+                    checkpoint=checkpoints.get(puzzle.id),
+                    on_checkpoint=persist_checkpoint,
+                )
+            except ModelError as exc:
+                if _is_invalid_thinking_signature_error(exc):
+                    reset = store.reset_puzzle_checkpoint(
+                        handle.run_id,
+                        puzzle.id,
+                        reason="provider rejected replayed signed thinking",
+                    )
+                    checkpoints.pop(puzzle.id, None)
+                    if reset:
+                        print(
+                            f"  [recover] discarded signed reasoning checkpoint "
+                            f"for {puzzle.id}; next launch retries from move one",
+                            file=sys.stderr,
+                        )
+                raise
             after = update_solver_rating(
                 before,
                 puzzle_rating=puzzle.rating,

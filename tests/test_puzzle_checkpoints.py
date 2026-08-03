@@ -9,7 +9,10 @@ from dataclasses import replace
 import chess
 import pytest
 
-from chessbench.__main__ import _turn_usage_totals
+from chessbench.__main__ import (
+    _is_invalid_thinking_signature_error,
+    _turn_usage_totals,
+)
 from chessbench.agents import LLMAgent
 from chessbench.conditions import HEADLINE, Legality
 from chessbench.database import BenchmarkStore, RunSpec
@@ -511,3 +514,52 @@ def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):
         )
         assert store.save_puzzle_checkpoint(run.run_id, 0, ONE_MOVE.id, checkpoint)
         assert store.load_puzzle_checkpoints(run.run_id) == {ONE_MOVE.id: checkpoint}
+
+
+def test_invalid_thinking_signature_detection_and_checkpoint_reset(tmp_path):
+    path = tmp_path / "signature-reset.db"
+    checkpoint = PuzzleCheckpoint(
+        puzzle_id=ONE_MOVE.id,
+        board_fen=ONE_MOVE.fen,
+        solver_ply=0,
+        active_lines=[0],
+        history_san=[],
+        moves_played=[],
+        plies_correct=0,
+        illegal_attempts=0,
+        first_move_legal=None,
+        all_moves_legal=True,
+        answer={},
+        turns=[],
+        attempts_used=0,
+        illegal_feedback=None,
+        conversation=[
+            {
+                "role": "assistant",
+                "content": "a1a8",
+                "reasoning_details": [{"type": "thinking", "signature": "bad"}],
+            }
+        ],
+    )
+    error = ModelError(
+        "messages.1.content.0: Invalid `signature` in `thinking` block"
+    )
+
+    assert _is_invalid_thinking_signature_error(error)
+    assert not _is_invalid_thinking_signature_error(ModelError("HTTP 429"))
+
+    with BenchmarkStore(path) as store:
+        run = store.start_run(_spec())
+        assert store.save_puzzle_checkpoint(run.run_id, 0, ONE_MOVE.id, checkpoint)
+        assert store.reset_puzzle_checkpoint(
+            run.run_id,
+            ONE_MOVE.id,
+            reason="provider rejected replayed signed thinking",
+        )
+        assert store.load_puzzle_checkpoints(run.run_id) == {}
+        event = store._db.execute(
+            "SELECT kind, detail FROM run_event WHERE run_id=? ORDER BY rowid DESC LIMIT 1",
+            (run.run_id,),
+        ).fetchone()
+        assert event["kind"] == "puzzle_checkpoint_reset"
+        assert ONE_MOVE.id in event["detail"]

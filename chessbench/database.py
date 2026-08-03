@@ -628,6 +628,29 @@ class BenchmarkStore:
             )
             return True
 
+    def reset_puzzle_checkpoint(
+        self,
+        run_id: str,
+        puzzle_id: str,
+        *,
+        reason: str,
+    ) -> bool:
+        """Discard only one incomplete puzzle so its next attempt starts cleanly."""
+        now = _now()
+        with self._transaction():
+            deleted = self._db.execute(
+                "DELETE FROM puzzle_checkpoint WHERE run_id=? AND puzzle_id=?",
+                (run_id, puzzle_id),
+            ).rowcount
+            if deleted:
+                self._event(
+                    run_id,
+                    "puzzle_checkpoint_reset",
+                    f"{puzzle_id}: {reason}",
+                    now,
+                )
+            return bool(deleted)
+
     def save_puzzle_result(
         self,
         run_id: str,

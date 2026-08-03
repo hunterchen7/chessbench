@@ -650,7 +650,9 @@ def test_openrouter_openai_keeps_reasoning_for_audit_but_does_not_replay_it(
     assert assistant == {"role": "assistant", "content": "e2e4"}
 
 
-def test_openrouter_non_openai_still_replays_provider_reasoning(monkeypatch):
+def test_openrouter_anthropic_keeps_reasoning_for_audit_but_does_not_replay_it(
+    monkeypatch,
+):
     captured = _capture_request(
         monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
     )
@@ -678,10 +680,10 @@ def test_openrouter_non_openai_still_replays_provider_reasoning(monkeypatch):
     assert isinstance(messages, list)
     assistant = messages[0]
     assert isinstance(assistant, dict)
-    assert assistant["reasoning_details"] == details
+    assert assistant == {"role": "assistant", "content": "e2e4"}
 
 
-def test_openrouter_drops_blank_reasoning_fragments_before_replay(monkeypatch):
+def test_openrouter_anthropic_drops_all_reasoning_fields_before_replay(monkeypatch):
     captured = _capture_request(
         monkeypatch, {"choices": [{"message": {"content": "e7e5"}}]}
     )
@@ -728,9 +730,7 @@ def test_openrouter_drops_blank_reasoning_fragments_before_replay(monkeypatch):
     assert isinstance(messages, list)
     assistant = messages[0]
     assert isinstance(assistant, dict)
-    assert assistant["reasoning_details"] == [substantive, opaque]
-    assert "reasoning" not in assistant
-    assert "reasoning_content" not in assistant
+    assert assistant == {"role": "assistant", "content": "e2e4"}
 
 
 def test_provider_route_is_sent_without_tools(monkeypatch):
