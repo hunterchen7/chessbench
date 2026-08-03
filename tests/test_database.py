@@ -246,6 +246,27 @@ def test_item_commit_is_idempotent_and_run_resumes(tmp_path):
         assert store.run_row(first.run_id)["cost_usd"] == 0.01
 
 
+def test_named_replicate_is_distinct_and_resumable(tmp_path):
+    with BenchmarkStore(tmp_path / "replicate.db") as store:
+        canonical = store.start_run(_spec())
+        replicate = store.start_run(_spec(), replicate_id="corroboration-2")
+        resumed = store.start_run(_spec(), replicate_id="corroboration-2")
+        other = store.start_run(_spec(), replicate_id="corroboration-3")
+
+        assert replicate.run_id != canonical.run_id
+        assert resumed.run_id == replicate.run_id
+        assert resumed.resumed
+        assert other.run_id not in {canonical.run_id, replicate.run_id}
+
+
+def test_named_replicate_rejects_ambiguous_or_empty_ids(tmp_path):
+    with BenchmarkStore(tmp_path / "replicate-invalid.db") as store:
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            store.start_run(_spec(), force=True, replicate_id="replicate")
+        with pytest.raises(ValueError, match="must not be empty"):
+            store.start_run(_spec(), replicate_id="  ")
+
+
 def test_find_run_is_read_only_for_partial_exports(tmp_path):
     with BenchmarkStore(tmp_path / "bench.db") as store:
         run = store.start_run(_spec())

@@ -12,6 +12,7 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import socket
 import time
 import urllib.error
 import urllib.request
@@ -83,6 +84,7 @@ class _OpenAICompatModel:
         env_var: str,
         extra_headers: dict[str, str] | None = None,
         timeout: float = 120.0,
+        total_timeout: float = 3600.0,
         max_retries: int = 4,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
@@ -96,7 +98,15 @@ class _OpenAICompatModel:
         self._api_key = api_key or os.environ.get(env_var)
         self._env_var = env_var
         self._extra_headers = extra_headers or {}
+        if timeout <= 0:
+            raise ValueError("timeout must be positive")
+        if total_timeout <= 0:
+            raise ValueError("total_timeout must be positive")
+        # ``timeout`` is an inactivity deadline. Long reasoning calls are
+        # allowed to run while they continue producing SSE data; a separate
+        # total ceiling still bounds a provider that streams forever.
         self._timeout = timeout
+        self._total_timeout = total_timeout
         self._max_retries = max_retries
         if reasoning_effort is not None and reasoning_max_tokens is not None:
             raise ValueError(
@@ -139,15 +149,23 @@ class _OpenAICompatModel:
         self._cache_session_id = session_id
 
     @staticmethod
-    def _read_body_with_deadline(resp: object, deadline: float) -> bytes:
-        """Read chunked responses without allowing heartbeats to reset timeout.
+    def _set_read_timeout(resp: object, timeout: float) -> None:
+        """Best-effort socket deadline adjustment for urllib HTTP responses."""
+        fp = getattr(resp, "fp", None)
+        raw = getattr(fp, "raw", None)
+        sock = getattr(raw, "_sock", None)
+        if sock is not None:
+            sock.settimeout(max(0.001, timeout))
 
-        ``HTTPResponse.read()`` applies the socket timeout to each receive, not
-        to the full body. A provider can therefore keep a nominally
-        non-streaming request alive indefinitely with small chunks. ``read1``
-        returns after one underlying read, letting us enforce one absolute
-        deadline across headers, reasoning, and body delivery.
-        """
+    @classmethod
+    def _read_body_with_deadlines(
+        cls,
+        resp: object,
+        *,
+        idle_timeout: float,
+        total_deadline: float,
+    ) -> bytes:
+        """Read a non-SSE body with separate inactivity and total deadlines."""
         read1 = getattr(resp, "read1", None)
         if not callable(read1):
             # Test doubles and non-HTTP compatibility objects generally expose
@@ -156,22 +174,184 @@ class _OpenAICompatModel:
             return cast(bytes, read())
 
         chunks: list[bytes] = []
+        idle_deadline = time.monotonic() + idle_timeout
         while True:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
+            now = time.monotonic()
+            total_remaining = total_deadline - now
+            idle_remaining = idle_deadline - now
+            if total_remaining <= 0:
                 raise TimeoutError("total response deadline exceeded")
-
-            # Bound a blocked read by the same remaining wall-clock budget.
-            fp = getattr(resp, "fp", None)
-            raw = getattr(fp, "raw", None)
-            sock = getattr(raw, "_sock", None)
-            if sock is not None:
-                sock.settimeout(max(0.001, remaining))
-
-            chunk = read1(64 * 1024)
+            if idle_remaining <= 0:
+                raise TimeoutError("response idle deadline exceeded")
+            cls._set_read_timeout(resp, min(total_remaining, idle_remaining))
+            try:
+                chunk = read1(64 * 1024)
+            except (TimeoutError, socket.timeout) as exc:
+                raise TimeoutError("response idle deadline exceeded") from exc
             if not chunk:
                 return b"".join(chunks)
             chunks.append(cast(bytes, chunk))
+            idle_deadline = time.monotonic() + idle_timeout
+
+    @staticmethod
+    def _merge_stream_chunk(
+        response: dict[str, object], chunk: dict[str, object]
+    ) -> None:
+        """Fold one OpenAI-compatible SSE chunk into a response envelope."""
+        for key in (
+            "id",
+            "model",
+            "provider",
+            "usage",
+            "error",
+            "cache_discount",
+            "openrouter_metadata",
+        ):
+            value = chunk.get(key)
+            if value is not None:
+                response[key] = deepcopy(value)
+
+        choices = chunk.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return
+        incoming = choices[0]
+        if not isinstance(incoming, dict):
+            return
+        output_choices = response.setdefault(
+            "choices", [{"index": 0, "message": {}}]
+        )
+        if not isinstance(output_choices, list) or not output_choices:
+            return
+        output = output_choices[0]
+        if not isinstance(output, dict):
+            return
+
+        for key in ("finish_reason", "native_finish_reason", "error"):
+            value = incoming.get(key)
+            if value is not None:
+                output[key] = deepcopy(value)
+
+        delta = incoming.get("delta")
+        if not isinstance(delta, dict):
+            delta = incoming.get("message")
+        if not isinstance(delta, dict):
+            return
+        message = output.setdefault("message", {})
+        if not isinstance(message, dict):
+            return
+        for key in ("content", "reasoning", "reasoning_content"):
+            value = delta.get(key)
+            if isinstance(value, str):
+                prior = message.get(key)
+                message[key] = (prior if isinstance(prior, str) else "") + value
+        for key in ("reasoning_details", "tool_calls"):
+            value = delta.get(key)
+            if isinstance(value, list):
+                prior = message.setdefault(key, [])
+                if isinstance(prior, list):
+                    prior.extend(deepcopy(value))
+
+    def _capture_stream_progress(self, response: dict[str, object]) -> None:
+        """Keep the latest partial envelope available if a stream disconnects."""
+        self.last_provider_response = deepcopy(response)
+        for key, attribute in (
+            ("id", "last_response_id"),
+            ("model", "last_response_model"),
+            ("provider", "last_response_provider"),
+        ):
+            value = response.get(key)
+            if isinstance(value, str):
+                setattr(self, attribute, value)
+        usage = response.get("usage")
+        if isinstance(usage, dict):
+            self.last_usage = cast(Usage, deepcopy(usage))
+            self.last_cost = float(usage.get("cost", 0.0))
+        if "error" in response:
+            self.last_provider_error = deepcopy(response["error"])
+        choices = response.get("choices")
+        if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+            finish = choices[0].get("finish_reason")
+            native = choices[0].get("native_finish_reason")
+            if isinstance(finish, str):
+                self.last_finish_reason = finish
+            if isinstance(native, str):
+                self.last_native_finish_reason = native
+
+    def _read_sse_with_deadlines(
+        self,
+        resp: object,
+        *,
+        idle_timeout: float,
+        total_deadline: float,
+        raw_chunks: list[bytes],
+    ) -> dict[str, object]:
+        """Parse an SSE completion while ignoring keepalive comments.
+
+        Only a real ``data:`` event refreshes the inactivity clock. OpenRouter's
+        ``: OPENROUTER PROCESSING`` comments therefore keep the TCP connection
+        open without hiding a provider that has stopped producing model data.
+        """
+        readline = getattr(resp, "readline", None)
+        if not callable(readline):
+            raise ModelError("streaming response does not support line reads")
+        response: dict[str, object] = {"choices": [{"index": 0, "message": {}}]}
+        data_lines: list[bytes] = []
+        saw_data = False
+        done = False
+        idle_deadline = time.monotonic() + idle_timeout
+
+        def consume_event() -> None:
+            nonlocal saw_data, done, idle_deadline
+            if not data_lines:
+                return
+            payload = b"\n".join(data_lines).decode("utf-8", "replace").strip()
+            data_lines.clear()
+            if payload == "[DONE]":
+                done = True
+                return
+            try:
+                value = json.loads(payload)
+            except json.JSONDecodeError as exc:
+                raise ModelError(
+                    f"stream returned invalid JSON event: {payload[:200]}"
+                ) from exc
+            if not isinstance(value, dict):
+                raise ModelError(
+                    f"stream returned a non-object event: {payload[:200]}"
+                )
+            saw_data = True
+            idle_deadline = time.monotonic() + idle_timeout
+            self._merge_stream_chunk(response, value)
+            self._capture_stream_progress(response)
+
+        while not done:
+            now = time.monotonic()
+            total_remaining = total_deadline - now
+            idle_remaining = idle_deadline - now
+            if total_remaining <= 0:
+                raise TimeoutError("total response deadline exceeded")
+            if idle_remaining <= 0:
+                raise TimeoutError("stream idle deadline exceeded")
+            self._set_read_timeout(resp, min(total_remaining, idle_remaining))
+            try:
+                line = readline()
+            except (TimeoutError, socket.timeout) as exc:
+                raise TimeoutError("stream idle deadline exceeded") from exc
+            if not line:
+                consume_event()
+                break
+            encoded = cast(bytes, line)
+            raw_chunks.append(encoded)
+            stripped = encoded.rstrip(b"\r\n")
+            if not stripped:
+                consume_event()
+            elif stripped.startswith(b"data:"):
+                data_lines.append(stripped[5:].lstrip())
+            # SSE comments and unknown fields are deliberately ignored.
+
+        if not saw_data:
+            raise ModelError("provider stream ended without a data event")
+        return response
 
     @staticmethod
     def _response_headers_for_audit(headers: object) -> dict[str, str]:
@@ -194,6 +374,10 @@ class _OpenAICompatModel:
         self.last_response_headers = self._response_headers_for_audit(
             getattr(response, "headers", None)
         )
+        if self.last_response_id is None:
+            response_id = self.last_response_headers.get("x-generation-id")
+            if isinstance(response_id, str):
+                self.last_response_id = response_id
         self.last_provider_response_raw = body
 
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
@@ -210,10 +394,34 @@ class _OpenAICompatModel:
         last: Exception | None = None
         for attempt in range(self._max_retries):
             retry_after: float | None = None
-            deadline = time.monotonic() + self._timeout
+            total_deadline = time.monotonic() + self._total_timeout
             try:
-                with urllib.request.urlopen(req, timeout=self._timeout) as resp:
-                    body = self._read_body_with_deadline(resp, deadline).decode("utf-8")
+                with urllib.request.urlopen(
+                    req, timeout=min(self._timeout, self._total_timeout)
+                ) as resp:
+                    content_type = str(
+                        getattr(resp, "headers", {}).get("Content-Type", "")
+                    ).lower()
+                    if "text/event-stream" in content_type:
+                        raw_chunks: list[bytes] = []
+                        try:
+                            decoded = self._read_sse_with_deadlines(
+                                resp,
+                                idle_timeout=self._timeout,
+                                total_deadline=total_deadline,
+                                raw_chunks=raw_chunks,
+                            )
+                        finally:
+                            self._capture_http_response(
+                                resp,
+                                b"".join(raw_chunks).decode("utf-8", "replace"),
+                            )
+                        return json.dumps(decoded)
+                    body = self._read_body_with_deadlines(
+                        resp,
+                        idle_timeout=self._timeout,
+                        total_deadline=total_deadline,
+                    ).decode("utf-8")
                     self._capture_http_response(resp, body)
                     return body
             except urllib.error.HTTPError as e:
@@ -294,18 +502,51 @@ class _OpenAICompatModel:
         # conversation contract: retain it in the audit record, but replay only
         # the visible assistant move and the authoritative board prompts.
         wire_messages = deepcopy(messages)
-        if self._base_url.startswith("https://openrouter.ai") and self._model.startswith(
-            "openai/"
-        ):
+        if self._base_url.startswith("https://openrouter.ai"):
             for value in wire_messages:
-                if isinstance(value, dict) and value.get("role") == "assistant":
+                if not isinstance(value, dict) or value.get("role") != "assistant":
+                    continue
+                if self._model.startswith("openai/"):
                     value.pop("reasoning_details", None)
                     value.pop("reasoning", None)
                     value.pop("reasoning_content", None)
+                    continue
+
+                # Some OpenRouter Anthropic streams emit whitespace-only
+                # ``reasoning.text`` deltas. They are useful neither for audit
+                # nor semantics, and every Claude backend rejects them when
+                # the conversation is replayed as thinking blocks. Preserve
+                # all substantive and opaque details while omitting only blank
+                # textual fragments from the wire request.
+                details = value.get("reasoning_details")
+                if isinstance(details, list):
+                    filtered = [
+                        detail
+                        for detail in details
+                        if not (
+                            isinstance(detail, dict)
+                            and isinstance(detail.get("text"), str)
+                            and not detail["text"].strip()
+                        )
+                    ]
+                    if filtered:
+                        value["reasoning_details"] = filtered
+                    else:
+                        value.pop("reasoning_details", None)
+                for key in ("reasoning", "reasoning_content"):
+                    reasoning = value.get(key)
+                    if isinstance(reasoning, str) and not reasoning.strip():
+                        value.pop(key, None)
         payload: dict[str, object] = {
             "model": self._model,
             "messages": wire_messages,
             "temperature": temperature,
+            # Streaming is a transport concern, not a benchmark condition. It
+            # prevents long active reasoning calls from being mistaken for a
+            # dead request and allows supported providers to cancel inference
+            # when the client disconnects.
+            "stream": True,
+            "stream_options": {"include_usage": True},
         }
         if max_tokens > 0:
             payload["max_tokens"] = max_tokens
@@ -574,6 +815,7 @@ class OpenRouterModel(_OpenAICompatModel):
         *,
         api_key: str | None = None,
         timeout: float = 120.0,
+        total_timeout: float = 3600.0,
         reasoning_effort: str | None = None,
         reasoning_max_tokens: int | None = None,
         reasoning_exclude: bool = True,
@@ -592,6 +834,7 @@ class OpenRouterModel(_OpenAICompatModel):
                 "X-OpenRouter-Metadata": "enabled",
             },
             timeout=timeout,
+            total_timeout=total_timeout,
             reasoning_effort=reasoning_effort,
             reasoning_max_tokens=reasoning_max_tokens,
             reasoning_exclude=reasoning_exclude,
@@ -609,6 +852,7 @@ class OpenAIModel(_OpenAICompatModel):
         *,
         api_key: str | None = None,
         timeout: float = 120.0,
+        total_timeout: float = 3600.0,
     ) -> None:
         super().__init__(
             model,
@@ -616,4 +860,5 @@ class OpenAIModel(_OpenAICompatModel):
             api_key=api_key,
             env_var="OPENAI_API_KEY",
             timeout=timeout,
+            total_timeout=total_timeout,
         )

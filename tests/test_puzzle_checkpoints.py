@@ -456,8 +456,10 @@ def test_billed_provider_failure_is_checkpointed_without_becoming_a_chess_move()
     assert len(result.turns) == 2
     assert [message["role"] for message in resumed.calls[0]] == ["system", "user"]
     prompt, completion, reasoning, cost = _turn_usage_totals(result.turns)
-    assert (prompt, completion, reasoning) == (155, 7613, 5369)
-    assert cost == pytest.approx(0.0342616478)
+    # The failed generation remains fully represented in ``result.turns``, but
+    # benchmark efficiency measures only the successful scored inference.
+    assert (prompt, completion, reasoning) == (8, 3, 1)
+    assert cost == pytest.approx(0.005)
 
 
 def test_completed_empty_response_scores_as_an_illegal_puzzle_answer():

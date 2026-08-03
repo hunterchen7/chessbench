@@ -460,11 +460,27 @@ class BenchmarkStore:
             row["status"] != "completed",
         )
 
-    def start_run(self, spec: RunSpec, *, force: bool = False) -> RunHandle:
+    def start_run(
+        self,
+        spec: RunSpec,
+        *,
+        force: bool = False,
+        replicate_id: str | None = None,
+    ) -> RunHandle:
         now = _now()
         natural_key = spec.natural_key
+        if force and replicate_id is not None:
+            raise ValueError("force and replicate_id are mutually exclusive")
         if force:
             natural_key += ":replicate:" + uuid.uuid4().hex
+        elif replicate_id is not None:
+            normalized_replicate_id = replicate_id.strip()
+            if not normalized_replicate_id:
+                raise ValueError("replicate_id must not be empty")
+            replicate_key = hashlib.sha256(
+                normalized_replicate_id.encode("utf-8")
+            ).hexdigest()
+            natural_key += ":replicate:" + replicate_key
         with self._transaction():
             self._db.execute(
                 """INSERT INTO model_variant

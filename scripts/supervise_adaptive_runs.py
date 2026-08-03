@@ -421,20 +421,6 @@ TARGETS = (
         ),
     ),
     Target(
-        "gemini-3-6-flash-high-seed-0",
-        "2b6b18b567294c0eb55442c35d7f8f8a",
-        900,
-        (
-            sys.executable, "-m", "chessbench", "rate-model",
-            "--model", "gemini-3.6-flash", "--seed", "0",
-            "--reasoning", "high", "--target-rd", "77",
-            "--capture-reasoning", "--max-output-tokens", "0",
-            "--provider-only", "google-ai-studio",
-            "--no-provider-fallbacks", "--require-provider-parameters",
-            "--request-timeout", "900", "--live-sync-every", "5",
-        ),
-    ),
-    Target(
         "gemini-3-6-flash-high-seed-1",
         "8f3d1e3ba0b14715a0797cae384a36cf",
         900,
@@ -574,6 +560,204 @@ TARGETS = (
             "--request-timeout", "900", "--live-sync-every", "5",
         ),
     ),
+    Target(
+        "gemini-3-6-flash-high-seed-0-corroboration-2",
+        "3f49901c57284463ad97c3caf9cf04b0",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.6-flash", "--seed", "0",
+            "--replicate-id", "seed0-high-corroboration-2",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-6-flash-medium-seed-0-corroboration-2",
+        "8cdd2f8fe9a54402b2913cf8293c2335",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.6-flash", "--seed", "0",
+            "--replicate-id", "seed0-medium-corroboration-2",
+            "--reasoning", "medium", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-minimal-seed-0",
+        "9e19484250014a7fb8f08f4177025097",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "0",
+            "--reasoning", "minimal", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-minimal-seed-1",
+        "8acc1919bd5e4e999ee7756d3d93e4f9",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "1",
+            "--reasoning", "minimal", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-minimal-seed-2",
+        "f9c9df51ef214cf89596c0acafef737e",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "2",
+            "--reasoning", "minimal", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-low-seed-0",
+        "2a41520ce3be45269a066c70aca519e3",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "0",
+            "--reasoning", "low", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-low-seed-1",
+        "58ff5982e4af4b84bf7055667ec27ca2",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "1",
+            "--reasoning", "low", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-low-seed-2",
+        "d98c4c3ac7774439b4551e71db57425d",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "2",
+            "--reasoning", "low", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-medium-seed-0",
+        "bb04594142614a87b6aa88efb25ed61b",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "0",
+            "--reasoning", "medium", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-medium-seed-1",
+        "95f418f921b84c7ab4f1b80bf387f9ce",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "1",
+            "--reasoning", "medium", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-medium-seed-2",
+        "943f3c45132243c0a8324aadd46b61ea",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "2",
+            "--reasoning", "medium", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-high-seed-0",
+        "fac9928a27a745bbb6d7815be3b9b00c",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "0",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-high-seed-1",
+        "9cc9ffe81adc480c8349f17e63d9528e",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "1",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
+    Target(
+        "gemini-3-5-flash-lite-high-seed-2",
+        "3042cbb07fb04e89a7ad9986de50273e",
+        900,
+        (
+            sys.executable, "-m", "chessbench", "rate-model",
+            "--model", "gemini-3.5-flash-lite", "--seed", "2",
+            "--reasoning", "high", "--target-rd", "77",
+            "--capture-reasoning", "--max-output-tokens", "0",
+            "--provider-only", "google-ai-studio",
+            "--no-provider-fallbacks", "--require-provider-parameters",
+            "--request-timeout", "900", "--live-sync-every", "5",
+        ),
+    ),
 )
 
 
@@ -588,7 +772,17 @@ def process_alive(pid: int) -> bool:
         os.kill(pid, 0)
     except (OSError, ProcessLookupError):
         return False
-    return True
+    try:
+        result = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return result.returncode == 0 and str(Path(__file__).resolve()) in result.stdout
 
 
 def read_states(db_path: Path) -> dict[str, sqlite3.Row]:
@@ -596,7 +790,18 @@ def read_states(db_path: Path) -> dict[str, sqlite3.Row]:
     db.row_factory = sqlite3.Row
     marks = ",".join("?" for _ in TARGETS)
     rows = db.execute(
-        f"SELECT run_id, status, completed_items, updated_at, error "
+        f"SELECT run_id, status, completed_items, updated_at, error, "
+        f"       (SELECT MAX(pa.created_at) FROM puzzle_attempt pa "
+        f"         WHERE pa.run_id=benchmark_run.run_id) AS last_item_at, "
+        f"       (SELECT pc.puzzle_id FROM puzzle_checkpoint pc "
+        f"         WHERE pc.run_id=benchmark_run.run_id "
+        f"         ORDER BY pc.updated_at DESC LIMIT 1) AS checkpoint_puzzle_id, "
+        f"       (SELECT pc.sequence FROM puzzle_checkpoint pc "
+        f"         WHERE pc.run_id=benchmark_run.run_id "
+        f"         ORDER BY pc.updated_at DESC LIMIT 1) AS checkpoint_sequence, "
+        f"       (SELECT pc.updated_at FROM puzzle_checkpoint pc "
+        f"         WHERE pc.run_id=benchmark_run.run_id "
+        f"         ORDER BY pc.updated_at DESC LIMIT 1) AS checkpoint_updated_at "
         f"FROM benchmark_run WHERE run_id IN ({marks})",
         tuple(target.run_id for target in TARGETS),
     ).fetchall()
@@ -604,11 +809,41 @@ def read_states(db_path: Path) -> dict[str, sqlite3.Row]:
     return {str(row["run_id"]): row for row in rows}
 
 
-def write_state(path: Path, children: dict[str, subprocess.Popen[bytes]]) -> None:
+def write_state(
+    path: Path,
+    children: dict[str, subprocess.Popen[bytes]],
+    states: dict[str, sqlite3.Row],
+) -> None:
+    now = time.time()
+
+    def age(value: str | None) -> int | None:
+        parsed = parse_time(value)
+        return max(0, int(now - parsed)) if parsed else None
+
     payload = {
         "supervisor_pid": os.getpid(),
         "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "children": {name: process.pid for name, process in children.items()},
+        "runs": {
+            target.name: {
+                "run_id": target.run_id,
+                "status": str(row["status"]),
+                "completed_items": int(row["completed_items"]),
+                "last_item_at": row["last_item_at"],
+                "seconds_since_last_item": age(row["last_item_at"]),
+                "checkpoint_puzzle_id": row["checkpoint_puzzle_id"],
+                "checkpoint_sequence": row["checkpoint_sequence"],
+                "checkpoint_updated_at": row["checkpoint_updated_at"],
+                "seconds_since_checkpoint_activity": age(
+                    row["checkpoint_updated_at"]
+                ),
+                "worker_pid": (
+                    children[target.name].pid if target.name in children else None
+                ),
+            }
+            for target in TARGETS
+            if (row := states.get(target.run_id)) is not None
+        },
     }
     path.write_text(json.dumps(payload, indent=2) + "\n")
 
@@ -712,13 +947,13 @@ def supervise(args: argparse.Namespace) -> int:
                     sync_run(target.run_id, supervisor_log)
             next_sync = now + args.sync_seconds
 
-        write_state(pid_path, children)
+        write_state(pid_path, children, states)
         if complete == len(TARGETS):
             supervisor_log.write(b"all adaptive runs completed\n")
             return 0
         time.sleep(args.poll_seconds)
 
-    write_state(pid_path, children)
+    write_state(pid_path, children, read_states(db_path))
     return 0
 
 
