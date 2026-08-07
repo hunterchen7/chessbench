@@ -13,6 +13,7 @@ from .anthropic import AnthropicModel
 from .base import Model, ScriptedModel, VisionModel, split_system
 from .openai_compat import (
     EmptyCompletionError,
+    StreamTruncatedError,
     ModelError,
     OpenAIModel,
     OpenRouterModel,
@@ -29,5 +30,6 @@ __all__ = [
     "OpenRouterModel",
     "ModelError",
     "EmptyCompletionError",
+    "StreamTruncatedError",
     "Usage",
 ]

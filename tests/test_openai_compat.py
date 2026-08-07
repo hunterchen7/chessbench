@@ -14,6 +14,7 @@ from chessbench.models.openai_compat import (
     ModelError,
     OpenAIModel,
     OpenRouterModel,
+    StreamTruncatedError,
 )
 
 
@@ -839,3 +840,71 @@ def test_provider_route_is_sent_without_tools(monkeypatch):
         "require_parameters": True,
     }
     assert "tools" not in payload
+
+
+def _reasoning_event(text: str) -> bytes:
+    return (
+        b'data: {"id":"gen-trunc","choices":[{"index":0,"delta":{"reasoning":"'
+        + text.encode()
+        + b'"}}]}\n'
+    )
+
+
+def test_truncated_stream_is_named_and_retried(monkeypatch):
+    """A reasoning stream cut before its final content event must not look like
+    a model that declined to answer, and must be re-issued rather than
+    stranding the run."""
+    attempts: list[int] = []
+
+    def respond(*_args, **_kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            # Reasoning arrived, then the socket closed: no content, no
+            # finish_reason, no [DONE].
+            return _StreamingResponse([_reasoning_event("thinking"), b"\n", b""])
+        return _StreamingResponse(
+            [
+                b'data: {"id":"gen-ok","choices":[{"index":0,"delta":{"content":"e2e4"},'
+                b'"finish_reason":"stop"}]}\n',
+                b"\n",
+                b"data: [DONE]\n",
+                b"\n",
+                b"",
+            ]
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+    assert len(attempts) == 2  # truncation retried, then succeeded
+
+
+def test_truncated_stream_raises_truncation_not_empty_completion(monkeypatch):
+    def respond(*_args, **_kwargs):
+        return _StreamingResponse([_reasoning_event("thinking"), b"\n", b""])
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    with pytest.raises(StreamTruncatedError, match="truncated before completion"):
+        model.chat([{"role": "user", "content": "move"}])
+
+
+def test_stream_with_finish_reason_is_not_treated_as_truncated(monkeypatch):
+    """A provider may close without [DONE]; a terminal finish_reason is enough."""
+    monkeypatch.setattr(
+        "urllib.request.urlopen",
+        lambda *_a, **_kw: _StreamingResponse(
+            [
+                b'data: {"id":"gen-ok","choices":[{"index":0,"delta":{"content":"e2e4"},'
+                b'"finish_reason":"stop"}]}\n',
+                b"\n",
+                b"",
+            ]
+        ),
+    )
+    model = OpenRouterModel("test/model", api_key="test")
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"

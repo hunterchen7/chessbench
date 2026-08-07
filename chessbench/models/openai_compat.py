@@ -45,6 +45,23 @@ class EmptyCompletionError(ModelError):
     """The provider completed normally but supplied no user-visible answer."""
 
 
+class StreamTruncatedError(ModelError):
+    """The SSE stream ended before the generation finished.
+
+    A reasoning model emits its whole chain of thought first and the answer in
+    the last event or two -- a measured qwen3.8-max xhigh call streamed 8,145
+    events over 595s and delivered the move at event 8,141 (99.95% through). A
+    connection that drops anywhere in that window therefore yields plenty of
+    reasoning, no content, and no ``finish_reason``, which is indistinguishable
+    from a refusal unless the truncation is named explicitly.
+
+    Retrying is safe: no usable completion was produced, so a retry cannot
+    duplicate a successful outcome (the ambiguity ``_post`` otherwise guards
+    against). The tokens burned before the cut are billed either way, whether
+    the retry is automatic or an operator relaunches the run by hand.
+    """
+
+
 class Usage(TypedDict, total=False):
     prompt_tokens: int
     completion_tokens: int
@@ -390,7 +407,28 @@ class _OpenAICompatModel:
 
         if not saw_data:
             raise ModelError("provider stream ended without a data event")
+        if not done and not self._stream_reached_an_end(response):
+            # The socket closed with neither a [DONE] sentinel nor a terminal
+            # finish_reason, so the generation was cut off mid-flight. Name it
+            # here; otherwise it surfaces later as "no visible content", which
+            # reads like a model that declined to answer.
+            raise StreamTruncatedError(
+                f"{self._model}: provider stream truncated before completion"
+                f" (events received, no finish_reason, no [DONE];"
+                f" response_id={self.last_response_id!r})"
+            )
         return response
+
+    @staticmethod
+    def _stream_reached_an_end(response: dict[str, object]) -> bool:
+        """True when the accumulated envelope carries a terminal finish_reason."""
+        choices = response.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return False
+        first = choices[0]
+        if not isinstance(first, dict):
+            return False
+        return first.get("finish_reason") is not None
 
     @staticmethod
     def _response_headers_for_audit(headers: object) -> dict[str, str]:
@@ -435,8 +473,10 @@ class _OpenAICompatModel:
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
         """POST without silently duplicating an outcome-ambiguous generation.
 
-        Only explicit 429/503 rejection responses are retried. A timeout,
-        connection reset, or other server error may have happened after model
+        Only explicit 429/503 rejections and truncated streams are retried. A
+        truncated stream is unambiguous -- it delivered no completion, so there
+        is no successful outcome a retry could duplicate. A timeout, connection
+        reset, or other server error may instead have happened *after* model
         inference, and OpenRouter exposes no request idempotency key, so those
         stop the durable cell for an operator-visible resume decision.
         """
@@ -476,6 +516,11 @@ class _OpenAICompatModel:
                     ).decode("utf-8")
                     self._capture_http_response(resp, body)
                     return body
+            except StreamTruncatedError as e:
+                # Safe to re-issue: a truncated stream yielded no completion, so
+                # unlike a post-inference timeout there is no successful outcome
+                # to duplicate. The partial body was captured above.
+                last = e
             except urllib.error.HTTPError as e:
                 detail = e.read().decode("utf-8", "replace")
                 self._capture_http_response(e, detail, status=e.code)
@@ -508,6 +553,14 @@ class _OpenAICompatModel:
                     else min(8.0, 0.7 * (2**attempt))
                 )
                 time.sleep(delay)
+        if isinstance(last, StreamTruncatedError):
+            # Preserve the precise failure type after the retry budget is spent;
+            # a run that keeps getting cut off should say so, not report a
+            # generic rejection.
+            raise StreamTruncatedError(
+                f"{self._model}: stream truncated on all {self._max_retries}"
+                f" attempts: {last}"
+            ) from last
         raise ModelError(
             f"{self._model}: rejected after {self._max_retries} safe retries: {last}"
         )
