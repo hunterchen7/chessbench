@@ -305,8 +305,35 @@
    "family": "qwen",
    "notes": "Qwen 3.7 Max flagship",
    "enabled": true
-  },
-  {
+   },
+   {
+    "label": "qwen3.7-flash",
+    "provider": "openrouter",
+    "model_id": "qwen/qwen3.7-flash",
+    "display_name": "qwen3.7-flash",
+    "family": "qwen",
+    "notes": "Qwen3.7 Flash hybrid-thinking model",
+    "enabled": true
+   },
+   {
+    "label": "qwen3.7-plus",
+    "provider": "openrouter",
+    "model_id": "qwen/qwen3.7-plus",
+    "display_name": "qwen3.7-plus",
+    "family": "qwen",
+    "notes": "Qwen3.7 Plus hybrid-thinking model",
+    "enabled": true
+   },
+   {
+    "label": "qwen3.8-max",
+    "provider": "openrouter",
+    "model_id": "qwen/qwen3.8-max",
+    "display_name": "qwen3.8-max",
+    "family": "qwen",
+    "notes": "Qwen3.8 Max mandatory-thinking model; supports minimal/low/medium/high/xhigh",
+    "enabled": true
+   },
+   {
    "label": "sonnet-5",
    "provider": "openrouter",
    "model_id": "anthropic/claude-sonnet-5",
