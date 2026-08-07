@@ -128,6 +128,7 @@ def main() -> int:
     tot = {"done": 0, "delta": 0, "cost": 0.0, "tok": 0, "runs": 0, "complete": 0}
     state_runs = {}
     stalled = []
+    stale: list[tuple[str, int, float]] = []
     for (rid, vk, status, done, cost, ptok, ctok, rtok, summary, seed, min_ago) in rows:
         name = vk.split("--")[0]
         # "r-high-captured" -> "high"; the -captured suffix marks reasoning capture,
@@ -138,7 +139,7 @@ def main() -> int:
         )
         label = f"{name}/{effort}/s{seed}"
         rating, rd, provisional = rating_of(summary)
-        if rating is None:
+        if rating is None and status == "running":
             live = lives.get(label_to_log(name, effort, seed))
             if live:
                 rating, rd = live[0], live[1]
@@ -146,6 +147,10 @@ def main() -> int:
         before = prev_runs.get(rid, {}).get("done")
         delta = (done - before) if isinstance(before, int) else None
 
+        superseded = status not in ("running", "completed") and done < args.target
+        if superseded:
+            stale.append((label, done, cost or 0.0))
+            continue
         tot["runs"] += 1
         tot["done"] += done
         tot["cost"] += cost or 0.0
@@ -168,6 +173,11 @@ def main() -> int:
         )
         state_runs[rid] = {"done": done, "cost": cost, "tokens": tokens}
 
+    if stale:
+        print()
+        print("SUPERSEDED (stopped, not in any keepalive spec; excluded from totals)")
+        for label, done, cost in stale:
+            print(f"  {label[:34]:34} {done}/{args.target}  ${cost:.2f}")
     remaining = max(0, tot["runs"] * args.target - tot["done"])
     spend, limit = credits()
     print()
