@@ -7,7 +7,9 @@ import pytest
 
 from chessbench.cloudflare_sync import (
     CloudflareHTTPError,
+    RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES,
     RUN_ITEM_PAYLOAD_CHUNK_BYTES,
+    compact_run_item_payload_for_publish,
     post,
     run_item_delivery_documents,
     sync_run,
@@ -21,7 +23,7 @@ from chessbench.variants import ModelVariant, ReasoningConfig
 
 def test_post_preserves_worker_error_body(monkeypatch):
     def fail(request, timeout):
-        assert timeout == 60
+        assert timeout == 300
         raise urllib.error.HTTPError(
             request.full_url,
             500,
@@ -200,6 +202,68 @@ def test_large_run_item_is_chunked_without_truncating_payload():
     assert all(len(chunk) <= RUN_ITEM_PAYLOAD_CHUNK_BYTES for chunk in raw_chunks)
     reconstructed = json.loads(b"".join(raw_chunks))
     assert reconstructed == item["payload"]
+
+
+def test_oversized_run_item_is_compacted_for_publish_only():
+    item = {
+        "run_id": "huge-run",
+        "item_id": "big1",
+        "sequence": 0,
+        "points": 1.0,
+        "solved": True,
+        "payload": {
+            "puzzle_id": "big1",
+            "turns": [
+                {
+                    "parsed_move": "e2e4",
+                    "reasoning": "keep me",
+                    "provider_response_raw": "R" * (40 * 1024 * 1024),
+                    "request_payload": {
+                        "messages": [{"reasoning_details": ["x" * 1000]}]
+                    },
+                    "reasoning_details": [
+                        {"type": "reasoning.text", "text": "y" * 1000}
+                    ],
+                    "provider_response": {
+                        "choices": [{"message": {"content": "e2e4"}}]
+                    },
+                }
+            ],
+        },
+    }
+    original = json.loads(json.dumps(item["payload"]))
+    deliveries = run_item_delivery_documents(item)
+    assert item["payload"] == original
+    assert len(deliveries) >= 1
+    assert deliveries[-1][0] == "ingest/run/item"
+    final = deliveries[-1][1]
+    if "payload" in final:
+        published = final["payload"]
+        raw_len = len(json.dumps(published, ensure_ascii=False, separators=(",", ":")).encode())
+    else:
+        if deliveries[0][0] == "ingest/run/item/chunks":
+            raw = b"".join(
+                base64.b64decode(str(chunk["payload_chunk"]))
+                for chunk in deliveries[0][1]["chunks"]
+            )
+        else:
+            raw = b"".join(
+                base64.b64decode(str(document["payload_chunk"]))
+                for path, document in deliveries[:-1]
+            )
+        published = json.loads(raw)
+        raw_len = len(raw)
+    assert isinstance(published, dict)
+    assert raw_len <= RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES
+    assert published["turns"][0]["reasoning"] == "keep me"
+    assert published["turns"][0]["parsed_move"] == "e2e4"
+    assert "provider_response_raw" not in published["turns"][0]
+    assert (
+        published["publish_compaction"]["original_bytes"]
+        > RUN_ITEM_PAYLOAD_BATCH_RAW_BYTES
+    )
+    compacted = compact_run_item_payload_for_publish(original)
+    assert compacted is not original
 
 
 def test_chunk_batch_failure_keeps_item_unsynced_and_retry_replays_once():
