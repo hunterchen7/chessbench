@@ -37,10 +37,10 @@
    "enabled": true
   },
   {
-   "label": "deepseek-v4",
+    "label": "deepseek-v4-pro",
    "provider": "openrouter",
    "model_id": "deepseek/deepseek-v4-pro",
-   "display_name": "",
+    "display_name": "deepseek-v4-pro",
    "family": "deepseek",
    "notes": "DeepSeek V4 Pro \u2014 strong + cheap flagship",
    "enabled": true
