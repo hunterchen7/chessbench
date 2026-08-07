@@ -220,9 +220,17 @@ def main() -> int:
     if stalled:
         print(f"  STALLED (no progress since last report): {', '.join(stalled)}")
 
+    # Two reports firing close together would otherwise reset the baseline and
+    # show every run as "+0". Keep the older baseline unless enough time passed.
+    prev_at = prev.get("epoch")
+    if isinstance(prev_at, (int, float)) and now.timestamp() - prev_at < 300:
+        print(f"\n(baseline kept: previous report was "
+              f"{(now.timestamp()-prev_at)/60:.0f} min ago)")
+        return 0
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(
-        {"at": f"{now:%Y-%m-%d %H:%M UTC}", "runs": state_runs, "spend": spend}, indent=1
+        {"at": f"{now:%Y-%m-%d %H:%M UTC}", "epoch": now.timestamp(),
+         "runs": state_runs, "spend": spend}, indent=1
     ))
     return 0
 
