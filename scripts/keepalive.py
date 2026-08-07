@@ -130,8 +130,15 @@ def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int) -> int:
             log = logdir / f"{label}.keepalive.log"
             with log.open("a") as fh:
                 fh.write(f"\n[{now()}] launch #{st['restarts']} (at {done_n}/{target})\n")
+                # Unbuffered: the child's per-puzzle progress line carries the only
+                # live rating/RD (summary_json is written at completion), and block
+                # buffering to a file otherwise hides it for thousands of tokens.
                 st["proc"] = subprocess.Popen(
-                    build_cmd(run, defaults), cwd=REPO, stdout=fh, stderr=subprocess.STDOUT
+                    build_cmd(run, defaults),
+                    cwd=REPO,
+                    stdout=fh,
+                    stderr=subprocess.STDOUT,
+                    env={**os.environ, "PYTHONUNBUFFERED": "1"},
                 )
             print(f"[{now()}] {label}: launch #{st['restarts']} at {done_n}/{target} pid={st['proc'].pid}", flush=True)
             alive += 1
