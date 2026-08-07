@@ -420,6 +420,40 @@ class _OpenAICompatModel:
         return response
 
     @staticmethod
+    def _upstream_drop(body: str) -> str | None:
+        """Reason string when a response carries an upstream-disconnect error.
+
+        OpenRouter reports a connection that died mid-generation as an error
+        envelope (``502``/``provider_unavailable``, "Network connection lost")
+        rather than an HTTP status, so it lands in the response body. Measured
+        across the rated campaign these cluster on xhigh reasoning -- 8 of 9 --
+        i.e. the longest-running streams, on both alibaba and the deepseek
+        endpoint. That is the same failure as a truncated stream wearing a
+        different hat: no completion was delivered, so re-issuing cannot
+        duplicate a successful outcome.
+        """
+        try:
+            parsed = json.loads(body)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(parsed, dict):
+            return None
+        error = parsed.get("error")
+        if not isinstance(error, dict):
+            return None
+        # Only when nothing usable came back; a partial answer must not be retried.
+        choices = parsed.get("choices")
+        if isinstance(choices, list) and choices:
+            message = choices[0].get("message") if isinstance(choices[0], dict) else None
+            if isinstance(message, dict) and str(message.get("content") or "").strip():
+                return None
+        code = error.get("code")
+        kind = str((error.get("metadata") or {}).get("error_type", "")).lower()
+        if code in (502, 503, 504) or kind in {"provider_unavailable", "timeout"}:
+            return f"code={code} type={kind or 'unknown'}"
+        return None
+
+    @staticmethod
     def _stream_reached_an_end(response: dict[str, object]) -> bool:
         """True when the accumulated envelope carries a terminal finish_reason."""
         choices = response.get("choices")
@@ -508,13 +542,24 @@ class _OpenAICompatModel:
                                 resp,
                                 b"".join(raw_chunks).decode("utf-8", "replace"),
                             )
-                        return json.dumps(decoded)
+                        encoded = json.dumps(decoded)
+                        drop = self._upstream_drop(encoded)
+                        if drop is not None:
+                            raise StreamTruncatedError(
+                                f"{self._model}: upstream disconnect ({drop})"
+                            )
+                        return encoded
                     body = self._read_body_with_deadlines(
                         resp,
                         idle_timeout=self._timeout,
                         total_deadline=total_deadline,
                     ).decode("utf-8")
                     self._capture_http_response(resp, body)
+                    drop = self._upstream_drop(body)
+                    if drop is not None:
+                        raise StreamTruncatedError(
+                            f"{self._model}: upstream disconnect ({drop})"
+                        )
                     return body
             except StreamTruncatedError as e:
                 # Safe to re-issue: a truncated stream yielded no completion, so

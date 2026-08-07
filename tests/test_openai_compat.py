@@ -908,3 +908,59 @@ def test_stream_with_finish_reason_is_not_treated_as_truncated(monkeypatch):
     )
     model = OpenRouterModel("test/model", api_key="test")
     assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+
+
+def test_upstream_disconnect_envelope_is_retried(monkeypatch):
+    """OpenRouter reports a mid-generation disconnect as a 502 error envelope in
+    the body, not an HTTP status. It delivered no completion, so it is retried
+    like a truncated stream instead of stranding the run."""
+    attempts: list[int] = []
+
+    def respond(*_args, **_kwargs):
+        attempts.append(1)
+        if len(attempts) == 1:
+            return _Response(
+                {
+                    "error": {
+                        "code": 502,
+                        "message": "Network connection lost.",
+                        "metadata": {"error_type": "provider_unavailable"},
+                    }
+                }
+            )
+        return _Response(
+            {
+                "id": "gen-ok",
+                "choices": [
+                    {"finish_reason": "stop", "message": {"content": "e2e4"}}
+                ],
+            }
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+    assert len(attempts) == 2
+
+
+def test_provider_error_with_content_is_not_retried(monkeypatch):
+    """A partial answer must not be re-issued: that would duplicate real work."""
+    attempts: list[int] = []
+
+    def respond(*_args, **_kwargs):
+        attempts.append(1)
+        return _Response(
+            {
+                "error": {"code": 502, "metadata": {"error_type": "provider_unavailable"}},
+                "choices": [{"message": {"content": "e2e4"}}],
+            }
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    with pytest.raises(ModelError, match="provider error"):
+        model.chat([{"role": "user", "content": "move"}])
+    assert len(attempts) == 1  # not retried
