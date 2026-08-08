@@ -94,7 +94,9 @@ def rating_of(summary: str | None) -> tuple[float | None, float | None, bool]:
 def main() -> int:
     load_env()
     ap = argparse.ArgumentParser()
-    ap.add_argument("--hours", type=float, default=24.0, help="window for 'active' runs")
+    # The campaign spans days; a 24h window silently drops finished runs from the
+    # totals and makes progress look like it went backwards between reports.
+    ap.add_argument("--hours", type=float, default=96.0, help="window for 'active' runs")
     ap.add_argument("--target", type=int, default=50)
     args = ap.parse_args()
 
