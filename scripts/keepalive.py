@@ -131,7 +131,10 @@ def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int, max_concurr
                 st["done"] = True
                 print(f"[{now()}] {label}: COMPLETE ({done_n}/{target})", flush=True)
                 continue
-            if st["restarts"] >= max_restarts:
+            # A flaky endpoint can fault far more often than it fails: a run that
+            # needs 40+ relaunches is still making progress, just slowly. Setting
+            # the cap to 0 means never abandon a run that has not reached target.
+            if max_restarts and st["restarts"] >= max_restarts:
                 st["done"] = True
                 print(f"[{now()}] {label}: GAVE UP at {done_n}/{target} after {max_restarts} restarts", flush=True)
                 continue
@@ -166,7 +169,8 @@ def main() -> int:
     load_env()
     ap = argparse.ArgumentParser()
     ap.add_argument("--spec", required=True)
-    ap.add_argument("--max-restarts", type=int, default=20)
+    ap.add_argument("--max-restarts", type=int, default=20,
+                    help="give up on a run after this many faults (0 = never)")
     ap.add_argument("--poll", type=int, default=30)
     ap.add_argument("--max-concurrent", type=int, default=0,
                     help="cap simultaneously running children (0 = unlimited)")
