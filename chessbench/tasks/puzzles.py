@@ -138,6 +138,7 @@ def _turn_record(
     parsed_move: chess.Move | None,
     *,
     model_error: str | None = None,
+    infra_failure: bool = False,
 ) -> dict[str, object]:
     usage = ctx.last_usage or {}
     metrics = normalize_usage(
@@ -161,6 +162,7 @@ def _turn_record(
         "reasoning": ctx.last_reasoning,
         "reasoning_details": ctx.last_reasoning_details,
         "model_error": model_error,
+        "infra_failure": infra_failure,
         "provider_error": ctx.last_provider_error,
         "request_payload": ctx.last_request_payload,
         "provider_response": ctx.last_provider_response,
@@ -175,6 +177,26 @@ def _turn_record(
         "usage": dict(usage),
         **metrics.to_dict(),
     }
+
+
+#: How many times a single puzzle may kill the run with an infrastructure error
+#: before it is scored as a loss. A dead run resumes from its checkpoint onto the
+#: same puzzle, so a puzzle that always kills the provider stream would otherwise
+#: restart forever and the suite would never advance past it.
+MAX_INFRA_FAILURES = 6
+
+
+def _infra_failures(turns: list[dict[str, object]]) -> int:
+    """Count turns on this puzzle that died of an infrastructure error."""
+    total = 0
+    for turn in turns:
+        if "infra_failure" in turn:
+            total += bool(turn["infra_failure"])
+        elif turn.get("model_error"):
+            # Checkpoint written before infra failures were tagged; back then a
+            # persisted model_error could only have come from a ModelError.
+            total += 1
+    return total
 
 
 def load_puzzles(path: str | Path, limit: int | None = None) -> list[Puzzle]:
@@ -257,6 +279,7 @@ def grade_puzzle(
     *,
     checkpoint: PuzzleCheckpoint | None = None,
     on_checkpoint: Callable[[PuzzleCheckpoint], None] | None = None,
+    max_infra_failures: int = MAX_INFRA_FAILURES,
 ) -> PuzzleResult:
     """Play the puzzle out ply by ply against the set of acceptable lines.
 
@@ -431,9 +454,19 @@ def grade_puzzle(
                 # A billed provider failure is auditable and durable, but it is
                 # not a chess attempt: do not consume retry allowance, alter the
                 # score, or add it to the model's conversation.
-                turns.append(_turn_record(k, ctx, None, model_error=str(exc)))
+                turns.append(
+                    _turn_record(k, ctx, None, model_error=str(exc), infra_failure=True)
+                )
                 persist()
-                raise
+                if _infra_failures(turns) < max_infra_failures:
+                    raise
+                # This puzzle has now killed the run max_infra_failures times and
+                # the checkpoint resumed onto it every time. Re-raising again just
+                # repeats that forever, so score it as a loss and let the suite
+                # move on -- the turn records keep the full provider audit.
+                final = result(False, "illegal")
+                persist(final)
+                return final
             move = board_utils.parse_move(board, raw)
             turns.append(
                 _turn_record(

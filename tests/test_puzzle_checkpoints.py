@@ -18,7 +18,13 @@ from chessbench.conditions import HEADLINE, Legality
 from chessbench.database import BenchmarkStore, RunSpec
 from chessbench.models import EmptyCompletionError, ModelError
 from chessbench.models.base import ScriptedModel
-from chessbench.tasks.puzzles import Puzzle, PuzzleCheckpoint, grade_puzzle
+from chessbench.tasks.puzzles import (
+    MAX_INFRA_FAILURES,
+    Puzzle,
+    PuzzleCheckpoint,
+    _infra_failures,
+    grade_puzzle,
+)
 from chessbench.tasks.runner import run_puzzles
 from chessbench.variants import ModelVariant
 
@@ -483,6 +489,44 @@ def test_completed_empty_response_scores_as_an_illegal_puzzle_answer():
         "provider returned no visible content"
     )
     assert checkpoints[-1].terminal_result == result
+
+
+def test_a_puzzle_that_always_kills_the_run_is_eventually_scored_a_loss():
+    # Each launch dies on the same puzzle and resumes from the checkpoint onto
+    # it again. Without a cap that repeats forever and the suite never advances.
+    checkpoint: PuzzleCheckpoint | None = None
+    deaths = 0
+    for _ in range(20):
+        model = UsageScriptedModel([ModelError("provider stream truncated")])
+        checkpoints: list[PuzzleCheckpoint] = []
+        try:
+            result = grade_puzzle(
+                LLMAgent(model),
+                ONE_MOVE,
+                HEADLINE,
+                checkpoint=checkpoint,
+                on_checkpoint=checkpoints.append,
+            )
+        except ModelError:
+            deaths += 1
+            checkpoint = checkpoints[-1]
+            continue
+        break
+    else:
+        raise AssertionError("the puzzle never stopped killing the run")
+
+    assert deaths == MAX_INFRA_FAILURES - 1  # the last attempt scores instead
+    assert not result.solved
+    assert result.failure_reason == "illegal"
+    assert checkpoints[-1].terminal_result == result
+    assert _infra_failures(result.turns) == MAX_INFRA_FAILURES
+
+
+def test_infra_failure_cap_counts_untagged_checkpoints_from_older_runs():
+    legacy = [{"model_error": "provider stream truncated"} for _ in range(3)]
+    assert _infra_failures(legacy) == 3
+    # A scored turn carries the tag and must not count toward the cap.
+    assert _infra_failures([{"model_error": None, "infra_failure": False}]) == 0
 
 
 def test_v3_database_migrates_puzzle_checkpoint_table(tmp_path):
