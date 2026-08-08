@@ -88,7 +88,7 @@ def completed(db: pathlib.Path, model: str, reasoning: str, seed: int) -> int:
         return 0
 
 
-def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int) -> int:
+def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int, max_concurrent: int) -> int:
     spec = json.loads(spec_path.read_text())
     defaults, runs = spec.get("defaults", {}), spec["runs"]
     logdir = REPO / "runs" / "adaptive-supervisor"
@@ -102,6 +102,12 @@ def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int) -> int:
 
     while True:
         alive = 0
+        # Count live children first: a concurrency cap has to be enforced against
+        # what is actually running, not what this pass has launched so far.
+        running_now = sum(
+            1 for s in state.values()
+            if not s["done"] and s["proc"] is not None and s["proc"].poll() is None
+        )
         for label, st in state.items():
             if st["done"]:
                 continue
@@ -110,6 +116,12 @@ def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int) -> int:
             proc = st["proc"]
 
             if proc is not None and proc.poll() is None:
+                alive += 1
+                continue
+
+            if max_concurrent and running_now >= max_concurrent:
+                # Slot-limited: leave this run for a later pass rather than
+                # piling every spec entry onto the provider at once.
                 alive += 1
                 continue
 
@@ -142,6 +154,7 @@ def supervise(spec_path: pathlib.Path, max_restarts: int, poll: int) -> int:
                 )
             print(f"[{now()}] {label}: launch #{st['restarts']} at {done_n}/{target} pid={st['proc'].pid}", flush=True)
             alive += 1
+            running_now += 1
 
         if all(s["done"] for s in state.values()):
             print(f"[{now()}] keepalive: all runs settled", flush=True)
@@ -155,8 +168,10 @@ def main() -> int:
     ap.add_argument("--spec", required=True)
     ap.add_argument("--max-restarts", type=int, default=20)
     ap.add_argument("--poll", type=int, default=30)
+    ap.add_argument("--max-concurrent", type=int, default=0,
+                    help="cap simultaneously running children (0 = unlimited)")
     args = ap.parse_args()
-    return supervise(pathlib.Path(args.spec), args.max_restarts, args.poll)
+    return supervise(pathlib.Path(args.spec), args.max_restarts, args.poll, args.max_concurrent)
 
 
 if __name__ == "__main__":

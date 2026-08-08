@@ -37,32 +37,32 @@
    "enabled": true
   },
   {
-    "label": "deepseek-v4-pro",
+   "label": "deepseek-v4-flash-0423",
+   "provider": "openrouter",
+   "model_id": "deepseek/deepseek-v4-flash",
+   "display_name": "deepseek-v4-flash-0423",
+   "family": "deepseek",
+   "notes": "DeepSeek V4 Flash 0423 checkpoint via OpenRouter id deepseek/deepseek-v4-flash (high/xhigh)",
+   "enabled": true
+  },
+  {
+   "label": "deepseek-v4-flash-0731",
+   "provider": "openrouter",
+   "model_id": "deepseek/deepseek-v4-flash-0731",
+   "display_name": "deepseek-v4-flash-0731",
+   "family": "deepseek",
+   "notes": "DeepSeek V4 Flash 0731 ($0.09/$0.18 on DeepInfra)",
+   "enabled": true
+  },
+  {
+   "label": "deepseek-v4-pro",
    "provider": "openrouter",
    "model_id": "deepseek/deepseek-v4-pro",
-    "display_name": "deepseek-v4-pro",
+   "display_name": "deepseek-v4-pro",
    "family": "deepseek",
    "notes": "DeepSeek V4 Pro \u2014 strong + cheap flagship",
    "enabled": true
   },
-   {
-    "label": "deepseek-v4-flash-0423",
-    "provider": "openrouter",
-    "model_id": "deepseek/deepseek-v4-flash",
-    "display_name": "deepseek-v4-flash-0423",
-    "family": "deepseek",
-    "notes": "DeepSeek V4 Flash 0423 checkpoint via OpenRouter id deepseek/deepseek-v4-flash (high/xhigh)",
-    "enabled": true
-   },
-   {
-    "label": "deepseek-v4-flash-0731",
-    "provider": "openrouter",
-    "model_id": "deepseek/deepseek-v4-flash-0731",
-    "display_name": "deepseek-v4-flash-0731",
-    "family": "deepseek",
-    "notes": "DeepSeek V4 Flash 0731 ($0.09/$0.18 on DeepInfra)",
-    "enabled": true
-   },
   {
    "label": "gemini-3.1-flash-lite",
    "provider": "openrouter",
@@ -253,6 +253,24 @@
    "enabled": true
   },
   {
+   "label": "muse-spark-1.1",
+   "provider": "openrouter",
+   "model_id": "meta/muse-spark-1.1",
+   "display_name": "muse-spark-1.1",
+   "family": "meta",
+   "notes": "Meta Muse Spark 1.1 (reasoning mandatory; native minimal/low/medium/high/xhigh)",
+   "enabled": true
+  },
+  {
+   "label": "muse-spark-1.2",
+   "provider": "openrouter",
+   "model_id": "meta/muse-spark-1.2",
+   "display_name": "muse-spark-1.2",
+   "family": "meta",
+   "notes": "Meta Muse Spark 1.2 (reasoning mandatory; native minimal/low/medium/high/xhigh)",
+   "enabled": true
+  },
+  {
    "label": "nemotron-3-super",
    "provider": "openrouter",
    "model_id": "nvidia/nemotron-3-super-120b-a12b",
@@ -298,6 +316,15 @@
    "enabled": true
   },
   {
+   "label": "qwen3.7-flash",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen3.7-flash",
+   "display_name": "qwen3.7-flash",
+   "family": "qwen",
+   "notes": "Qwen3.7 Flash hybrid-thinking model",
+   "enabled": true
+  },
+  {
    "label": "qwen3.7-max",
    "provider": "openrouter",
    "model_id": "qwen/qwen3.7-max",
@@ -305,35 +332,26 @@
    "family": "qwen",
    "notes": "Qwen 3.7 Max flagship",
    "enabled": true
-   },
-   {
-    "label": "qwen3.7-flash",
-    "provider": "openrouter",
-    "model_id": "qwen/qwen3.7-flash",
-    "display_name": "qwen3.7-flash",
-    "family": "qwen",
-    "notes": "Qwen3.7 Flash hybrid-thinking model",
-    "enabled": true
-   },
-   {
-    "label": "qwen3.7-plus",
-    "provider": "openrouter",
-    "model_id": "qwen/qwen3.7-plus",
-    "display_name": "qwen3.7-plus",
-    "family": "qwen",
-    "notes": "Qwen3.7 Plus hybrid-thinking model",
-    "enabled": true
-   },
-   {
-    "label": "qwen3.8-max",
-    "provider": "openrouter",
-    "model_id": "qwen/qwen3.8-max",
-    "display_name": "qwen3.8-max",
-    "family": "qwen",
-    "notes": "Qwen3.8 Max mandatory-thinking model; supports minimal/low/medium/high/xhigh",
-    "enabled": true
-   },
-   {
+  },
+  {
+   "label": "qwen3.7-plus",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen3.7-plus",
+   "display_name": "qwen3.7-plus",
+   "family": "qwen",
+   "notes": "Qwen3.7 Plus hybrid-thinking model",
+   "enabled": true
+  },
+  {
+   "label": "qwen3.8-max",
+   "provider": "openrouter",
+   "model_id": "qwen/qwen3.8-max",
+   "display_name": "qwen3.8-max",
+   "family": "qwen",
+   "notes": "Qwen3.8 Max mandatory-thinking model; supports minimal/low/medium/high/xhigh",
+   "enabled": true
+  },
+  {
    "label": "sonnet-5",
    "provider": "openrouter",
    "model_id": "anthropic/claude-sonnet-5",

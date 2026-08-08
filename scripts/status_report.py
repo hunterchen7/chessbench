@@ -65,11 +65,18 @@ def live_ratings() -> dict[str, tuple[float, float, int]]:
 
 
 def label_to_log(name: str, effort: str, seed: object) -> str:
-    """Map a variant to its keepalive log stem (the spec's label)."""
+    """Map a variant to its keepalive log stem (the spec's label).
+
+    Variant keys slugify dots to hyphens (``muse-spark-1-2``) while the spec
+    labels keep them (``muse1.2``), so the two have to be reconciled per family.
+    """
     stem = {
         "deepseek-v4-flash-0423": "ds-flash-0423",
         "deepseek-v4-pro": "ds-pro",
         "deepseek-v4": "ds-pro",
+        "muse-spark-1-1": "muse1.1",
+        "muse-spark-1-2": "muse1.2",
+        "grok-4-5": "grok45",
     }.get(name, name.replace("qwen3-7-", "qwen3.7-").replace("qwen3-8-", "qwen3.8-"))
     return f"{stem}-{effort}-s{seed}"
 
