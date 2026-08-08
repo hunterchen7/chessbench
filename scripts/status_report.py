@@ -122,13 +122,15 @@ def main() -> int:
         f"{'model':24} {'reason':8} {'sd':>3} {'done':>7} {'Δ':>4} "
         f"{'rating':>7} {'RD':>5} {'tokens':>11} {'cost':>8}  status"
     )
-    print(header)
-    print("-" * len(header))
+    # Completed runs are summarised above the table, so collect the live rows
+    # first and emit everything after the loop.
+    live_rows: list[str] = []
 
     tot = {"done": 0, "delta": 0, "cost": 0.0, "tok": 0, "runs": 0, "complete": 0}
     state_runs = {}
     stalled = []
     stale: list[tuple[str, int, float]] = []
+    done_groups: dict[tuple[str, str], list[tuple[object, float, float]]] = {}
     for (rid, vk, status, done, cost, ptok, ctok, rtok, summary, seed, min_ago) in rows:
         name = vk.split("--")[0]
         # "r-high-captured" -> "high"; the -captured suffix marks reasoning capture,
@@ -163,7 +165,13 @@ def main() -> int:
         if status == "running" and delta == 0 and min_ago and min_ago > 20:
             stalled.append(label)
 
-        print(
+        if status == "completed" or done >= args.target:
+            # Finished runs are summarised above the table, not repeated row by row.
+            done_groups.setdefault((name, effort), []).append((seed, rating, cost or 0.0))
+            state_runs[rid] = {"done": done, "cost": cost, "tokens": tokens}
+            continue
+
+        live_rows.append(
             f"{name[:24]:24} {effort[:8]:8} {str(seed):>3} "
             f"{str(done)+'/'+str(args.target):>7} "
             f"{('+'+str(delta)) if delta else ('-' if delta==0 else '·'):>4} "
@@ -173,6 +181,23 @@ def main() -> int:
             + ("  PROVISIONAL" if provisional else "")
         )
         state_runs[rid] = {"done": done, "cost": cost, "tokens": tokens}
+
+    if done_groups:
+        n_done = sum(len(v) for v in done_groups.values())
+        spent = sum(c for v in done_groups.values() for _, _, c in v)
+        print(f"COMPLETED ({n_done} runs, ${spent:.2f}) — ratings by seed")
+        for (name, effort), seeds in sorted(done_groups.items()):
+            seeds.sort(key=lambda x: str(x[0]))
+            shown = " / ".join(f"{r:.0f}" if r else "-" for _, r, _ in seeds)
+            print(f"  {name[:24]:24} {effort[:8]:8} {shown}")
+        print()
+
+    if live_rows:
+        print(f"RUNNING ({len(live_rows)})")
+        print(header)
+        print("-" * len(header))
+        for line in live_rows:
+            print(line)
 
     if stale:
         print()
