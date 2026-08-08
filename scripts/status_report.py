@@ -90,6 +90,42 @@ def live_processes() -> set[tuple[str, str, str]]:
     return out
 
 
+def supervised() -> set[tuple[str, str, str]]:
+    """(model, effort, seed) for every run a keepalive spec is responsible for.
+
+    Between a crash and the supervisor's next poll a run sits at status
+    'partial' with no process. That is a run awaiting relaunch, not an abandoned
+    one, so it must stay in the totals -- otherwise the campaign's run count and
+    puzzle count drop for a cycle and recover, which reads as lost work.
+    """
+    out: set[tuple[str, str, str]] = set()
+    for spec in (REPO / "runs").glob("keepalive-*.json"):
+        try:
+            entries = (json.loads(spec.read_text()) or {}).get("runs") or []
+        except (OSError, json.JSONDecodeError, AttributeError):
+            continue
+        for entry in entries:
+            out.add((
+                str(entry["model"]).replace(".", "-"),
+                str(entry["reasoning"]),
+                str(entry["seed"]),
+            ))
+    return out
+
+
+def variant_of(variant_key: str, seed: object) -> tuple[str, str, str]:
+    """(model, effort, seed) identity shared by run rows, processes and specs."""
+    name = variant_key.split("--")[0]
+    # "r-high-captured" -> "high"; the -captured suffix marks reasoning capture,
+    # not a distinct effort level, and the keepalive labels omit it.
+    effort = next(
+        (p[2:].removesuffix("-captured")
+         for p in variant_key.split("--") if p.startswith("r-")),
+        "?",
+    )
+    return name, effort, str(seed)
+
+
 def label_to_log(name: str, effort: str, seed: object) -> str:
     """Map a variant to its keepalive log stem (the spec's label).
 
@@ -204,6 +240,12 @@ def main() -> int:
     stalled: list[str] = []
     slow: list[str] = []
     procs = live_processes()
+    specs = supervised()
+    waiting: list[str] = []
+    # Newest run row per variant (min_ago is smallest for the most recent).
+    newest: dict[tuple[str, str, str], str] = {}
+    for row in sorted(rows, key=lambda r: r[10] if r[10] is not None else 1e9):
+        newest.setdefault(variant_of(row[1], row[9]), row[0])
     stale: list[tuple[str, int, float]] = []
     done_groups: dict[tuple[str, str], list[tuple[object, float, float]]] = {}
     for (rid, vk, status, done, cost, ptok, ctok, rtok, summary, seed, min_ago) in rows:
@@ -224,10 +266,23 @@ def main() -> int:
         before = prev_runs.get(rid, {}).get("done")
         delta = (done - before) if isinstance(before, int) else None
 
-        superseded = status not in ("running", "completed") and done < args.target
+        # A stopped run a keepalive spec still owns is between launches, not
+        # abandoned: keep it in the totals and show it as awaiting relaunch.
+        # Only the newest row for a variant qualifies -- an older row the
+        # supervisor already replaced is abandoned however live the spec is.
+        owned = (name, effort, str(seed)) in specs and newest.get(
+            (name, effort, str(seed))
+        ) == rid
+        superseded = (
+            status not in ("running", "completed")
+            and done < args.target
+            and not owned
+        )
         if superseded:
             stale.append((label, done, cost or 0.0))
             continue
+        if status not in ("running", "completed") and done < args.target:
+            waiting.append(label)
         tot["runs"] += 1
         tot["done"] += done
         tot["cost"] += cost or 0.0
@@ -327,6 +382,8 @@ def main() -> int:
         print(f"  STALLED (running row, no process): {', '.join(stalled)}")
     if slow:
         print(f"  SLOW (past the request timeout): {', '.join(slow)}")
+    if waiting:
+        print(f"  awaiting relaunch (kept in totals): {', '.join(waiting)}")
     print("  " + contamination(con, args.hours))
 
     # Two reports firing close together would otherwise reset the baseline and
