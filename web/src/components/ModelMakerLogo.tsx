@@ -1,4 +1,5 @@
 import anthropicLogo from "@lobehub/icons-static-svg/icons/anthropic.svg?url"
+import awsLogo from "@lobehub/icons-static-svg/icons/aws.svg?url"
 import deepseekLogo from "@lobehub/icons-static-svg/icons/deepseek.svg?url"
 import googleLogo from "@lobehub/icons-static-svg/icons/google.svg?url"
 import inceptionLogo from "@lobehub/icons-static-svg/icons/inception.svg?url"
@@ -6,10 +7,12 @@ import metaLogo from "@lobehub/icons-static-svg/icons/meta.svg?url"
 import minimaxLogo from "@lobehub/icons-static-svg/icons/minimax.svg?url"
 import mistralLogo from "@lobehub/icons-static-svg/icons/mistral.svg?url"
 import moonshotLogo from "@lobehub/icons-static-svg/icons/moonshot.svg?url"
+import nvidiaLogo from "@lobehub/icons-static-svg/icons/nvidia.svg?url"
 import openaiLogo from "@lobehub/icons-static-svg/icons/openai.svg?url"
 import qwenLogo from "@lobehub/icons-static-svg/icons/qwen.svg?url"
 import stepfunLogo from "@lobehub/icons-static-svg/icons/stepfun.svg?url"
 import xaiLogo from "@lobehub/icons-static-svg/icons/xai.svg?url"
+import zhipuLogo from "@lobehub/icons-static-svg/icons/zhipu.svg?url"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { ModelVariant } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -18,20 +21,27 @@ type ModelMaker =
   | { name: string; logo: string; monogram?: never }
   | { name: string; logo?: never; monogram: string }
 
+// Keyed by the OpenRouter model_id prefix, which is the vendor slug rather than
+// the maker: Meta ships Llama under "meta-llama" and Muse Spark under "meta", so
+// both have to be listed or the newer models silently render no logo at all.
 const MODEL_MAKERS: Record<string, ModelMaker> = {
+  amazon: { name: "Amazon", logo: awsLogo },
   anthropic: { name: "Anthropic", logo: anthropicLogo },
   deepseek: { name: "DeepSeek", logo: deepseekLogo },
   google: { name: "Google", logo: googleLogo },
   inception: { name: "Inception Labs", logo: inceptionLogo },
+  meta: { name: "Meta", logo: metaLogo },
   "meta-llama": { name: "Meta", logo: metaLogo },
   minimax: { name: "MiniMax", logo: minimaxLogo },
   mistralai: { name: "Mistral AI", logo: mistralLogo },
   moonshotai: { name: "Moonshot AI", logo: moonshotLogo },
+  nvidia: { name: "NVIDIA", logo: nvidiaLogo },
   openai: { name: "OpenAI", logo: openaiLogo },
   qwen: { name: "Qwen", logo: qwenLogo },
   stepfun: { name: "StepFun", logo: stepfunLogo },
   thinkingmachines: { name: "Thinking Machines", monogram: "TM" },
   "x-ai": { name: "xAI", logo: xaiLogo },
+  "z-ai": { name: "Zhipu AI", logo: zhipuLogo },
 }
 
 function modelMaker(modelId: string) {
