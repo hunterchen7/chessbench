@@ -119,8 +119,8 @@ def main() -> int:
         print(f"(delta vs {prev['at']})")
     print()
     header = (
-        f"{'run':34} {'done':>7} {'Δ':>4} {'rating':>8} {'RD':>6} "
-        f"{'tokens':>10} {'cost':>7}  status"
+        f"{'model':24} {'reason':8} {'sd':>3} {'done':>7} {'Δ':>4} "
+        f"{'rating':>7} {'RD':>5} {'tokens':>11} {'cost':>8}  status"
     )
     print(header)
     print("-" * len(header))
@@ -164,11 +164,12 @@ def main() -> int:
             stalled.append(label)
 
         print(
-            f"{label[:34]:34} {str(done)+'/'+str(args.target):>7} "
+            f"{name[:24]:24} {effort[:8]:8} {str(seed):>3} "
+            f"{str(done)+'/'+str(args.target):>7} "
             f"{('+'+str(delta)) if delta else ('-' if delta==0 else '·'):>4} "
-            f"{(f'{rating:.0f}' if rating else '-'):>8} "
-            f"{(f'{rd:.0f}' if rd else '-'):>6} "
-            f"{tokens:>10,} {('$'+format(cost or 0,'.2f')):>7}  {status}"
+            f"{(f'{rating:.0f}' if rating else '-'):>7} "
+            f"{(f'{rd:.0f}' if rd else '-'):>5} "
+            f"{tokens:>11,} {('$'+format(cost or 0,'.2f')):>8}  {status}"
             + ("  PROVISIONAL" if provisional else "")
         )
         state_runs[rid] = {"done": done, "cost": cost, "tokens": tokens}
