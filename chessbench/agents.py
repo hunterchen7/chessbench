@@ -48,6 +48,9 @@ class MoveContext:
     illegal_feedback: str | None = None
     last_opponent_move_san: str | None = None
     ply: int = 0
+    #: Overrides the condition's output cap for this attempt only. Set when a
+    #: generation ended at `length` so the retry gets room to finish reasoning.
+    token_budget: int | None = None
     last_system_prompt: str | None = None
     last_prompt: str | None = None
     last_raw_response: str | None = None
@@ -285,7 +288,7 @@ class LLMAgent:
                     prompt,
                     response_format=response_format,
                     temperature=cond.temperature,
-                    max_tokens=cond.max_output_tokens,
+                    max_tokens=ctx.token_budget or cond.max_output_tokens,
                 )
             except ModelError:
                 _capture_model_audit(self._model, ctx)
@@ -301,7 +304,7 @@ class LLMAgent:
                     self._messages,
                     response_format=response_format,
                     temperature=cond.temperature,
-                    max_tokens=cond.max_output_tokens,
+                    max_tokens=ctx.token_budget or cond.max_output_tokens,
                 )
             except ModelError:
                 _capture_model_audit(self._model, ctx)
@@ -341,7 +344,7 @@ class LLMAgent:
                 prompt,
                 response_format=response_format,
                 temperature=cond.temperature,
-                max_tokens=cond.max_output_tokens,
+                max_tokens=ctx.token_budget or cond.max_output_tokens,
             )
         except ModelError:
             _capture_model_audit(self._model, ctx)
@@ -396,7 +399,7 @@ class VisionAgent:
             render_board_png(board),
             response_format=response_format,
             temperature=cond.temperature,
-            max_tokens=cond.max_output_tokens,
+            max_tokens=ctx.token_budget or cond.max_output_tokens,
         )
         ctx.last_raw_response = raw
         ctx.last_response_format = applied_format
@@ -497,7 +500,7 @@ class LLMGameAgent:
                     [system_msg, user_msg],
                     response_format=response_format,
                     temperature=cond.temperature,
-                    max_tokens=cond.max_output_tokens,
+                    max_tokens=ctx.token_budget or cond.max_output_tokens,
                 )
             except ModelError:
                 _capture_model_audit(self._model, ctx)
@@ -512,7 +515,7 @@ class LLMGameAgent:
                     self._messages,
                     response_format=response_format,
                     temperature=cond.temperature,
-                    max_tokens=cond.max_output_tokens,
+                    max_tokens=ctx.token_budget or cond.max_output_tokens,
                 )
             except ModelError:
                 _capture_model_audit(self._model, ctx)

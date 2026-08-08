@@ -20,6 +20,7 @@ from chessbench.models import EmptyCompletionError, ModelError
 from chessbench.models.base import ScriptedModel
 from chessbench.tasks.puzzles import (
     MAX_INFRA_FAILURES,
+    _budget_retries,
     Puzzle,
     PuzzleCheckpoint,
     _infra_failures,
@@ -489,6 +490,55 @@ def test_completed_empty_response_scores_as_an_illegal_puzzle_answer():
         "provider returned no visible content"
     )
     assert checkpoints[-1].terminal_result == result
+
+
+class BudgetModel(ScriptedModel):
+    """Exhausts its output budget until the cap is raised past `needs`."""
+
+    def __init__(self, needs: int, answer: str):
+        self.needs = needs
+        self.answer = answer
+        self.caps: list[int] = []
+        self.last_usage: dict[str, object] = {}
+        self.last_cost = 0.0
+        self.last_finish_reason: str | None = None
+        super().__init__(lambda _messages: "", name="budget")
+
+    def chat(self, messages, *, temperature=0.0, max_tokens=2048):
+        self.caps.append(max_tokens)
+        if max_tokens < self.needs:
+            self.last_finish_reason = "length"
+            raise EmptyCompletionError(
+                "provider returned no visible content (finish='length')"
+            )
+        self.last_finish_reason = "stop"
+        return self.answer
+
+
+def test_budget_exhausted_puzzle_is_retried_with_a_bigger_cap():
+    model = BudgetModel(needs=4096, answer=_answer("a1a8", "now it fits"))
+    condition = replace(HEADLINE, max_output_tokens=2048)
+
+    result = grade_puzzle(LLMAgent(model), ONE_MOVE, condition)
+
+    # First attempt at the condition's cap, then the ladder widens it.
+    assert model.caps == [2048, 4096]
+    assert result.solved
+    # The failed attempt stays in the audit but is not an illegal chess answer.
+    assert result.illegal_attempts == 0
+    assert _budget_retries(result.turns) == 1
+
+
+def test_budget_retries_stop_and_score_a_loss_when_the_cap_never_helps():
+    model = BudgetModel(needs=10**9, answer=_answer("a1a8", "unreachable"))
+    condition = replace(HEADLINE, max_output_tokens=2048)
+
+    result = grade_puzzle(LLMAgent(model), ONE_MOVE, condition)
+
+    # One attempt per rung of the ladder, then the puzzle is scored, not retried.
+    assert model.caps == [2048, 4096, 8192]
+    assert not result.solved
+    assert result.failure_reason == "illegal"
 
 
 def test_a_puzzle_that_always_kills_the_run_is_eventually_scored_a_loss():

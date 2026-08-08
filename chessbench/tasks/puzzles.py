@@ -182,8 +182,40 @@ def _turn_record(
 #: How many times a single puzzle may kill the run with an infrastructure error
 #: before it is scored as a loss. A dead run resumes from its checkpoint onto the
 #: same puzzle, so a puzzle that always kills the provider stream would otherwise
-#: restart forever and the suite would never advance past it.
-MAX_INFRA_FAILURES = 6
+#: restart forever and the suite would never advance past it. Kept low: each
+#: failure costs a full relaunch, and a puzzle that has dropped the stream twice
+#: is not going to start behaving.
+MAX_INFRA_FAILURES = 2
+
+#: Output caps to retry with when a generation ends at `length` -- the model
+#: spent its whole budget reasoning and never emitted a move. Retrying the same
+#: cap just reproduces it, so each retry gets more room. Used as multipliers of
+#: the condition's cap, or as absolute values when the condition leaves it to
+#: the provider (0). Exhausting the ladder scores the puzzle as a loss.
+BUDGET_RETRY_MULTIPLIERS = (2, 4)
+BUDGET_RETRY_ABSOLUTE = (131072, 262144)
+
+
+def _budget_for(condition: Condition, retries: int) -> int | None:
+    """Output cap for this attempt, widened once per `length` failure."""
+    if retries <= 0:
+        return None
+    step = min(retries, len(BUDGET_RETRY_MULTIPLIERS)) - 1
+    base = condition.max_output_tokens
+    if base:
+        return int(base) * BUDGET_RETRY_MULTIPLIERS[step]
+    # The condition defers to the provider's default, so there is nothing to
+    # scale -- name a concrete ceiling instead.
+    return BUDGET_RETRY_ABSOLUTE[step]
+
+
+def _budget_retries(turns: list[dict[str, object]]) -> int:
+    """How many `length` failures this puzzle has already burned a retry on."""
+    return sum(
+        1
+        for turn in turns
+        if turn.get("finish_reason") == "length" and turn.get("model_error")
+    )
 
 
 def _infra_failures(turns: list[dict[str, object]]) -> int:
@@ -326,6 +358,7 @@ def grade_puzzle(
         turns: list[dict[str, object]] = []
         k = 0
         attempts_used = 0
+        budget_retries = 0
         feedback: str | None = None
     else:
         board = chess.Board(checkpoint.board_fen)
@@ -353,6 +386,9 @@ def grade_puzzle(
                 if reply_index < len(resume_line):
                     history_uci.append(resume_line[reply_index])
         attempts_used = checkpoint.attempts_used
+        # Derived from the persisted turns so the ladder is not restarted from
+        # the beginning every time the run is relaunched onto this puzzle.
+        budget_retries = _budget_retries(turns)
         feedback = checkpoint.illegal_feedback
         restore = getattr(agent, "restore_puzzle", None)
         if callable(restore):
@@ -440,6 +476,7 @@ def grade_puzzle(
                 history_san=list(history_san),
                 history_uci=list(history_uci),
                 illegal_feedback=feedback,
+                token_budget=_budget_for(condition, budget_retries),
             )
             empty_completion_error: str | None = None
             try:
@@ -448,6 +485,19 @@ def grade_puzzle(
                 # A normally completed generation with no visible answer is a
                 # model output, not an infrastructure outage. Preserve its
                 # provider audit and score it like any other unparseable move.
+                #
+                # `length` is the exception: the model never got to answer
+                # because it spent the whole budget reasoning. Retrying the same
+                # cap reproduces it exactly, so give it more room before scoring.
+                if ctx.last_finish_reason == "length" and budget_retries < len(
+                    BUDGET_RETRY_MULTIPLIERS
+                ):
+                    turns.append(
+                        _turn_record(k, ctx, None, model_error=str(exc))
+                    )
+                    budget_retries += 1
+                    persist()
+                    continue
                 raw = ""
                 empty_completion_error = str(exc)
             except ModelError as exc:
