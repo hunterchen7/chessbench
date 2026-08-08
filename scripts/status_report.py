@@ -64,6 +64,32 @@ def live_ratings() -> dict[str, tuple[float, float, int]]:
     return out
 
 
+def live_processes() -> set[tuple[str, str, str]]:
+    """(model, effort, seed) for every rate-model process currently running.
+
+    A run row stays 'running' in the database when its process dies, so the row
+    alone cannot tell a slow puzzle from a dead run -- only the process can.
+    Model labels are slugified to match variant keys (``muse-spark-1.2`` ->
+    ``muse-spark-1-2``).
+    """
+    out: set[tuple[str, str, str]] = set()
+    try:
+        ps = subprocess.run(
+            ["ps", "-eo", "command"], capture_output=True, text=True, timeout=30
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return out
+    pattern = re.compile(r"(\S+)\s+--reasoning\s+(\S+)\s+--seed\s+(\d+)")
+    for line in ps.splitlines():
+        if "rate-model" not in line:
+            continue
+        found = pattern.search(line)
+        if found:
+            model, effort, seed = found.groups()
+            out.add((model.replace(".", "-"), effort, seed))
+    return out
+
+
 def label_to_log(name: str, effort: str, seed: object) -> str:
     """Map a variant to its keepalive log stem (the spec's label).
 
@@ -105,7 +131,8 @@ def main() -> int:
         """SELECT run_id, variant_key, status, completed_items, cost_usd,
                   prompt_tokens, completion_tokens, reasoning_tokens, summary_json,
                   json_extract(protocol_json,'$.selection.seed') AS seed,
-                  (julianday('now')-julianday(updated_at))*60 AS min_ago
+                  -- julianday() differences are in days, so minutes is *1440.
+                  (julianday('now')-julianday(updated_at))*1440 AS min_ago
            FROM benchmark_run
            WHERE suite_name='rated-lichess-v1'
              AND (julianday('now')-julianday(updated_at))*24 < ?
@@ -137,7 +164,9 @@ def main() -> int:
 
     tot = {"done": 0, "delta": 0, "cost": 0.0, "tok": 0, "runs": 0, "complete": 0}
     state_runs = {}
-    stalled = []
+    stalled: list[str] = []
+    slow: list[str] = []
+    procs = live_processes()
     stale: list[tuple[str, int, float]] = []
     done_groups: dict[tuple[str, str], list[tuple[object, float, float]]] = {}
     for (rid, vk, status, done, cost, ptok, ctok, rtok, summary, seed, min_ago) in rows:
@@ -170,9 +199,14 @@ def main() -> int:
             tot["delta"] += delta
         if done >= args.target or status == "completed":
             tot["complete"] += 1
-        # A running row that has not advanced since the last report is suspect.
-        if status == "running" and delta == 0 and min_ago and min_ago > 20:
-            stalled.append(label)
+        # A row still marked running with no process behind it is a dead run the
+        # supervisor has not relaunched yet -- the one case that needs a human.
+        if status == "running" and (name, effort, str(seed)) not in procs:
+            stalled.append(f"{label} (no process)")
+        # Long xhigh puzzles legitimately take 45+ min, so only flag a gap that
+        # exceeds --request-total-timeout (7200s), which no single turn can.
+        elif status == "running" and min_ago and min_ago > 120:
+            slow.append(f"{label} ({min_ago/60:.1f}h since last puzzle)")
 
         if status == "completed" or done >= args.target:
             # Finished runs are summarised above the table, not repeated row by row.
@@ -253,7 +287,9 @@ def main() -> int:
         print(f"  {log.stem}: {restarts} launches, {done_n} complete"
               + (f", {gave_up} GAVE UP" if gave_up else ""))
     if stalled:
-        print(f"  STALLED (no progress since last report): {', '.join(stalled)}")
+        print(f"  STALLED (running row, no process): {', '.join(stalled)}")
+    if slow:
+        print(f"  SLOW (past the request timeout): {', '.join(slow)}")
 
     # Two reports firing close together would otherwise reset the baseline and
     # show every run as "+0". Keep the older baseline unless enough time passed.
