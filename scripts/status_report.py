@@ -107,6 +107,43 @@ def label_to_log(name: str, effort: str, seed: object) -> str:
     return f"{stem}-{effort}-s{seed}"
 
 
+def contamination(con: sqlite3.Connection, hours: float) -> str:
+    """Losses where the model never produced a usable answer, per run.
+
+    These are scored as losses but measure the provider, not chess ability, so
+    they deflate a rating. A provider error on an earlier turn does not count --
+    if a later turn returned a real move the loss is the model's own. The
+    infra-failure cap converts a blocked puzzle into one of these, so this is
+    the number that says whether the cap is buying liveness too cheaply.
+    """
+    last = "'$.turns[' || (json_array_length(a.result_json,'$.turns')-1) || '].%s'"
+    rows = con.execute(
+        f"""SELECT r.variant_key, json_extract(r.protocol_json,'$.selection.seed'),
+                   COUNT(*),
+                   SUM(CASE WHEN NOT json_extract(a.result_json,'$.solved')
+                             AND json_array_length(a.result_json,'$.turns') > 0
+                             AND json_extract(a.result_json, {last % 'model_error'})
+                                 IS NOT NULL
+                             AND json_extract(a.result_json, {last % 'parsed_move'})
+                                 IS NULL
+                            THEN 1 ELSE 0 END)
+            FROM puzzle_attempt a JOIN benchmark_run r ON r.run_id=a.run_id
+            WHERE r.suite_name='rated-lichess-v1'
+              AND (julianday('now')-julianday(r.updated_at))*24 < ?
+            GROUP BY r.run_id""",
+        (hours,),
+    ).fetchall()
+    dirty = [(vk.split("--")[0], seed, bad, n) for vk, seed, n, bad in rows if bad]
+    total = sum(bad for _, _, bad, _ in dirty)
+    attempts = sum(n for _, _, n, _ in rows)
+    if not attempts:
+        return "no-answer losses: none"
+    worst = sorted(dirty, key=lambda x: x[2] / x[3], reverse=True)[:3]
+    detail = ", ".join(f"{name}/s{seed} {bad}/{n}" for name, seed, bad, n in worst)
+    return (f"no-answer losses: {total}/{attempts} ({100*total/attempts:.1f}%)"
+            + (f" · worst: {detail}" if detail else ""))
+
+
 def rating_of(summary: str | None) -> tuple[float | None, float | None, bool]:
     if not summary:
         return None, None, False
@@ -290,6 +327,7 @@ def main() -> int:
         print(f"  STALLED (running row, no process): {', '.join(stalled)}")
     if slow:
         print(f"  SLOW (past the request timeout): {', '.join(slow)}")
+    print("  " + contamination(con, args.hours))
 
     # Two reports firing close together would otherwise reset the baseline and
     # show every run as "+0". Keep the older baseline unless enough time passed.
