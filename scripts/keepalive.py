@@ -47,7 +47,6 @@ def build_cmd(run: dict, defaults: dict) -> list[str]:
     cmd = [
         sys.executable, "-m", "chessbench", "rate-model",
         "--model", str(cfg["model"]),
-        "--reasoning", str(cfg["reasoning"]),
         "--seed", str(cfg.get("seed", 0)),
         "--target-rd", str(cfg.get("target_rd", 77)),
         "--min-puzzles", str(cfg.get("min_puzzles", 50)),
@@ -60,6 +59,12 @@ def build_cmd(run: dict, defaults: dict) -> list[str]:
         "--out-dir", str(cfg.get("out_dir", "runs/exports")),
         "--progress", "1",
     ]
+    # "default" means send no effort at all, which is the only honest setting for
+    # a model whose effort control is not reasoning_effort (Nemotron 3 uses
+    # chat_template_kwargs, and silently ignores reasoning_effort). Passing one
+    # anyway would mint a variant labelled with an effort that never applied.
+    if str(cfg["reasoning"]).lower() != "default":
+        cmd += ["--reasoning", str(cfg["reasoning"])]
     for provider in cfg.get("provider_only", []) or []:
         cmd += ["--provider-only", str(provider)]
     for provider in cfg.get("provider_order", []) or []:
