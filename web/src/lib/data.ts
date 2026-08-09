@@ -771,16 +771,40 @@ export async function loadDataset(): Promise<Dataset> {
 
 export async function loadRun(file: string): Promise<Run> {
   const base = await resolveApiBase()
-  const raw = await fetchJSON<Record<string, unknown>>(
-    base ? `${base}/runs/${encodeURIComponent(file)}` : `${DATA}runs/${file}`,
-  )
+  const runUrl = base ? `${base}/runs/${encodeURIComponent(file)}` : `${DATA}runs/${file}`
+  const raw = await fetchJSON<Record<string, unknown>>(runUrl)
+  const firstItems = (raw.items as PuzzleItem[] | undefined) ?? []
+  const itemPage = raw.item_page as {
+    limit?: number
+    total?: number
+    next_offset?: number | null
+  } | undefined
+  let items = firstItems
+  if (base && itemPage?.next_offset != null && itemPage.limit && itemPage.total) {
+    const offsets: number[] = []
+    for (let offset = itemPage.next_offset; offset < itemPage.total; offset += itemPage.limit) {
+      offsets.push(offset)
+    }
+    const pages: PuzzleItem[][] = []
+    const concurrency = 4
+    for (let index = 0; index < offsets.length; index += concurrency) {
+      const batch = await Promise.all(offsets.slice(index, index + concurrency).map(async (offset) => {
+        const page = await fetchJSON<Record<string, unknown>>(
+          `${runUrl}?item_offset=${offset}&item_limit=${itemPage.limit}`,
+        )
+        return (page.items as PuzzleItem[] | undefined) ?? []
+      }))
+      pages.push(...batch)
+    }
+    items = firstItems.concat(...pages)
+  }
   const meta = normalizeIndex(raw)
   return {
     ...meta,
     schema: String(raw.schema ?? "chessbench.run.v1"),
     themes: (raw.themes as Run["themes"] | undefined) ?? [],
     category_ratings: (raw.category_ratings as Run["category_ratings"] | undefined) ?? [],
-    items: (raw.items as PuzzleItem[] | undefined) ?? [],
+    items,
   }
 }
 

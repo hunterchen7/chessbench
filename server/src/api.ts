@@ -5,6 +5,7 @@ import { PUZZLE_RATING_PRIOR, PUZZLE_RATING_PROVISIONAL_CI_WIDTH } from "./db"
 import { includesTournaments } from "./export_filters"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
+import { runItemPage } from "./run_pagination"
 import {
   parseInlineRunItemPayload,
   parseRunItemPayloadReference,
@@ -220,10 +221,14 @@ async function storedRunItemPayload(
   return reassembleRunItemPayload(descriptor, results ?? [])
 }
 
-async function runItems(env: Env, runId: string): Promise<unknown[]> {
+async function runItems(env: Env, runId: string, offset: number, limit: number): Promise<unknown[]> {
   const { results } = await env.DB.prepare(
-    `SELECT run_id, item_id, payload_json FROM benchmark_items_v2 WHERE run_id=? ORDER BY sequence`,
-  ).bind(runId).all<StoredRunItemPayloadRow>()
+    `SELECT run_id, item_id, payload_json
+       FROM benchmark_items_v2
+      WHERE run_id=?
+      ORDER BY sequence
+      LIMIT ? OFFSET ?`,
+  ).bind(runId, limit, offset).all<StoredRunItemPayloadRow>()
   return Promise.all((results ?? []).map((item) => storedRunItemPayload(env, item)))
 }
 
@@ -255,15 +260,27 @@ export async function getIndex(env: Env): Promise<Response> {
 export async function getRun(env: Env, id: string, req: Request): Promise<Response> {
   const row = await env.DB.prepare(`${RUN_SELECT} WHERE r.run_id=?`).bind(id).first<RunRow>()
   if (!row) return error(404, "run not found")
-  const wantsPrivate = new URL(req.url).searchParams.get("include_private") === "1"
+  const url = new URL(req.url)
+  const wantsPrivate = url.searchParams.get("include_private") === "1"
   if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
   const ownerAccess = isPrivateSuite(row) && wantsPrivate
-  const items = !isPrivateSuite(row) || ownerAccess ? await runItems(env, id) : []
+  const canReadItems = !isPrivateSuite(row) || ownerAccess
+  const { offset, limit } = runItemPage(url)
+  const total = canReadItems ? row.completed_items : 0
+  const items = canReadItems ? await runItems(env, id, offset, limit) : []
+  const nextOffset = offset + items.length < total ? offset + items.length : null
   return json({
     schema: "chessbench.run.v2",
     ...publicRun(row),
     disclosure: disclosure(row, ownerAccess),
     items,
+    item_page: {
+      offset,
+      limit,
+      count: items.length,
+      total,
+      next_offset: nextOffset,
+    },
   })
 }
 
@@ -470,7 +487,9 @@ export async function getExport(env: Env, url: URL, req: Request): Promise<Respo
   const rows = results ?? []
   const runs = await Promise.all(rows.map(async (row) => {
     const ownerAccess = isPrivateSuite(row) && wantsPrivate
-    const allItems = !isPrivateSuite(row) || ownerAccess ? await runItems(env, row.run_id) : []
+    const allItems = !isPrivateSuite(row) || ownerAccess
+      ? await runItems(env, row.run_id, 0, row.completed_items)
+      : []
     const items = puzzle ? allItems.filter((item) => (item as { puzzle_id?: string }).puzzle_id === puzzle) : allItems
     return { ...publicRun(row), disclosure: disclosure(row, ownerAccess), items }
   }))
