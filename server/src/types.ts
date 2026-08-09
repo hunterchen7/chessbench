@@ -60,6 +60,7 @@ export interface RunStartDoc {
   } | null
   total_items: number
   model_moves?: number
+  move_completion_tokens?: number
   protocol?: Record<string, unknown> | null
   created_at?: string
 }

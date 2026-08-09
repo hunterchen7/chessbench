@@ -14,6 +14,7 @@ export interface CostPerformancePoint {
   completionTokens: number
   reasoningTokens: number
   modelMoves: number
+  moveCompletionTokens: number
   tokensPerMove: number | null
   attempts: number
   solved: number
@@ -77,6 +78,7 @@ export function costPerformancePoints(aggregates: RatedRunAggregate[]): CostPerf
     const completionTokens = complete.reduce((sum, run) => sum + (run.usage?.completion_tokens ?? 0), 0)
     const reasoningTokens = complete.reduce((sum, run) => sum + (run.usage?.reasoning_tokens ?? 0), 0)
     const modelMoves = complete.reduce((sum, run) => sum + (run.summary.model_moves ?? 0), 0)
+    const moveCompletionTokens = complete.reduce((sum, run) => sum + (run.summary.move_completion_tokens ?? 0), 0)
     const ratings = complete.map((run) => run.summary.puzzle_performance_rating!.rating)
     const deviations = complete.flatMap((run) => {
       const value = run.summary.puzzle_performance_rating?.rating_deviation
@@ -101,7 +103,10 @@ export function costPerformancePoints(aggregates: RatedRunAggregate[]): CostPerf
       completionTokens,
       reasoningTokens,
       modelMoves,
-      tokensPerMove: completionTokens > 0 && modelMoves > 0 ? completionTokens / modelMoves : null,
+      moveCompletionTokens,
+      // Tokens of the played moves over those same moves. Using the run total
+      // here would charge failed requests and unplayable generations to them.
+      tokensPerMove: moveCompletionTokens > 0 && modelMoves > 0 ? moveCompletionTokens / modelMoves : null,
       attempts,
       solved: complete.reduce((sum, run) => sum + run.summary.solved, 0),
       runCount: complete.length,

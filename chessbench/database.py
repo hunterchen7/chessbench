@@ -1449,18 +1449,27 @@ class BenchmarkStore:
         # move divides real token spend by failed requests: one opus-5 run
         # retried a single puzzle 2,208 times on 402s and reported 250
         # tokens/move instead of ~7,600.
-        # A turn counts as a move when the model actually produced something:
-        # billed completion tokens, or a response body when the provider did not
-        # report usage. A failed request has neither.
-        model_moves = self._db.execute(
-            """SELECT COALESCE(SUM((
+        # A move is a turn that actually put a legal move on the board. Turns
+        # that failed outright (no tokens, no body) and turns that generated but
+        # produced nothing playable are both excluded, and `move_completion_tokens`
+        # counts only the tokens of the moves that were played -- so tokens/move
+        # describes the moves it claims to describe.
+        #
+        # The two totals differ a lot on unreliable models: campaign-wide, 12.7%
+        # of generated tokens went to turns that never yielded a legal move.
+        model_moves, move_completion_tokens = self._db.execute(
+            """SELECT
+                 COALESCE(SUM((
                    SELECT COUNT(*) FROM json_each(a.result_json, '$.turns') t
-                   WHERE COALESCE(json_extract(t.value, '$.usage.completion_tokens'), 0) > 0
-                      OR COALESCE(json_extract(t.value, '$.raw_response'), '') <> ''
-                 )), 0)
-                 FROM puzzle_attempt a WHERE a.run_id=?""",
+                   WHERE json_extract(t.value, '$.parsed_move') IS NOT NULL)), 0),
+                 COALESCE(SUM((
+                   SELECT COALESCE(SUM(
+                       COALESCE(json_extract(t.value, '$.usage.completion_tokens'), 0)), 0)
+                     FROM json_each(a.result_json, '$.turns') t
+                   WHERE json_extract(t.value, '$.parsed_move') IS NOT NULL)), 0)
+               FROM puzzle_attempt a WHERE a.run_id=?""",
             (run_id,),
-        ).fetchone()[0]
+        ).fetchone()
         return {
             "run_id": row["run_id"],
             "track": "esoteric" if row["track"] == "composed" else row["track"],
@@ -1476,6 +1485,7 @@ class BenchmarkStore:
             else None,
             "total_items": row["total_items"],
             "model_moves": int(model_moves or 0),
+            "move_completion_tokens": int(move_completion_tokens or 0),
             "protocol": json.loads(row["protocol_json"])
             if row["protocol_json"]
             else None,

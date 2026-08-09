@@ -953,7 +953,9 @@ function InspectorRunLinks({ point, metric }: { point: ChartPoint; metric: Effic
         <ArrowUpRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
       </a>) : point.runs.map((run) => {
         const estimate = run.summary.puzzle_performance_rating
-        const runTokensPerMove = (run.summary.model_moves ?? 0) > 0 ? (run.usage?.completion_tokens ?? 0) / run.summary.model_moves : null
+        // Tokens of the moves that were played, over those same moves -- dividing the
+        // run's total tokens here would charge failed and unplayable generations to them.
+        const runTokensPerMove = (run.summary.model_moves ?? 0) > 0 ? (run.summary.move_completion_tokens ?? run.usage?.completion_tokens ?? 0) / run.summary.model_moves : null
         return <a
           key={run.run_id}
           href={`#${runPath({ ...point, representative: run })}`}

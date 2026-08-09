@@ -178,6 +178,7 @@ export interface RunSummary {
   max_points: number
   cost_usd: number | null
   model_moves: number
+  move_completion_tokens: number
   puzzle_performance_rating?: {
     rating: number
     stderr: number | null
@@ -698,6 +699,7 @@ function normalizeSummary(value: Partial<RunSummary> & Record<string, unknown>):
     max_points: Number(value.max_points ?? n),
     cost_usd: value.cost_usd == null ? null : Number(value.cost_usd),
     model_moves: Number(value.model_moves ?? 0),
+    move_completion_tokens: Number(value.move_completion_tokens ?? 0),
     puzzle_performance_rating: value.puzzle_performance_rating as RunSummary["puzzle_performance_rating"],
   }
 }

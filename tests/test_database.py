@@ -443,8 +443,8 @@ def test_cloudflare_outbox_only_marks_explicit_deliveries(tmp_path):
         run = store.start_run(spec)
         result = _result("p1")
         result.turns = [
-            {"solver_ply": 0, "raw_response": "g1f2"},
-            {"solver_ply": 1, "raw_response": "f2e3"},
+            {"solver_ply": 0, "raw_response": "g1f2", "parsed_move": "g1f2"},
+            {"solver_ply": 1, "raw_response": "f2e3", "parsed_move": "f2e3"},
         ]
         store.save_puzzle_result(run.run_id, 0, p1, result)
         start = store.run_start_document(run.run_id)
@@ -464,18 +464,20 @@ def test_model_moves_excludes_turns_where_the_provider_never_generated(tmp_path)
         run = store.start_run(_spec())
         result = _result("p1")
         result.turns = [
-            {"solver_ply": 0, "raw_response": "g1f2",
+            {"solver_ply": 0, "raw_response": "g1f2", "parsed_move": "g1f2",
              "usage": {"completion_tokens": 900}},
             # provider failure: audited, but no tokens and no body
             {"solver_ply": 0, "raw_response": None, "model_error": "HTTP 402",
              "usage": {}},
             {"solver_ply": 0, "raw_response": None, "model_error": "HTTP 402"},
-            # generated a body but the provider reported no usage
-            {"solver_ply": 1, "raw_response": "f2e3"},
+            # generated a body but it was not a playable move
+            {"solver_ply": 1, "raw_response": "not a move",
+             "usage": {"completion_tokens": 400}},
         ]
         store.save_puzzle_result(run.run_id, 0, p1, result)
         start = store.run_start_document(run.run_id)
-        assert start["model_moves"] == 2, "only the two real generations count"
+        assert start["model_moves"] == 1, "only the turn that played a move counts"
+        assert start["move_completion_tokens"] == 900, "and only that turn's tokens"
         assert len(store.unsynced_item_documents(run.run_id)) == 1
         store.mark_item_synced(run.run_id, "p1")
         assert store.unsynced_item_documents(run.run_id) == []

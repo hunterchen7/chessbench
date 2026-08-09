@@ -46,6 +46,7 @@ interface RunRow {
   completion_tokens: number
   reasoning_tokens: number
   model_moves: number
+  move_completion_tokens: number
   cache_read_tokens: number
   cache_write_tokens: number
   uncached_prompt_tokens: number
@@ -179,6 +180,7 @@ function publicRun(row: RunRow) {
       max_points: row.max_points,
       cost_usd: row.cost_usd,
       model_moves: row.model_moves,
+      move_completion_tokens: row.move_completion_tokens,
       puzzle_performance_rating: puzzleRating,
     },
     usage: {
