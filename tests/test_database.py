@@ -450,6 +450,32 @@ def test_cloudflare_outbox_only_marks_explicit_deliveries(tmp_path):
         start = store.run_start_document(run.run_id)
         assert start["model_variant"]["reasoning"]["max_tokens"] == 512
         assert start["model_moves"] == 2
+
+
+def test_model_moves_excludes_turns_where_the_provider_never_generated(tmp_path):
+    """A failed request is audited as a turn but is not a move.
+
+    Dividing token spend by every turn made one opus-5 run -- which retried a
+    single puzzle 2,208 times on HTTP 402 -- report 250 tokens/move instead of
+    ~7,600.
+    """
+    p1 = Puzzle("p1", "6k1/8/8/8/8/8/8/6K1 w - - 0 1", ["g1f2", "g8f7"], 1200)
+    with BenchmarkStore(tmp_path / "moves.db") as store:
+        run = store.start_run(_spec())
+        result = _result("p1")
+        result.turns = [
+            {"solver_ply": 0, "raw_response": "g1f2",
+             "usage": {"completion_tokens": 900}},
+            # provider failure: audited, but no tokens and no body
+            {"solver_ply": 0, "raw_response": None, "model_error": "HTTP 402",
+             "usage": {}},
+            {"solver_ply": 0, "raw_response": None, "model_error": "HTTP 402"},
+            # generated a body but the provider reported no usage
+            {"solver_ply": 1, "raw_response": "f2e3"},
+        ]
+        store.save_puzzle_result(run.run_id, 0, p1, result)
+        start = store.run_start_document(run.run_id)
+        assert start["model_moves"] == 2, "only the two real generations count"
         assert len(store.unsynced_item_documents(run.run_id)) == 1
         store.mark_item_synced(run.run_id, "p1")
         assert store.unsynced_item_documents(run.run_id) == []

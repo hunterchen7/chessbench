@@ -1443,9 +1443,22 @@ class BenchmarkStore:
         ).fetchone()
         if row is None:
             raise KeyError(run_id)
+        # Count only turns where the model actually generated. A provider
+        # failure (HTTP 402/5xx, dropped stream) is recorded as a turn for the
+        # audit trail but produced no tokens and no move, so counting it as a
+        # move divides real token spend by failed requests: one opus-5 run
+        # retried a single puzzle 2,208 times on 402s and reported 250
+        # tokens/move instead of ~7,600.
+        # A turn counts as a move when the model actually produced something:
+        # billed completion tokens, or a response body when the provider did not
+        # report usage. A failed request has neither.
         model_moves = self._db.execute(
-            """SELECT COALESCE(SUM(json_array_length(json_extract(result_json, '$.turns'))), 0)
-                 FROM puzzle_attempt WHERE run_id=?""",
+            """SELECT COALESCE(SUM((
+                   SELECT COUNT(*) FROM json_each(a.result_json, '$.turns') t
+                   WHERE COALESCE(json_extract(t.value, '$.usage.completion_tokens'), 0) > 0
+                      OR COALESCE(json_extract(t.value, '$.raw_response'), '') <> ''
+                 )), 0)
+                 FROM puzzle_attempt a WHERE a.run_id=?""",
             (run_id,),
         ).fetchone()[0]
         return {
