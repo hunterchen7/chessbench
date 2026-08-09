@@ -1,6 +1,6 @@
 import { Fragment, type KeyboardEvent, useCallback, useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom"
-import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Info, Layers3, Play, Scale, X } from "lucide-react"
+import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Layers3, Play, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
 import { loadRun, type PuzzleItem, type RatedSessionProtocol, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
 import { formatRatingDeviation, MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
@@ -59,13 +59,6 @@ function terminationStatusLabel(termination: RunTermination) {
   if (termination.kind === "rating_settled") return "Settled"
   if (termination.kind === "operator_rounded") return "Rounded"
   return "Stopped"
-}
-
-function terminationTitle(termination: RunTermination) {
-  if (termination.kind === "rating_settled") return "Rating uncertainty reached the stopping target"
-  if (termination.kind === "operator_rounded") return "Rating uncertainty rounded to the stopping target"
-  if (termination.kind === "maximum_puzzles") return "Completed at the rated-session safety cap"
-  return "Completed by the consecutive-miss stopping rule"
 }
 
 function Stat({ label, value, note, icon: Icon, loading = false }: { label: string; value: string; note: string; icon: typeof Scale; loading?: boolean }) {
@@ -516,7 +509,7 @@ export function ModelDetail() {
             </button>
           })}
         </div>
-        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,300px)_minmax(0,420px)_1fr]">
+        <div className="grid items-end gap-3 border-t pt-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,300px)_minmax(0,420px)]">
           <div className="space-y-1.5">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Reasoning configuration</div>
             <DropdownMenu>
@@ -561,12 +554,9 @@ export function ModelDetail() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex items-start gap-2 rounded-lg border border-dashed px-3 py-2.5 text-xs leading-relaxed text-muted-foreground sm:col-span-2 xl:col-span-1"><Info className="mt-0.5 size-3.5 shrink-0" /><span>Puzzles are isolated from one another. Conversation state persists only between moves of the same puzzle.</span></div>
         </div>
       </CardContent>
     </Card>
-
-    {meta.termination ? <Card className={cn(meta.termination.kind === "rating_settled" ? "border-emerald-500/35 bg-emerald-500/[0.055]" : "border-amber-500/35 bg-amber-500/[0.055]")}><CardContent className="flex gap-3 py-5"><Info className={cn("mt-0.5 size-5 shrink-0", meta.termination.kind === "rating_settled" ? "text-emerald-600 dark:text-emerald-300" : "text-amber-600 dark:text-amber-300")} /><div><div className="font-semibold">{terminationTitle(meta.termination)}</div><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{meta.termination.message}</p>{meta.termination.kind === "consecutive_unsolved" ? <p className="mt-1 text-xs text-muted-foreground">The fixed suite keeps its full denominator: {meta.termination.unattempted} unattempted tail puzzles receive zero points, while the answer sheet preserves only genuine model responses.</p> : meta.termination.kind === "operator_rounded" ? <p className="mt-1 text-xs text-muted-foreground">The exact RD remains stored for auditability; only its rounded display was accepted as the stopping target. No synthetic results were added.</p> : <p className="mt-1 text-xs text-muted-foreground">Adaptive sessions contain only genuine attempts. Stopping at convergence does not add synthetic losses or change the frozen puzzle ratings.</p>}</div></CardContent></Card> : null}
 
     <section className={`grid gap-3 sm:grid-cols-2 ${meta.track === "puzzle" ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
       <Stat icon={Scale} label="Points" value={pointsText(meta.summary)} note="fractional prefix credit" />
@@ -578,7 +568,7 @@ export function ModelDetail() {
 
     {modeRuns.filter((item) => item.run).length > 1 && <Card><CardHeader><CardTitle className="flex flex-wrap items-center gap-2 text-base">Prompt-method comparison <ResponseStyleBadge condition={meta.condition} compact /></CardTitle></CardHeader><CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{modeRuns.map(({ mode, run: candidate }) => <button key={mode.n} type="button" disabled={!candidate} onClick={() => candidate && selectRun(candidate.run_id)} className={cn("cursor-pointer rounded-lg border p-4 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:cursor-not-allowed disabled:hover:translate-y-0", candidate?.run_id === meta.run_id && "border-primary/40 bg-primary/[0.035] shadow-sm")}><div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{mode.displayN}. {mode.name}</div><div className="mt-2 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · click to view` : "not run"}</div></button>)}</CardContent></Card>}
 
-    {meta.track === "puzzle" && activeMode && <Card><CardHeader><CardTitle className="text-base">Response-style ablation · Method {activeMode.displayN} {activeMode.name}</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{responseRuns.map(({ style, run: candidate }) => <button type="button" disabled={!candidate} onClick={() => candidate && selectRun(candidate.run_id)} key={style.key} className={cn("cursor-pointer rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:cursor-not-allowed disabled:hover:translate-y-0", style.key === activeResponseStyle.key && "border-primary/35 bg-primary/[0.025] shadow-sm")}><ResponseStyleBadge condition={style.key === "move_only" ? "plain-text-v1" : "json-rationale"} /><div className="mt-3 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · ${candidate.status} · click to view` : "not run for this suite"}</div></button>)}</CardContent></Card>}
+    {meta.track === "puzzle" && activeMode && responseRuns.filter(({ run: candidate }) => candidate).length > 1 && <Card><CardHeader><CardTitle className="text-base">Response-style ablation · Method {activeMode.displayN} {activeMode.name}</CardTitle></CardHeader><CardContent className="grid gap-2 sm:grid-cols-2">{responseRuns.map(({ style, run: candidate }) => <button type="button" disabled={!candidate} onClick={() => candidate && selectRun(candidate.run_id)} key={style.key} className={cn("cursor-pointer rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:border-foreground/25 hover:shadow-sm disabled:cursor-not-allowed disabled:hover:translate-y-0", style.key === activeResponseStyle.key && "border-primary/35 bg-primary/[0.025] shadow-sm")}><ResponseStyleBadge condition={style.key === "move_only" ? "plain-text-v1" : "json-rationale"} /><div className="mt-3 font-mono text-xl font-semibold">{candidate ? pointsText(candidate.summary) : "—"}</div><div className="mt-1 text-xs text-muted-foreground">{candidate ? `${pct(candidate.summary.solve_rate)} complete · ${candidate.status} · click to view` : "not run for this suite"}</div></button>)}</CardContent></Card>}
 
     <Card>
       <CardHeader className="space-y-1"><CardTitle className="flex items-center gap-2 text-base"><GitCompareArrows className="size-4 text-violet-600" /> Suite comparison</CardTitle><p className="text-xs leading-relaxed text-muted-foreground">Same model configuration, prompt method, and response style across frozen test sets. Compare percentages and Puzzle Elo; raw points are only directly comparable when suite sizes match.</p></CardHeader>
