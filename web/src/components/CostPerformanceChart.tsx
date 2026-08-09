@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuItemIndicator, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 
 const WIDTH = 1300
 const HEIGHT = 520
@@ -468,36 +467,6 @@ function niceStep(range: number) {
 function runPath(point: ChartPoint) {
   if (isHumanPoint(point)) return `/human/${encodeURIComponent(point.runId)}`
   return `/model/${encodeURIComponent(point.representative.model_variant.key)}?run=${encodeURIComponent(point.representative.run_id)}`
-}
-
-function RunPickerSheet({ point, metric, onOpenChange }: { point: ChartPoint | null; metric: EfficiencyMetric; onOpenChange: (open: boolean) => void }) {
-  const title = point && isHumanPoint(point) ? HUMAN_LABEL : point?.representative.model_variant.display_name ?? "Choose a run"
-  return <Sheet open={point != null} onOpenChange={onOpenChange}>
-    <SheetContent className="w-[min(92vw,440px)] overflow-y-auto">
-      <SheetTitle className="pr-8 text-lg font-semibold">Choose a run</SheetTitle>
-      <SheetDescription className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        {title} has {point?.runCount ?? 0} settled run{point?.runCount === 1 ? "" : "s"} in this chart point. Choose the exact run you want to inspect.
-      </SheetDescription>
-      <div className="mt-5 space-y-2">
-        {point && isHumanPoint(point) ? point.profiles.map((profile) => <SheetClose asChild key={profile.run_id}>
-          <a href={`#${runPath({ ...point, runId: profile.run_id })}`} target="_blank" rel="noopener noreferrer" className="flex items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:border-fuchsia-500/40 hover:bg-fuchsia-500/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="min-w-0"><span className="block font-medium">Seed {profile.session.selector?.seed ?? "—"}</span><span className="mt-1 block text-xs text-muted-foreground">{profile.solved}/{profile.attempts} solved · rating {Math.round(profile.rating).toLocaleString()} · RD {profile.rating_deviation.toFixed(2)}</span><span className="mt-1 block font-mono text-[10px] text-muted-foreground">{profile.run_id}</span></span>
-            <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          </a>
-        </SheetClose>) : point?.runs.map((run) => {
-          const estimate = run.summary.puzzle_performance_rating
-          const runTokensPerMove = (run.summary.model_moves ?? 0) > 0 ? (run.usage?.completion_tokens ?? 0) / run.summary.model_moves : null
-          return <SheetClose asChild key={run.run_id}>
-            <a href={`#${runPath({ ...point, representative: run })}`} target="_blank" rel="noopener noreferrer" className="flex items-start justify-between gap-3 rounded-xl border p-3 transition-colors hover:border-sky-500/40 hover:bg-sky-500/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <span className="min-w-0"><span className="block font-medium">Seed {run.protocol.selection.seed} · {reasoningLabel(run.model_variant)}</span><span className="mt-1 block text-xs text-muted-foreground">{run.summary.solved}/{run.progress.completed} solved · rating {estimate ? Math.round(estimate.rating).toLocaleString() : "—"} · RD {estimate?.rating_deviation?.toFixed(2) ?? "—"} · {metric === "cost" ? formatCost(run.summary.cost_usd ?? 0) : runTokensPerMove == null ? "token use unavailable" : `${formatTokens(runTokensPerMove)} tokens/move`}</span><span className="mt-1 block font-mono text-[10px] text-muted-foreground">{run.run_id}</span></span>
-              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            </a>
-          </SheetClose>
-        })}
-      </div>
-      {point && !isHumanPoint(point) ? <p className="mt-4 rounded-lg border border-dashed p-3 text-xs leading-relaxed text-muted-foreground">The run page also includes a reasoning-configuration selector for moving between this model’s other reasoning levels.</p> : null}
-    </SheetContent>
-  </Sheet>
 }
 
 interface ModelVisibilityGroup {
@@ -963,8 +932,47 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
   </>
 })
 
+function InspectorRunLinks({ point, metric }: { point: ChartPoint; metric: EfficiencyMetric }) {
+  return <div className="mt-3 border-t pt-2">
+    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Runs</div>
+    <div className="mt-1.5 space-y-1.5">
+      {isHumanPoint(point) ? point.profiles.map((profile) => <a
+        key={profile.run_id}
+        href={`#${runPath({ ...point, runId: profile.run_id })}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex items-start justify-between gap-3 rounded-lg border bg-background/60 px-2.5 py-2 transition-colors hover:border-fuchsia-500/40 hover:bg-fuchsia-500/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="min-w-0">
+          <span className="block text-xs font-medium">Seed {profile.session.selector?.seed ?? "—"}</span>
+          <span className="mt-0.5 block text-[10px] text-muted-foreground">{profile.solved}/{profile.attempts} solved · {Math.round(profile.rating).toLocaleString()} ±{profile.rating_deviation.toFixed(2)}</span>
+          <span className="mt-0.5 block truncate font-mono text-[9px] text-muted-foreground">{profile.run_id}</span>
+        </span>
+        <ArrowUpRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+      </a>) : point.runs.map((run) => {
+        const estimate = run.summary.puzzle_performance_rating
+        const runTokensPerMove = (run.summary.model_moves ?? 0) > 0 ? (run.usage?.completion_tokens ?? 0) / run.summary.model_moves : null
+        return <a
+          key={run.run_id}
+          href={`#${runPath({ ...point, representative: run })}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-start justify-between gap-3 rounded-lg border bg-background/60 px-2.5 py-2 transition-colors hover:border-sky-500/40 hover:bg-sky-500/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span className="min-w-0">
+            <span className="block text-xs font-medium">Seed {run.protocol.selection.seed} · {reasoningLabel(run.model_variant)}</span>
+            <span className="mt-0.5 block text-[10px] text-muted-foreground">{run.summary.solved}/{run.progress.completed} solved · {estimate ? Math.round(estimate.rating).toLocaleString() : "—"} ±{estimate?.rating_deviation?.toFixed(2) ?? "—"} · {metric === "cost" ? formatCost(run.summary.cost_usd ?? 0) : runTokensPerMove == null ? "tokens unavailable" : `${formatTokens(runTokensPerMove)} tokens/move`}</span>
+            <span className="mt-0.5 block truncate font-mono text-[9px] text-muted-foreground">{run.run_id}</span>
+          </span>
+          <ArrowUpRight className="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+        </a>
+      })}
+    </div>
+  </div>
+}
+
 function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyMetric }) {
-  if (isHumanPoint(entry.point)) return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
+  if (isHumanPoint(entry.point)) return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
       <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE_MIN}–${HUMAN_HOURLY_RATE_MAX}/hour</div></div>
@@ -976,13 +984,13 @@ function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyM
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts}</dd>
     </dl>
-    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to choose a saved human run.</div>
+    <InspectorRunLinks point={entry.point} metric={metric} />
   </div>
   const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
-  return <div className="w-64 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
+  return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-      <div className="min-w-0"><div className="truncate text-sm font-semibold">{entry.point.representative.model_variant.display_name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{effort} reasoning · {entry.point.runCount} settled run{entry.point.runCount === 1 ? "" : "s"}</div></div>
+      <div className="min-w-0"><div className="truncate text-sm font-semibold">{entry.point.representative.model_variant.display_name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{effort} · {entry.point.runCount} settled run{entry.point.runCount === 1 ? "" : "s"}</div></div>
     </div>
     <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-xs">
       <dt className="text-muted-foreground">Glicko-2 rating</dt><dd className="font-mono font-semibold tabular-nums">{Math.round(entry.point.rating).toLocaleString()}</dd>
@@ -1000,16 +1008,16 @@ function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyM
       <dt className="text-muted-foreground">Record</dt><dd className="font-mono tabular-nums">{entry.point.solved}–{entry.point.attempts - entry.point.solved}</dd>
       <dt className="text-muted-foreground">Attempts</dt><dd className="font-mono tabular-nums">{entry.point.attempts.toLocaleString()}</dd>
     </dl>
-    <div className="mt-2 border-t pt-2 text-[10px] text-muted-foreground">Click to choose a contributing settled run.</div>
+    <InspectorRunLinks point={entry.point} metric={metric} />
   </div>
 }
 
 export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggregate[] }) {
   const { apiBase } = useData()
   const plotContainerRef = useRef<HTMLDivElement>(null)
+  const inspectorCloseTimerRef = useRef<number | null>(null)
   const [initialState] = useState(savedChartState)
   const [activeKey, setActiveKey] = useState<string | null>(null)
-  const [selectedPoint, setSelectedPoint] = useState<ChartPoint | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
   const [humanProfiles, setHumanProfiles] = useState<HumanTrainingProfile[]>([])
   const [metric, setMetric] = useState<EfficiencyMetric>(initialState.metric)
@@ -1024,6 +1032,10 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const [showLabels, setShowLabels] = useState(initialState.showLabels)
   const [showLegend, setShowLegend] = useState(initialState.showLegend)
   const [exporting, setExporting] = useState<ChartExportFormat | null>(null)
+
+  useEffect(() => () => {
+    if (inspectorCloseTimerRef.current != null) window.clearTimeout(inspectorCloseTimerRef.current)
+  }, [])
 
   useEffect(() => {
     try {
@@ -1249,7 +1261,21 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
   const active = chart?.plotted.find((entry) => entry.point.key === activeKey) ?? null
   const ratingFilterActive = effectiveRatingRange[0] > ratingBounds.min || effectiveRatingRange[1] < ratingBounds.max
   const filtersActive = modelSearch.trim().length > 0 || reasoningFilters.size > 0 || hiddenModelKeys.size > 0 || hiddenModelReasoningKeys.size > 0 || ratingFilterActive || (metric === "cost" && !showHuman)
-  const positionTooltip = (event: ReactPointerEvent<HTMLAnchorElement>) => {
+  const cancelInspectorClose = () => {
+    if (inspectorCloseTimerRef.current == null) return
+    window.clearTimeout(inspectorCloseTimerRef.current)
+    inspectorCloseTimerRef.current = null
+  }
+  const closeInspector = () => {
+    cancelInspectorClose()
+    setActiveKey(null)
+    setTooltipPosition(null)
+  }
+  const scheduleInspectorClose = () => {
+    cancelInspectorClose()
+    inspectorCloseTimerRef.current = window.setTimeout(closeInspector, 160)
+  }
+  const positionTooltip = (event: ReactPointerEvent<SVGGElement>) => {
     const container = plotContainerRef.current
     if (!container) return
     const bounds = container.getBoundingClientRect()
@@ -1448,43 +1474,63 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
             {chart.plotted.map((entry) => {
               const onFrontier = showFrontier && chart.frontierKeys.has(entry.point.key)
-              return <a
+              const pointActive = activeKey === entry.point.key
+              return <g
               key={entry.point.key}
-              href={`#${runPath(entry.point)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${metric === "cost" ? isHumanPoint(entry.point) ? `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE)} to ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE)} per 50 puzzles` : `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles` : `${formatTokens(isHumanPoint(entry.point) ? 0 : entry.point.tokensPerMove ?? 0)} generated tokens per model move`}`}
+              role="button"
+              tabIndex={0}
+              aria-controls="rating-efficiency-inspector"
+              aria-expanded={pointActive}
+              aria-label={`${isHumanPoint(entry.point) ? HUMAN_LABEL : entry.point.representative.model_variant.display_name}, ${Math.round(entry.point.rating)} Glicko-2 puzzle rating, ${metric === "cost" ? isHumanPoint(entry.point) ? `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MIN / HUMAN_HOURLY_RATE)} to ${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES * HUMAN_HOURLY_RATE_MAX / HUMAN_HOURLY_RATE)} per 50 puzzles` : `${formatCost(entry.point.costPerPuzzle * NORMALIZED_PUZZLES)} per 50 puzzles` : `${formatTokens(isHumanPoint(entry.point) ? 0 : entry.point.tokensPerMove ?? 0)} generated tokens per model move`}. Show runs.`}
               className="cursor-pointer outline-none"
-              onClick={(event) => {
-                event.preventDefault()
-                setSelectedPoint(entry.point)
+              onClick={() => {
+                cancelInspectorClose()
+                setActiveKey(entry.point.key)
+                positionTooltipAtPoint(entry)
               }}
-              onPointerEnter={(event) => { setActiveKey(entry.point.key); positionTooltip(event) }}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return
+                event.preventDefault()
+                cancelInspectorClose()
+                setActiveKey(entry.point.key)
+                positionTooltipAtPoint(entry)
+              }}
+              onPointerEnter={(event) => { cancelInspectorClose(); setActiveKey(entry.point.key); positionTooltip(event) }}
               onPointerMove={positionTooltip}
-              onPointerLeave={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
-              onFocus={() => { setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
-              onBlur={() => { setActiveKey((current) => current === entry.point.key ? null : current); setTooltipPosition(null) }}
+              onPointerLeave={scheduleInspectorClose}
+              onFocus={() => { cancelInspectorClose(); setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
+              onBlur={scheduleInspectorClose}
             >
               <g>
                 <circle cx={entry.x} cy={entry.y} r="15" fill="transparent" />
                 {onFrontier ? <circle cx={entry.x} cy={entry.y} r="8.5" fill="var(--card)" className="stroke-emerald-500" strokeWidth="2" opacity="0.9" vectorEffect="non-scaling-stroke" /> : null}
-                <circle cx={entry.x} cy={entry.y} r={activeKey === entry.point.key ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                {activeKey === entry.point.key ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
+                <circle cx={entry.x} cy={entry.y} r={pointActive ? 8 : 5.5} fill={entry.color} className="stroke-background transition-[r] duration-150 motion-reduce:transition-none" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                {pointActive ? <circle cx={entry.x} cy={entry.y} r="11" fill="none" stroke={entry.color} strokeWidth="1.25" opacity="0.45" vectorEffect="non-scaling-stroke" /> : null}
               </g>
-            </a>})}
+            </g>})}
           </svg>
           {active && tooltipPosition ? <div
-            className="pointer-events-none absolute z-20"
+            id="rating-efficiency-inspector"
+            role="group"
+            aria-label="Run details"
+            className="pointer-events-auto absolute z-20 max-h-[min(420px,calc(100vh-2rem))] overflow-y-auto overscroll-contain rounded-xl"
+            onPointerEnter={cancelInspectorClose}
+            onPointerLeave={scheduleInspectorClose}
+            onFocusCapture={cancelInspectorClose}
+            onBlurCapture={(event) => {
+              const next = event.relatedTarget
+              if (!(next instanceof Node) || !event.currentTarget.contains(next)) scheduleInspectorClose()
+            }}
+            onKeyDown={(event) => { if (event.key === "Escape") closeInspector() }}
             style={{
-              left: Math.max(8, Math.min(tooltipPosition.x + (tooltipPosition.x > (plotContainerRef.current?.clientWidth ?? 0) - 290 ? -272 : 14), (plotContainerRef.current?.clientWidth ?? 0) - 264)),
-              top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 264)),
+              left: Math.max(8, Math.min(tooltipPosition.x + (tooltipPosition.x > (plotContainerRef.current?.clientWidth ?? 0) - 346 ? -334 : 14), (plotContainerRef.current?.clientWidth ?? 0) - 328)),
+              top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 420)),
             }}
           ><Inspector entry={active} metric={metric} /></div> : null}
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover, focus, or click a dot to inspect it.</span></div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover or focus a dot, then choose a run from its popover.</span></div>
       </> : <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center"><div className="text-sm font-semibold">No matching chart points</div><p className="text-xs text-muted-foreground">Try another model name or reasoning selection.</p><Button variant="outline" size="sm" onClick={clearFilters}>Clear filters</Button></div>}
     </CardContent>
-    <RunPickerSheet point={selectedPoint} metric={metric} onOpenChange={(open) => { if (!open) setSelectedPoint(null) }} />
   </Card>
 }
