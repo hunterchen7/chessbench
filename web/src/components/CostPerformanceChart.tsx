@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound } from "lucide-react"
+import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound, X } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
 import { effectiveReasoningEffort, reasoningEffortLabel, reasoningLabel } from "@/lib/modelReasoning"
@@ -823,11 +823,12 @@ function placeLabels(entries: PlottedPoint[], minimumLineY: number) {
   })
 }
 
-const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks, x, y, showLabels, showFrontier, metric }: {
+const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks, yMinorTicks, x, y, showLabels, showFrontier, metric }: {
   plotted: PlottedPoint[]
   frontier: PlottedPoint[]
   xTicks: number[]
   yTicks: number[]
+  yMinorTicks: number[]
   x: (value: number) => number
   y: (value: number) => number
   showLabels: boolean
@@ -839,6 +840,7 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
       <line x1={x(value)} y1={PLOT.top} x2={x(value)} y2={HEIGHT - PLOT.bottom} className="stroke-muted-foreground/65" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
       <text x={x(value)} y={HEIGHT - 30} textAnchor="middle" className="fill-muted-foreground font-mono text-[11px]">{metric === "cost" ? formatCost(value) : formatTokens(value, true)}</text>
     </g>)}
+    {yMinorTicks.map((value) => <line key={`y-minor-${value}`} x1={PLOT.left} y1={y(value)} x2={WIDTH - PLOT.right} y2={y(value)} className="stroke-muted-foreground/30" strokeDasharray="2 7" vectorEffect="non-scaling-stroke" />)}
     {yTicks.map((value) => <g key={`y-${value}`}>
       <line x1={PLOT.left} y1={y(value)} x2={WIDTH - PLOT.right} y2={y(value)} className="stroke-muted-foreground/65" strokeDasharray="3 5" vectorEffect="non-scaling-stroke" />
       <text x={PLOT.left - 12} y={y(value) + 4} textAnchor="end" className="fill-muted-foreground font-mono text-[11px]">{value.toLocaleString()}</text>
@@ -973,7 +975,7 @@ function InspectorRunLinks({ point, metric }: { point: ChartPoint; metric: Effic
 
 function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyMetric }) {
   if (isHumanPoint(entry.point)) return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2 pr-8">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
       <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE_MIN}–${HUMAN_HOURLY_RATE_MAX}/hour</div></div>
     </div>
@@ -988,7 +990,7 @@ function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyM
   </div>
   const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
   return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2 pr-8">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
       <div className="min-w-0"><div className="truncate text-sm font-semibold">{entry.point.representative.model_variant.display_name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{effort} · {entry.point.runCount} settled run{entry.point.runCount === 1 ? "" : "s"}</div></div>
     </div>
@@ -1244,6 +1246,10 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       .toSorted((a, b) => a.x - b.x || b.point.rating - a.point.rating || a.point.key.localeCompare(b.point.key))
     const yTicks: number[] = []
     for (let value = ratingMin; value <= ratingMax + step / 2; value += step) yTicks.push(value)
+    const yMinorTicks: number[] = []
+    for (let index = 0; index < yTicks.length - 1; index += 1) {
+      yMinorTicks.push((yTicks[index] + yTicks[index + 1]) / 2)
+    }
     return {
       points,
       modelPointCount: modelPoints.length,
@@ -1254,6 +1260,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       y,
       xTicks: costTicks(valueMin, valueMax, costScale),
       yTicks,
+      yMinorTicks,
     }
   }, [colorByModel, costScale, humanPoint, humanWithinRatingRange, metric, modelPoints, showHuman, showLabels])
 
@@ -1469,7 +1476,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
       {chart ? <><div className="overflow-x-auto">
         <div ref={plotContainerRef} className="relative min-w-[720px]">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="mx-auto block h-auto max-h-[74vh] w-full" role="img" aria-label={`${metric === "cost" ? "Cost" : "Token"}-performance scatter plot with ${chart.modelPointCount} settled model configurations${chart.points.length > chart.modelPointCount ? " and one human result" : ""}. Lower ${metric === "cost" ? "cost" : "token use"} and higher Glicko-2 puzzle rating are better.`}>
-            <StaticPlot plotted={chart.plotted} frontier={chart.frontier} xTicks={chart.xTicks} yTicks={chart.yTicks} x={chart.x} y={chart.y} showLabels={showLabels} showFrontier={showFrontier} metric={metric} />
+            <StaticPlot plotted={chart.plotted} frontier={chart.frontier} xTicks={chart.xTicks} yTicks={chart.yTicks} yMinorTicks={chart.yMinorTicks} x={chart.x} y={chart.y} showLabels={showLabels} showFrontier={showFrontier} metric={metric} />
             <text x={(PLOT.left + WIDTH - PLOT.right) / 2} y={HEIGHT - 7} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">{metric === "cost" ? "Avg. cost per 50 puzzles" : "Avg. generated tokens per model move"} ({COST_SCALE_OPTIONS.find((option) => option.value === costScale)?.axisLabel} scale)</text>
             <text transform={`translate(18 ${(PLOT.top + HEIGHT - PLOT.bottom) / 2}) rotate(-90)`} textAnchor="middle" className="fill-muted-foreground text-[12px] font-medium">Glicko-2 puzzle rating</text>
             {chart.plotted.map((entry) => {
@@ -1526,7 +1533,12 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
               left: Math.max(8, Math.min(tooltipPosition.x + (tooltipPosition.x > (plotContainerRef.current?.clientWidth ?? 0) - 346 ? -334 : 14), (plotContainerRef.current?.clientWidth ?? 0) - 328)),
               top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 420)),
             }}
-          ><Inspector entry={active} metric={metric} /></div> : null}
+          >
+            <button type="button" aria-label="Close run details" title="Close" onClick={closeInspector} className="absolute right-2 top-2 z-10 inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <X className="size-4" />
+            </button>
+            <Inspector entry={active} metric={metric} />
+          </div> : null}
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground"><span>Better configurations move up and left.</span><span>Hover or focus a dot, then choose a run from its popover.</span></div>
