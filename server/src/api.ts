@@ -6,6 +6,7 @@ import { includesTournaments } from "./export_filters"
 import { downloadJson, error, json } from "./http"
 import { assembleLiveTournament, liveTournamentIndex } from "./games"
 import { runItemPage } from "./run_pagination"
+import { compactRunItem, type RunItemSummaryRow } from "./run_item_summaries"
 import {
   parseInlineRunItemPayload,
   parseRunItemPayloadReference,
@@ -232,6 +233,32 @@ async function runItems(env: Env, runId: string, offset: number, limit: number):
   return Promise.all((results ?? []).map((item) => storedRunItemPayload(env, item)))
 }
 
+async function compactRunItems(env: Env, row: RunRow): Promise<Record<string, unknown>[]> {
+  const { results } = await env.DB.prepare(
+    `SELECT i.item_id, i.sequence, i.points, i.max_points, i.solved,
+            i.first_move_legal, i.response_format_valid, i.failure_reason,
+            i.item_rating, i.item_rating_deviation,
+            s.payload_json AS suite_payload_json,
+            p.payload_json AS rated_payload_json,
+            p.rating AS rated_rating, p.rating_deviation AS rated_rating_deviation,
+            p.popularity AS rated_popularity, p.plays AS rated_plays
+       FROM benchmark_items_v2 i
+       LEFT JOIN benchmark_suite_items s
+         ON s.content_hash=? AND s.item_id=i.item_id
+       LEFT JOIN rated_puzzles p
+         ON p.content_hash=? AND p.puzzle_id=i.item_id
+      WHERE i.run_id=?
+      ORDER BY i.sequence`,
+  ).bind(row.suite_hash, row.suite_hash, row.run_id).all<RunItemSummaryRow>()
+  return (results ?? []).map((item) => compactRunItem(item, row.track, ratedPuzzlePosition))
+}
+
+function runCacheHeaders(row: RunRow, ownerAccess: boolean): Record<string, string> {
+  return row.status === "completed" && !isPrivateSuite(row) && !ownerAccess
+    ? { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800" }
+    : { "Cache-Control": "no-store" }
+}
+
 function disclosure(row: RunRow, ownerAccess: boolean) {
   if (!isPrivateSuite(row)) return { level: "public", items_included: true }
   return ownerAccess
@@ -265,10 +292,15 @@ export async function getRun(env: Env, id: string, req: Request): Promise<Respon
   if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
   const ownerAccess = isPrivateSuite(row) && wantsPrivate
   const canReadItems = !isPrivateSuite(row) || ownerAccess
-  const { offset, limit } = runItemPage(url)
+  const fullDetail = url.searchParams.get("item_detail") === "full"
+  const { offset, limit } = fullDetail ? runItemPage(url) : { offset: 0, limit: row.completed_items }
   const total = canReadItems ? row.completed_items : 0
-  const items = canReadItems ? await runItems(env, id, offset, limit) : []
-  const nextOffset = offset + items.length < total ? offset + items.length : null
+  const items = canReadItems
+    ? fullDetail
+      ? await runItems(env, id, offset, limit)
+      : await compactRunItems(env, row)
+    : []
+  const nextOffset = fullDetail && offset + items.length < total ? offset + items.length : null
   return json({
     schema: "chessbench.run.v2",
     ...publicRun(row),
@@ -280,8 +312,31 @@ export async function getRun(env: Env, id: string, req: Request): Promise<Respon
       count: items.length,
       total,
       next_offset: nextOffset,
+      detail: fullDetail ? "full" : "summary",
     },
-  })
+  }, { headers: runCacheHeaders(row, ownerAccess) })
+}
+
+/** GET /api/runs/:run/items/:item — one full audit envelope, loaded on demand. */
+export async function getRunItem(env: Env, runId: string, itemId: string, req: Request): Promise<Response> {
+  const row = await env.DB.prepare(`${RUN_SELECT} WHERE r.run_id=?`).bind(runId).first<RunRow>()
+  if (!row) return error(404, "run not found")
+  const url = new URL(req.url)
+  const wantsPrivate = url.searchParams.get("include_private") === "1"
+  if (wantsPrivate && !authorized(env, req)) return error(401, "owner authorization required")
+  const ownerAccess = isPrivateSuite(row) && wantsPrivate
+  if (isPrivateSuite(row) && !ownerAccess) return error(404, "run item not found")
+  const item = await env.DB.prepare(
+    `SELECT run_id, item_id, payload_json
+       FROM benchmark_items_v2
+      WHERE run_id=? AND item_id=?`,
+  ).bind(runId, itemId).first<StoredRunItemPayloadRow>()
+  if (!item) return error(404, "run item not found")
+  return json({
+    schema: "chessbench.run_item.v1",
+    run_id: runId,
+    item: await storedRunItemPayload(env, item),
+  }, { headers: runCacheHeaders(row, ownerAccess) })
 }
 
 interface CorpusItemRow {

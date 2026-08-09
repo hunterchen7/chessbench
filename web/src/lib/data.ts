@@ -65,6 +65,7 @@ export interface PuzzlePosition {
 }
 
 export interface PuzzleItem extends PuzzlePosition {
+  audit_available?: boolean
   solved: boolean
   score: number
   first_move_legal: boolean
@@ -773,31 +774,7 @@ export async function loadRun(file: string): Promise<Run> {
   const base = await resolveApiBase()
   const runUrl = base ? `${base}/runs/${encodeURIComponent(file)}` : `${DATA}runs/${file}`
   const raw = await fetchJSON<Record<string, unknown>>(runUrl)
-  const firstItems = (raw.items as PuzzleItem[] | undefined) ?? []
-  const itemPage = raw.item_page as {
-    limit?: number
-    total?: number
-    next_offset?: number | null
-  } | undefined
-  let items = firstItems
-  if (base && itemPage?.next_offset != null && itemPage.limit && itemPage.total) {
-    const offsets: number[] = []
-    for (let offset = itemPage.next_offset; offset < itemPage.total; offset += itemPage.limit) {
-      offsets.push(offset)
-    }
-    const pages: PuzzleItem[][] = []
-    const concurrency = 4
-    for (let index = 0; index < offsets.length; index += concurrency) {
-      const batch = await Promise.all(offsets.slice(index, index + concurrency).map(async (offset) => {
-        const page = await fetchJSON<Record<string, unknown>>(
-          `${runUrl}?item_offset=${offset}&item_limit=${itemPage.limit}`,
-        )
-        return (page.items as PuzzleItem[] | undefined) ?? []
-      }))
-      pages.push(...batch)
-    }
-    items = firstItems.concat(...pages)
-  }
+  const items = (raw.items as PuzzleItem[] | undefined) ?? []
   const meta = normalizeIndex(raw)
   return {
     ...meta,
@@ -806,6 +783,32 @@ export async function loadRun(file: string): Promise<Run> {
     category_ratings: (raw.category_ratings as Run["category_ratings"] | undefined) ?? [],
     items,
   }
+}
+
+const runItemRequests = new Map<string, Promise<PuzzleItem>>()
+
+export async function loadRunItem(runId: string, itemId: string): Promise<PuzzleItem> {
+  const cacheKey = `${runId}:${itemId}`
+  const existing = runItemRequests.get(cacheKey)
+  if (existing) return existing
+  const request = (async () => {
+    const base = await resolveApiBase()
+    if (!base) {
+      const run = await loadRun(runId)
+      const item = run.items.find((candidate) => candidate.puzzle_id === itemId)
+      if (!item) throw new Error(`Run item ${itemId} was not found.`)
+      return item
+    }
+    const doc = await fetchJSON<{ item: PuzzleItem }>(
+      `${base}/runs/${encodeURIComponent(runId)}/items/${encodeURIComponent(itemId)}`,
+    )
+    return doc.item
+  })().catch((error) => {
+    runItemRequests.delete(cacheKey)
+    throw error
+  })
+  runItemRequests.set(cacheKey, request)
+  return request
 }
 
 let puzzleCache: Promise<PuzzleEntry[]> | null = null

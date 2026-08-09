@@ -1,6 +1,6 @@
 import type { Env } from "./types"
 import { error, json, preflight } from "./http"
-import { getCorpus, getExport, getIndex, getPuzzle, getPuzzles, getRun, getTournament, getTournaments } from "./api"
+import { getCorpus, getExport, getIndex, getPuzzle, getPuzzles, getRun, getRunItem, getTournament, getTournaments } from "./api"
 import { getHumanLeaderboard, getHumanSummary, postHumanSolve } from "./human"
 import {
   getHumanTrainingLeaderboard,
@@ -33,8 +33,27 @@ import {
 
 const rest = (seg: string, prefix: string) => decodeURIComponent(seg.slice(prefix.length))
 
+async function cachedPublicResponse(
+  req: Request,
+  ctx: ExecutionContext,
+  produce: () => Promise<Response>,
+): Promise<Response> {
+  const url = new URL(req.url)
+  const eligible = !req.headers.has("authorization") &&
+    !req.headers.has("cookie") &&
+    url.searchParams.get("include_private") !== "1"
+  if (!eligible) return produce()
+  const cached = await caches.default.match(req)
+  if (cached) return cached
+  const response = await produce()
+  if (response.ok && response.headers.get("cache-control")?.includes("public")) {
+    ctx.waitUntil(caches.default.put(req, response.clone()).catch(() => undefined))
+  }
+  return response
+}
+
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url)
     const { pathname } = url
 
@@ -55,7 +74,19 @@ export default {
         if (seg === "puzzles") return await getPuzzles(env)
         if (seg.startsWith("puzzles/")) return await getPuzzle(env, rest(seg, "puzzles/"), url)
         if (seg.startsWith("corpora/")) return await getCorpus(env, rest(seg, "corpora/"))
-        if (seg.startsWith("runs/")) return await getRun(env, rest(seg, "runs/"), req)
+        const runItemMatch = seg.match(/^runs\/([^/]+)\/items\/([^/]+)$/)
+        if (runItemMatch) return await cachedPublicResponse(req, ctx, () => getRunItem(
+          env,
+          decodeURIComponent(runItemMatch[1]),
+          decodeURIComponent(runItemMatch[2]),
+          req,
+        ))
+        if (seg.startsWith("runs/")) {
+          const get = () => getRun(env, rest(seg, "runs/"), req)
+          return url.searchParams.get("item_detail") === "full"
+            ? await get()
+            : await cachedPublicResponse(req, ctx, get)
+        }
         if (seg === "tournaments") return await getTournaments(env)
         if (seg.startsWith("tournaments/")) return await getTournament(env, rest(seg, "tournaments/"))
         if (seg === "human/leaderboard") return await getHumanLeaderboard(env, url)

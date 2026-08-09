@@ -2,7 +2,7 @@ import { Fragment, type KeyboardEvent, useCallback, useEffect, useMemo, useState
 import { Link, useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom"
 import { ArrowLeft, Check, ChevronDown, CircleDollarSign, Database, Gauge, GitCompareArrows, Layers3, Play, Scale, X } from "lucide-react"
 import { useData } from "@/lib/useData"
-import { loadRun, type PuzzleItem, type RatedSessionProtocol, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
+import { loadRun, loadRunItem, type PuzzleItem, type RatedSessionProtocol, type Run, type RunIndexEntry, type RunTermination } from "@/lib/data"
 import { formatRatingDeviation, MODES, modeInfo, pct, pointsText, RESPONSE_STYLES, responseStyleInfo, TIER_ORDER } from "@/lib/format"
 import { puzzleContinuation, puzzleModelAttempts, uciLineToSan, type PuzzleContinuationPly } from "@/lib/chess"
 import { PUZZLE_ELO_PRIOR, puzzlePerformanceRating, puzzlePerformanceTrajectory } from "@/lib/puzzleRating"
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { comparisonPath } from "@/lib/runComparison"
 import { ratedPlayPath } from "@/lib/ratedPlay"
 import { reasoningConfigurationEffort, reasoningLabel } from "@/lib/modelReasoning"
+import { PROVISIONAL_DEVIATION, updateHumanGlicko } from "@/lib/humanTraining"
 
 const REASONING_ORDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "budget", "provider"]
 
@@ -135,23 +136,46 @@ function PerformanceTooltip({ point, index, total, inset }: { point: Performance
     </div>
 }
 
-function PerformanceHistory({ items, maxPoints, totalItems, termination }: { items: PuzzleItem[]; maxPoints: number; totalItems: number; termination?: RunIndexEntry["termination"] }) {
+function PerformanceHistory({ items, maxPoints, totalItems, termination, protocol }: { items: PuzzleItem[]; maxPoints: number; totalItems: number; termination?: RunIndexEntry["termination"]; protocol?: RatedSessionProtocol | null }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
-  const adaptive = items.some((item) => item.solver_rating_after != null)
+  const adaptive = protocol != null || items.some((item) => item.solver_rating_after != null)
   const zeroScoredTail = termination?.kind === "consecutive_unsolved"
   const chartItems = adaptive ? items.length : totalItems
   const history = useMemo(() => {
     let points = 0
-    let previousElo: number | null = items[0]?.solver_rating_before?.rating ?? null
+    let glickoState = protocol ? {
+      rating: protocol.rating.initial.rating,
+      deviation: protocol.rating.initial.rating_deviation,
+      volatility: protocol.rating.initial.volatility,
+    } : null
+    let previousElo: number | null = items[0]?.solver_rating_before?.rating ?? glickoState?.rating ?? null
     const trajectory = puzzlePerformanceTrajectory(items)
     return items.map((item, index) => {
       points += item.score
       const recorded = item.solver_rating_after
+      if (!recorded && glickoState && protocol) {
+        glickoState = updateHumanGlicko(
+          glickoState,
+          item.rating,
+          item.rating_deviation ?? 500,
+          item.solved,
+          protocol.rating.tau,
+        )
+      }
       const estimate = recorded ? {
         rating: recorded.rating,
         ci95: recorded.ci95,
         rating_deviation: recorded.rating_deviation,
         provisional: recorded.provisional,
+      } : glickoState && protocol ? {
+        rating: glickoState.rating,
+        ci95: [
+          glickoState.rating - 2 * glickoState.deviation,
+          glickoState.rating + 2 * glickoState.deviation,
+        ] as [number, number],
+        rating_deviation: glickoState.deviation,
+        provisional: index + 1 < protocol.stopping.minimum_puzzles ||
+          glickoState.deviation >= PROVISIONAL_DEVIATION,
       } : trajectory[index]
       const elo = estimate.rating
       const eloDelta = previousElo == null ? null : elo - previousElo
@@ -171,7 +195,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
         eloProvisional: estimate.provisional,
       } satisfies PerformancePoint
     })
-  }, [items])
+  }, [items, protocol])
   const ratingOrdered = items.every((item, index) => {
     if (index === 0) return true
     const previous = items[index - 1]
@@ -181,9 +205,7 @@ function PerformanceHistory({ items, maxPoints, totalItems, termination }: { ite
   const hoverAt = (clientX: number, left: number, width: number) => {
     const inset = 8
     const ratio = Math.max(0, Math.min(1, (clientX - left - inset) / Math.max(1, width - inset * 2)))
-    const plottedItems = items.some((item) => "solver_rating_after" in item && item.solver_rating_after != null)
-      ? history.length
-      : totalItems
+    const plottedItems = adaptive ? history.length : totalItems
     const index = Math.min(plottedItems - 1, Math.floor(ratio * plottedItems))
     setHoveredIndex(index < history.length ? index : null)
   }
@@ -325,6 +347,9 @@ export function ModelDetail() {
   }), [updateSearchParams])
   const [run, setRun] = useState<Run | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
+  const [itemDetails, setItemDetails] = useState<Record<string, PuzzleItem>>({})
+  const [itemDetailLoading, setItemDetailLoading] = useState<Record<string, boolean>>({})
+  const [itemDetailErrors, setItemDetailErrors] = useState<Record<string, string>>({})
   const requestedFilter = searchParams.get("answers")
   const filter: "all" | "solved" | "failed" = requestedFilter === "solved" || requestedFilter === "failed" ? requestedFilter : "all"
   const requestedAnswerSort = searchParams.get("sort")
@@ -370,9 +395,33 @@ export function ModelDetail() {
     let active = true
     setRun(null)
     setRunError(null)
+    setItemDetails({})
+    setItemDetailLoading({})
+    setItemDetailErrors({})
     void loadRun(metaFile).then((value) => { if (active) setRun(value) }).catch((reason) => { if (active) setRunError(String(reason)) })
     return () => { active = false }
   }, [metaFile])
+
+  useEffect(() => {
+    if (!run || !openPuzzle) return
+    const summary = run.items.find((item) => item.puzzle_id === openPuzzle)
+    if (!summary?.audit_available || itemDetails[openPuzzle]) return
+    let active = true
+    setItemDetailLoading((current) => ({ ...current, [openPuzzle]: true }))
+    setItemDetailErrors((current) => {
+      const next = { ...current }
+      delete next[openPuzzle]
+      return next
+    })
+    void loadRunItem(run.run_id, openPuzzle).then((item) => {
+      if (active) setItemDetails((current) => ({ ...current, [openPuzzle]: item }))
+    }).catch((reason) => {
+      if (active) setItemDetailErrors((current) => ({ ...current, [openPuzzle]: String(reason) }))
+    }).finally(() => {
+      if (active) setItemDetailLoading((current) => ({ ...current, [openPuzzle]: false }))
+    })
+    return () => { active = false }
+  }, [run, openPuzzle, itemDetails])
 
   if (!meta) return <div><p>No published runs for {key}.</p><button type="button" onClick={goBack} className="cursor-pointer text-sm underline">Go back</button></div>
   const displayRun = run ?? ({ ...meta, schema: "", themes: [], items: [] } as Run)
@@ -578,7 +627,7 @@ export function ModelDetail() {
       </CardContent>
     </Card>
 
-    {run ? <PerformanceHistory items={displayRun.items} maxPoints={meta.summary.max_points} totalItems={meta.progress.total} termination={meta.termination} /> : !runError ? <PerformanceHistorySkeleton adaptive={adaptive} /> : null}
+    {run ? <PerformanceHistory items={displayRun.items} maxPoints={meta.summary.max_points} totalItems={meta.progress.total} termination={meta.termination} protocol={ratedProtocol} /> : !runError ? <PerformanceHistorySkeleton adaptive={adaptive} /> : null}
 
     {run ? <div className="grid min-w-0 gap-5 2xl:grid-cols-[360px_minmax(0,1fr)]">
       <Card><CardHeader><CardTitle className="text-base">Difficulty breakdown</CardTitle></CardHeader><CardContent className="p-0"><div className="border-b px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Numeric puzzle rating</div><Table reorderableKey="model-difficulty-breakdown"><TableHeader><TableRow><TableHead>Rating band</TableHead><TableHead className="text-right">Points</TableHead><TableHead className="text-right">Solved</TableHead></TableRow></TableHeader><TableBody>{byRating.map((row) => <TableRow key={row.low}><TableCell className="font-mono">{row.low}–{row.low + 399}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}<TableRow className="hover:bg-transparent"><TableCell colSpan={3} className="border-y px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Named tier</TableCell></TableRow>{byTier.map((row) => <TableRow key={row.tier}><TableCell className="capitalize">{row.tier}</TableCell><TableCell className="text-right font-mono">{row.points.toFixed(2)}/{row.n}</TableCell><TableCell className="text-right text-muted-foreground">{row.solved}/{row.n}</TableCell></TableRow>)}</TableBody></Table></CardContent></Card>
@@ -586,16 +635,23 @@ export function ModelDetail() {
       <Card className="flex max-h-[calc(100dvh-2rem)] min-w-0 flex-col overflow-hidden"><CardHeader className="shrink-0 flex-row items-center justify-between gap-4 space-y-0"><div className="min-w-0"><CardTitle className="text-base">Answer sheet <span className="ml-2 font-normal text-muted-foreground">{displayRun.condition.puzzle_protocol === "full_line" ? "full variations" : "move by move"}</span></CardTitle><div className="mt-2 flex flex-wrap gap-3 text-[10px] text-muted-foreground"><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-emerald-500/70" /> model move</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm border bg-muted" /> built-in puzzle reply</span><span className="inline-flex items-center gap-1"><i className="size-2 rounded-sm bg-rose-500/70" /> wrong / missing move</span><span>Click any row for its exact prompts and response.</span></div></div><Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}><TabsList className="h-8">{(["all", "solved", "failed"] as const).map((value) => <TabsTrigger key={value} value={value} className="h-6 text-xs capitalize">{value}</TabsTrigger>)}</TabsList></Tabs></CardHeader>
         <CardContent className="min-h-0 min-w-0 flex-1 overflow-auto p-0"><Table reorderableKey="model-answer-sheet" className="min-w-[1040px] table-fixed"><TableHeader className="sticky top-0 z-10 bg-card"><TableRow><TableHead className="w-8" /><SortableTableHead label="Puzzle" active={answerSort.key === "puzzle"} direction={answerSort.direction} className="w-20" onSort={() => toggleAnswerSort("puzzle")} /><SortableTableHead label="Rating" active={answerSort.key === "rating"} direction={answerSort.direction} align="right" className="w-20" onSort={() => toggleAnswerSort("rating")} /><SortableTableHead label="Points" active={answerSort.key === "points"} direction={answerSort.direction} align="right" className="w-20" onSort={() => toggleAnswerSort("points")} /><TableHead className="w-[300px]">Model answer</TableHead><TableHead className="w-[260px]">Correct line</TableHead><TableHead className="w-[150px]">Outcome</TableHead></TableRow></TableHeader><TableBody>{answerItems.map((item) => {
           const open = openPuzzle === item.puzzle_id
-          const attempts = puzzleModelAttempts(item)
-          const correctSolverMoves = item.plies_correct ?? (item.solved ? item.solver_plies ?? attempts.length : Math.round(item.score * (item.solver_plies ?? Math.ceil((item.solution?.length ?? 0) / 2))))
-          const modelLine: PuzzleContinuationPly[] = displayRun.track === "woodpecker"
-            ? uciLineToSan(item.fen, attempts).map((san, index) => ({ uci: attempts[index], san, source: "model", status: index < correctSolverMoves ? "correct" : "wrong" }))
-            : puzzleContinuation(item.fen, attempts, item.solution ?? [], correctSolverMoves)
-          const correctLine = uciLineToSan(item.fen, item.solution ?? []).join(" ") || item.solution?.join(" ")
-          const rationale = item.answer_rationale ?? item.answer_explanation
-          const hasAudit = Boolean(item.turns?.length || item.answer_raw || rationale)
+          const embeddedDetail = !item.audit_available && Boolean(
+            item.turns?.length || item.answer_raw || item.answer_rationale || item.answer_explanation,
+          )
+          const detail = itemDetails[item.puzzle_id] ?? (embeddedDetail ? item : undefined)
+          const displayItem = detail ? { ...item, ...detail } : item
+          const attempts = detail ? puzzleModelAttempts(displayItem) : []
+          const correctSolverMoves = displayItem.plies_correct ?? (displayItem.solved ? displayItem.solver_plies ?? attempts.length : Math.round(displayItem.score * (displayItem.solver_plies ?? Math.ceil((displayItem.solution?.length ?? 0) / 2))))
+          const modelLine: PuzzleContinuationPly[] = !detail ? [] : displayRun.track === "woodpecker"
+            ? uciLineToSan(displayItem.fen, attempts).map((san, index) => ({ uci: attempts[index], san, source: "model", status: index < correctSolverMoves ? "correct" : "wrong" }))
+            : puzzleContinuation(displayItem.fen, attempts, displayItem.solution ?? [], correctSolverMoves)
+          const correctLine = uciLineToSan(displayItem.fen, displayItem.solution ?? []).join(" ") || displayItem.solution?.join(" ")
+          const rationale = displayItem.answer_rationale ?? displayItem.answer_explanation
+          const hasAudit = Boolean(item.audit_available || displayItem.turns?.length || displayItem.answer_raw || rationale)
+          const detailLoading = itemDetailLoading[item.puzzle_id]
+          const detailError = itemDetailErrors[item.puzzle_id]
           const outcome = item.solved ? "solved" : item.score > 0 ? "partial" : item.failure_reason?.replaceAll("_", " ") ?? "incorrect"
-          return <Fragment key={item.puzzle_id}><TableRow className={hasAudit ? "cursor-pointer" : undefined} onClick={() => hasAudit && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className={`size-4 ${item.score > 0 ? "text-amber-500" : "text-rose-500"}`} />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} state={{ from: location.pathname + location.search }} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono text-xs tabular-nums">{item.rating}</TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="whitespace-normal"><span className="inline-flex flex-wrap items-center gap-1"><Continuation plies={modelLine} />{item.score > 0 && !item.solved && <span className="ml-1 text-xs text-amber-700 dark:text-amber-300">missed later</span>}{hasAudit && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</span></TableCell><TableCell className="whitespace-normal font-mono text-xs leading-6 text-emerald-700 dark:text-emerald-300" title={correctLine}>{correctLine || "—"}</TableCell><TableCell className="space-x-1 whitespace-normal"><Badge variant={item.solved ? "secondary" : "outline"} className={item.score > 0 && !item.solved ? "border-amber-500/30 text-amber-700 dark:text-amber-300" : undefined}>{outcome}</Badge>{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && hasAudit && <TableRow className="animate-in fade-in-0 slide-in-from-top-1 duration-200"><TableCell /><TableCell colSpan={6} className="max-w-0 whitespace-normal p-4"><div className="min-w-0 max-w-full space-y-3 overflow-hidden">{rationale ? <p className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</p> : null}{item.turns?.length ? <PromptTranscript turns={item.turns} /> : <ExactPromptBlock label="Visible model response" text={item.answer_raw ?? "—"} tone="schema" />}</div></TableCell></TableRow>}</Fragment>
+          return <Fragment key={item.puzzle_id}><TableRow className={hasAudit ? "cursor-pointer" : undefined} onClick={() => hasAudit && setOpenPuzzle(open ? null : item.puzzle_id)}><TableCell>{item.solved ? <Check className="size-4 text-emerald-600" /> : <X className={`size-4 ${item.score > 0 ? "text-amber-500" : "text-rose-500"}`} />}</TableCell><TableCell><Link to={`/puzzles/${item.puzzle_id}`} state={{ from: location.pathname + location.search }} onClick={(event) => event.stopPropagation()} className="font-mono text-xs hover:underline">{item.puzzle_id}</Link></TableCell><TableCell className="text-right font-mono text-xs tabular-nums">{item.rating}</TableCell><TableCell className="text-right font-mono">{item.score.toFixed(2)}/1</TableCell><TableCell className="whitespace-normal"><span className="inline-flex flex-wrap items-center gap-1">{detail ? <Continuation plies={modelLine} /> : <span className="text-xs text-muted-foreground">Open response</span>}{item.score > 0 && !item.solved && <span className="ml-1 text-xs text-amber-700 dark:text-amber-300">missed later</span>}{hasAudit && <ChevronDown className={`ml-1 inline size-3 transition-transform ${open ? "rotate-180" : ""}`} />}</span></TableCell><TableCell className="whitespace-normal font-mono text-xs leading-6 text-emerald-700 dark:text-emerald-300" title={correctLine}>{correctLine || "—"}</TableCell><TableCell className="space-x-1 whitespace-normal"><Badge variant={item.solved ? "secondary" : "outline"} className={item.score > 0 && !item.solved ? "border-amber-500/30 text-amber-700 dark:text-amber-300" : undefined}>{outcome}</Badge>{item.answer_response_format_valid != null && <Badge variant={item.answer_response_format_valid ? "outline" : "destructive"}>{item.answer_response_format_valid ? (activeResponseStyle.key === "move_only" ? "plain text" : "JSON") : "recovered"}</Badge>}</TableCell></TableRow>{open && hasAudit && <TableRow className="animate-in fade-in-0 slide-in-from-top-1 duration-200"><TableCell /><TableCell colSpan={6} className="max-w-0 whitespace-normal p-4"><div className="min-w-0 max-w-full space-y-3 overflow-hidden">{detailLoading ? <div className="space-y-2"><Skeleton className="h-4 w-40" /><Skeleton className="h-24 w-full" /></div> : detailError ? <p className="text-sm text-destructive">Response details could not be loaded. {detailError}</p> : detail ? <>{rationale ? <p className="text-sm leading-relaxed text-muted-foreground"><span className="font-medium text-foreground">Model rationale: </span>{rationale}</p> : null}{displayItem.turns?.length ? <PromptTranscript turns={displayItem.turns} /> : <ExactPromptBlock label="Visible model response" text={displayItem.answer_raw ?? "—"} tone="schema" />}</> : null}</div></TableCell></TableRow>}</Fragment>
         })}</TableBody></Table></CardContent></Card>
     </div> : !runError ? <RunDetailsSkeleton /> : null}
   </div>
