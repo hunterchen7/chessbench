@@ -618,6 +618,16 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
+/** Bump whenever the run response gains or changes fields.
+ *
+ * A completed run is immutable, so the API caches it hard (s-maxage a day,
+ * stale-while-revalidate a week). That is right for the data but wrong for the
+ * shape: adding a field leaves every edge holding a body that lacks it, and no
+ * amount of redeploying evicts those. Carrying the shape version in the URL
+ * makes the cache key change with the shape, so a new field is visible at once.
+ */
+const RUN_SHAPE = "moves1"
+
 let cachedBase: string | null | undefined
 let cachedBaseCheckedAt = 0
 const API_RETRY_MS = 30_000
@@ -774,7 +784,9 @@ export async function loadDataset(): Promise<Dataset> {
 
 export async function loadRun(file: string): Promise<Run> {
   const base = await resolveApiBase()
-  const runUrl = base ? `${base}/runs/${encodeURIComponent(file)}` : `${DATA}runs/${file}`
+  const runUrl = base
+    ? `${base}/runs/${encodeURIComponent(file)}?v=${RUN_SHAPE}`
+    : `${DATA}runs/${file}`
   const raw = await fetchJSON<Record<string, unknown>>(runUrl)
   const items = (raw.items as PuzzleItem[] | undefined) ?? []
   const meta = normalizeIndex(raw)
