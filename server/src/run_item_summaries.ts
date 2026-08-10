@@ -9,6 +9,13 @@ export interface RunItemSummaryRow {
   failure_reason: string | null
   item_rating: number | null
   item_rating_deviation: number | null
+  // The moves the model actually played. Extracted in SQL so the summary stays
+  // small: these are a handful of 4-character UCI strings, not the multi-KB
+  // transcript (prompt, reasoning, raw response) that loads on demand.
+  answer_move: string | null
+  moves_played_json: string | null
+  plies_correct: number | null
+  solver_plies: number | null
   suite_payload_json: string | null
   rated_payload_json: string | null
   rated_rating: number | null
@@ -24,6 +31,15 @@ function finiteNumber(value: unknown, fallback = 0): number {
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : []
+}
+
+function parseMoves(value: string | null): string[] {
+  if (!value) return []
+  try {
+    return stringArray(JSON.parse(value))
+  } catch {
+    return []
+  }
 }
 
 type PositionBuilder = (
@@ -77,7 +93,12 @@ export function compactRunItem(
     max_score: row.max_points,
     first_move_legal: Boolean(row.first_move_legal),
     failure_reason: row.failure_reason,
-    answer_move: null,
+    answer_move: row.answer_move,
+    moves_played: parseMoves(row.moves_played_json),
+    plies_correct: row.plies_correct,
+    solver_plies: row.solver_plies,
+    // Explanation and raw response stay out: those are the bulk of a transcript
+    // and load on demand.
     answer_explanation: null,
     answer_raw: null,
     answer_response_format_valid: row.response_format_valid == null

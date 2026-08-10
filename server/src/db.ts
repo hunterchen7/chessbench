@@ -459,8 +459,9 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
        (run_id, item_id, sequence, points, max_points, solved, first_move_legal, response_format_valid,
         failure_reason, latency_ms, item_rating, item_rating_deviation, cost_usd, prompt_tokens, completion_tokens,
         reasoning_tokens, cache_read_tokens, cache_write_tokens, uncached_prompt_tokens,
-        cache_discount_usd, payload_json, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        cache_discount_usd, payload_json, answer_move, moves_played_json,
+        plies_correct, solver_plies, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(run_id, item_id) DO UPDATE SET
          sequence=excluded.sequence, points=excluded.points, max_points=excluded.max_points,
          solved=excluded.solved, first_move_legal=excluded.first_move_legal,
@@ -472,7 +473,12 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
          cache_read_tokens=excluded.cache_read_tokens, cache_write_tokens=excluded.cache_write_tokens,
          uncached_prompt_tokens=excluded.uncached_prompt_tokens,
          cache_discount_usd=excluded.cache_discount_usd,
-         payload_json=excluded.payload_json, updated_at=excluded.updated_at`,
+         payload_json=excluded.payload_json,
+         answer_move=excluded.answer_move,
+         moves_played_json=excluded.moves_played_json,
+         plies_correct=excluded.plies_correct,
+         solver_plies=excluded.solver_plies,
+         updated_at=excluded.updated_at`,
     ).bind(
       item.run_id,
       item.item_id,
@@ -495,6 +501,12 @@ export async function upsertRunItem(env: Env, item: RunItemDoc): Promise<{ run_i
       item.uncached_prompt_tokens ?? 0,
       item.cache_discount_usd ?? 0,
       resolvedPayload.payloadJSON,
+      // Kept out of the chunked payload so the comparison view can render the
+      // moves without pulling a whole transcript.
+      typeof payload.answer_move === "string" ? payload.answer_move : null,
+      Array.isArray(payload.moves_played) ? JSON.stringify(payload.moves_played) : null,
+      typeof payload.plies_correct === "number" ? payload.plies_correct : null,
+      typeof payload.solver_plies === "number" ? payload.solver_plies : null,
       stamp,
       stamp,
     ),

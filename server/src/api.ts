@@ -240,6 +240,17 @@ async function compactRunItems(env: Env, row: RunRow): Promise<Record<string, un
     `SELECT i.item_id, i.sequence, i.points, i.max_points, i.solved,
             i.first_move_legal, i.response_format_valid, i.failure_reason,
             i.item_rating, i.item_rating_deviation,
+            -- Prefer the dedicated columns; fall back to the inline payload for
+            -- rows written before 0018. json_extract finds nothing when a large
+            -- payload was chunked out, which is why the columns exist.
+            COALESCE(i.answer_move,
+                     json_extract(i.payload_json, '$.answer_move')) AS answer_move,
+            COALESCE(i.moves_played_json,
+                     json_extract(i.payload_json, '$.moves_played')) AS moves_played_json,
+            COALESCE(i.plies_correct,
+                     json_extract(i.payload_json, '$.plies_correct')) AS plies_correct,
+            COALESCE(i.solver_plies,
+                     json_extract(i.payload_json, '$.solver_plies')) AS solver_plies,
             s.payload_json AS suite_payload_json,
             p.payload_json AS rated_payload_json,
             p.rating AS rated_rating, p.rating_deviation AS rated_rating_deviation,
