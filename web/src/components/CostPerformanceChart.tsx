@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
+import { memo, useEffect, useMemo, useRef, useState } from "react"
 import { ArrowUpRight, Check, ChevronDown, CircleDollarSign, Download, Eye, EyeOff, Gauge, ListFilter, RotateCcw, Search, Tags, TrendingUp, UserRound, X } from "lucide-react"
 import type { RatedRunAggregate } from "@/lib/ratedAggregates"
 import { costPerformancePoints, type CostPerformancePoint } from "@/lib/costPerformance"
@@ -1284,12 +1284,6 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
     cancelInspectorClose()
     inspectorCloseTimerRef.current = window.setTimeout(closeInspector, 160)
   }
-  const positionTooltip = (event: ReactPointerEvent<SVGGElement>) => {
-    const container = plotContainerRef.current
-    if (!container) return
-    const bounds = container.getBoundingClientRect()
-    setTooltipPosition({ x: event.clientX - bounds.left, y: event.clientY - bounds.top })
-  }
   const positionTooltipAtPoint = (entry: PlottedPoint) => {
     const container = plotContainerRef.current
     if (!container) return
@@ -1504,8 +1498,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
                 setActiveKey(entry.point.key)
                 positionTooltipAtPoint(entry)
               }}
-              onPointerEnter={(event) => { cancelInspectorClose(); setActiveKey(entry.point.key); positionTooltip(event) }}
-              onPointerMove={positionTooltip}
+              onPointerEnter={() => { cancelInspectorClose(); setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
               onPointerLeave={scheduleInspectorClose}
               onFocus={() => { cancelInspectorClose(); setActiveKey(entry.point.key); positionTooltipAtPoint(entry) }}
               onBlur={scheduleInspectorClose}
