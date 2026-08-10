@@ -935,9 +935,9 @@ const StaticPlot = memo(function StaticPlot({ plotted, frontier, xTicks, yTicks,
 })
 
 function InspectorRunLinks({ point, metric }: { point: ChartPoint; metric: EfficiencyMetric }) {
-  return <div className="mt-3 border-t pt-2">
-    <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Runs</div>
-    <div className="mt-1.5 space-y-1.5">
+  return <div className="mt-3 flex min-h-0 flex-col border-t pt-2">
+    <div className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Runs</div>
+    <div className="mt-1.5 min-h-0 max-h-60 space-y-1.5 overflow-y-auto overscroll-contain pr-1">
       {isHumanPoint(point) ? point.profiles.map((profile) => <a
         key={profile.run_id}
         href={`#${runPath({ ...point, runId: profile.run_id })}`}
@@ -976,7 +976,7 @@ function InspectorRunLinks({ point, metric }: { point: ChartPoint; metric: Effic
 }
 
 function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyMetric }) {
-  if (isHumanPoint(entry.point)) return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
+  if (isHumanPoint(entry.point)) return <div className="flex max-h-[min(500px,calc(100vh-2rem))] w-80 flex-col rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2 pr-8">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
       <div><div className="text-sm font-semibold">{HUMAN_LABEL}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{entry.point.runCount} saved runs · human solve time valued at ${HUMAN_HOURLY_RATE_MIN}–${HUMAN_HOURLY_RATE_MAX}/hour</div></div>
@@ -991,7 +991,7 @@ function Inspector({ entry, metric }: { entry: PlottedPoint; metric: EfficiencyM
     <InspectorRunLinks point={entry.point} metric={metric} />
   </div>
   const effort = reasoningEffortLabel(modelPointReasoningEffort(entry.point))
-  return <div className="w-80 rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
+  return <div className="flex max-h-[min(500px,calc(100vh-2rem))] w-80 flex-col rounded-xl border bg-popover/96 p-3 text-popover-foreground shadow-2xl backdrop-blur">
     <div className="flex items-start gap-2 pr-8">
       <span className="mt-1 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
       <div className="min-w-0"><div className="truncate text-sm font-semibold">{entry.point.representative.model_variant.display_name}</div><div className="mt-0.5 text-[10px] text-muted-foreground">{effort} · {entry.point.runCount} settled run{entry.point.runCount === 1 ? "" : "s"}</div></div>
@@ -1522,7 +1522,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             id="rating-efficiency-inspector"
             role="group"
             aria-label="Run details"
-            className="pointer-events-auto absolute z-20 max-h-[min(420px,calc(100vh-2rem))] overflow-y-auto overscroll-contain rounded-xl"
+            className="pointer-events-auto absolute z-20 rounded-xl"
             onPointerEnter={cancelInspectorClose}
             onPointerLeave={scheduleInspectorClose}
             onFocusCapture={cancelInspectorClose}
@@ -1533,7 +1533,7 @@ export function CostPerformanceChart({ aggregates }: { aggregates: RatedRunAggre
             onKeyDown={(event) => { if (event.key === "Escape") closeInspector() }}
             style={{
               left: Math.max(8, Math.min(tooltipPosition.x + (tooltipPosition.x > (plotContainerRef.current?.clientWidth ?? 0) - 346 ? -334 : 14), (plotContainerRef.current?.clientWidth ?? 0) - 328)),
-              top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 420)),
+              top: Math.max(8, Math.min(tooltipPosition.y - 36, (plotContainerRef.current?.clientHeight ?? 0) - 500)),
             }}
           >
             <button type="button" aria-label="Close run details" title="Close" onClick={closeInspector} className="absolute right-2 top-2 z-10 inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
