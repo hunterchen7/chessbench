@@ -79,14 +79,22 @@ def live_processes() -> set[tuple[str, str, str]]:
         ).stdout
     except (OSError, subprocess.SubprocessError):
         return out
-    pattern = re.compile(r"(\S+)\s+--reasoning\s+(\S+)\s+--seed\s+(\d+)")
+    # The flags are not adjacent and their order is not stable, so match each
+    # independently rather than assuming a layout. A run with no --reasoning is
+    # at the provider default, which the variant key records as "default".
     for line in ps.splitlines():
         if "rate-model" not in line:
             continue
-        found = pattern.search(line)
-        if found:
-            model, effort, seed = found.groups()
-            out.add((model.replace(".", "-"), effort, seed))
+        model = re.search(r"--model\s+(\S+)", line)
+        seed = re.search(r"--seed\s+(\d+)", line)
+        if not model or not seed:
+            continue
+        effort = re.search(r"--reasoning\s+(\S+)", line)
+        out.add((
+            model.group(1).replace(".", "-"),
+            effort.group(1) if effort else "default",
+            seed.group(1),
+        ))
     return out
 
 
