@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Callable, Iterator, cast
@@ -139,6 +140,7 @@ def _turn_record(
     *,
     model_error: str | None = None,
     infra_failure: bool = False,
+    latency_ms: int | None = None,
 ) -> dict[str, object]:
     usage = ctx.last_usage or {}
     metrics = normalize_usage(
@@ -163,6 +165,10 @@ def _turn_record(
         "reasoning_details": ctx.last_reasoning_details,
         "model_error": model_error,
         "infra_failure": infra_failure,
+        # Wall-clock for this turn, including any in-process provider retries.
+        # This is the gap a prompt cache has to survive between the model's
+        # consecutive turns, so it has to be measured, not inferred.
+        "latency_ms": latency_ms,
         "provider_error": ctx.last_provider_error,
         "request_payload": ctx.last_request_payload,
         "provider_response": ctx.last_provider_response,
@@ -479,6 +485,11 @@ def grade_puzzle(
                 token_budget=_budget_for(condition, budget_retries),
             )
             empty_completion_error: str | None = None
+            started = time.monotonic()
+
+            def elapsed_ms() -> int:
+                return int((time.monotonic() - started) * 1000)
+
             try:
                 raw = agent.choose(board, ctx)
             except EmptyCompletionError as exc:
@@ -493,7 +504,8 @@ def grade_puzzle(
                     BUDGET_RETRY_MULTIPLIERS
                 ):
                     turns.append(
-                        _turn_record(k, ctx, None, model_error=str(exc))
+                        _turn_record(k, ctx, None, model_error=str(exc),
+                                     latency_ms=elapsed_ms())
                     )
                     budget_retries += 1
                     persist()
@@ -505,7 +517,8 @@ def grade_puzzle(
                 # not a chess attempt: do not consume retry allowance, alter the
                 # score, or add it to the model's conversation.
                 turns.append(
-                    _turn_record(k, ctx, None, model_error=str(exc), infra_failure=True)
+                    _turn_record(k, ctx, None, model_error=str(exc),
+                                 infra_failure=True, latency_ms=elapsed_ms())
                 )
                 persist()
                 if _infra_failures(turns) < max_infra_failures:
@@ -524,6 +537,7 @@ def grade_puzzle(
                     ctx,
                     move,
                     model_error=empty_completion_error,
+                    latency_ms=elapsed_ms(),
                 )
             )
             attempts_used += 1

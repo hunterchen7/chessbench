@@ -657,3 +657,28 @@ def test_invalid_thinking_signature_detection_and_checkpoint_reset(tmp_path):
         ).fetchone()
         assert event["kind"] == "puzzle_checkpoint_reset"
         assert ONE_MOVE.id in event["detail"]
+
+
+def test_every_turn_records_its_own_latency():
+    """Turn time is what a prompt cache has to survive between a model's turns."""
+    model = UsageScriptedModel([(_answer("a1a8", "quick"), 8, 3, 1, 0.005)])
+
+    result = grade_puzzle(LLMAgent(model), ONE_MOVE, HEADLINE)
+
+    assert result.solved
+    latencies = [t["latency_ms"] for t in result.turns]
+    assert all(isinstance(v, int) for v in latencies), latencies
+    assert all(v >= 0 for v in latencies)
+
+
+def test_latency_total_sums_turns_and_stays_null_when_unmeasured():
+    from chessbench.__main__ import _turn_latency_total
+
+    assert _turn_latency_total([{"latency_ms": 120}, {"latency_ms": 80}]) == 200
+    # a failed turn still consumed wall clock and must count
+    assert _turn_latency_total(
+        [{"latency_ms": 5000, "model_error": "timeout"}, {"latency_ms": 300}]
+    ) == 5300
+    # pre-instrumentation rows report nothing rather than zero
+    assert _turn_latency_total([{"raw_response": "a1a8"}]) is None
+    assert _turn_latency_total([]) is None

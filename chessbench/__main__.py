@@ -165,6 +165,24 @@ def _sync_live_run(db_path: str, run_id: str, *, disabled: bool = False) -> None
     _sync_run_outbox(db_path, run_id, disabled=disabled, finish=False)
 
 
+def _turn_latency_total(turns: list[dict[str, object]]) -> int | None:
+    """Wall-clock the model spent on this item, summed over its turns.
+
+    Includes failed turns: a provider retry that burned 40 seconds still delays
+    the opponent's next call, which is what decides whether a prompt cache
+    survives. Returns None when nothing was measured, so old rows stay NULL
+    rather than being reported as instant.
+    """
+    total = 0
+    seen = False
+    for turn in turns:
+        value = turn.get("latency_ms")
+        if isinstance(value, (int, float)):
+            total += int(value)
+            seen = True
+    return total if seen else None
+
+
 def _turn_usage_totals(
     turns: list[dict[str, object]],
 ) -> tuple[int, int, int, float]:
@@ -974,6 +992,7 @@ def cmd_run_model(args: argparse.Namespace) -> int:
             seq,
             puzzle,
             result,
+            latency_ms=_turn_latency_total(result.turns),
             cost_usd=item_cost,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
@@ -1508,6 +1527,7 @@ def cmd_rate_model(args: argparse.Namespace) -> int:
                 sequence,
                 puzzle,
                 result,
+                latency_ms=_turn_latency_total(result.turns),
                 cost_usd=item_cost,
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
