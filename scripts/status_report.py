@@ -134,12 +134,39 @@ def variant_of(variant_key: str, seed: object) -> tuple[str, str, str]:
     return name, effort, str(seed)
 
 
-def label_to_log(name: str, effort: str, seed: object) -> str:
-    """Map a variant to its keepalive log stem (the spec's label).
+def spec_labels() -> dict[tuple[str, str, str], str]:
+    """(model, effort, seed) -> the keepalive label, read from the specs.
 
-    Variant keys slugify dots to hyphens (``muse-spark-1-2``) while the spec
-    labels keep them (``muse1.2``), so the two have to be reconciled per family.
+    A run's log file is named after its spec label, which is free text and does
+    not follow from the variant key -- ``grok-4.6`` writes ``grok46-*``. Reading
+    the specs keeps that association exact; a hand-maintained table silently
+    stops resolving the moment a campaign picks a new label style, and the only
+    symptom is a live rating column that quietly stays empty.
     """
+    out: dict[tuple[str, str, str], str] = {}
+    for spec in (REPO / "runs").glob("keepalive-*.json"):
+        try:
+            entries = (json.loads(spec.read_text()) or {}).get("runs") or []
+        except (OSError, json.JSONDecodeError, AttributeError):
+            continue
+        for entry in entries:
+            label = entry.get("label")
+            if not label:
+                continue
+            out[(
+                str(entry["model"]).replace(".", "-"),
+                str(entry.get("reasoning", "default")),
+                str(entry.get("seed", 0)),
+            )] = str(label)
+    return out
+
+
+def label_to_log(name: str, effort: str, seed: object, labels: dict | None = None) -> str:
+    """Log stem for a variant, preferring the spec's own label."""
+    known = (labels or {}).get((name, effort, str(seed)))
+    if known:
+        return known
+    # Runs launched outside a spec still follow the historical naming.
     stem = {
         "deepseek-v4-flash-0423": "ds-flash-0423",
         "deepseek-v4-pro": "ds-pro",
@@ -229,6 +256,7 @@ def main() -> int:
             prev = {}
     prev_runs = prev.get("runs", {})
     lives = live_ratings()
+    labels = spec_labels()
 
     now = datetime.now(timezone.utc)
     print(f"CHESSBENCH STATUS  {now:%Y-%m-%d %H:%M UTC}")
@@ -267,7 +295,7 @@ def main() -> int:
         label = f"{name}/{effort}/s{seed}"
         rating, rd, provisional = rating_of(summary)
         if rating is None and status == "running":
-            live = lives.get(label_to_log(name, effort, seed))
+            live = lives.get(label_to_log(name, effort, seed, labels))
             if live:
                 rating, rd = live[0], live[1]
         tokens = int((ptok or 0) + (ctok or 0))
