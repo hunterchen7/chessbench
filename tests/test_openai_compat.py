@@ -307,8 +307,34 @@ def test_large_raw_response_audit_is_bounded_with_digest():
     assert len(model.last_provider_response_raw) < len(body)
 
 
-def test_ambiguous_502_is_not_retried(monkeypatch):
+def test_502_retries_with_exponential_backoff(monkeypatch):
     calls = 0
+    sleeps: list[float] = []
+
+    def respond(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        if calls < 3:
+            raise _http_error(502)
+        return _Response(
+            {
+                "choices": [{"message": {"content": "e2e4"}}],
+                "usage": {"prompt_tokens": 7, "completion_tokens": 3, "cost": 0.0},
+            }
+        )
+
+    monkeypatch.setattr("urllib.request.urlopen", respond)
+    monkeypatch.setattr("time.sleep", sleeps.append)
+    model = OpenRouterModel("test/model", api_key="test")
+
+    assert model.chat([{"role": "user", "content": "move"}]) == "e2e4"
+    assert calls == 3
+    assert sleeps == [2.0, 4.0]
+
+
+def test_persistent_502_stops_after_retry_budget(monkeypatch):
+    calls = 0
+    sleeps: list[float] = []
 
     def fail(*_args, **_kwargs):
         nonlocal calls
@@ -316,11 +342,13 @@ def test_ambiguous_502_is_not_retried(monkeypatch):
         raise _http_error(502)
 
     monkeypatch.setattr("urllib.request.urlopen", fail)
+    monkeypatch.setattr("time.sleep", sleeps.append)
     model = OpenRouterModel("test/model", api_key="test")
 
-    with pytest.raises(ModelError, match="automatic retry disabled"):
+    with pytest.raises(ModelError, match="rejected after 4 safe retries"):
         model.chat([{"role": "user", "content": "move"}])
-    assert calls == 1
+    assert calls == 4
+    assert sleeps == [2.0, 4.0, 8.0]
 
 
 def test_503_honors_retry_after_then_records_response(monkeypatch):

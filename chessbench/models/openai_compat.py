@@ -23,10 +23,15 @@ from typing import TypedDict, cast
 from ..response_protocols import ResponseFormat
 from ..types import Message
 
-# OpenRouter explicitly documents Retry-After for these rejection states. Other
-# 5xx responses and transport failures are outcome-ambiguous: the provider may
-# have completed and charged the generation before the response was lost.
-_SAFE_RETRY_STATUS = {429, 503}
+# OpenRouter explicitly documents Retry-After for rejection states such as 429
+# and 503. Provider gateways also use the rest of the 5xx range for transient
+# upstream failures (most commonly 502/504). Those responses are retryable by
+# operator policy: a provider may have completed an ambiguous generation, but a
+# bounded exponential retry is preferable to killing a durable benchmark run.
+def _retryable_http_status(status: int) -> bool:
+    return status == 429 or 500 <= status < 600
+
+
 _MAX_RAW_AUDIT_BYTES = 256 * 1024
 _SENSITIVE_RESPONSE_HEADERS = {
     "authorization",
@@ -505,14 +510,13 @@ class _OpenAICompatModel:
         )
 
     def _post(self, data: bytes, headers: dict[str, str]) -> str:
-        """POST without silently duplicating an outcome-ambiguous generation.
+        """POST with bounded retries for transient provider failures.
 
-        Only explicit 429/503 rejections and truncated streams are retried. A
-        truncated stream is unambiguous -- it delivered no completion, so there
-        is no successful outcome a retry could duplicate. A timeout, connection
-        reset, or other server error may instead have happened *after* model
-        inference, and OpenRouter exposes no request idempotency key, so those
-        stop the durable cell for an operator-visible resume decision.
+        HTTP 429 and 5xx gateway/provider responses use exponential backoff (or
+        Retry-After when supplied). A truncated stream is also retried because
+        it delivered no completion. Transport failures remain operator-visible:
+        OpenRouter exposes no request idempotency key, so a lost connection may
+        have happened after inference without any HTTP rejection to audit.
         """
         req = urllib.request.Request(
             f"{self._base_url}/chat/completions", data=data, headers=headers
@@ -569,15 +573,8 @@ class _OpenAICompatModel:
             except urllib.error.HTTPError as e:
                 detail = e.read().decode("utf-8", "replace")
                 self._capture_http_response(e, detail, status=e.code)
-                if e.code not in _SAFE_RETRY_STATUS:
-                    qualifier = (
-                        " outcome may be ambiguous; automatic retry disabled;"
-                        if e.code >= 500
-                        else ""
-                    )
-                    raise ModelError(
-                        f"{self._model}: HTTP {e.code}:{qualifier} {detail}"
-                    ) from e
+                if not _retryable_http_status(e.code):
+                    raise ModelError(f"{self._model}: HTTP {e.code}: {detail}") from e
                 last = e
                 value = e.headers.get("Retry-After") if e.headers else None
                 if value is not None:
@@ -595,7 +592,7 @@ class _OpenAICompatModel:
                 delay = (
                     min(60.0, retry_after)
                     if retry_after is not None
-                    else min(8.0, 0.7 * (2**attempt))
+                    else min(60.0, 2.0 * (2**attempt))
                 )
                 time.sleep(delay)
         if isinstance(last, StreamTruncatedError):
