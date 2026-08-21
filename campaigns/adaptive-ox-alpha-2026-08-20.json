@@ -1,0 +1,76 @@
+{
+ "schema": "chessbench.adaptive_keepalive_spec.v1",
+ "name": "adaptive-ox-alpha-2026-08-20",
+ "description": "OpenRouter Ox Alpha free stealth preview: every supported reasoning effort, three canonical seeds, route-only Stealth.",
+ "defaults": {
+  "model": "ox-alpha",
+  "target_rd": 77,
+  "min_puzzles": 50,
+  "max_puzzles": 100,
+  "max_output_tokens": 131072,
+  "request_timeout": 900,
+  "request_total_timeout": 3600,
+  "live_sync_every": 5,
+  "db": "runs/chessbench.db",
+  "out_dir": "runs/exports",
+  "provider_only": ["Stealth"],
+  "no_provider_fallbacks": true,
+  "require_provider_parameters": true
+ },
+ "runs": [
+  {
+   "label": "ox-alpha-low-s0",
+   "run_id": "2183357f03484b58ab92bff5abb6183e",
+   "reasoning": "low",
+   "seed": 0
+  },
+  {
+   "label": "ox-alpha-low-s1",
+   "run_id": "7f4d85b6c51746788e501e6fb4421ebd",
+   "reasoning": "low",
+   "seed": 1
+  },
+  {
+   "label": "ox-alpha-low-s2",
+   "run_id": "35c7d6e202fa45d3b855e5e3aadf6d1d",
+   "reasoning": "low",
+   "seed": 2
+  },
+  {
+   "label": "ox-alpha-high-s0",
+   "run_id": "bbf9821478e349a0a4305486c0ca0d5c",
+   "reasoning": "high",
+   "seed": 0
+  },
+  {
+   "label": "ox-alpha-high-s1",
+   "run_id": "7f071c47160749d4b73f840da9f0f7f6",
+   "reasoning": "high",
+   "seed": 1
+  },
+  {
+   "label": "ox-alpha-high-s2",
+   "run_id": "73ed43239dac4a4b84cfa65f77c5f5f7",
+   "reasoning": "high",
+   "seed": 2
+  },
+  {
+   "label": "ox-alpha-max-s0",
+   "run_id": "3cddf20ba9614d388add99b6203b01a0",
+   "reasoning": "max",
+   "seed": 0
+  },
+  {
+   "label": "ox-alpha-max-s1",
+   "run_id": "8860ad94084e43f6a3148ca93f84c60c",
+   "reasoning": "max",
+   "seed": 1
+  },
+  {
+   "label": "ox-alpha-max-s2",
+   "run_id": "d93722e5bb2e46eba77a133e47770134",
+   "reasoning": "max",
+   "seed": 2
+  }
+ ]
+}
