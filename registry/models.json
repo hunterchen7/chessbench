@@ -289,6 +289,15 @@
    "enabled": true
   },
   {
+   "label": "ox-alpha",
+   "provider": "openrouter",
+   "model_id": "stealth/ox-alpha",
+   "display_name": "",
+   "family": "stealth",
+   "notes": "OpenRouter Ox Alpha stealth preview (2026-08-20; free; mandatory reasoning; native low/high/max efforts; 131,072 max output tokens)",
+   "enabled": true
+  },
+  {
    "label": "qwen-2.5-7b-instruct",
    "provider": "openrouter",
    "model_id": "qwen/qwen-2.5-7b-instruct",
